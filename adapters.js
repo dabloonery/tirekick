@@ -1,0 +1,159 @@
+// Second Look — site adapters.
+// Each adapter turns a results page into a list of listings in one shared shape:
+//   { id, site, title, priceText, price, url, imageUrl, raw, el }
+// Selectors are deliberately layered (newest layout first, then older ones,
+// then a generic fallback) because both sites change their markup without notice.
+// If a site stops working, this is the file to fix. See README "When it breaks".
+
+(() => {
+  const SL = (window.SecondLook = window.SecondLook || {});
+
+  // ---------- shared helpers ----------
+
+  SL.parsePrice = (text) => {
+    if (!text) return null;
+    // First money-looking number: "$1,249.99", "$45 to $60", "US $20.00"
+    const m = text.replace(/\u00a0/g, " ").match(/\$\s?([\d,]+(?:\.\d{1,2})?)/);
+    if (!m) return null;
+    const n = parseFloat(m[1].replace(/,/g, ""));
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const firstText = (root, selectors) => {
+    for (const sel of selectors) {
+      const node = root.querySelector(sel);
+      const t = node?.textContent?.trim();
+      if (t) return t;
+    }
+    return "";
+  };
+
+  const firstImage = (root) => {
+    const img = root.querySelector("img");
+    if (!img) return "";
+    return img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("data-defer-load") || "";
+  };
+
+  const squash = (s, max = 300) => (s || "").replace(/\s+/g, " ").trim().slice(0, max);
+
+  // ---------- eBay ----------
+  // 2025+ layout: li.s-card. Older layout: li.s-item. Both still appear in guides.
+
+  SL.extractEbay = (root = document) => {
+    const cards = root.querySelectorAll("li.s-card, li.s-item");
+    const out = [];
+    const seen = new Set();
+    cards.forEach((card) => {
+      if (card.classList.contains("srp-river-answer")) return;
+      const link = card.querySelector('a[href*="/itm/"]');
+      if (!link) return;
+      const url = link.href || link.getAttribute("href");
+      const itemId = (url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/) || [])[1] || url;
+      if (seen.has(itemId)) return;
+      seen.add(itemId);
+
+      let title = firstText(card, [".s-card__title", ".s-item__title", '[role="heading"]', "h3"]) || link.textContent;
+      title = squash(title.replace(/^New Listing/i, "").replace(/Opens in a new window or tab$/i, ""), 160);
+      if (!title || /^shop on ebay$/i.test(title)) return;
+
+      const priceText = squash(firstText(card, [".s-card__price", ".s-item__price"]) || (card.textContent.match(/\$\s?[\d,]+(?:\.\d{2})?/) || [""])[0], 60);
+
+      out.push({
+        site: "ebay",
+        title,
+        priceText,
+        price: SL.parsePrice(priceText),
+        url,
+        imageUrl: firstImage(card),
+        raw: squash(card.innerText || card.textContent),
+        el: card,
+      });
+    });
+    return out;
+  };
+
+  SL.ebayQuery = () => new URLSearchParams(location.search).get("_nkw") || "";
+
+  // ---------- Facebook Marketplace ----------
+  // FB class names are generated and change constantly, so this adapter avoids
+  // them entirely. Every listing card is a link to /marketplace/item/<id>; we read
+  // the visible text lines inside that link instead.
+
+  SL.extractFacebook = (root = document) => {
+    const links = root.querySelectorAll('a[href*="/marketplace/item/"]');
+    const out = [];
+    const seen = new Set();
+    links.forEach((a) => {
+      const href = a.getAttribute("href") || "";
+      const itemId = (href.match(/\/marketplace\/item\/(\d+)/) || [])[1];
+      if (!itemId || seen.has(itemId)) return;
+      seen.add(itemId);
+
+      const lines = (a.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean);
+      if (!lines.length) return;
+      const priceLine = lines.find((l) => /\$\s?[\d,]|^free$/i.test(l)) || "";
+      const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l));
+      const title = squash(rest[0] || "", 160);
+      if (!title) return;
+
+      out.push({
+        site: "facebook",
+        title,
+        priceText: priceLine,
+        price: /^free$/i.test(priceLine) ? 0 : SL.parsePrice(priceLine),
+        url: new URL(href, location.origin).href.split("?")[0],
+        imageUrl: firstImage(a),
+        raw: squash(lines.join(" | ")),
+        el: a,
+      });
+    });
+    return out;
+  };
+
+  SL.facebookQuery = () => new URLSearchParams(location.search).get("query") || "";
+
+  // ---------- pick the adapter for this page ----------
+
+  SL.currentSite = () => {
+    if (location.hostname === "www.ebay.com" && location.pathname.startsWith("/sch/")) return "ebay";
+    if (location.hostname === "www.facebook.com" && location.pathname.startsWith("/marketplace")) return "facebook";
+    return null;
+  };
+
+  SL.extract = () => {
+    const site = SL.currentSite();
+    const items = site === "ebay" ? SL.extractEbay() : site === "facebook" ? SL.extractFacebook() : [];
+    return items.map((it, i) => ({ ...it, id: i + 1 }));
+  };
+
+  SL.detectQuery = () => {
+    const site = SL.currentSite();
+    return site === "ebay" ? SL.ebayQuery() : site === "facebook" ? SL.facebookQuery() : "";
+  };
+
+  // ---------- market reference from eBay sold listings ----------
+
+  const quantile = (sorted, q) => {
+    const pos = (sorted.length - 1) * q;
+    const lo = Math.floor(pos);
+    const hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  };
+
+  SL.summarizeSold = (html) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const prices = SL.extractEbay(doc)
+      .map((it) => it.price)
+      .filter((p) => p != null && p > 0)
+      .sort((a, b) => a - b);
+    if (prices.length < 5) return null; // too few sales to trust
+    const r = (n) => Math.round(n);
+    return {
+      n: prices.length,
+      median: r(quantile(prices, 0.5)),
+      p25: r(quantile(prices, 0.25)),
+      p75: r(quantile(prices, 0.75)),
+      currency: "$",
+    };
+  };
+})();

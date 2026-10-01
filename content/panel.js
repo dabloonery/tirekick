@@ -75,7 +75,9 @@
   // ---------- panel shell (shadow DOM keeps site CSS out) ----------
 
   const host = h("div", { id: "second-look-host" });
-  host.style.cssText = "position:fixed;right:0;bottom:20px;z-index:2147483646;";
+  // The host's box covers the whole drawer area even when the panel is tucked away, so it must not
+  // take clicks itself: only the tab and the open panel do (see .tab / .open .panel below).
+  host.style.cssText = "position:fixed;right:0;bottom:20px;z-index:2147483646;pointer-events:none;";
   const root = host.attachShadow({ mode: "open" });
   root.innerHTML = `<style>
     :host { all: initial; }
@@ -91,11 +93,12 @@
     .drawer { display:flex; align-items:flex-end; gap:0; transform:translateX(calc(var(--w) + var(--gap)));
       transition:transform .38s cubic-bezier(.22,.8,.3,1); }
     .open .drawer { transform:none; }
-    .panel { visibility:hidden; transition:visibility 0s .4s; }
-    .open .panel { visibility:visible; transition-delay:0s; }
+    .wrap, .drawer { pointer-events:none; }
+    .panel { visibility:hidden; pointer-events:none; transition:visibility 0s .4s; }
+    .open .panel { visibility:visible; pointer-events:auto; transition-delay:0s; }
 
     .tab { position:relative; flex:none; display:flex; flex-direction:column; align-items:center; gap:10px; width:40px; padding:16px 0 18px; margin-bottom:8px;
-      background:var(--grad); color:#fff; border:0; border-radius:20px 0 0 20px; cursor:pointer; overflow:visible;
+      background:var(--grad); color:#fff; border:0; border-radius:20px 0 0 20px; cursor:pointer; overflow:visible; pointer-events:auto;
       box-shadow:-4px 6px 16px rgba(70,60,200,.4); transition:width .2s cubic-bezier(.22,.8,.3,1), filter .2s, opacity .2s; }
     .tab:hover { width:48px; filter:brightness(1.1); }
     .open .tab { width:0; padding:0; opacity:0; pointer-events:none; box-shadow:none; overflow:hidden; }
@@ -254,6 +257,7 @@
 
   const $ = (sel) => root.querySelector(sel);
   const wrap = $(".wrap");
+  const panel = $(".panel");
   const countEl = $(".count");
   const statusEl = $(".status");
   const marketEl = $(".market");
@@ -379,7 +383,9 @@
       .second-look-sticker:hover .sl-pop { display:block; }
       .second-look-sticker.has-chip .sl-pop { margin-top:28px; }
       .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font-size:13px; }
-      .second-look-sticker .sl-flags { margin-top:6px; color:#5A6479; }`;
+      .second-look-sticker .sl-flags { margin-top:6px; color:#5A6479; }
+      .second-look-flash { outline:3px solid #5B3DF5 !important; outline-offset:3px; border-radius:6px; animation:sl-flash 2s ease-out both; }
+      @keyframes sl-flash { 0%, 60% { outline-color:#5B3DF5; } 100% { outline-color:transparent; } }`;
     document.head.append(st);
   };
 
@@ -519,9 +525,19 @@
       });
   };
 
+  // Scroll to the card and outline it for a moment. If the open panel would cover it, tuck the
+  // panel away (the tab stays, one click brings it back) so you can actually see the listing.
   const focusCard = (it) => {
     if (!it.el?.isConnected) return window.open(it.url, "_blank", "noopener");
-    it.el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const card = stickerHost(it.el);
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    const c = card.getBoundingClientRect();
+    if (wrap.classList.contains("open") && c.right > panel.getBoundingClientRect().left) showOpen(false);
+    ensureStickerStyles();
+    card.classList.remove("second-look-flash");
+    void card.offsetWidth; // restart the animation if it's still running
+    card.classList.add("second-look-flash");
+    setTimeout(() => card.classList.remove("second-look-flash"), 2200);
   };
 
   const runPhotoCheck = async (it, box, btn) => {

@@ -15,6 +15,7 @@ const DEFAULTS = {
   visionModel: "moondream",
   batchSize: 10,
   useSoldComps: true,
+  showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
 };
 
 async function getSettings() {
@@ -346,6 +347,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.local.get(null);
   await chrome.storage.local.set({ ...DEFAULTS, ...current });
   await chrome.storage.local.remove("soldCooldownUntil"); // a fresh install/update starts with no pause
+  await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
@@ -356,7 +358,35 @@ chrome.runtime.onInstalled.addListener(async () => {
   });
 });
 
-// ---------- Nothing runs on eBay/Facebook until you ask ----------
+// ---------- The side tab ----------
+// With "showTab" on, the page scripts are registered to load on eBay and Facebook pages.
+// With it off, nothing runs there until you click the toolbar icon (the gentlest option).
+
+const AUTO_ID = "second-look-auto";
+
+async function syncAutoScripts() {
+  const { showTab } = await getSettings();
+  const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [AUTO_ID] });
+  if (showTab && !existing.length) {
+    await chrome.scripting.registerContentScripts([
+      {
+        id: AUTO_ID,
+        matches: ["https://www.ebay.com/sch/*", "https://www.ebay.com/itm/*", "https://www.facebook.com/*"],
+        js: ["content/adapters.js", "content/panel.js"],
+        runAt: "document_idle",
+        persistAcrossSessions: true,
+      },
+    ]);
+  } else if (!showTab && existing.length) {
+    await chrome.scripting.unregisterContentScripts({ ids: [AUTO_ID] });
+  }
+}
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
+});
+chrome.runtime.onStartup.addListener(() => syncAutoScripts().catch(() => {}));
+
+// ---------- Nothing runs on eBay/Facebook until you ask (when the tab is off) ----------
 // No content scripts are declared in the manifest, so page loads are untouched.
 // Clicking the toolbar icon (or the right-click item) injects the scripts on demand.
 
@@ -373,9 +403,8 @@ async function ensureInjected(tabId) {
 
 async function openPanel(tabId) {
   try {
-    const wasThere = await ensureInjected(tabId);
-    // First click injects and shows the panel; later clicks toggle it.
-    if (wasThere) await chrome.scripting.executeScript({ target: { tabId }, func: () => window.dispatchEvent(new CustomEvent("second-look-toggle")) });
+    await ensureInjected(tabId);
+    await chrome.scripting.executeScript({ target: { tabId }, func: () => window.dispatchEvent(new CustomEvent("second-look-toggle")) });
   } catch (e) {
     console.warn("[Second Look] can't open on this page:", e.message); // not an eBay/Facebook page
   }

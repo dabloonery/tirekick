@@ -72,23 +72,30 @@ async function anthropicMessage({ system, content, schema, maxTokens = 4096 }) {
     model: anthropicModel,
     max_tokens: maxTokens,
     messages: [{ role: "user", content }],
-    output_config: { effort: "low" },
-    fallbacks: "default", // server-side fallback if a safety classifier declines the request
+    output_config: {},
   };
+  // Effort and server-side fallback exist only on the 5-series models; Haiku 4.5 rejects them.
+  const isFiveSeries = /^claude-(opus|sonnet|fable|mythos)-5/.test(anthropicModel);
+  if (isFiveSeries) {
+    body.output_config.effort = "low";
+    body.fallbacks = "default"; // fallback if a safety classifier declines the request
+  }
   if (system) body.system = system;
   if (schema) body.output_config.format = { type: "json_schema", schema };
+
+  const headers = {
+    "Content-Type": "application/json",
+    "x-api-key": anthropicKey,
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+  };
+  if (isFiveSeries) headers["anthropic-beta"] = "server-side-fallback-2026-07-01";
 
   let res;
   try {
     res = await fetch(`${anthropicUrl}/v1/messages`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "server-side-fallback-2026-07-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
+      headers,
       body: JSON.stringify(body),
     });
   } catch (e) {

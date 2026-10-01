@@ -110,7 +110,12 @@ async function rankBatch({ items, query, market }) {
       { role: "user", content: `${marketLine}\n\nListings:\n${listingText}` },
     ],
   });
-  const parsed = JSON.parse(content);
+  let parsed;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new Error("The model returned something unreadable. Try again, or lower \"Listings per request\" in settings.");
+  }
   return parsed.items || [];
 }
 

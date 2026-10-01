@@ -1,14 +1,25 @@
 # Second Look
 
 A browser extension that scans an eBay or Facebook Marketplace search results page,
-ranks every listing with a model running on your own laptop (Ollama), and puts a
-score sticker on each card. Optional: compare prices against recent eBay sold
+ranks every listing with a language model (the Claude API, or Ollama on your own
+laptop), and puts a score sticker on each card. Optional: compare prices against recent eBay sold
 listings, and ask a vision model to look at a listing photo.
 
-Nothing leaves your computer except one ordinary eBay sold-listings search per scan
+Listing titles and card text go to whichever model provider you pick; with Ollama
+nothing leaves your computer except one ordinary eBay sold-listings search per scan
 (turn that off in settings if you like).
 
-## Setup (CachyOS, about 30 minutes, mostly downloads)
+## Quick start (Claude API, about 5 minutes)
+
+1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
+   Developer mode, click **Load unpacked**, pick this folder.
+2. Open the extension's options, paste a Claude API key (console.anthropic.com),
+   and save. The default model is `claude-opus-5-5`; `claude-haiku-4-5` is cheaper.
+3. Search eBay or Facebook Marketplace and press **Scan this page**.
+
+## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
+
+Choose "Ollama (local)" as the provider in settings, then:
 
 1. **Install Ollama with NVIDIA support and start it**
    ```
@@ -44,9 +55,10 @@ Nothing leaves your computer except one ordinary eBay sold-listings search per s
 | `manifest.json` | Permissions and which pages the scripts run on |
 | `content/adapters.js` | Reads listings off each site into one shared shape; computes the sold-price median |
 | `content/panel.js` | The panel, the scan loop, the stickers on cards |
-| `background.js` | Talks to Ollama, fetches photos and eBay sold results; holds the ranking prompt |
+| `background.js` | Talks to Claude or Ollama, fetches photos and eBay sold results; holds the ranking prompt |
 | `options/` | Settings page |
 
+Both providers sit behind `rankBatch` and `checkPhoto`, so adding another is small.
 The ranking prompt (`RANK_SYSTEM` in `background.js`) is the part most worth tuning.
 
 ## When it breaks

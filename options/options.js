@@ -1,4 +1,4 @@
-const FIELDS = ["ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps"];
+const FIELDS = ["provider", "anthropicKey", "anthropicModel", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps"];
 const msg = document.getElementById("msg");
 
 async function load() {
@@ -8,7 +8,16 @@ async function load() {
     if (el.type === "checkbox") el.checked = !!s[f];
     else el.value = s[f] ?? "";
   }
+  showProvider();
 }
+
+function showProvider() {
+  const anth = document.getElementById("provider").value === "anthropic";
+  document.getElementById("anthropicBox").hidden = !anth;
+  document.getElementById("ollamaBox").hidden = anth;
+  document.getElementById("test").hidden = anth;
+}
+document.getElementById("provider").addEventListener("change", showProvider);
 
 document.getElementById("save").addEventListener("click", async () => {
   const out = {};

@@ -224,7 +224,7 @@
       const size = Math.max(1, settings.batchSize | 0);
       for (let i = 0; i < items.length; i += size) {
         const batch = items.slice(i, i + size);
-        setStatus(`Ranking ${Math.min(i + size, items.length)} of ${items.length} listings with ${settings.textModel}…`);
+        setStatus(`Ranking ${Math.min(i + size, items.length)} of ${items.length} listings with ${settings.provider === "anthropic" ? settings.anthropicModel : settings.textModel}…`);
         const payload = batch.map(({ el, ...rest }) => rest); // DOM nodes can't be sent
         const results = await send("rankBatch", { items: payload, query, market });
         for (const r of results) {

@@ -257,34 +257,73 @@ function bufferToBase64(buf) {
   return btoa(binary);
 }
 
+const PHOTO_SCHEMA = {
+  type: "object",
+  properties: {
+    summary: { type: "string" },
+    photoType: { type: "string", enum: ["real", "stock", "unclear"] },
+    condition: { type: "string", enum: ["good", "fair", "poor", "unknown"] },
+    matchesTitle: { type: "string", enum: ["yes", "partly", "no", "unknown"] },
+    concerns: { type: "array", items: { type: "string" } },
+  },
+  required: ["summary", "photoType", "condition", "matchesTitle", "concerns"],
+  additionalProperties: false,
+};
+
+const photoPrompt = (title) => `${title ? `The listing title is: "${title}". ` : ""}Look at this listing photo and report only what is visible; do not guess.
+summary: two short sentences on what the photo shows and anything notable.
+photoType: real = a genuine photo of the actual item for sale; stock = a catalog, marketing or internet image rather than the actual item; unclear = cannot tell.
+condition: good = clean, no visible damage; fair = normal wear; poor = visible damage, heavy wear or missing parts; unknown = cannot tell.
+matchesTitle: yes / partly / no / unknown, comparing the photo with the title.
+concerns: up to 4 short phrases (e.g. "cracked screen", "watermark", "different model"), empty if none.`;
+
+// How much a photo check moves the rating. Fixed rules, not model-chosen numbers, so it is consistent.
+function photoAdjust(p) {
+  let adjust = 0;
+  const why = [];
+  if (p.matchesTitle === "no") (adjust -= 25), why.push("doesn't match the title");
+  else if (p.matchesTitle === "partly") (adjust -= 8), why.push("only partly matches the title");
+  if (p.photoType === "stock") (adjust -= 10), why.push("stock photo, not the actual item");
+  if (p.condition === "poor") (adjust -= 20), why.push("visible damage or heavy wear");
+  else if (p.condition === "fair") (adjust -= 5), why.push("normal wear");
+  else if (p.condition === "good" && p.photoType === "real") (adjust += 5), why.push("real photo, looks clean");
+  return { adjust: Math.max(-40, Math.min(10, adjust)), why };
+}
+
 async function checkPhoto({ imageUrl, title }) {
   const { visionModel, provider } = await getSettings();
   const imgRes = await fetch(imageUrl);
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
   const b64 = bufferToBase64(await imgRes.arrayBuffer());
-  const prompt = `${title ? `The listing title is: "${title}". ` : ""}In 2-3 short sentences: what is in this photo, does it look like a real photo of a used item or a stock/catalog image, is any damage visible, and does it match the title?`;
+  const prompt = photoPrompt(title);
+  let text;
   if (provider === "anthropic") {
     const type = (imgRes.headers.get("content-type") || "").split(";")[0];
     const media_type = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type) ? type : "image/jpeg";
-    return anthropicMessage({
+    text = await anthropicMessage({
       maxTokens: 1024,
+      schema: PHOTO_SCHEMA,
       content: [
         { type: "image", source: { type: "base64", media_type, data: b64 } },
         { type: "text", text: prompt },
       ],
     });
+  } else {
+    text = await ollamaChat({
+      model: visionModel,
+      numCtx: 4096,
+      format: PHOTO_SCHEMA,
+      messages: [{ role: "user", content: prompt, images: [b64] }],
+    });
   }
-  return ollamaChat({
-    model: visionModel,
-    numCtx: 4096,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-        images: [b64],
-      },
-    ],
-  });
+  let p;
+  try {
+    p = JSON.parse(text);
+  } catch {
+    // Small local vision models sometimes ignore the format; keep their words, change no rating.
+    return { summary: text.trim(), photoType: "unclear", condition: "unknown", matchesTitle: "unknown", concerns: [], adjust: 0, why: [] };
+  }
+  return { ...p, concerns: p.concerns || [], ...photoAdjust(p) };
 }
 
 // ---------- eBay sold comps ----------

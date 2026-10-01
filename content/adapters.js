@@ -140,7 +140,7 @@
         seller: squash(firstText(document, [".x-sellercard-atf", '[data-testid="x-sellercard-atf"]']), 300),
         shipping: squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300),
         details: squash(firstText(document, [".x-about-this-item", '[data-testid="x-about-this-item"]']) || meta("og:description"), 1200),
-        imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^https?:/.test(u)).map(bigEbayImage).slice(0, 4),
+        imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(bigEbayImage).slice(0, 4),
         url: location.href.split("?")[0],
       };
     }

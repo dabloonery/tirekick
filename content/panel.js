@@ -7,13 +7,45 @@
   if (!SL || window.__secondLookPanel) return;
   window.__secondLookPanel = true;
 
+  // c = main color, c2 = lighter end of the badge gradient
   const VERDICT = {
-    great: { color: "#1F7A4D", label: "Great deal" },
-    good: { color: "#4F7D1F", label: "Worth a look" },
-    fair: { color: "#8A6D00", label: "Market price" },
-    pass: { color: "#6B7280", label: "Skip" },
-    suspicious: { color: "#B42318", label: "Suspicious" },
+    great: { color: "#059B5F", c2: "#2BD98A", label: "Great deal" },
+    good: { color: "#4E9A06", c2: "#9BDB2E", label: "Worth a look" },
+    fair: { color: "#D97706", c2: "#FBBF24", label: "Market price" },
+    pass: { color: "#5B6678", c2: "#94A3B8", label: "Skip" },
+    suspicious: { color: "#DC2626", c2: "#FB7185", label: "Suspicious" },
   };
+
+  // ---------- photo checks change the rating ----------
+  const clamp100 = (n) => Math.max(0, Math.min(100, n));
+  const RANK = { pass: 0, fair: 1, good: 2, great: 3 };
+  const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `\u2212${-n}` : "\u00b10");
+
+  // A photo can only pull a verdict down (or mark it suspicious), never talk it up.
+  const adjustedVerdict = (base, score, photos) => {
+    if (base === "suspicious") return base;
+    if (photos.some((p) => p.matchesTitle === "no")) return "suspicious";
+    const cap = score < 45 ? 0 : score < 60 ? 1 : score < 75 ? 2 : 3;
+    const rank = Math.min(RANK[base] ?? 1, cap);
+    return Object.keys(RANK).find((k) => RANK[k] === rank);
+  };
+
+  // obj is a scored listing (or the single-listing result): has score + verdict.
+  const applyPhotos = (obj, photos) => {
+    obj.baseScore ??= obj.score;
+    obj.baseVerdict ??= obj.verdict;
+    const adj = photos.map((p) => p.adjust || 0);
+    const worst = Math.min(...adj);
+    obj.photos = photos;
+    obj.photoAdjust = worst < 0 ? worst : Math.max(...adj);
+    obj.score = clamp100(obj.baseScore + obj.photoAdjust);
+    obj.verdict = adjustedVerdict(obj.baseVerdict, obj.score, photos);
+  };
+
+  const photoText = (p, label = "") =>
+    `${label}${p.summary}${p.concerns?.length ? ` Concerns: ${p.concerns.join(", ")}.` : ""}${
+      p.adjust ? ` Rating ${signed(p.adjust)} (${p.why.join("; ")}).` : ""
+    }`;
 
   const send = (type, payload) =>
     new Promise((resolve, reject) => {
@@ -38,95 +70,101 @@
   // ---------- panel shell (shadow DOM keeps site CSS out) ----------
 
   const host = h("div", { id: "second-look-host" });
-  host.style.cssText = "position:fixed;right:0;top:96px;z-index:2147483646;";
+  host.style.cssText = "position:fixed;right:0;bottom:20px;z-index:2147483646;";
   const root = host.attachShadow({ mode: "open" });
   root.innerHTML = `<style>
     :host { all: initial; }
     * { box-sizing: border-box; }
-    .wrap { --w: 380px; --ink:#1B2733; --paper:#FFFFFF; --soft:#F4F6F9; --rule:#E3E8EE; --muted:#5F6B7A; --accent:#2A5FBF;
+    .wrap { --w: 392px; --gap: 18px; --ink:#141B2D; --paper:#FFFFFF; --soft:#F1F3FA; --rule:#E2E6F2; --muted:#5A6479;
+      --accent:#5B3DF5; --accent2:#2D6BFF; --grad:linear-gradient(135deg,var(--accent),var(--accent2));
       font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
     @media (prefers-color-scheme: dark) {
-      .wrap { --ink:#E8EDF3; --paper:#18212B; --soft:#202B37; --rule:#2E3B49; --muted:#9AA7B5; --accent:#7FB0F0; }
+      .wrap { --ink:#EDF0FA; --paper:#161B2B; --soft:#1F2640; --rule:#2B3454; --muted:#9BA5C2; --accent:#8B73FF; --accent2:#5B9BFF; }
     }
 
-    /* the drawer slides in from the right edge; the tab stays visible when it's closed */
-    .drawer { display:flex; align-items:flex-start; transform:translateX(var(--w)); transition:transform .28s cubic-bezier(.2,.8,.2,1); }
+    /* bottom-right drawer: the tab hugs the edge, the panel springs out from it */
+    .drawer { display:flex; align-items:flex-end; gap:0; transform:translateX(calc(var(--w) + var(--gap)));
+      transition:transform .5s cubic-bezier(.34,1.35,.64,1); }
     .open .drawer { transform:none; }
-    .panel { visibility:hidden; transition:visibility 0s .28s; }
+    .panel { visibility:hidden; transition:visibility 0s .4s; }
     .open .panel { visibility:visible; transition-delay:0s; }
 
-    .tab { position:relative; display:flex; flex-direction:column; align-items:center; gap:8px; width:34px; padding:12px 0;
-      background:var(--accent); color:#fff; border:0; border-radius:12px 0 0 12px; cursor:pointer;
-      box-shadow:-2px 3px 12px rgba(20,30,50,.28); transition:width .15s, background .15s; }
-    .tab:hover { width:38px; }
-    .tab svg { width:18px; height:18px; }
-    .tab span { writing-mode:vertical-rl; font:700 12px/1 system-ui,sans-serif; letter-spacing:.06em; text-transform:uppercase; }
-    .count { position:absolute; top:-7px; left:-7px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:#2F9E6B; color:#fff;
-      font:700 11px/20px system-ui,sans-serif; text-align:center; box-shadow:0 0 0 2px var(--paper); }
-    .count.new { background:#E8890C; }
+    .tab { position:relative; display:flex; flex-direction:column; align-items:center; gap:10px; width:38px; padding:14px 0 16px; margin-bottom:6px;
+      background:var(--grad); color:#fff; border:0; border-radius:16px 0 0 16px; cursor:pointer;
+      box-shadow:-3px 6px 18px rgba(70,60,200,.45); transition:width .2s cubic-bezier(.34,1.56,.64,1), filter .2s; }
+    .tab:hover { width:46px; filter:brightness(1.1); }
+    .tab svg { width:20px; height:20px; }
+    .tab span { writing-mode:vertical-rl; font:800 12px/1 system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase; }
+    .count { position:absolute; top:-9px; left:-9px; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:#10B981; color:#fff;
+      font:800 11px/22px system-ui,sans-serif; text-align:center; box-shadow:0 0 0 3px var(--paper); }
+    .count.new { background:#F97316; animation:nudge 1.6s ease-in-out infinite; }
+    @keyframes nudge { 0%,100% { transform:scale(1); } 50% { transform:scale(1.18); } }
     .open .count { display:none; }
 
-    .panel { width:var(--w); max-height:calc(100vh - 128px); display:flex; flex-direction:column; overflow:hidden;
-      background:var(--paper); border:1px solid var(--rule); border-right:0; border-radius:14px 0 0 14px;
-      box-shadow:-6px 8px 30px rgba(20,30,50,.22); }
-    .head { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--rule); }
-    .logo { width:28px; height:28px; border-radius:9px; background:var(--accent); color:#fff; display:grid; place-items:center; flex:none; }
-    .logo svg { width:16px; height:16px; }
-    .head strong { font-size:15px; letter-spacing:-.01em; }
-    .head small { display:block; color:var(--muted); font-size:11px; }
+    .panel { width:var(--w); max-height:calc(100vh - 56px); display:flex; flex-direction:column; overflow:hidden; margin-right:var(--gap);
+      background:var(--paper); border-radius:22px; box-shadow:0 18px 50px rgba(20,27,45,.38), 0 0 0 1px var(--rule); }
+    .head { display:flex; align-items:center; gap:11px; padding:14px 14px 14px 16px; background:var(--grad); color:#fff; }
+    .logo { width:34px; height:34px; border-radius:12px; background:rgba(255,255,255,.22); display:grid; place-items:center; flex:none; }
+    .logo svg { width:19px; height:19px; }
+    .head strong { font-size:16px; letter-spacing:-.01em; }
+    .head small { display:block; opacity:.85; font-size:11px; }
     .head .grow { flex:1; min-width:0; }
-    .icon-btn { background:none; border:0; color:var(--muted); font-size:20px; line-height:1; cursor:pointer; padding:4px 8px; border-radius:8px; }
-    .icon-btn:hover { background:var(--soft); color:var(--ink); }
+    .icon-btn { background:rgba(255,255,255,.18); border:0; color:#fff; font-size:20px; line-height:1; cursor:pointer; width:30px; height:30px; border-radius:50%; transition:background .15s, transform .2s; }
+    .icon-btn:hover { background:rgba(255,255,255,.32); transform:translateX(2px); }
 
-    .controls { padding:12px 14px; display:grid; gap:10px; border-bottom:1px solid var(--rule); }
-    label { color:var(--muted); font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; }
-    input { width:100%; margin-top:4px; padding:8px 10px; border:1px solid var(--rule); border-radius:9px; background:var(--soft); color:var(--ink); font:inherit; }
-    input:focus { outline:2px solid var(--accent); outline-offset:0; background:var(--paper); }
-    .scan { background:var(--accent); color:#fff; border:0; border-radius:10px; padding:11px; font:700 13px/1 system-ui, sans-serif; cursor:pointer;
-      box-shadow:0 2px 6px rgba(42,95,191,.35); transition:transform .1s, filter .15s; }
-    .scan:hover:not(:disabled) { filter:brightness(1.08); }
-    .scan:active:not(:disabled) { transform:translateY(1px); }
-    .scan:disabled { opacity:.65; cursor:progress; box-shadow:none; }
+    .controls { padding:14px 16px; display:grid; gap:11px; }
+    label { color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+    input { width:100%; margin-top:5px; padding:10px 13px; border:2px solid transparent; border-radius:13px; background:var(--soft); color:var(--ink); font:inherit; transition:border-color .15s, background .15s; }
+    input:focus { outline:none; border-color:var(--accent); background:var(--paper); }
+    .scan { background:var(--grad); color:#fff; border:0; border-radius:999px; padding:13px; font:800 14px/1 system-ui, sans-serif; cursor:pointer;
+      box-shadow:0 6px 18px rgba(80,70,230,.45); transition:transform .15s cubic-bezier(.34,1.56,.64,1), filter .15s, box-shadow .15s; }
+    .scan:hover:not(:disabled) { transform:translateY(-2px); filter:brightness(1.08); box-shadow:0 10px 24px rgba(80,70,230,.5); }
+    .scan:active:not(:disabled) { transform:translateY(0) scale(.98); }
+    .scan:disabled { opacity:.7; cursor:progress; box-shadow:none; }
     .status { color:var(--muted); font-size:12px; min-height:1em; }
-    .status.err { color:#D92D20; background:rgba(217,45,32,.08); padding:6px 8px; border-radius:8px; }
-    .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:11px; height:11px; margin-right:7px; vertical-align:-1px;
-      border:2px solid var(--rule); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+    .status.err { color:#fff; background:#DC2626; padding:8px 11px; border-radius:12px; }
+    .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:12px; height:12px; margin-right:8px; vertical-align:-2px;
+      border:2.5px solid var(--rule); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .market { font-size:12px; color:var(--ink); }
-    .market:not(:empty) { background:var(--soft); padding:7px 9px; border-radius:8px; }
+    .market { font-size:12px; font-weight:600; }
+    .market:not(:empty) { background:var(--soft); padding:9px 12px; border-radius:12px; }
 
-    .list, .itemout { overflow:auto; }
-    .list:empty, .itemout:empty { display:none; }
-    .row { display:grid; grid-template-columns:50px 1fr; gap:12px; padding:12px 14px; border-bottom:1px solid var(--rule); }
-    .row:last-child { border-bottom:0; }
-    .list .row:hover { background:var(--soft); }
-    .tag { --p:50; --c:#666; width:46px; height:46px; border-radius:50%; position:relative; display:grid; place-items:center;
+    .list, .itemout { overflow:auto; padding:2px 12px 12px; min-height:0; }
+    .list:empty, .itemout:empty { display:none; padding:0; }
+    .row { display:grid; grid-template-columns:56px 1fr; gap:13px; padding:13px; margin-top:8px; background:var(--soft); border-radius:18px;
+      animation:rise .45s cubic-bezier(.2,.9,.3,1) both; animation-delay:calc(var(--i, 0) * 45ms); transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s; }
+    .list .row:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(20,27,45,.14); }
+    @keyframes rise { from { opacity:0; transform:translateY(12px) scale(.98); } to { opacity:1; transform:none; } }
+    .tag { --p:50; --c:#666; width:54px; height:54px; border-radius:50%; position:relative; display:grid; place-items:center;
       background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--rule) 0); }
-    .tag::before { content:""; position:absolute; inset:4px; border-radius:50%; background:var(--paper); }
-    .tag span { position:relative; font:800 15px/1 system-ui,sans-serif; color:var(--c); font-variant-numeric:tabular-nums; }
-    .title { background:none; border:0; padding:0; color:var(--ink); font:700 13px/1.35 system-ui, sans-serif; text-align:left; cursor:pointer; }
-    button.title:hover { text-decoration:underline; }
+    .tag::before { content:""; position:absolute; inset:5px; border-radius:50%; background:var(--paper); }
+    .tag span { position:relative; font:900 17px/1 system-ui,sans-serif; color:var(--c); font-variant-numeric:tabular-nums; }
+    .title { background:none; border:0; padding:0; color:var(--ink); font:800 13px/1.35 system-ui, sans-serif; text-align:left; cursor:pointer; }
+    button.title:hover { color:var(--accent); }
     .meta { color:var(--muted); font-size:12px; margin-top:2px; }
-    .reason { margin-top:5px; }
-    .flags { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
-    .flag { font-size:11px; padding:2px 8px; background:var(--soft); border-radius:999px; color:var(--muted); }
-    .actions { display:flex; gap:12px; margin-top:8px; font-size:12px; font-weight:600; }
+    .reason { margin-top:6px; }
+    .flags { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+    .flag { font-size:11px; font-weight:600; padding:3px 9px; background:var(--paper); border-radius:999px; color:var(--muted); }
+    .actions { display:flex; gap:14px; margin-top:9px; font-size:12px; font-weight:700; }
     .actions a, .actions button { color:var(--accent); background:none; border:0; padding:0; font:inherit; cursor:pointer; text-decoration:none; }
-    .actions a:hover, .actions button:hover { text-decoration:underline; }
-    .photo { margin-top:7px; font-size:12px; color:var(--muted); background:var(--soft); border-radius:8px; padding:7px 9px; }
+    .actions a:hover, .actions button:hover:not(:disabled) { text-decoration:underline; }
+    .photo { margin-top:8px; font-size:12px; color:var(--ink); background:var(--paper); border-radius:12px; padding:9px 11px; border-left:4px solid var(--accent); }
+    .photo.drop { border-left-color:#DC2626; }
     [hidden] { display:none !important; }
-    .sect { padding:10px 14px; border-top:1px solid var(--rule); font-size:12px; }
-    .sect ol { margin:5px 0 0; padding-left:18px; }
+    .sect { margin-top:8px; padding:12px 13px; background:var(--soft); border-radius:18px; font-size:12px; }
+    .sect ol { margin:6px 0 0; padding-left:18px; }
     .sect li { margin:3px 0; }
-    .offer { padding:10px 14px; border-top:1px solid var(--rule); font-size:13px; }
-    .offer b { color:var(--accent); }
+    .offer { margin-top:8px; padding:12px 14px; background:var(--grad); color:#fff; border-radius:18px; font-size:13px; font-weight:600; }
+    .offer b { font-size:16px; }
+    .adjust { margin-top:6px; font-size:12px; font-weight:700; color:#DC2626; }
+    .adjust.up { color:#059B5F; }
     button:focus-visible, input:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .scan, .busy .status::before { transition:none; animation:none; } }
+    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .scan, .row, .count, .busy .status::before { transition:none; animation:none; } }
   </style>
   <div class="wrap">
    <div class="drawer">
     <button class="tab" data-act="tab" aria-label="Open Second Look" title="Second Look">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
       <span>Second Look</span><i class="count" hidden></i>
     </button>
     <div class="panel">
@@ -193,20 +231,28 @@
     const st = document.createElement("style");
     st.id = "second-look-styles";
     st.textContent = `
-      .second-look-sticker { position:absolute; top:8px; left:8px; z-index:50; display:flex; align-items:center;
-        background:var(--sl-c); color:#fff; border-radius:999px; box-shadow:0 0 0 2px #fff, 0 3px 10px rgba(0,0,0,.4);
-        font:600 13px/1.15 system-ui,-apple-system,"Segoe UI",sans-serif; cursor:help; }
-      .second-look-sticker .sl-score { background:#fff; color:var(--sl-c); font-weight:800; font-size:18px;
-        min-width:40px; height:40px; margin:2px; border-radius:999px; display:grid; place-items:center; font-variant-numeric:tabular-nums; }
-      .second-look-sticker .sl-text { display:flex; flex-direction:column; padding:0 14px 0 8px; }
-      .second-look-sticker .sl-verdict { font-weight:800; font-size:14px; white-space:nowrap; }
-      .second-look-sticker .sl-sub { font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; opacity:.92; white-space:nowrap; }
-      .second-look-sticker .sl-pop { display:none; position:absolute; top:100%; left:0; margin-top:8px; width:240px;
-        background:#fff; color:#1E2A38; border-radius:10px; padding:10px 12px; font:400 12px/1.4 system-ui,sans-serif;
-        box-shadow:0 6px 20px rgba(0,0,0,.3); white-space:normal; }
+      .second-look-sticker { position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center;
+        padding:3px 14px 3px 3px; background:linear-gradient(135deg,var(--sl-c),var(--sl-c2)); color:#fff; border-radius:999px;
+        box-shadow:0 0 0 2.5px #fff, 0 6px 16px rgba(0,0,0,.38); cursor:help;
+        font:600 13px/1.15 system-ui,-apple-system,"Segoe UI",sans-serif; animation:sl-pop .45s cubic-bezier(.34,1.56,.64,1) both;
+        transition:transform .2s cubic-bezier(.34,1.56,.64,1); }
+      .second-look-sticker:hover { transform:scale(1.06); }
+      @keyframes sl-pop { from { transform:scale(.5); opacity:0; } to { transform:none; opacity:1; } }
+      .second-look-sticker .sl-score { background:#fff; color:var(--sl-c); font-weight:900; font-size:20px;
+        width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-variant-numeric:tabular-nums; }
+      .second-look-sticker .sl-text { display:flex; flex-direction:column; padding-left:10px; }
+      .second-look-sticker .sl-verdict { font-weight:900; font-size:15px; white-space:nowrap; text-shadow:0 1px 2px rgba(0,0,0,.25); }
+      .second-look-sticker .sl-sub { font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; opacity:.95; white-space:nowrap; }
+      .second-look-sticker .sl-chip { position:absolute; left:16px; top:100%; margin-top:-3px; display:flex; align-items:center; gap:4px;
+        padding:3px 9px; border-radius:999px; background:#141B2D; box-shadow:0 0 0 2px #fff; font-weight:800; font-size:11px; }
+      .second-look-sticker .sl-chip svg { width:12px; height:12px; }
+      .second-look-sticker .sl-pop { display:none; position:absolute; top:100%; left:0; margin-top:10px; padding-top:12px; width:250px;
+        background:#fff; color:#141B2D; border-radius:16px; padding:12px 14px; font:400 12px/1.45 system-ui,sans-serif;
+        box-shadow:0 12px 30px rgba(0,0,0,.35); white-space:normal; text-shadow:none; }
       .second-look-sticker:hover .sl-pop { display:block; }
-      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; }
-      .second-look-sticker .sl-flags { margin-top:6px; color:#5B6776; }`;
+      .second-look-sticker.has-chip .sl-pop { margin-top:28px; }
+      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font-size:13px; }
+      .second-look-sticker .sl-flags { margin-top:6px; color:#5A6479; }`;
     document.head.append(st);
   };
 
@@ -267,17 +313,25 @@
       el.setAttribute("data-second-look-pos", "1");
     }
     el.querySelector(":scope > .second-look-sticker")?.remove();
+    const CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+    let chip = null;
+    if (item.photoAdjust) {
+      chip = h("div", { class: "sl-chip", title: "Photo check" }, signed(item.photoAdjust));
+      chip.insertAdjacentHTML("afterbegin", CAMERA); // static markup, no page text involved
+    }
     const s = h(
       "div",
-      { class: "second-look-sticker", style: `--sl-c:${v.color}` },
+      { class: `second-look-sticker${chip ? " has-chip" : ""}`, style: `--sl-c:${v.color};--sl-c2:${v.c2}` },
       h("div", { class: "sl-score" }, String(item.score)),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), h("div", { class: "sl-sub" }, item.related === false ? "Not your search" : "Second Look score")),
+      chip,
       h(
         "div",
         { class: "sl-pop" },
         h("b", {}, `${item.score} out of 100: ${v.label}`),
         item.related === false ? h("div", { class: "sl-flags" }, "Not what you searched for, scored on the deal alone.") : null,
         item.reason || "",
+        item.photoAdjust ? h("div", { class: "sl-flags" }, `Photo check ${signed(item.photoAdjust)}: ${(item.photos || []).flatMap((p) => p.why).join("; ") || "see panel"}`) : null,
         item.flags?.length ? h("div", { class: "sl-flags" }, item.flags.join(" · ")) : null
       )
     );
@@ -286,18 +340,24 @@
 
   // ---------- results list ----------
 
+  const photoBox = (it) => {
+    const box = h("div");
+    (it.photos || []).forEach((p) => box.append(h("div", { class: p.adjust < 0 ? "photo drop" : "photo" }, photoText(p))));
+    return box;
+  };
+
   const render = (items) => {
     listEl.replaceChildren();
     [...items]
       .filter((it) => it.score != null)
       .sort((a, b) => b.score - a.score)
-      .forEach((it) => {
+      .forEach((it, i) => {
         const v = VERDICT[it.verdict] || VERDICT.fair;
-        const photoBox = h("div");
+        const box = photoBox(it);
         const vsMarket = it.priceVsMarket != null ? ` · ${Math.round(it.priceVsMarket * 100)}% of sold median` : "";
         const row = h(
           "div",
-          { class: "row" },
+          { class: "row", style: `--i:${Math.min(i, 8)}` },
           h("div", { class: "tag", style: `--c:${v.color};--p:${it.score}`, "aria-label": `Score ${it.score}` }, h("span", {}, String(it.score))),
           h(
             "div",
@@ -310,9 +370,9 @@
               "div",
               { class: "actions" },
               h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open listing"),
-              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, photoBox, e.currentTarget) }, "Check photo") : null
+              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget) }, it.photos ? "Re-check photo" : "Check photo") : null
             ),
-            photoBox
+            box
           )
         );
         listEl.append(row);
@@ -328,11 +388,11 @@
     btn.disabled = true;
     box.replaceChildren(h("div", { class: "photo" }, "Looking at the photo…"));
     try {
-      const text = await send("checkPhoto", { imageUrl: it.imageUrl, title: it.title });
-      box.replaceChildren(h("div", { class: "photo" }, text.trim()));
+      applyPhotos(it, [await send("checkPhoto", { imageUrl: it.imageUrl, title: it.title })]);
+      stick(it);
+      render([...scored.values()]); // the score may have changed, so the order may too
     } catch (e) {
-      box.replaceChildren(h("div", { class: "photo" }, e.message));
-    } finally {
+      box.replaceChildren(h("div", { class: "photo drop" }, e.message));
       btn.disabled = false;
     }
   };
@@ -455,6 +515,8 @@
             flags: (r.flags || []).slice(0, 4),
             reason: r.reason,
           });
+          it.baseScore = it.score;
+          it.baseVerdict = it.verdict;
           stick(it);
           scored.set(keyOf(it.url), it);
         }
@@ -489,10 +551,11 @@
 
   const renderItem = (listing, r, market) => {
     const v = VERDICT[r.verdict] || VERDICT.fair;
-    const score = Math.max(0, Math.min(100, r.score | 0));
+    const score = clamp100(r.score | 0);
     const vs = market && listing.price != null && market.median > 0 ? ` · ${Math.round((listing.price / market.median) * 100)}% of sold median` : "";
     const questions = (r.questions || []).slice(0, 6);
     const photoBox = h("div");
+    (r.photos || []).forEach((p, i) => photoBox.append(h("div", { class: p.adjust < 0 ? "photo drop" : "photo" }, photoText(p, `Photo ${i + 1}: `))));
     const parts = [
       h(
         "div",
@@ -504,6 +567,7 @@
           h("div", { class: "title" }, `${v.label} (${score}/100)`),
           h("div", { class: "meta" }, `${listing.priceText || "no price"}${vs}`),
           h("div", { class: "reason" }, r.summary || ""),
+          r.photoAdjust ? h("div", { class: r.photoAdjust < 0 ? "adjust" : "adjust up" }, `Photo check ${signed(r.photoAdjust)} (was ${r.baseScore})`) : null,
           r.flags?.length ? h("div", { class: "flags" }, r.flags.slice(0, 5).map((f) => h("span", { class: "flag" }, f))) : null
         )
       ),
@@ -527,25 +591,33 @@
       );
     }
     if (listing.imageUrls?.length) {
-      const btn = h("button", { onclick: () => checkPhotos(listing, photoBox, btn) }, `Check ${Math.min(3, listing.imageUrls.length)} photo${listing.imageUrls.length > 1 ? "s" : ""}`);
+      const n = Math.min(3, listing.imageUrls.length);
+      const btn = h("button", { onclick: () => checkPhotos(listing, r, market, photoBox, btn) }, `${r.photos ? "Re-check" : "Check"} ${n} photo${n > 1 ? "s" : ""} (adjusts the score)`);
       parts.push(h("div", { class: "sect" }, h("div", { class: "actions" }, btn), photoBox));
     }
     itemEl.replaceChildren(...parts);
   };
 
-  const checkPhotos = async (listing, box, btn) => {
+  const checkPhotos = async (listing, r, market, box, btn) => {
     btn.disabled = true;
     box.replaceChildren();
+    const photos = [];
     for (const [i, url] of listing.imageUrls.slice(0, 3).entries()) {
       const line = h("div", { class: "photo" }, `Photo ${i + 1}: looking…`);
       box.append(line);
       try {
-        line.textContent = `Photo ${i + 1}: ${(await send("checkPhoto", { imageUrl: url, title: listing.title })).trim()}`;
+        const p = await send("checkPhoto", { imageUrl: url, title: listing.title });
+        photos.push(p);
+        line.textContent = photoText(p, `Photo ${i + 1}: `);
       } catch (e) {
         line.textContent = `Photo ${i + 1}: ${e.message}`;
+        line.classList.add("drop");
       }
     }
-    btn.disabled = false;
+    if (photos.length) {
+      applyPhotos(r, photos);
+      renderItem(listing, r, market); // redraw with the adjusted score
+    } else btn.disabled = false;
   };
 
   const analyze = async () => {
@@ -617,7 +689,15 @@
     say("Looking at the photo…");
     try {
       const title = SL.pageType() === "item" ? SL.extractItem().title : "";
-      say((await send("checkPhoto", { imageUrl, title })).trim());
+      const p = await send("checkPhoto", { imageUrl, title });
+      // If this photo belongs to a listing we've scored, the check counts toward its rating.
+      const hit = [...scored.values()].find((it) => it.imageUrl === imageUrl);
+      if (hit) {
+        applyPhotos(hit, [p]);
+        stick(hit);
+        render([...scored.values()]);
+      }
+      say(photoText(p) + (hit ? " Applied to this listing's score." : ""));
     } catch (e) {
       say(e.message, true);
     }

@@ -1,6 +1,6 @@
 // Second Look — on-page panel and scan flow.
 // Flow: extract listings -> (optional) get eBay sold prices -> rank in batches
-// with Ollama -> show ranked list + stickers on the cards themselves.
+// with the chosen model -> show ranked list + stickers on the cards themselves.
 
 (() => {
   const SL = window.SecondLook;
@@ -47,8 +47,13 @@
       p.adjust ? ` Rating ${signed(p.adjust)} (${p.why.join("; ")}).` : ""
     }`;
 
+  // After the extension is reloaded or updated, this copy of the script is cut off from it.
+  const alive = () => !!chrome.runtime?.id;
+  const STALE = "Second Look was updated. Reload this page to keep using it.";
+
   const send = (type, payload) =>
     new Promise((resolve, reject) => {
+      if (!alive()) return reject(new Error(STALE));
       chrome.runtime.sendMessage({ type, payload }, (res) => {
         if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
         res?.ok ? resolve(res.data) : reject(new Error(res?.error || "Unknown error"));
@@ -139,6 +144,7 @@
     .body::-webkit-scrollbar-button { display:none; height:0; }
     .row { display:grid; grid-template-columns:56px 1fr; gap:13px; padding:13px; margin-top:8px; background:var(--soft); border-radius:18px;
       animation:rise .45s cubic-bezier(.2,.9,.3,1) both; animation-delay:calc(var(--i, 0) * 45ms); transition:transform .2s cubic-bezier(.22,.8,.3,1), box-shadow .2s; }
+    .row.still { animation:none; }
     .list .row:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(20,27,45,.14); }
     @keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
     .tag { --p:50; --c:#666; width:54px; height:54px; border-radius:50%; position:relative; display:grid; place-items:center;
@@ -230,7 +236,6 @@
 
   const $ = (sel) => root.querySelector(sel);
   const wrap = $(".wrap");
-  const panel = $(".panel");
   const countEl = $(".count");
   const statusEl = $(".status");
   const marketEl = $(".market");
@@ -253,17 +258,21 @@
   };
 
   // Open/closed: the tab is always there; the panel slides out when you pull the tab.
-  const setOpen = (open) => {
+  let touched = false; // the user (or the toolbar icon) has opened/closed it on this page
+  const showOpen = (open) => {
     wrap.classList.toggle("open", open);
     $('[data-act="tab"]').setAttribute("aria-label", open ? "Tuck Second Look away" : "Open Second Look");
-    try {
-      chrome.storage.local.set({ panelOpen: open });
-    } catch {}
+  };
+  const setOpen = (open) => {
+    touched = true;
+    showOpen(open);
+    if (alive()) chrome.storage.local.set({ panelOpen: open }).catch(() => {});
   };
   const toggleOpen = () => setOpen(!wrap.classList.contains("open"));
   $('[data-act="tab"]').addEventListener("click", toggleOpen);
   $('[data-act="toggle"]').addEventListener("click", () => setOpen(false));
-  chrome.storage.local.get({ panelOpen: false }).then(({ panelOpen }) => setOpen(!!panelOpen));
+  // Restore last time's state, unless a click got in first (the toolbar icon injects and toggles at once).
+  chrome.storage.local.get({ panelOpen: false }).then(({ panelOpen }) => touched || showOpen(!!panelOpen));
 
   const setCount = (n) => {
     countEl.textContent = String(n);
@@ -304,34 +313,41 @@
 
   // Facebook recycles card elements as you scroll, which drops our stickers. Remember each
   // scored listing by its URL and put the sticker back when its card reappears.
-  const scored = new Map(); // key -> scored item
-  const seen = new Set(); // keys we've already sent for scoring, so a re-scan only does what's new
-  const keyOf = (url) => (url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/) || [])[1] || url.split("?")[0];
+  let scored = new Map(); // key -> scored item
+  let seen = new Set(); // keys already sent for scoring (or being scored), so a re-scan only does what's new
+  const keyOf = SL.keyOf;
+  const ITEM_LINK = 'a[href*="/marketplace/item/"]';
   const reapplyFacebook = () => {
     if (!scored.size || SL.currentSite() !== "facebook") return;
     document.querySelectorAll(ITEM_LINK).forEach((a) => {
-      const item = scored.get(keyOf(new URL(a.getAttribute("href"), location.origin).href));
-      if (!item) return;
-      const host = stickerHost(a);
-      if (host.querySelector(":scope > .second-look-sticker")) return;
-      item.el = a;
-      stick(item);
+      const key = keyOf(a.href);
+      // Cheap check first (no layout reads): is this card still wearing the right sticker?
+      const tagged = a.closest("[data-second-look]");
+      if (tagged?.dataset.secondLookKey === key && tagged.querySelector(":scope > .second-look-sticker")) return;
+      const item = scored.get(key);
+      if (item) {
+        item.el = a;
+        stick(item);
+      } else if (tagged && (tagged === a || tagged.querySelectorAll(ITEM_LINK).length === 1)) {
+        unstick(tagged); // a recycled card that now shows a listing we haven't scored
+      }
     });
   };
-  setInterval(reapplyFacebook, 1500);
+
+  const unstick = (el) => {
+    if (el.dataset.secondLookPos) el.style.position = "";
+    el.removeAttribute("data-second-look");
+    el.removeAttribute("data-second-look-key");
+    el.removeAttribute("data-second-look-pos");
+    el.querySelector(":scope > .second-look-sticker")?.remove();
+  };
 
   const clearStickers = () => {
-    scored.clear();
-    seen.clear();
-    document.querySelectorAll("[data-second-look]").forEach((el) => {
-      if (el.dataset.secondLookPos) el.style.position = "";
-      el.removeAttribute("data-second-look");
-      el.removeAttribute("data-second-look-pos");
-    });
+    scored = new Map();
+    seen = new Set();
+    document.querySelectorAll("[data-second-look]").forEach(unstick);
     document.querySelectorAll(".second-look-sticker").forEach((s) => s.remove());
   };
-
-  const ITEM_LINK = 'a[href*="/marketplace/item/"]';
 
   // Where the sticker goes. eBay cards are fine as they are. A Facebook card is a link that may be
   // inline or zero-height, so climb to the nearest real box that still holds only this one listing.
@@ -354,6 +370,7 @@
     const el = stickerHost(item.el);
     const v = VERDICT[item.verdict] || VERDICT.fair;
     el.setAttribute("data-second-look", item.verdict);
+    el.setAttribute("data-second-look-key", keyOf(item.url));
     if (getComputedStyle(el).position === "static") {
       el.style.position = "relative";
       el.setAttribute("data-second-look-pos", "1");
@@ -401,9 +418,10 @@
         const v = VERDICT[it.verdict] || VERDICT.fair;
         const box = photoBox(it);
         const vsMarket = it.priceVsMarket != null ? ` · ${Math.round(it.priceVsMarket * 100)}% of sold median` : "";
+        // Only rows appearing for the first time animate in; re-sorting shouldn't replay it for all.
         const row = h(
           "div",
-          { class: "row", style: `--i:${Math.min(i, 8)}` },
+          { class: it.shown ? "row still" : "row", style: `--i:${Math.min(i, 8)}` },
           h("div", { class: "tag", style: `--c:${v.color};--p:${it.score}`, "aria-label": `Score ${it.score}` }, h("span", {}, String(it.score))),
           h(
             "div",
@@ -421,6 +439,7 @@
             box
           )
         );
+        it.shown = true;
         listEl.append(row);
       });
   };
@@ -434,7 +453,7 @@
     btn.disabled = true;
     box.replaceChildren(h("div", { class: "photo" }, "Looking at the photo…"));
     try {
-      applyPhotos(it, [await send("checkPhoto", { imageUrl: it.imageUrl, title: it.title })]);
+      applyPhotos(it, [await send("checkPhoto", { imageUrl: SL.bigImage(it.imageUrl), title: it.title })]);
       stick(it);
       render([...scored.values()]); // the score may have changed, so the order may too
     } catch (e) {
@@ -449,19 +468,26 @@
 
   // On eBay the sold-listings search is made from the eBay page itself (same site, your cookies,
   // normal browser headers), like any request eBay's own pages make. From Facebook it has to go
-  // through the background script. Either way: cached, and paused if eBay pushes back.
-  const soldCache = new Map();
+  // through the background script. Either way the answer (just the summary, not the page) is
+  // remembered for a few hours across pages, and lookups pause for 30 minutes if eBay pushes back.
+  const SOLD_TTL_MS = 6 * 60 * 60 * 1000;
   const COOLDOWN_MS = 30 * 60 * 1000;
   const blockedPage = (html) =>
     /captcha|pardon our interruption|verify yourself|security measure/i.test(html.slice(0, 20000)) && !/s-card|s-item/.test(html);
 
-  const fetchSold = async (query) => {
+  const fetchSoldHtml = async (query) => {
     if (location.hostname !== "www.ebay.com") return send("fetchSoldHtml", { query });
-    const key = query.toLowerCase();
-    const hit = soldCache.get(key);
-    if (hit && Date.now() - hit.at < 15 * 60 * 1000) return hit.html;
+    const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_ipg=60`;
+    const res = await fetch(url, { credentials: "include", signal: AbortSignal.timeout(30000) });
+    return { status: res.status, html: res.ok ? await res.text() : "" };
+  };
 
-    const { soldCooldownUntil = 0 } = await chrome.storage.local.get("soldCooldownUntil");
+  // Resolves to a market summary, or null when there were too few sales to trust.
+  const soldMarket = async (query) => {
+    const key = query.trim().toLowerCase();
+    const { soldCache = {}, soldCooldownUntil = 0 } = await chrome.storage.local.get(["soldCache", "soldCooldownUntil"]);
+    const hit = soldCache[key];
+    if (hit && Date.now() - hit.at < SOLD_TTL_MS) return hit.market;
     if (Date.now() < soldCooldownUntil) {
       throw new Error(`Price lookups paused for ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min because eBay pushed back.`);
     }
@@ -469,13 +495,15 @@
       await chrome.storage.local.set({ soldCooldownUntil: Date.now() + COOLDOWN_MS });
       throw new Error(`${why} Paused price lookups for 30 minutes.`);
     };
-    const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_ipg=60`;
-    const res = await fetch(url, { credentials: "include" });
-    if (!res.ok) return pause(`eBay answered HTTP ${res.status}.`);
-    const html = await res.text();
+    const { status, html } = await fetchSoldHtml(query);
+    if (status === 403 || status === 429 || status === 503) return pause(`eBay answered ${status}.`);
+    if (!html) throw new Error(`eBay sold search failed (${status}).`);
     if (blockedPage(html)) return pause("eBay showed a verification page.");
-    soldCache.set(key, { at: Date.now(), html });
-    return html;
+    const market = SL.summarizeSold(html);
+    // Keep the cache small: drop expired entries, cap at 100 searches.
+    const fresh = Object.entries(soldCache).filter(([, v]) => Date.now() - v.at < SOLD_TTL_MS).slice(-99);
+    await chrome.storage.local.set({ soldCache: Object.fromEntries([...fresh, [key, { at: Date.now(), market }]]) });
+    return market;
   };
 
   let lastMarket = null;
@@ -484,7 +512,7 @@
     setStatus(`Checking recent eBay sales for "${query}"…`);
     let market = null;
     try {
-      market = SL.summarizeSold(await fetchSold(query));
+      market = await soldMarket(query);
     } catch (e) {
       console.warn("[Second Look] sold comps failed:", e);
       marketEl.textContent = e.message;
@@ -502,7 +530,7 @@
   const currentKeys = () => {
     const sel = SL.currentSite() === "facebook" ? ITEM_LINK : 'li.s-card a[href*="/itm/"], li.s-item a[href*="/itm/"]';
     const keys = new Set();
-    document.querySelectorAll(sel).forEach((a) => keys.add(keyOf(new URL(a.getAttribute("href"), location.origin).href)));
+    document.querySelectorAll(sel).forEach((a) => keys.add(keyOf(a.href)));
     return keys;
   };
 
@@ -518,7 +546,24 @@
     } else setCount(scored.size);
     resetBtn.hidden = !seen.size;
   };
-  setInterval(refreshPending, 2000);
+
+  // Run fn over the batches with at most `limit` in flight; one failed batch doesn't stop the rest.
+  const runBatches = async (batches, limit, fn) => {
+    const errors = [];
+    let next = 0;
+    const worker = async () => {
+      while (next < batches.length) {
+        const batch = batches[next++];
+        try {
+          await fn(batch);
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(limit, batches.length) }, worker));
+    return errors;
+  };
 
   const scan = async () => {
     if (scanning) return;
@@ -529,10 +574,11 @@
     try {
       const settings = await send("getSettings");
       // Only listings we haven't scored yet: scrolling loads more, and a re-scan adds just those.
-      const wanted = currentKeys();
+      // Cards the adapter skips (ads, "Shop on eBay") count as seen so they don't show as new.
+      const skipped = currentKeys();
       const items = SL.extract().filter((it) => !seen.has(keyOf(it.url)));
-      wanted.forEach((k) => seen.add(k));
-      items.forEach((it) => seen.add(keyOf(it.url)));
+      items.forEach((it) => skipped.delete(keyOf(it.url)));
+      skipped.forEach((k) => seen.add(k));
       if (!items.length) {
         setStatus(
           scored.size
@@ -542,22 +588,31 @@
         );
         return;
       }
+      items.forEach((it) => seen.add(keyOf(it.url)));
 
       const query = queryEl.value.trim();
       const market = await getMarket(settings, query);
       if (market) items.forEach((it) => (it.priceVsMarket = it.price != null && market.median > 0 ? it.price / market.median : null));
 
       const size = Math.max(1, settings.batchSize | 0);
-      for (let i = 0; i < items.length; i += size) {
-        const batch = items.slice(i, i + size);
-        setStatus(`Ranking ${Math.min(i + size, items.length)} of ${items.length} listings with ${settings.provider === "anthropic" ? settings.anthropicModel : settings.textModel}…`);
+      const batches = [];
+      for (let i = 0; i < items.length; i += size) batches.push(items.slice(i, i + size));
+      // The Claude API handles a few requests at once; a local Ollama model is fastest one at a time.
+      const parallel = settings.provider === "anthropic" ? 3 : 1;
+      const model = settings.provider === "anthropic" ? settings.anthropicModel : settings.textModel;
+      let done = 0;
+      const session = scored; // if you navigate away mid-scan, late answers belong to the old page
+      setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${model}…`);
+      const errors = await runBatches(batches, parallel, async (batch) => {
         const payload = batch.map(({ el, ...rest }) => rest); // DOM nodes can't be sent
         const results = await send("rankBatch", { items: payload, query, market });
+        if (scored !== session) return;
+        const byId = new Map(batch.map((it) => [it.id, it]));
         for (const r of results) {
-          const it = items.find((x) => x.id === r.id);
+          const it = byId.get(r.id);
           if (!it) continue;
           Object.assign(it, {
-            score: Math.max(0, Math.min(100, r.score | 0)),
+            score: clamp100(r.score | 0),
             verdict: VERDICT[r.verdict] ? r.verdict : "fair",
             related: r.related !== false,
             flags: (r.flags || []).slice(0, 4),
@@ -568,11 +623,23 @@
           stick(it);
           scored.set(keyOf(it.url), it);
         }
+        done += batch.length;
         render([...scored.values()]);
-      }
-      const missed = items.filter((it) => it.score == null).length;
+        if (done < items.length) setStatus(`Ranked ${done} of ${items.length} listings with ${model}…`);
+      });
+
+      if (scored !== session) return; // you've moved on to another page
+      // Anything not scored (failed batch, or the model skipped it) is offered again next scan.
+      const missed = items.filter((it) => it.score == null);
+      missed.forEach((it) => seen.delete(keyOf(it.url)));
       setCount(scored.size);
-      setStatus(`Ranked ${items.length - missed} of ${items.length} new listings.${missed ? " The model skipped some; try a smaller batch size in settings." : ""}`);
+      if (errors.length && missed.length === items.length) throw errors[0];
+      setStatus(
+        `Ranked ${items.length - missed.length} of ${items.length} new listings.` +
+          (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +
+          (!errors.length && missed.length ? " The model skipped some; scan again, or try a smaller batch size in settings." : ""),
+        errors.length > 0
+      );
     } catch (e) {
       setStatus(e.message, true);
     } finally {
@@ -737,9 +804,10 @@
     say("Looking at the photo…");
     try {
       const title = SL.pageType() === "item" ? SL.extractItem().title : "";
-      const p = await send("checkPhoto", { imageUrl, title });
+      const p = await send("checkPhoto", { imageUrl: SL.bigImage(imageUrl), title });
       // If this photo belongs to a listing we've scored, the check counts toward its rating.
-      const hit = [...scored.values()].find((it) => it.imageUrl === imageUrl);
+      const big = SL.bigImage(imageUrl);
+      const hit = [...scored.values()].find((it) => it.imageUrl && SL.bigImage(it.imageUrl) === big);
       if (hit) {
         applyPhotos(hit, [p]);
         stick(hit);
@@ -807,12 +875,34 @@
 
   // ---------- show only on results pages (FB is a single-page app) ----------
 
+  // Facebook changes the address without reloading when you open a listing and come back.
+  // Keep each results page's scan so Back brings it back instead of starting over.
+  const stash = new Map(); // results href -> saved scan
+  const saveScan = (href) => {
+    if (!scored.size) return;
+    stash.delete(href);
+    stash.set(href, { scored, seen, lastMarket, query: queryEl.value, market: marketEl.textContent });
+    if (stash.size > 5) stash.delete(stash.keys().next().value);
+  };
+  const restoreScan = (href) => {
+    const saved = stash.get(href);
+    if (!saved) return false;
+    ({ scored, seen, lastMarket } = saved);
+    queryEl.value = saved.query;
+    marketEl.textContent = saved.market;
+    render([...scored.values()]);
+    setCount(scored.size);
+    return true;
+  };
+
   let lastHref = "";
+  let lastType = null;
   window.addEventListener("second-look-toggle", toggleOpen); // toolbar icon, if you use it
   const sync = () => {
     if (location.href === lastHref) return;
+    if (lastType === "results") saveScan(lastHref);
     lastHref = location.href;
-    const type = SL.pageType();
+    const type = (lastType = SL.pageType());
     const onResults = !!type;
     if (onResults && !host.isConnected) document.documentElement.append(host);
     if (!onResults && host.isConnected) host.remove();
@@ -825,15 +915,34 @@
       ideasStatus.textContent = "";
       intentEl.value = "";
       lastMarket = null;
-      queryEl.value = SL.detectQuery();
       clearStickers();
       itemEl.replaceChildren();
       listEl.replaceChildren();
       marketEl.textContent = "";
       setCount(0);
       setStatus("");
+      if (type !== "results" || !restoreScan(lastHref)) queryEl.value = SL.detectQuery();
     }
   };
+
+  // One timer for everything that has to notice page changes: navigation, newly loaded
+  // listings, and Facebook dropping our stickers when it recycles cards.
+  let ticks = 0;
+  const tick = () => {
+    if (!alive()) return teardown();
+    sync();
+    if (document.hidden) return;
+    reapplyFacebook();
+    if (++ticks % 2 === 0) refreshPending();
+  };
+  const timer = setInterval(tick, 1000);
+  // After an update this copy can't reach the extension any more: get out of the way so the new one can load.
+  const teardown = () => {
+    clearInterval(timer);
+    host.remove();
+    toastRoot?.host.remove();
+    window.removeEventListener("second-look-toggle", toggleOpen);
+    window.__secondLookPanel = false;
+  };
   sync();
-  setInterval(sync, 1000);
 })();

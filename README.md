@@ -15,7 +15,8 @@ nothing leaves your computer except one ordinary eBay sold-listings search per s
    Developer mode, click **Load unpacked**, pick this folder.
 2. Open the extension's options, paste a Claude API key (console.anthropic.com),
    and save. The default model is `claude-opus-5-5`; `claude-haiku-4-5` is cheaper.
-3. Search eBay or Facebook Marketplace and press **Scan this page**. Each listing gets a
+3. Search eBay or Facebook Marketplace, then **click the Second Look toolbar icon** to open
+   the panel (click again to hide it). Nothing runs on those sites until you do. Press **Scan this page**. Each listing gets a
    badge like "91 · Great deal · Second Look score" (the number is out of 100). Hover it
    for the reason.
 4. Open a single listing and press **Analyze this listing** for a verdict, red flags,
@@ -49,7 +50,8 @@ Choose "Ollama (local)" as the provider in settings, then:
    - `sudo systemctl restart ollama`
    - Open the extension's options (right-click its icon, Options) and press
      **Test connection**. It should list your installed models.
-4. **Use it.** Search eBay or Facebook Marketplace, scroll so results load, press
+4. **Use it.** Search eBay or Facebook Marketplace, scroll so results load, click the
+   toolbar icon to open the panel, then press
    **Scan this page** in the panel at the bottom right. Click a title in the panel
    to jump to that card.
 
@@ -57,7 +59,7 @@ Choose "Ollama (local)" as the provider in settings, then:
 
 | File | Job |
 |---|---|
-| `manifest.json` | Permissions and which pages the scripts run on (eBay search and listing pages, Facebook) |
+| `manifest.json` | Permissions. There are no automatic content scripts: `background.js` injects `content/*` only when you click the toolbar icon |
 | `content/adapters.js` | Reads listings off each site into one shared shape; computes the sold-price median |
 | `content/panel.js` | The panel, the scan loop, the badges on cards, the single-listing view, the photo-check popup |
 | `background.js` | Talks to Claude or Ollama, fetches photos and eBay sold results; holds the ranking prompt |

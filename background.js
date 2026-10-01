@@ -6,6 +6,10 @@
 // Content scripts send messages; this file answers them.
 
 const DEFAULTS = {
+  provider: "anthropic", // "anthropic" (Claude API) or "ollama" (local)
+  anthropicKey: "",
+  anthropicModel: "claude-opus-5-5",
+  anthropicUrl: "https://api.anthropic.com", // only changed for testing
   ollamaUrl: "http://localhost:11434",
   textModel: "qwen3:4b",
   visionModel: "moondream",
@@ -56,6 +60,51 @@ async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
   return data.message?.content ?? "";
 }
 
+// ---------- Claude API ----------
+// Plain fetch (the extension has no build step, so no SDK import). Notes for Opus 5.5:
+// thinking is always on and effort defaults to medium, so we set effort low for this
+// simple ranking task; temperature and forced tool_choice are not accepted.
+
+async function anthropicMessage({ system, content, schema, maxTokens = 4096 }) {
+  const { anthropicKey, anthropicModel, anthropicUrl } = await getSettings();
+  if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
+  const body = {
+    model: anthropicModel,
+    max_tokens: maxTokens,
+    messages: [{ role: "user", content }],
+    output_config: { effort: "low" },
+    fallbacks: "default", // server-side fallback if a safety classifier declines the request
+  };
+  if (system) body.system = system;
+  if (schema) body.output_config.format = { type: "json_schema", schema };
+
+  let res;
+  try {
+    res = await fetch(`${anthropicUrl}/v1/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": anthropicKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "server-side-fallback-2026-07-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    throw new Error("Can't reach the Claude API. Check your internet connection.");
+  }
+  if (res.status === 401) throw new Error("The Claude API key was rejected. Check it in the extension options.");
+  if (res.status === 429) throw new Error("Claude API rate limit hit. Wait a moment and scan again.");
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Claude API error ${res.status}: ${text.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  if (data.stop_reason === "refusal") throw new Error("Claude declined this request.");
+  return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+}
+
 const RANK_SCHEMA = {
   type: "object",
   properties: {
@@ -71,10 +120,12 @@ const RANK_SCHEMA = {
           reason: { type: "string" },
         },
         required: ["id", "score", "verdict", "flags", "reason"],
+        additionalProperties: false,
       },
     },
   },
   required: ["items"],
+  additionalProperties: false,
 };
 
 // This prompt is the part most worth tuning yourself. Small local models
@@ -91,7 +142,7 @@ Use only the text you are given. Never invent specs or seller details. If inform
 Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`;
 
 async function rankBatch({ items, query, market }) {
-  const { textModel } = await getSettings();
+  const { textModel, provider } = await getSettings();
   const marketLine = market
     ? `Market reference for "${query}": median recent eBay sold price ${market.currency}${market.median} (middle half ${market.currency}${market.p25}-${market.currency}${market.p75}, from ${market.n} sales).`
     : `No market reference available for "${query || "this search"}". Judge price only from obvious cues.`;
@@ -102,14 +153,18 @@ async function rankBatch({ items, query, market }) {
     })
     .join("\n");
 
-  const content = await ollamaChat({
-    model: textModel,
-    format: RANK_SCHEMA,
-    messages: [
-      { role: "system", content: RANK_SYSTEM },
-      { role: "user", content: `${marketLine}\n\nListings:\n${listingText}` },
-    ],
-  });
+  const userText = `${marketLine}\n\nListings:\n${listingText}`;
+  const content =
+    provider === "anthropic"
+      ? await anthropicMessage({ system: RANK_SYSTEM, content: userText, schema: RANK_SCHEMA })
+      : await ollamaChat({
+          model: textModel,
+          format: RANK_SCHEMA,
+          messages: [
+            { role: "system", content: RANK_SYSTEM },
+            { role: "user", content: userText },
+          ],
+        });
   let parsed;
   try {
     parsed = JSON.parse(content);
@@ -132,17 +187,29 @@ function bufferToBase64(buf) {
 }
 
 async function checkPhoto({ imageUrl, title }) {
-  const { visionModel } = await getSettings();
+  const { visionModel, provider } = await getSettings();
   const imgRes = await fetch(imageUrl);
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
   const b64 = bufferToBase64(await imgRes.arrayBuffer());
+  const prompt = `The listing title is: "${title}". In 2-3 short sentences: what is in this photo, does it look like a real photo of a used item or a stock/catalog image, is any damage visible, and does it match the title?`;
+  if (provider === "anthropic") {
+    const type = (imgRes.headers.get("content-type") || "").split(";")[0];
+    const media_type = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type) ? type : "image/jpeg";
+    return anthropicMessage({
+      maxTokens: 1024,
+      content: [
+        { type: "image", source: { type: "base64", media_type, data: b64 } },
+        { type: "text", text: prompt },
+      ],
+    });
+  }
   return ollamaChat({
     model: visionModel,
     numCtx: 4096,
     messages: [
       {
         role: "user",
-        content: `The listing title is: "${title}". In 2-3 short sentences: what is in this photo, does it look like a real photo of a used item or a stock/catalog image, is any damage visible, and does it match the title?`,
+        content: prompt,
         images: [b64],
       },
     ],

@@ -18,6 +18,7 @@ const DEFAULTS = {
   lens: "use", // "use" (buy to use), "fix" (fix-up project) or "flip" (resell)
   feePct: 13.6, // eBay fees as % of the sale, for flip margins
   interests: "Electronics, older and retro tech, video games and consoles, anything with an active homebrew scene.",
+  theme: "classic", // "classic" (paper and ink) or "retro" (pocket LCD)
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
 };
 
@@ -505,13 +506,28 @@ async function fetchSoldHtml({ url }) {
 
 // ---------- Message router ----------
 
+// ---------- Fonts ----------
+// Page scripts get the bundled fonts as bytes and add them with the FontFace API. Nothing is
+// exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
+// and a site's font rules can't block them.
+const FONT_FILES = /^(fraunces-400|fraunces-400-italic|fraunces-600|pixelify-400|pixelify-600|plex-mono-400|plex-mono-600)\.woff2$/;
+const fontCache = new Map();
+async function getFont({ file }) {
+  if (!FONT_FILES.test(file || "")) throw new Error("Unknown font.");
+  if (!fontCache.has(file)) {
+    const res = await fetch(chrome.runtime.getURL(`fonts/${file}`));
+    fontCache.set(file, bufferToBase64(await res.arrayBuffer()));
+  }
+  return fontCache.get(file);
+}
+
 // Page scripts get the settings without the API key: they never need it.
 async function getPageSettings() {
   const { anthropicKey, ...rest } = await getSettings();
   return { ...rest, hasKey: !!anthropicKey };
 }
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getSettings: getPageSettings };
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];

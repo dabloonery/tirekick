@@ -3,7 +3,7 @@
   "name": "Second Look",
   "version": "0.1.0",
   "description": "Scans eBay and Facebook Marketplace search results with a local Ollama model and flags the listings worth a closer look.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "contextMenus"],
   "host_permissions": [
     "http://localhost:11434/*",
     "http://127.0.0.1:11434/*",
@@ -15,7 +15,7 @@
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
-      "matches": ["https://www.ebay.com/sch/*", "https://www.facebook.com/*"],
+      "matches": ["https://www.ebay.com/sch/*", "https://www.ebay.com/itm/*", "https://www.facebook.com/*"],
       "js": ["content/adapters.js", "content/panel.js"],
       "run_at": "document_idle"
     }

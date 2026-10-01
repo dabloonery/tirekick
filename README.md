@@ -15,7 +15,12 @@ nothing leaves your computer except one ordinary eBay sold-listings search per s
    Developer mode, click **Load unpacked**, pick this folder.
 2. Open the extension's options, paste a Claude API key (console.anthropic.com),
    and save. The default model is `claude-opus-5-5`; `claude-haiku-4-5` is cheaper.
-3. Search eBay or Facebook Marketplace and press **Scan this page**.
+3. Search eBay or Facebook Marketplace and press **Scan this page**. Each listing gets a
+   badge like "91 · Great deal · Second Look score" (the number is out of 100). Hover it
+   for the reason.
+4. Open a single listing and press **Analyze this listing** for a verdict, red flags,
+   questions to ask the seller, a suggested offer, and a photo check.
+5. Right-click any photo on eBay or Facebook and choose **Check this photo with Second Look**.
 
 ## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
 
@@ -52,9 +57,9 @@ Choose "Ollama (local)" as the provider in settings, then:
 
 | File | Job |
 |---|---|
-| `manifest.json` | Permissions and which pages the scripts run on |
+| `manifest.json` | Permissions and which pages the scripts run on (eBay search and listing pages, Facebook) |
 | `content/adapters.js` | Reads listings off each site into one shared shape; computes the sold-price median |
-| `content/panel.js` | The panel, the scan loop, the stickers on cards |
+| `content/panel.js` | The panel, the scan loop, the badges on cards, the single-listing view, the photo-check popup |
 | `background.js` | Talks to Claude or Ollama, fetches photos and eBay sold results; holds the ranking prompt |
 | `options/` | Settings page |
 

@@ -141,8 +141,29 @@ seller with very low or no feedback, item that doesn't match the search.
 Use only the text you are given. Never invent specs or seller details. If information is missing, say so.
 Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`;
 
+// One call that works for either provider and returns the model's text.
+async function llmText({ system, userText, schema }) {
+  const { provider, textModel } = await getSettings();
+  if (provider === "anthropic") return anthropicMessage({ system, content: userText, schema });
+  return ollamaChat({
+    model: textModel,
+    format: schema,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: userText },
+    ],
+  });
+}
+
+function parseModelJson(content) {
+  try {
+    return JSON.parse(content);
+  } catch {
+    throw new Error("The model returned something unreadable. Try again, or lower \"Listings per request\" in settings.");
+  }
+}
+
 async function rankBatch({ items, query, market }) {
-  const { textModel, provider } = await getSettings();
   const marketLine = market
     ? `Market reference for "${query}": median recent eBay sold price ${market.currency}${market.median} (middle half ${market.currency}${market.p25}-${market.currency}${market.p75}, from ${market.n} sales).`
     : `No market reference available for "${query || "this search"}". Judge price only from obvious cues.`;
@@ -153,25 +174,61 @@ async function rankBatch({ items, query, market }) {
     })
     .join("\n");
 
-  const userText = `${marketLine}\n\nListings:\n${listingText}`;
-  const content =
-    provider === "anthropic"
-      ? await anthropicMessage({ system: RANK_SYSTEM, content: userText, schema: RANK_SCHEMA })
-      : await ollamaChat({
-          model: textModel,
-          format: RANK_SCHEMA,
-          messages: [
-            { role: "system", content: RANK_SYSTEM },
-            { role: "user", content: userText },
-          ],
-        });
-  let parsed;
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    throw new Error("The model returned something unreadable. Try again, or lower \"Listings per request\" in settings.");
-  }
+  const content = await llmText({
+    system: RANK_SYSTEM,
+    userText: `${marketLine}\n\nListings:\n${listingText}`,
+    schema: RANK_SCHEMA,
+  });
+  const parsed = parseModelJson(content);
   return parsed.items || [];
+}
+
+// ---------- One listing, in depth ----------
+
+const ITEM_SCHEMA = {
+  type: "object",
+  properties: {
+    score: { type: "integer" },
+    verdict: { type: "string", enum: ["great", "good", "fair", "pass", "suspicious"] },
+    summary: { type: "string" },
+    flags: { type: "array", items: { type: "string" } },
+    questions: { type: "array", items: { type: "string" } },
+    offerLow: { type: "integer" },
+    offerHigh: { type: "integer" },
+  },
+  required: ["score", "verdict", "summary", "flags", "questions", "offerLow", "offerHigh"],
+  additionalProperties: false,
+};
+
+const ITEM_SYSTEM = `You help a careful buyer decide whether to buy one second-hand listing.
+Give a 0-100 score for how good a buy it looks, and one verdict:
+great = strong price for what it appears to be; good = fair-to-good deal; fair = market price, nothing special;
+pass = overpriced, wrong item, or not worth the risk; suspicious = likely scam, counterfeit, or misleading.
+summary: 2-3 plain sentences on what it is, whether the price is right, and the main risk.
+flags: up to 5 short red or green flags (1-4 words each), e.g. "price far below market", "no return policy", "clear photos".
+questions: 3-5 specific questions to ask the seller before buying, based on what is missing or unclear in the listing.
+offerLow / offerHigh: a sensible whole-dollar offer range if negotiation is possible; use 0 for both if the price is already fair or you cannot tell.
+Use only the information given. Never invent specs, history, or seller details. If something is missing, say so.`;
+
+async function analyzeListing({ listing, query, market }) {
+  const marketLine = market
+    ? `Market reference for "${query}": median recent eBay sold price $${market.median} (middle half $${market.p25}-$${market.p75}, from ${market.n} sales).`
+    : "No market reference available. Judge price only from obvious cues.";
+  const lines = [
+    `site: ${listing.site}`,
+    `title: ${listing.title}`,
+    `price: ${listing.priceText || "unknown"}`,
+    listing.condition && `condition: ${listing.condition}`,
+    listing.seller && `seller: ${listing.seller}`,
+    listing.shipping && `shipping: ${listing.shipping}`,
+    listing.details && `details: ${listing.details}`,
+  ].filter(Boolean);
+  const content = await llmText({
+    system: ITEM_SYSTEM,
+    userText: `${marketLine}\n\nListing:\n${lines.join("\n")}`,
+    schema: ITEM_SCHEMA,
+  });
+  return parseModelJson(content);
 }
 
 // ---------- Photos ----------
@@ -191,7 +248,7 @@ async function checkPhoto({ imageUrl, title }) {
   const imgRes = await fetch(imageUrl);
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
   const b64 = bufferToBase64(await imgRes.arrayBuffer());
-  const prompt = `The listing title is: "${title}". In 2-3 short sentences: what is in this photo, does it look like a real photo of a used item or a stock/catalog image, is any damage visible, and does it match the title?`;
+  const prompt = `${title ? `The listing title is: "${title}". ` : ""}In 2-3 short sentences: what is in this photo, does it look like a real photo of a used item or a stock/catalog image, is any damage visible, and does it match the title?`;
   if (provider === "anthropic") {
     const type = (imgRes.headers.get("content-type") || "").split(";")[0];
     const media_type = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type) ? type : "image/jpeg";
@@ -229,7 +286,7 @@ async function fetchSoldHtml({ query }) {
 
 // ---------- Message router ----------
 
-const HANDLERS = { rankBatch, checkPhoto, fetchSoldHtml, getSettings };
+const HANDLERS = { rankBatch, analyzeListing, checkPhoto, fetchSoldHtml, getSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -240,7 +297,25 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true; // keep the channel open for the async reply
 });
 
+// ---------- Right-click on a photo ----------
+// The content script on the page does the work and shows the answer; we just point it at the image.
+
+const MENU_ID = "second-look-photo";
+
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.local.get(null);
   await chrome.storage.local.set({ ...DEFAULTS, ...current });
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: MENU_ID,
+      title: "Check this photo with Second Look",
+      contexts: ["image"],
+      documentUrlPatterns: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
+    });
+  });
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== MENU_ID || !tab?.id) return;
+  chrome.tabs.sendMessage(tab.id, { type: "second-look-check-photo", imageUrl: info.srcUrl }).catch(() => {});
 });

@@ -349,7 +349,41 @@ chrome.runtime.onInstalled.addListener(async () => {
   });
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+// ---------- Nothing runs on eBay/Facebook until you ask ----------
+// No content scripts are declared in the manifest, so page loads are untouched.
+// Clicking the toolbar icon (or the right-click item) injects the scripts on demand.
+
+async function ensureInjected(tabId) {
+  const [{ result: present } = {}] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => !!window.__secondLookPanel,
+  });
+  if (!present) {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["content/adapters.js", "content/panel.js"] });
+  }
+  return !!present;
+}
+
+async function openPanel(tabId) {
+  try {
+    const wasThere = await ensureInjected(tabId);
+    // First click injects and shows the panel; later clicks toggle it.
+    if (wasThere) await chrome.scripting.executeScript({ target: { tabId }, func: () => window.dispatchEvent(new CustomEvent("second-look-toggle")) });
+  } catch (e) {
+    console.warn("[Second Look] can't open on this page:", e.message); // not an eBay/Facebook page
+  }
+}
+
+chrome.action.onClicked.addListener((tab) => {
+  if (tab?.id) openPanel(tab.id);
+});
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ID || !tab?.id) return;
-  chrome.tabs.sendMessage(tab.id, { type: "second-look-check-photo", imageUrl: info.srcUrl }).catch(() => {});
+  try {
+    await ensureInjected(tab.id);
+    await chrome.tabs.sendMessage(tab.id, { type: "second-look-check-photo", imageUrl: info.srcUrl });
+  } catch (e) {
+    console.warn("[Second Look] photo check failed to start:", e.message);
+  }
 });

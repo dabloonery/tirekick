@@ -450,8 +450,17 @@
   // ---------- show only on results pages (FB is a single-page app) ----------
 
   let lastHref = "";
+  let hidden = false; // the user toggled the panel off with the toolbar icon
+  window.addEventListener("second-look-toggle", () => {
+    hidden = !hidden;
+    if (hidden) host.remove();
+    else {
+      lastHref = ""; // force a refresh of the panel for the current page
+      sync();
+    }
+  });
   const sync = () => {
-    if (location.href === lastHref) return;
+    if (hidden || location.href === lastHref) return;
     lastHref = location.href;
     const type = SL.pageType();
     const onResults = !!type;

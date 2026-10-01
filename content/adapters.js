@@ -177,7 +177,7 @@
   // ---------- pick the adapter for this page ----------
 
   SL.currentSite = () => {
-    if (location.hostname === "www.ebay.com" && /^\/(sch|itm)\//.test(location.pathname)) return "ebay";
+    if (location.hostname === "www.ebay.com" && (location.pathname === "/" || /^\/(sch|itm)\//.test(location.pathname))) return "ebay";
     if (location.hostname === "www.facebook.com" && location.pathname.startsWith("/marketplace")) return "facebook";
     return null;
   };
@@ -185,7 +185,7 @@
   // "results" = a search results page, "item" = one listing, null = not ours.
   SL.pageType = () => {
     const site = SL.currentSite();
-    if (site === "ebay") return location.pathname.startsWith("/itm/") ? "item" : "results";
+    if (site === "ebay") return location.pathname === "/" ? "home" : location.pathname.startsWith("/itm/") ? "item" : "results";
     if (site === "facebook") return location.pathname.startsWith("/marketplace/item/") ? "item" : "results";
     return null;
   };
@@ -200,6 +200,28 @@
     const site = SL.currentSite();
     if (SL.pageType() === "item") return SL.titleToQuery(SL.extractItem().title);
     return site === "ebay" ? SL.ebayQuery() : site === "facebook" ? SL.facebookQuery() : "";
+  };
+
+  // The address for a suggested search. Both sites take the search words in the URL, which is
+  // sturdier than typing into the page's own search box. Price cap and sort are best-effort.
+  SL.searchUrl = ({ query, maxPrice, newest }) => {
+    const site = SL.currentSite();
+    if (site === "ebay") {
+      const u = new URL("https://www.ebay.com/sch/i.html");
+      u.searchParams.set("_nkw", query);
+      if (maxPrice > 0) u.searchParams.set("_udhi", String(maxPrice));
+      if (newest) u.searchParams.set("_sop", "10");
+      return u.href;
+    }
+    // Facebook search has no operators: drop minus terms, quotes and brackets so they aren't searched literally.
+    query = query.replace(/(^|\s)-\S+/g, " ").replace(/["()]/g, "").replace(/\s+/g, " ").trim();
+    const u = new URL(location.href); // keeps the city/location part of the Marketplace address
+    u.search = "";
+    if (!/\/search\/?$/.test(u.pathname)) u.pathname = "/marketplace/search";
+    u.searchParams.set("query", query);
+    if (maxPrice > 0) u.searchParams.set("maxPrice", String(maxPrice));
+    if (newest) u.searchParams.set("sortBy", "creation_time_descend");
+    return u.href;
   };
 
   // ---------- market reference from eBay sold listings ----------

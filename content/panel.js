@@ -129,14 +129,14 @@
     .market { font-size:12px; font-weight:600; }
     .market:not(:empty) { background:var(--soft); padding:9px 12px; border-radius:12px; }
 
-    .list, .itemout { overflow:auto; padding:2px 12px 12px; min-height:0; }
+    .body { flex:1; min-height:0; overflow-y:auto; scrollbar-gutter:stable; }
+    .list, .itemout { padding:2px 12px 12px; }
     .list:empty, .itemout:empty { display:none; padding:0; }
-    .list::-webkit-scrollbar, .itemout::-webkit-scrollbar { width:12px; }
-    .list::-webkit-scrollbar-track, .itemout::-webkit-scrollbar-track { background:transparent; margin:6px 0; }
-    .list::-webkit-scrollbar-thumb, .itemout::-webkit-scrollbar-thumb { background:var(--rule); border-radius:999px; border:3px solid transparent; background-clip:padding-box; }
-    .list::-webkit-scrollbar-thumb:hover, .itemout::-webkit-scrollbar-thumb:hover { background:var(--muted); background-clip:padding-box; border:3px solid transparent; }
-    .list::-webkit-scrollbar-button, .itemout::-webkit-scrollbar-button { display:none; height:0; }
-    .list, .itemout { scrollbar-gutter:stable; }
+    .body::-webkit-scrollbar { width:12px; }
+    .body::-webkit-scrollbar-track { background:transparent; margin:6px 0; }
+    .body::-webkit-scrollbar-thumb { background:var(--rule); border-radius:999px; border:3px solid transparent; background-clip:padding-box; }
+    .body::-webkit-scrollbar-thumb:hover { background:var(--muted); background-clip:padding-box; border:3px solid transparent; }
+    .body::-webkit-scrollbar-button { display:none; height:0; }
     .row { display:grid; grid-template-columns:56px 1fr; gap:13px; padding:13px; margin-top:8px; background:var(--soft); border-radius:18px;
       animation:rise .45s cubic-bezier(.2,.9,.3,1) both; animation-delay:calc(var(--i, 0) * 45ms); transition:transform .2s cubic-bezier(.22,.8,.3,1), box-shadow .2s; }
     .list .row:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(20,27,45,.14); }
@@ -157,6 +157,29 @@
     .photo { margin-top:8px; font-size:12px; color:var(--ink); background:var(--paper); border-radius:12px; padding:9px 11px; border-left:4px solid var(--accent); }
     .photo.drop { border-left-color:#DC2626; }
     [hidden] { display:none !important; }
+
+    .ideas { margin:0 12px 4px; background:var(--soft); border-radius:18px; }
+    .ideas > summary { list-style:none; cursor:pointer; padding:12px 14px; font-weight:800; font-size:13px; display:flex; align-items:center; gap:8px; }
+    .ideas > summary::-webkit-details-marker { display:none; }
+    .ideas > summary::after { content:""; margin:0 4px 0 auto; width:7px; height:7px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted);
+      transform:rotate(-45deg); transition:transform .2s; }
+    .ideas[open] > summary::after { transform:rotate(45deg); }
+    .ideas-body { padding:0 14px 14px; display:grid; gap:10px; }
+    .ideas-body .hint { color:var(--muted); font-size:12px; }
+    .ideas-body input { margin-top:0; background:var(--paper); }
+    .ghost { background:var(--paper); color:var(--accent); border:2px solid var(--accent); border-radius:999px; padding:9px; font:800 13px/1 system-ui,sans-serif; cursor:pointer; transition:background .15s, color .15s; }
+    .ghost:hover:not(:disabled) { background:var(--accent); color:#fff; }
+    .ghost:disabled { opacity:.6; cursor:progress; }
+    .idea { display:block; padding:11px 12px; background:var(--paper); border-radius:14px; color:var(--ink); text-decoration:none; border:2px solid transparent;
+      animation:rise .35s cubic-bezier(.2,.9,.3,1) both; animation-delay:calc(var(--i, 0) * 40ms); transition:border-color .15s, transform .15s; }
+    .idea:hover { border-color:var(--accent); transform:translateY(-1px); }
+    .idea .q { font-weight:800; font-size:13px; word-break:break-word; }
+    .idea .why { color:var(--muted); font-size:12px; margin-top:2px; }
+    .idea .chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+    .kind { font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:2px 8px; border-radius:999px; color:#fff; background:var(--accent); }
+    .kind.k-narrow { background:#0E9F6E; } .kind.k-broaden { background:#2563EB; } .kind.k-typo { background:#D97706; }
+    .kind.k-alt { background:#7C3AED; } .kind.k-price { background:#DC2626; }
+    .chip { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--soft); color:var(--muted); }
     .sect { margin-top:8px; padding:12px 13px; background:var(--soft); border-radius:18px; font-size:12px; }
     .sect ol { margin:6px 0 0; padding-left:18px; }
     .sect li { margin:3px 0; }
@@ -179,16 +202,28 @@
         <div class="grow"><strong>Second Look</strong><small>Spot the deals worth opening</small></div>
         <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away">›</button>
       </div>
+      <div class="body">
       <div class="controls">
-        <div><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000"></div>
+        <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000"></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
         <div class="market"></div>
         <div class="status" role="status"></div>
         <div class="actions"><button data-act="reset" hidden>Start over</button></div>
       </div>
+      <details class="ideas">
+        <summary>Search ideas</summary>
+        <div class="ideas-body">
+          <div class="hint ideas-hint">Describe what you want, or leave it blank to get ideas from the results you're looking at.</div>
+          <input id="intent" placeholder="e.g. working 35mm film SLR under $150">
+          <button class="ghost" data-act="ideas">Get ideas</button>
+          <div class="status ideas-status" role="status"></div>
+          <div class="ideas-list"></div>
+        </div>
+      </details>
       <div class="list"></div>
       <div class="itemout"></div>
+      </div>
     </div>
    </div>
   </div>`;
@@ -204,6 +239,12 @@
   const scanBtn = $('[data-act="scan"]');
   const analyzeBtn = $('[data-act="analyze"]');
   const resetBtn = $('[data-act="reset"]');
+  const ideasBox = $(".ideas");
+  const ideasBtn = $('[data-act="ideas"]');
+  const ideasList = $(".ideas-list");
+  const ideasStatus = $(".ideas-status");
+  const intentEl = $("#intent");
+  const qwrap = $(".qwrap");
   const itemEl = $(".itemout");
 
   const setStatus = (text, isErr = false) => {
@@ -437,6 +478,7 @@
     return html;
   };
 
+  let lastMarket = null;
   const getMarket = async (settings, query) => {
     if (!settings.useSoldComps || !query) return null;
     setStatus(`Checking recent eBay sales for "${query}"…`);
@@ -451,6 +493,7 @@
     marketEl.textContent = market
       ? `eBay sold: median $${market.median}, middle half $${market.p25}–$${market.p75} (${market.n} sales)`
       : "Not enough eBay sales found to set a market price.";
+    lastMarket = market;
     return market;
   };
 
@@ -712,6 +755,56 @@
     if (msg?.type === "second-look-check-photo" && msg.imageUrl) checkPhotoFromMenu(msg.imageUrl);
   });
 
+  // ---------- search ideas ----------
+
+  const KIND = { idea: "Idea", narrow: "Narrow", broaden: "Broaden", typo: "Misspelling", alt: "Alt name", price: "Price cap" };
+
+  const getIdeas = async () => {
+    ideasBtn.disabled = true;
+    wrap.classList.add("busy");
+    ideasList.replaceChildren();
+    ideasStatus.classList.remove("err");
+    ideasStatus.textContent = "Thinking up searches…";
+    try {
+      // Titles from what you've scored, else whatever is on the page right now.
+      let titles = [...scored.values()].map((it) => it.title);
+      if (!titles.length && SL.pageType() === "results") titles = SL.extract().map((it) => it.title);
+      const ideas = await send("suggestSearches", {
+        site: SL.currentSite(),
+        query: queryEl.value.trim(),
+        intent: intentEl.value.trim(),
+        titles: titles.slice(0, 30),
+        market: lastMarket,
+      });
+      if (!ideas.length) throw new Error("No ideas this time. Try describing what you want.");
+      ideas.slice(0, 6).forEach((idea, i) => {
+        const chips = [];
+        if (idea.maxPrice > 0) chips.push(h("span", { class: "chip" }, `up to $${idea.maxPrice}`));
+        if (idea.newest) chips.push(h("span", { class: "chip" }, "newest first"));
+        // A real link: click to search here, ctrl/middle-click to open it in a new tab.
+        ideasList.append(
+          h(
+            "a",
+            { class: "idea", href: SL.searchUrl(idea), style: `--i:${i}` },
+            h("div", {}, h("span", { class: `kind k-${idea.kind}` }, KIND[idea.kind] || "Idea")),
+            h("div", { class: "q" }, idea.query),
+            h("div", { class: "why" }, idea.why),
+            chips.length ? h("div", { class: "chips" }, chips) : null
+          )
+        );
+      });
+      ideasStatus.textContent = "";
+    } catch (e) {
+      ideasStatus.classList.add("err");
+      ideasStatus.textContent = e.message;
+    } finally {
+      ideasBtn.disabled = false;
+      wrap.classList.remove("busy");
+    }
+  };
+  ideasBtn.addEventListener("click", getIdeas);
+  intentEl.addEventListener("keydown", (e) => e.key === "Enter" && getIdeas());
+
   // ---------- show only on results pages (FB is a single-page app) ----------
 
   let lastHref = "";
@@ -724,8 +817,14 @@
     if (onResults && !host.isConnected) document.documentElement.append(host);
     if (!onResults && host.isConnected) host.remove();
     if (onResults) {
-      scanBtn.hidden = type === "item";
+      scanBtn.hidden = type !== "results";
       analyzeBtn.hidden = type !== "item";
+      qwrap.hidden = type === "home";
+      ideasBox.open = type === "home"; // on the home page, ideas are the whole point
+      ideasList.replaceChildren();
+      ideasStatus.textContent = "";
+      intentEl.value = "";
+      lastMarket = null;
       queryEl.value = SL.detectQuery();
       clearStickers();
       itemEl.replaceChildren();

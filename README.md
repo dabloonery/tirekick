@@ -25,7 +25,12 @@ nothing leaves your computer except one ordinary eBay sold-listings search per s
    for the reason.
 4. Open a single listing and press **Analyze this listing** for a verdict, red flags,
    questions to ask the seller, a suggested offer, and a photo check.
-5. Right-click any photo on eBay or Facebook and choose **Check this photo with Second Look**.
+5. Open **Search ideas** in the panel (it's open by default on eBay's home page). Describe what
+   you want, or leave it blank after a scan to get refinements from the results you're seeing:
+   tighter searches that cut junk, looser ones, common misspellings, alternative names, and a
+   price cap based on the sold median. Click a suggestion to run it. One model call per
+   request; nothing runs on its own.
+6. Right-click any photo on eBay or Facebook and choose **Check this photo with Second Look**.
    Photo checks (the "Check photo" buttons too) change the rating: a stock photo, visible damage,
    or a photo that doesn't match the title lowers the score (and can mark a listing suspicious);
    a clear real photo of an item in good shape adds a little. The adjustment rules are fixed in

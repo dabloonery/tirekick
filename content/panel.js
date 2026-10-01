@@ -38,75 +38,128 @@
   // ---------- panel shell (shadow DOM keeps site CSS out) ----------
 
   const host = h("div", { id: "second-look-host" });
-  host.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483646;";
+  host.style.cssText = "position:fixed;right:0;top:96px;z-index:2147483646;";
   const root = host.attachShadow({ mode: "open" });
   root.innerHTML = `<style>
     :host { all: initial; }
     * { box-sizing: border-box; }
-    .panel { --ink:#1E2A38; --paper:#FFFFFF; --rule:#D8DEE6; --muted:#5B6776; --accent:#2B5A8A;
-      font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink);
-      background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; width: 360px;
-      max-height: 72vh; display: flex; flex-direction: column; box-shadow: 0 6px 24px rgba(30,42,56,.18); }
+    .wrap { --w: 380px; --ink:#1B2733; --paper:#FFFFFF; --soft:#F4F6F9; --rule:#E3E8EE; --muted:#5F6B7A; --accent:#2A5FBF;
+      font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
     @media (prefers-color-scheme: dark) {
-      .panel { --ink:#E6EBF1; --paper:#18212B; --rule:#2E3B49; --muted:#9AA7B5; --accent:#7FB0E0; }
+      .wrap { --ink:#E8EDF3; --paper:#18212B; --soft:#202B37; --rule:#2E3B49; --muted:#9AA7B5; --accent:#7FB0F0; }
     }
-    .head { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--rule); }
-    .head strong { font-size:14px; letter-spacing:.01em; }
-    .icon-btn { background:none; border:0; color:var(--muted); font-size:16px; cursor:pointer; padding:2px 6px; border-radius:6px; }
-    .controls { padding:10px 12px; display:grid; gap:8px; border-bottom:1px solid var(--rule); }
-    label { color:var(--muted); font-size:12px; }
-    input { width:100%; padding:6px 8px; border:1px solid var(--rule); border-radius:6px; background:transparent; color:var(--ink); font:inherit; }
-    .scan { background:var(--accent); color:var(--paper); border:0; border-radius:6px; padding:8px; font:600 13px/1 system-ui, sans-serif; cursor:pointer; }
-    .scan:disabled { opacity:.6; cursor:progress; }
+
+    /* the drawer slides in from the right edge; the tab stays visible when it's closed */
+    .drawer { display:flex; align-items:flex-start; transform:translateX(var(--w)); transition:transform .28s cubic-bezier(.2,.8,.2,1); }
+    .open .drawer { transform:none; }
+    .panel { visibility:hidden; transition:visibility 0s .28s; }
+    .open .panel { visibility:visible; transition-delay:0s; }
+
+    .tab { position:relative; display:flex; flex-direction:column; align-items:center; gap:8px; width:34px; padding:12px 0;
+      background:var(--accent); color:#fff; border:0; border-radius:12px 0 0 12px; cursor:pointer;
+      box-shadow:-2px 3px 12px rgba(20,30,50,.28); transition:width .15s, background .15s; }
+    .tab:hover { width:38px; }
+    .tab svg { width:18px; height:18px; }
+    .tab span { writing-mode:vertical-rl; font:700 12px/1 system-ui,sans-serif; letter-spacing:.06em; text-transform:uppercase; }
+    .count { position:absolute; top:-7px; left:-7px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:#2F9E6B; color:#fff;
+      font:700 11px/20px system-ui,sans-serif; text-align:center; box-shadow:0 0 0 2px var(--paper); }
+    .count.new { background:#E8890C; }
+    .open .count { display:none; }
+
+    .panel { width:var(--w); max-height:calc(100vh - 128px); display:flex; flex-direction:column; overflow:hidden;
+      background:var(--paper); border:1px solid var(--rule); border-right:0; border-radius:14px 0 0 14px;
+      box-shadow:-6px 8px 30px rgba(20,30,50,.22); }
+    .head { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--rule); }
+    .logo { width:28px; height:28px; border-radius:9px; background:var(--accent); color:#fff; display:grid; place-items:center; flex:none; }
+    .logo svg { width:16px; height:16px; }
+    .head strong { font-size:15px; letter-spacing:-.01em; }
+    .head small { display:block; color:var(--muted); font-size:11px; }
+    .head .grow { flex:1; min-width:0; }
+    .icon-btn { background:none; border:0; color:var(--muted); font-size:20px; line-height:1; cursor:pointer; padding:4px 8px; border-radius:8px; }
+    .icon-btn:hover { background:var(--soft); color:var(--ink); }
+
+    .controls { padding:12px 14px; display:grid; gap:10px; border-bottom:1px solid var(--rule); }
+    label { color:var(--muted); font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; }
+    input { width:100%; margin-top:4px; padding:8px 10px; border:1px solid var(--rule); border-radius:9px; background:var(--soft); color:var(--ink); font:inherit; }
+    input:focus { outline:2px solid var(--accent); outline-offset:0; background:var(--paper); }
+    .scan { background:var(--accent); color:#fff; border:0; border-radius:10px; padding:11px; font:700 13px/1 system-ui, sans-serif; cursor:pointer;
+      box-shadow:0 2px 6px rgba(42,95,191,.35); transition:transform .1s, filter .15s; }
+    .scan:hover:not(:disabled) { filter:brightness(1.08); }
+    .scan:active:not(:disabled) { transform:translateY(1px); }
+    .scan:disabled { opacity:.65; cursor:progress; box-shadow:none; }
     .status { color:var(--muted); font-size:12px; min-height:1em; }
-    .status.err { color:#B42318; }
-    .market { font-size:12px; }
-    .list { overflow:auto; padding:4px 0; }
-    .row { display:grid; grid-template-columns:44px 1fr; gap:10px; padding:10px 12px; border-bottom:1px solid var(--rule); }
+    .status.err { color:#D92D20; background:rgba(217,45,32,.08); padding:6px 8px; border-radius:8px; }
+    .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:11px; height:11px; margin-right:7px; vertical-align:-1px;
+      border:2px solid var(--rule); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .market { font-size:12px; color:var(--ink); }
+    .market:not(:empty) { background:var(--soft); padding:7px 9px; border-radius:8px; }
+
+    .list, .itemout { overflow:auto; }
+    .list:empty, .itemout:empty { display:none; }
+    .row { display:grid; grid-template-columns:50px 1fr; gap:12px; padding:12px 14px; border-bottom:1px solid var(--rule); }
     .row:last-child { border-bottom:0; }
-    .tag { width:40px; height:40px; border-radius:8px 8px 8px 20px; color:#fff; display:grid; place-items:center;
-      font:700 15px/1 system-ui, sans-serif; font-variant-numeric:tabular-nums; position:relative; }
-    .tag::after { content:""; position:absolute; top:5px; left:5px; width:5px; height:5px; border-radius:50%; background:var(--paper); }
-    .title { background:none; border:0; padding:0; color:var(--ink); font:600 13px/1.35 system-ui, sans-serif; text-align:left; cursor:pointer; }
-    .title:hover { text-decoration:underline; }
+    .list .row:hover { background:var(--soft); }
+    .tag { --p:50; --c:#666; width:46px; height:46px; border-radius:50%; position:relative; display:grid; place-items:center;
+      background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--rule) 0); }
+    .tag::before { content:""; position:absolute; inset:4px; border-radius:50%; background:var(--paper); }
+    .tag span { position:relative; font:800 15px/1 system-ui,sans-serif; color:var(--c); font-variant-numeric:tabular-nums; }
+    .title { background:none; border:0; padding:0; color:var(--ink); font:700 13px/1.35 system-ui, sans-serif; text-align:left; cursor:pointer; }
+    button.title:hover { text-decoration:underline; }
     .meta { color:var(--muted); font-size:12px; margin-top:2px; }
-    .reason { margin-top:4px; }
-    .flags { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-    .flag { font-size:11px; padding:1px 6px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
-    .actions { display:flex; gap:10px; margin-top:6px; font-size:12px; }
+    .reason { margin-top:5px; }
+    .flags { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+    .flag { font-size:11px; padding:2px 8px; background:var(--soft); border-radius:999px; color:var(--muted); }
+    .actions { display:flex; gap:12px; margin-top:8px; font-size:12px; font-weight:600; }
     .actions a, .actions button { color:var(--accent); background:none; border:0; padding:0; font:inherit; cursor:pointer; text-decoration:none; }
-    .photo { margin-top:6px; font-size:12px; color:var(--muted); border-left:2px solid var(--rule); padding-left:8px; }
-    .collapsed .controls, .collapsed .list, .collapsed .itemout { display:none; }
+    .actions a:hover, .actions button:hover { text-decoration:underline; }
+    .photo { margin-top:7px; font-size:12px; color:var(--muted); background:var(--soft); border-radius:8px; padding:7px 9px; }
     [hidden] { display:none !important; }
-    .itemout { overflow:auto; }
-    .sect { padding:8px 12px; border-top:1px solid var(--rule); font-size:12px; }
-    .sect ol { margin:4px 0 0; padding-left:18px; }
-    .sect li { margin:2px 0; }
-    .offer { padding:8px 12px; border-top:1px solid var(--rule); font-size:13px; }
+    .sect { padding:10px 14px; border-top:1px solid var(--rule); font-size:12px; }
+    .sect ol { margin:5px 0 0; padding-left:18px; }
+    .sect li { margin:3px 0; }
+    .offer { padding:10px 14px; border-top:1px solid var(--rule); font-size:13px; }
     .offer b { color:var(--accent); }
     button:focus-visible, input:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .scan, .busy .status::before { transition:none; animation:none; } }
   </style>
-  <div class="panel">
-    <div class="head"><strong>Second Look</strong><button class="icon-btn" data-act="toggle" aria-label="Collapse panel">–</button></div>
-    <div class="controls">
-      <div><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000"></div>
-      <button class="scan" data-act="scan">Scan this page</button>
-      <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
-      <div class="market"></div>
-      <div class="status" role="status"></div>
+  <div class="wrap">
+   <div class="drawer">
+    <button class="tab" data-act="tab" aria-label="Open Second Look" title="Second Look">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+      <span>Second Look</span><i class="count" hidden></i>
+    </button>
+    <div class="panel">
+      <div class="head">
+        <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg></div>
+        <div class="grow"><strong>Second Look</strong><small>Spot the deals worth opening</small></div>
+        <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away">›</button>
+      </div>
+      <div class="controls">
+        <div><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000"></div>
+        <button class="scan" data-act="scan">Scan this page</button>
+        <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
+        <div class="market"></div>
+        <div class="status" role="status"></div>
+        <div class="actions"><button data-act="reset" hidden>Start over</button></div>
+      </div>
+      <div class="list"></div>
+      <div class="itemout"></div>
     </div>
-    <div class="list"></div>
-    <div class="itemout"></div>
+   </div>
   </div>`;
 
   const $ = (sel) => root.querySelector(sel);
+  const wrap = $(".wrap");
   const panel = $(".panel");
+  const countEl = $(".count");
   const statusEl = $(".status");
   const marketEl = $(".market");
   const listEl = $(".list");
   const queryEl = $("#q");
   const scanBtn = $('[data-act="scan"]');
   const analyzeBtn = $('[data-act="analyze"]');
+  const resetBtn = $('[data-act="reset"]');
   const itemEl = $(".itemout");
 
   const setStatus = (text, isErr = false) => {
@@ -114,11 +167,23 @@
     statusEl.classList.toggle("err", isErr);
   };
 
-  $('[data-act="toggle"]').addEventListener("click", (e) => {
-    const collapsed = panel.classList.toggle("collapsed");
-    e.currentTarget.textContent = collapsed ? "+" : "–";
-    e.currentTarget.setAttribute("aria-label", collapsed ? "Expand panel" : "Collapse panel");
-  });
+  // Open/closed: the tab is always there; the panel slides out when you pull the tab.
+  const setOpen = (open) => {
+    wrap.classList.toggle("open", open);
+    $('[data-act="tab"]').setAttribute("aria-label", open ? "Tuck Second Look away" : "Open Second Look");
+    try {
+      chrome.storage.local.set({ panelOpen: open });
+    } catch {}
+  };
+  const toggleOpen = () => setOpen(!wrap.classList.contains("open"));
+  $('[data-act="tab"]').addEventListener("click", toggleOpen);
+  $('[data-act="toggle"]').addEventListener("click", () => setOpen(false));
+  chrome.storage.local.get({ panelOpen: false }).then(({ panelOpen }) => setOpen(!!panelOpen));
+
+  const setCount = (n) => {
+    countEl.textContent = String(n);
+    countEl.hidden = !n;
+  };
 
   // ---------- stickers on the listing cards ----------
 
@@ -147,12 +212,13 @@
 
   // Facebook recycles card elements as you scroll, which drops our stickers. Remember each
   // scored listing by its URL and put the sticker back when its card reappears.
-  const scored = new Map();
+  const scored = new Map(); // key -> scored item
+  const seen = new Set(); // keys we've already sent for scoring, so a re-scan only does what's new
+  const keyOf = (url) => (url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/) || [])[1] || url.split("?")[0];
   const reapplyFacebook = () => {
     if (!scored.size || SL.currentSite() !== "facebook") return;
     document.querySelectorAll(ITEM_LINK).forEach((a) => {
-      const key = new URL(a.getAttribute("href"), location.origin).href.split("?")[0];
-      const item = scored.get(key);
+      const item = scored.get(keyOf(new URL(a.getAttribute("href"), location.origin).href));
       if (!item) return;
       const host = stickerHost(a);
       if (host.querySelector(":scope > .second-look-sticker")) return;
@@ -164,6 +230,7 @@
 
   const clearStickers = () => {
     scored.clear();
+    seen.clear();
     document.querySelectorAll("[data-second-look]").forEach((el) => {
       if (el.dataset.secondLookPos) el.style.position = "";
       el.removeAttribute("data-second-look");
@@ -231,7 +298,7 @@
         const row = h(
           "div",
           { class: "row" },
-          h("div", { class: "tag", style: `background:${v.color}`, "aria-label": `Score ${it.score}` }, String(it.score)),
+          h("div", { class: "tag", style: `--c:${v.color};--p:${it.score}`, "aria-label": `Score ${it.score}` }, h("span", {}, String(it.score))),
           h(
             "div",
             {},
@@ -322,19 +389,49 @@
     return market;
   };
 
+  // ---------- listings that loaded after the last scan ----------
+
+  const currentKeys = () => {
+    const sel = SL.currentSite() === "facebook" ? ITEM_LINK : 'li.s-card a[href*="/itm/"], li.s-item a[href*="/itm/"]';
+    const keys = new Set();
+    document.querySelectorAll(sel).forEach((a) => keys.add(keyOf(new URL(a.getAttribute("href"), location.origin).href)));
+    return keys;
+  };
+
+  const refreshPending = () => {
+    if (scanning || SL.pageType() !== "results") return;
+    let n = 0;
+    if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);
+    scanBtn.textContent = n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : "Scan this page";
+    countEl.classList.toggle("new", n > 0);
+    if (n) {
+      countEl.textContent = `+${n}`;
+      countEl.hidden = false;
+    } else setCount(scored.size);
+    resetBtn.hidden = !seen.size;
+  };
+  setInterval(refreshPending, 2000);
+
   const scan = async () => {
     if (scanning) return;
     scanning = true;
+    wrap.classList.add("busy");
     scanBtn.disabled = true;
-    clearStickers();
-    listEl.replaceChildren();
-    marketEl.textContent = "";
 
     try {
       const settings = await send("getSettings");
-      const items = SL.extract();
+      // Only listings we haven't scored yet: scrolling loads more, and a re-scan adds just those.
+      const wanted = currentKeys();
+      const items = SL.extract().filter((it) => !seen.has(keyOf(it.url)));
+      wanted.forEach((k) => seen.add(k));
+      items.forEach((it) => seen.add(keyOf(it.url)));
       if (!items.length) {
-        setStatus("No listings found on this page. Scroll so results load, or the site layout may have changed (README: When it breaks).", true);
+        setStatus(
+          scored.size
+            ? "Nothing new since your last scan. Scroll down to load more listings."
+            : "No listings found on this page. Scroll so results load, or the site layout may have changed (README: When it breaks).",
+          !scored.size
+        );
         return;
       }
 
@@ -359,21 +456,32 @@
             reason: r.reason,
           });
           stick(it);
-          scored.set(it.url, it);
+          scored.set(keyOf(it.url), it);
         }
-        render(items);
+        render([...scored.values()]);
       }
       const missed = items.filter((it) => it.score == null).length;
-      setStatus(`Ranked ${items.length - missed} of ${items.length} listings.${missed ? " The model skipped some; try a smaller batch size in settings." : ""}`);
+      setCount(scored.size);
+      setStatus(`Ranked ${items.length - missed} of ${items.length} new listings.${missed ? " The model skipped some; try a smaller batch size in settings." : ""}`);
     } catch (e) {
       setStatus(e.message, true);
     } finally {
       scanning = false;
+      wrap.classList.remove("busy");
       scanBtn.disabled = false;
+      refreshPending();
     }
   };
 
   scanBtn.addEventListener("click", scan);
+  resetBtn.addEventListener("click", () => {
+    clearStickers();
+    listEl.replaceChildren();
+    marketEl.textContent = "";
+    setCount(0);
+    setStatus("");
+    refreshPending();
+  });
 
   // ---------- one listing, in depth ----------
 
@@ -389,7 +497,7 @@
       h(
         "div",
         { class: "row" },
-        h("div", { class: "tag", style: `background:${v.color}`, "aria-label": `Score ${score}` }, String(score)),
+        h("div", { class: "tag", style: `--c:${v.color};--p:${score}`, "aria-label": `Score ${score}` }, h("span", {}, String(score))),
         h(
           "div",
           {},
@@ -443,6 +551,7 @@
   const analyze = async () => {
     if (analyzing) return;
     analyzing = true;
+    wrap.classList.add("busy");
     analyzeBtn.disabled = true;
     itemEl.replaceChildren();
     marketEl.textContent = "";
@@ -459,11 +568,13 @@
       setStatus("Analyzing this listing…");
       const r = await send("analyzeListing", { listing, query, market });
       renderItem(listing, r, market);
+      setCount(1);
       setStatus("");
     } catch (e) {
       setStatus(e.message, true);
     } finally {
       analyzing = false;
+      wrap.classList.remove("busy");
       analyzeBtn.disabled = false;
     }
   };
@@ -519,17 +630,9 @@
   // ---------- show only on results pages (FB is a single-page app) ----------
 
   let lastHref = "";
-  let hidden = false; // the user toggled the panel off with the toolbar icon
-  window.addEventListener("second-look-toggle", () => {
-    hidden = !hidden;
-    if (hidden) host.remove();
-    else {
-      lastHref = ""; // force a refresh of the panel for the current page
-      sync();
-    }
-  });
+  window.addEventListener("second-look-toggle", toggleOpen); // toolbar icon, if you use it
   const sync = () => {
-    if (hidden || location.href === lastHref) return;
+    if (location.href === lastHref) return;
     lastHref = location.href;
     const type = SL.pageType();
     const onResults = !!type;
@@ -539,9 +642,11 @@
       scanBtn.hidden = type === "item";
       analyzeBtn.hidden = type !== "item";
       queryEl.value = SL.detectQuery();
+      clearStickers();
       itemEl.replaceChildren();
       listEl.replaceChildren();
       marketEl.textContent = "";
+      setCount(0);
       setStatus("");
     }
   };

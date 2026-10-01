@@ -15,8 +15,12 @@ nothing leaves your computer except one ordinary eBay sold-listings search per s
    Developer mode, click **Load unpacked**, pick this folder.
 2. Open the extension's options, paste a Claude API key (console.anthropic.com),
    and save. The default model is `claude-opus-5-5`; `claude-haiku-4-5` is cheaper.
-3. Search eBay or Facebook Marketplace, then **click the Second Look toolbar icon** to open
-   the panel (click again to hide it). Nothing runs on those sites until you do. Press **Scan this page**. Each listing gets a
+3. Search eBay or Facebook Marketplace. A slim **Second Look** tab sits on the right edge of
+   the page; pull it out to open the panel. Press **Scan this page**. Scroll for more
+   listings and the button turns into "Scan N new listings" (only the new ones are scored).
+   The toolbar button isn't needed; right-click it and hide it if you like.
+   If eBay ever misbehaves, untick "Show a slim tab" in options: the panel then loads
+   only when you click the toolbar icon. Each listing gets a
    badge like "91 · Great deal · Second Look score" (the number is out of 100). Hover it
    for the reason.
 4. Open a single listing and press **Analyze this listing** for a verdict, red flags,

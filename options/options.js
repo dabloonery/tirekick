@@ -1,4 +1,4 @@
-const FIELDS = ["provider", "anthropicKey", "anthropicModel", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "showTab"];
+const FIELDS = ["provider", "anthropicKey", "anthropicModel", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct", "showTab"];
 const msg = document.getElementById("msg");
 
 async function load() {
@@ -26,10 +26,11 @@ document.getElementById("save").addEventListener("click", async () => {
   for (const f of FIELDS) {
     const el = document.getElementById(f);
     if (el.type === "checkbox") out[f] = el.checked;
+    else if (f === "feePct") out[f] = Math.min(50, Math.max(0, Number(el.value) || 0));
     else if (el.type === "number") out[f] = Math.min(30, Math.max(1, Math.round(Number(el.value)) || 10));
     else out[f] = el.value.trim();
     // An emptied model or address field goes back to its default instead of breaking requests.
-    if (out[f] === "" && f !== "anthropicKey") {
+    if (out[f] === "" && f !== "anthropicKey" && f !== "interests") {
       delete out[f];
       cleared.push(f);
     }

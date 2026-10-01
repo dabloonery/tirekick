@@ -1,6 +1,7 @@
 // Second Look — site adapters.
 // Each adapter turns a results page into a list of listings in one shared shape:
-//   { id, site, title, priceText, price, url, imageUrl, raw, el }
+//   { id, site, title, priceText, price, shipping, total, url, imageUrl, raw, el }
+// shipping is a number when the card says (0 = free), null when it doesn't; total = price + shipping.
 // Selectors are deliberately layered (newest layout first, then older ones,
 // then a generic fallback) because both sites change their markup without notice.
 // If a site stops working, this is the file to fix. See README "When it breaks".
@@ -49,6 +50,17 @@
   // eBay thumbnails on result cards are small (s-l140 to s-l500); a photo check needs the big one.
   SL.bigImage = (u) => (/ebayimg\.com/.test(u || "") ? u.replace(/s-l\d+\./, "s-l1600.") : u || "");
 
+  // "+$12.35 delivery", "+$5 shipping estimate", "Free delivery", "Free International Shipping"
+  SL.parseShipping = (text) => {
+    if (!text) return null;
+    const t = text.replace(/\u00a0/g, " ");
+    const paid = t.match(/\+\s?\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:delivery|shipping|postage)/i);
+    if (paid) return parseFloat(paid[1].replace(/,/g, ""));
+    if (/free\s+(?:\w+\s+){0,2}(?:delivery|shipping)/i.test(t)) return 0;
+    return null;
+  };
+  const withTotal = (it) => ({ ...it, total: it.price == null ? null : Math.round((it.price + (it.shipping || 0)) * 100) / 100 });
+
   const squash = (s, max = 300) => (s || "").replace(/\s+/g, " ").trim().slice(0, max);
 
   // ---------- eBay ----------
@@ -78,16 +90,20 @@
 
       const priceText = squash(firstText(card, [".s-card__price", ".s-item__price"]) || (card.textContent.match(/\$\s?[\d,]+(?:\.\d{2})?/) || [""])[0], 60);
 
-      out.push({
-        site: "ebay",
-        title,
-        priceText,
-        price: SL.parsePrice(priceText),
-        url,
-        imageUrl: firstImage(card),
-        raw: squash(card.innerText || card.textContent),
-        el: card,
-      });
+      const text = card.innerText || card.textContent;
+      out.push(
+        withTotal({
+          site: "ebay",
+          title,
+          priceText,
+          price: SL.parsePrice(priceText),
+          shipping: SL.parseShipping(text),
+          url,
+          imageUrl: firstImage(card),
+          raw: squash(text),
+          el: card,
+        })
+      );
     }
     return out;
   };
@@ -116,16 +132,19 @@
       const title = squash(rest[0] || "", 160);
       if (!title) return;
 
-      out.push({
-        site: "facebook",
-        title,
-        priceText: priceLine,
-        price: /^free$/i.test(priceLine) ? 0 : SL.parsePrice(priceLine),
-        url: new URL(href, location.origin).href.split("?")[0],
-        imageUrl: firstImage(a),
-        raw: squash(lines.join(" | ")),
-        el: a,
-      });
+      out.push(
+        withTotal({
+          site: "facebook",
+          title,
+          priceText: priceLine,
+          price: /^free$/i.test(priceLine) ? 0 : SL.parsePrice(priceLine),
+          shipping: SL.parseShipping(lines.join(" ")), // usually null: most Marketplace sales are local pickup
+          url: new URL(href, location.origin).href.split("?")[0],
+          imageUrl: firstImage(a),
+          raw: squash(lines.join(" | ")),
+          el: a,
+        })
+      );
     });
     return out;
   };
@@ -149,18 +168,20 @@
       const imgs = [...document.querySelectorAll('.ux-image-carousel img, [data-testid="ux-image-carousel"] img')].map(
         (i) => i.getAttribute("src") || i.getAttribute("data-src") || ""
       );
-      return {
+      const shippingText = squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300);
+      return withTotal({
         site,
         title,
         priceText,
         price: SL.parsePrice(priceText),
+        shipping: SL.parseShipping(shippingText),
         condition: squash(firstText(document, [".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
         seller: squash(firstText(document, [".x-sellercard-atf", '[data-testid="x-sellercard-atf"]']), 300),
-        shipping: squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300),
+        shippingText,
         details: squash(firstText(document, [".x-about-this-item", '[data-testid="x-about-this-item"]']) || meta("og:description"), 1200),
         imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(SL.bigImage).slice(0, 4),
         url: location.href.split("?")[0],
-      };
+      });
     }
     // Facebook Marketplace: class names are useless, so lean on metadata + visible text.
     const main = document.querySelector('[role="main"]') || document.body;
@@ -169,26 +190,32 @@
     const imgs = [...main.querySelectorAll("img")]
       .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
       .map((i) => i.src);
-    return {
+    return withTotal({
       site: "facebook",
       title: squash(firstText(main, ["h1"]) || meta("og:title"), 200),
       priceText,
       price: /^free$/i.test(priceText) ? 0 : SL.parsePrice(priceText),
+      shipping: null,
       condition: "",
       seller: "",
-      shipping: "",
+      shippingText: "",
       details: squash(meta("og:description") || main.innerText, 2500),
       imageUrls: uniq([meta("og:image"), ...imgs]).slice(0, 4),
       url: location.href.split("?")[0],
-    };
+    });
   };
 
-  // A short search phrase for the sold-price comparison, taken from a listing title.
+  // A short search phrase for the sold-price comparison, taken from a listing title. Condition and
+  // fault words ("for parts", "untested", "blinking red light") would skew the sold search, so they go.
+  const NOISE =
+    /\b(for parts( or repair| only)?|not working|non[- ]?working|untested|tested|works?|working|broken|as[- ]is|read( description)?|please read|parts|repair|faulty|damaged|no power|powers on|blinking( red)?( light)?|red light|cracked|(great|good|nice) condition|great|good|nice|clean|excellent|mint|rare|vintage|lot|bundle|free shipping|fast shipping|l@@k|wow)\b/gi;
   SL.titleToQuery = (title) =>
     (title || "")
+      .replace(NOISE, " ")
       .replace(/[^\p{L}\p{N}\s.-]/gu, " ")
       .split(/\s+/)
-      .filter(Boolean)
+      .map((w) => w.replace(/^[-.]+|[-.]+$/g, "")) // keep "PSP-3001", drop a lone "-" (eBay reads it as "exclude")
+      .filter((w) => w && !/^w$/i.test(w))
       .slice(0, 6)
       .join(" ");
 
@@ -251,20 +278,32 @@
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
   };
 
+  // eBay's condition filter: 3000 = used, 7000 = for parts or not working. "" = any condition.
+  SL.SOLD_CONDITION = { used: "3000", parts: "7000", any: "" };
+  SL.soldUrl = (query, condition = "") => {
+    const u = new URL("https://www.ebay.com/sch/i.html");
+    u.searchParams.set("_nkw", query);
+    u.searchParams.set("LH_Sold", "1");
+    u.searchParams.set("LH_Complete", "1");
+    u.searchParams.set("_ipg", "60");
+    if (condition) u.searchParams.set("LH_ItemCondition", condition);
+    return u.href;
+  };
+
+  // Median of what buyers paid (price + shipping when the card shows it), plus the few sales
+  // closest to the median so you can see what the number is made of.
   SL.summarizeSold = (html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    const prices = SL.extractEbay(doc, { strict: true })
-      .map((it) => it.price)
-      .filter((p) => p != null && p > 0)
-      .sort((a, b) => a - b);
-    if (prices.length < 5) return null; // too few sales to trust
+    const sales = SL.extractEbay(doc, { strict: true }).filter((it) => it.total != null && it.total > 0);
+    if (sales.length < 5) return null; // too few sales to trust
+    const totals = sales.map((it) => it.total).sort((a, b) => a - b);
     const r = (n) => Math.round(n);
-    return {
-      n: prices.length,
-      median: r(quantile(prices, 0.5)),
-      p25: r(quantile(prices, 0.25)),
-      p75: r(quantile(prices, 0.75)),
-      currency: "$",
-    };
+    const median = quantile(totals, 0.5);
+    const samples = [...sales]
+      .sort((a, b) => Math.abs(a.total - median) - Math.abs(b.total - median))
+      .slice(0, 5)
+      .sort((a, b) => a.total - b.total)
+      .map((it) => ({ title: it.title, total: it.total, url: it.url }));
+    return { n: totals.length, median: r(median), p25: r(quantile(totals, 0.25)), p75: r(quantile(totals, 0.75)), currency: "$", samples };
   };
 })();

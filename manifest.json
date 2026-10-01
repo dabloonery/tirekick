@@ -1,24 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Second Look",
-  "version": "0.1.0",
-  "description": "Scans eBay and Facebook Marketplace search results with a local Ollama model and flags the listings worth a closer look.",
-  "permissions": ["storage"],
+  "version": "0.3.0",
+  "description": "Scans eBay and Facebook Marketplace search results with an AI model and flags the listings worth a closer look.",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "scripting"
+  ],
   "host_permissions": [
     "http://localhost:11434/*",
     "http://127.0.0.1:11434/*",
+    "https://api.anthropic.com/*",
     "https://www.ebay.com/*",
+    "https://www.facebook.com/*",
     "https://i.ebayimg.com/*",
     "https://*.fbcdn.net/*"
   ],
-  "background": { "service_worker": "background.js" },
-  "content_scripts": [
-    {
-      "matches": ["https://www.ebay.com/sch/*", "https://www.facebook.com/*"],
-      "js": ["content/adapters.js", "content/panel.js"],
-      "run_at": "document_idle"
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Second Look: open or hide the panel",
+    "default_icon": {
+      "128": "icons/icon128.png"
     }
-  ],
-  "options_ui": { "page": "options/options.html", "open_in_tab": true },
-  "icons": { "128": "icons/icon128.png" }
+  }
 }

@@ -14,13 +14,15 @@
   .field { display:grid; gap:4px; margin-bottom:18px; }
   label { font-weight:600; }
   .hint { color:var(--muted); font-size:13px; }
-  input[type=text], input[type=number] { padding:8px 10px; border:1px solid var(--rule); border-radius:6px; background:transparent; color:var(--ink); font:inherit; }
+  input[type=text], input[type=number], input[type=password], select { padding:8px 10px; border:1px solid var(--rule); border-radius:6px; background:transparent; color:var(--ink); font:inherit; }
   .check { display:flex; gap:8px; align-items:flex-start; }
   .row { display:flex; gap:12px; align-items:center; margin-top:24px; }
   button { font:600 14px/1 system-ui, sans-serif; padding:10px 14px; border-radius:6px; border:1px solid var(--accent); cursor:pointer; }
   #save { background:var(--accent); color:var(--paper); }
   #test { background:transparent; color:var(--accent); }
   #msg { color:var(--muted); font-size:13px; }
+  [hidden] { display:none; }
+  select { background:var(--paper); }
   code { font-size:13px; }
   :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 </style>
@@ -28,8 +30,27 @@
 <body>
 <main>
   <h1>Second Look settings</h1>
-  <p class="lede">Everything runs on your own computer through Ollama. Nothing is sent anywhere else.</p>
+  <p class="lede">Pick where the ranking runs: the Claude API (best quality, no setup) or Ollama on your own computer (private, free). Listing titles and card text go to whichever one you choose.</p>
 
+  <div class="field">
+    <label for="provider">Model provider</label>
+    <select id="provider"><option value="anthropic">Claude API</option><option value="ollama">Ollama (local)</option></select>
+  </div>
+
+  <section id="anthropicBox">
+    <div class="field">
+      <label for="anthropicKey">Claude API key</label>
+      <input id="anthropicKey" type="password" autocomplete="off" placeholder="sk-ant-...">
+      <span class="hint">Create one at console.anthropic.com. Stored only in this browser profile.</span>
+    </div>
+    <div class="field">
+      <label for="anthropicModel">Claude model</label>
+      <input id="anthropicModel" type="text">
+      <span class="hint">Also used for photo checks. <code>claude-opus-5-5</code> is the most capable; <code>claude-haiku-4-5</code> is cheaper if you scan a lot.</span>
+    </div>
+  </section>
+
+  <section id="ollamaBox">
   <div class="field">
     <label for="ollamaUrl">Ollama address</label>
     <input id="ollamaUrl" type="text">
@@ -44,6 +65,7 @@
     <input id="visionModel" type="text">
     <span class="hint">Used only when you press "Check photo" on a listing.</span>
   </div>
+  </section>
   <div class="field">
     <label for="batchSize">Listings per request</label>
     <input id="batchSize" type="number" min="1" max="30">
@@ -52,6 +74,11 @@
   <div class="field check">
     <input id="useSoldComps" type="checkbox">
     <label for="useSoldComps">Compare prices with recent eBay sales<br><span class="hint">Runs one eBay sold-listings search per scan.</span></label>
+  </div>
+
+  <div class="field check">
+    <input id="showTab" type="checkbox">
+    <label for="showTab">Show a slim tab on eBay and Facebook Marketplace<br><span class="hint">Pull it out to open the panel. If eBay ever misbehaves, turn this off: Second Look then loads only when you click its toolbar icon. Reload open eBay tabs after changing it.</span></label>
   </div>
 
   <div class="row">

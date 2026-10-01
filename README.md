@@ -1,14 +1,44 @@
 # Second Look
 
 A browser extension that scans an eBay or Facebook Marketplace search results page,
-ranks every listing with a model running on your own laptop (Ollama), and puts a
-score sticker on each card. Optional: compare prices against recent eBay sold
+ranks every listing with a language model (the Claude API, or Ollama on your own
+laptop), and puts a score sticker on each card. Optional: compare prices against recent eBay sold
 listings, and ask a vision model to look at a listing photo.
 
-Nothing leaves your computer except one ordinary eBay sold-listings search per scan
+Listing titles and card text go to whichever model provider you pick; with Ollama
+nothing leaves your computer except one ordinary eBay sold-listings search per scan
 (turn that off in settings if you like).
 
-## Setup (CachyOS, about 30 minutes, mostly downloads)
+## Quick start (Claude API, about 5 minutes)
+
+1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
+   Developer mode, click **Load unpacked**, pick this folder.
+2. Open the extension's options, paste a Claude API key (console.anthropic.com),
+   and save. The default model is `claude-opus-5-5`; `claude-haiku-4-5` is cheaper.
+3. Search eBay or Facebook Marketplace. A slim **Second Look** tab sits on the right edge of
+   the page; pull it out to open the panel. Press **Scan this page**. Scroll for more
+   listings and the button turns into "Scan N new listings" (only the new ones are scored).
+   The toolbar button isn't needed; right-click it and hide it if you like.
+   If eBay ever misbehaves, untick "Show a slim tab" in options: the panel then loads
+   only when you click the toolbar icon. Each listing gets a
+   badge like "91 · Great deal · Second Look score" (the number is out of 100). Hover it
+   for the reason.
+4. Open a single listing and press **Analyze this listing** for a verdict, red flags,
+   questions to ask the seller, a suggested offer, and a photo check.
+5. Open **Search ideas** in the panel (it's open by default on eBay's home page). Describe what
+   you want, or leave it blank after a scan to get refinements from the results you're seeing:
+   tighter searches that cut junk, looser ones, common misspellings, alternative names, and a
+   price cap based on the sold median. Click a suggestion to run it. One model call per
+   request; nothing runs on its own.
+6. Right-click any photo on eBay or Facebook and choose **Check this photo with Second Look**.
+   Photo checks (the "Check photo" buttons too) change the rating: a stock photo, visible damage,
+   or a photo that doesn't match the title lowers the score (and can mark a listing suspicious);
+   a clear real photo of an item in good shape adds a little. The adjustment rules are fixed in
+   `photoAdjust` in `background.js`, so you can tune them.
+
+## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
+
+Choose "Ollama (local)" as the provider in settings, then:
 
 1. **Install Ollama with NVIDIA support and start it**
    ```
@@ -33,7 +63,8 @@ Nothing leaves your computer except one ordinary eBay sold-listings search per s
    - `sudo systemctl restart ollama`
    - Open the extension's options (right-click its icon, Options) and press
      **Test connection**. It should list your installed models.
-4. **Use it.** Search eBay or Facebook Marketplace, scroll so results load, press
+4. **Use it.** Search eBay or Facebook Marketplace, scroll so results load, click the
+   toolbar icon to open the panel, then press
    **Scan this page** in the panel at the bottom right. Click a title in the panel
    to jump to that card.
 
@@ -41,12 +72,13 @@ Nothing leaves your computer except one ordinary eBay sold-listings search per s
 
 | File | Job |
 |---|---|
-| `manifest.json` | Permissions and which pages the scripts run on |
+| `manifest.json` | Permissions. There are no automatic content scripts: `background.js` injects `content/*` only when you click the toolbar icon |
 | `content/adapters.js` | Reads listings off each site into one shared shape; computes the sold-price median |
-| `content/panel.js` | The panel, the scan loop, the stickers on cards |
-| `background.js` | Talks to Ollama, fetches photos and eBay sold results; holds the ranking prompt |
+| `content/panel.js` | The panel, the scan loop, the badges on cards, the single-listing view, the photo-check popup |
+| `background.js` | Talks to Claude or Ollama, fetches photos and eBay sold results; holds the ranking prompt |
 | `options/` | Settings page |
 
+Both providers sit behind `rankBatch` and `checkPhoto`, so adding another is small.
 The ranking prompt (`RANK_SYSTEM` in `background.js`) is the part most worth tuning.
 
 ## When it breaks

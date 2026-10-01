@@ -131,6 +131,18 @@
     .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:12px; height:12px; margin-right:8px; vertical-align:-2px;
       border:2.5px solid var(--rule); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
+    .lens { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; background:var(--soft); border-radius:999px; }
+    .lens button { border:0; background:none; color:var(--muted); font:800 13px/1 system-ui,sans-serif; padding:9px 0; border-radius:999px; cursor:pointer; transition:background .15s, color .15s; }
+    .lens button[aria-checked="true"] { background:var(--grad); color:#fff; }
+    .lens-hint { color:var(--muted); font-size:12px; margin-top:6px; }
+    .comps { margin-top:6px; font-weight:400; }
+    .comps summary { cursor:pointer; color:var(--accent); font-weight:700; }
+    .comps ul { margin:6px 0 0; padding-left:16px; }
+    .comps li { margin:3px 0; }
+    .comps a { color:var(--ink); }
+    .comps b { display:block; margin-top:6px; }
+    .lensinfo { margin-top:4px; font-size:12px; font-weight:700; color:var(--accent); }
+    .lensinfo.neg { color:#DC2626; }
     .market { font-size:12px; font-weight:600; }
     .market:not(:empty) { background:var(--soft); padding:9px 12px; border-radius:12px; }
 
@@ -210,6 +222,13 @@
       </div>
       <div class="body">
       <div class="controls">
+        <div class="lenswrap">
+          <div class="lens" role="radiogroup" aria-label="What it's for">
+            <button role="radio" data-lens="use">Use</button><button role="radio" data-lens="fix">Fix</button><button role="radio" data-lens="flip">Flip</button>
+          </div>
+          <div class="hint lens-hint"></div>
+        </div>
+        <div><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000"></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
@@ -220,8 +239,7 @@
       <details class="ideas">
         <summary>Search ideas</summary>
         <div class="ideas-body">
-          <div class="hint ideas-hint">Describe what you want, or leave it blank to get ideas from the results you're looking at.</div>
-          <input id="intent" placeholder="e.g. working 35mm film SLR under $150">
+          <div class="hint ideas-hint">Uses "What I want" above, or the results you're looking at if that's blank.</div>
           <button class="ghost" data-act="ideas">Get ideas</button>
           <div class="status ideas-status" role="status"></div>
           <div class="ideas-list"></div>
@@ -248,7 +266,8 @@
   const ideasBtn = $('[data-act="ideas"]');
   const ideasList = $(".ideas-list");
   const ideasStatus = $(".ideas-status");
-  const intentEl = $("#intent");
+  const wantEl = $("#want");
+  const lensHint = $(".lens-hint");
   const qwrap = $(".qwrap");
   const itemEl = $(".itemout");
 
@@ -273,6 +292,59 @@
   $('[data-act="toggle"]').addEventListener("click", () => setOpen(false));
   // Restore last time's state, unless a click got in first (the toolbar icon injects and toggles at once).
   chrome.storage.local.get({ panelOpen: false }).then(({ panelOpen }) => touched || showOpen(!!panelOpen));
+
+  // ---------- lens: what you want the listing for ----------
+
+  const LENS = {
+    use: { name: "Use", hint: "Working items at a good price." },
+    fix: { name: "Fix", hint: "Broken or untested items with a likely easy fix." },
+    flip: { name: "Flip", hint: "Biggest margin after eBay fees and likely repairs." },
+  };
+  let lens = "use";
+  const showLens = () => {
+    root.querySelectorAll("[data-lens]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.lens === lens)));
+    lensHint.textContent = LENS[lens].hint;
+  };
+  const setLens = (next) => {
+    if (next === lens || !LENS[next]) return;
+    lens = next;
+    showLens();
+    if (alive()) chrome.storage.local.set({ lens }).catch(() => {});
+    // Scores mean something different under another lens, so start the page over.
+    const had = scored.size || itemEl.childElementCount;
+    clearStickers();
+    listEl.replaceChildren();
+    itemEl.replaceChildren();
+    setCount(0);
+    if (had) setStatus(`Switched to ${LENS[lens].name}. Scan again to judge these listings for that (anything already judged this way comes back free).`);
+    refreshPending();
+  };
+  root.querySelectorAll("[data-lens]").forEach((b) => b.addEventListener("click", () => setLens(b.dataset.lens)));
+  wantEl.addEventListener("change", () => alive() && chrome.storage.local.set({ want: wantEl.value.trim() }).catch(() => {}));
+  chrome.storage.local.get({ lens: "use", want: "" }).then((v) => {
+    lens = LENS[v.lens] ? v.lens : "use";
+    if (!wantEl.value) wantEl.value = v.want;
+    showLens();
+  });
+  showLens();
+
+  const money = (n) => `${n < 0 ? "\u2212" : ""}$${Math.abs(Math.round(n))}`;
+  const fmtCost = (usd) => (usd < 0.01 ? "<$0.01" : `$${usd.toFixed(2)}`);
+  const DIFFICULTY = ["Fix: can't tell", "Easy fix", "Fairly easy fix", "Moderate fix", "Hard fix", "Very hard fix"];
+
+  // The one-line lens summary for a scored listing: what the sticker and list show under the verdict.
+  const lensLine = (it) => {
+    if (it.related === false) return "Not your search";
+    if (it.lens === "fix") {
+      if (/^none$/i.test(it.fault || "")) return "Works as-is";
+      return `${DIFFICULTY[it.difficulty] || DIFFICULTY[0]}${it.partsCost > 0 ? ` · ~$${it.partsCost} parts` : ""}`;
+    }
+    if (it.lens === "flip") return it.margin != null ? `\u2248 ${money(it.margin)} margin` : "Margin unknown";
+    return "Second Look score";
+  };
+
+  const priceStr = (it) =>
+    it.total == null ? it.priceText || "no price" : `$${it.total}${it.shipping > 0 ? ` incl. $${it.shipping} shipping` : ""}`;
 
   const setCount = (n) => {
     countEl.textContent = String(n);
@@ -386,7 +458,7 @@
       "div",
       { class: `second-look-sticker${chip ? " has-chip" : ""}`, style: `--sl-c:${v.color};--sl-c2:${v.c2}` },
       h("div", { class: "sl-score" }, String(item.score)),
-      h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), h("div", { class: "sl-sub" }, item.related === false ? "Not your search" : "Second Look score")),
+      h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), h("div", { class: "sl-sub" }, lensLine(item))),
       chip,
       h(
         "div",
@@ -394,6 +466,7 @@
         h("b", {}, `${item.score} out of 100: ${v.label}`),
         item.related === false ? h("div", { class: "sl-flags" }, "Not what you searched for, scored on the deal alone.") : null,
         item.reason || "",
+        item.fault && !/^none$/i.test(item.fault) ? h("div", { class: "sl-flags" }, `Likely fault: ${item.fault}${item.difficulty ? ` (difficulty ${item.difficulty}/5)` : ""}`) : null,
         item.photoAdjust ? h("div", { class: "sl-flags" }, `Photo check ${signed(item.photoAdjust)}: ${(item.photos || []).flatMap((p) => p.why).join("; ") || "see panel"}`) : null,
         item.flags?.length ? h("div", { class: "sl-flags" }, item.flags.join(" · ")) : null
       )
@@ -417,7 +490,8 @@
       .forEach((it, i) => {
         const v = VERDICT[it.verdict] || VERDICT.fair;
         const box = photoBox(it);
-        const vsMarket = it.priceVsMarket != null ? ` · ${Math.round(it.priceVsMarket * 100)}% of sold median` : "";
+        const vsMarket = it.vsWorking != null ? ` · ${Math.round(it.vsWorking * 100)}% of sold median` : "";
+        const line = lensLine(it);
         // Only rows appearing for the first time animate in; re-sorting shouldn't replay it for all.
         const row = h(
           "div",
@@ -427,7 +501,8 @@
             "div",
             {},
             h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
-            h("div", { class: "meta" }, `${v.label}${it.related === false ? " (not your search)" : ""} · ${it.priceText || "no price"}${it.related === false ? "" : vsMarket}`),
+            h("div", { class: "meta" }, `${v.label}${it.related === false ? " (not your search)" : ""} · ${priceStr(it)}${it.related === false ? "" : vsMarket}`),
+            it.lens !== "use" && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` · ${it.fault}` : "")) : null,
             h("div", { class: "reason" }, it.reason || ""),
             it.flags?.length ? h("div", { class: "flags" }, it.flags.map((f) => h("span", { class: "flag" }, f))) : null,
             h(
@@ -475,16 +550,22 @@
   const blockedPage = (html) =>
     /captcha|pardon our interruption|verify yourself|security measure/i.test(html.slice(0, 20000)) && !/s-card|s-item/.test(html);
 
-  const fetchSoldHtml = async (query) => {
-    if (location.hostname !== "www.ebay.com") return send("fetchSoldHtml", { query });
-    const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_ipg=60`;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let lastSoldFetch = 0;
+  const fetchSoldHtml = async (query, condition) => {
+    // Space out back-to-back lookups (working + for-parts) so it reads like a person clicking.
+    const wait = lastSoldFetch + 1200 - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastSoldFetch = Date.now();
+    const url = SL.soldUrl(query, SL.SOLD_CONDITION[condition]);
+    if (location.hostname !== "www.ebay.com") return send("fetchSoldHtml", { url });
     const res = await fetch(url, { credentials: "include", signal: AbortSignal.timeout(30000) });
     return { status: res.status, html: res.ok ? await res.text() : "" };
   };
 
   // Resolves to a market summary, or null when there were too few sales to trust.
-  const soldMarket = async (query) => {
-    const key = query.trim().toLowerCase();
+  const soldMarket = async (query, condition = "any") => {
+    const key = `${condition}:${query.trim().toLowerCase()}`;
     const { soldCache = {}, soldCooldownUntil = 0 } = await chrome.storage.local.get(["soldCache", "soldCooldownUntil"]);
     const hit = soldCache[key];
     if (hit && Date.now() - hit.at < SOLD_TTL_MS) return hit.market;
@@ -495,7 +576,7 @@
       await chrome.storage.local.set({ soldCooldownUntil: Date.now() + COOLDOWN_MS });
       throw new Error(`${why} Paused price lookups for 30 minutes.`);
     };
-    const { status, html } = await fetchSoldHtml(query);
+    const { status, html } = await fetchSoldHtml(query, condition);
     if (status === 403 || status === 429 || status === 503) return pause(`eBay answered ${status}.`);
     if (!html) throw new Error(`eBay sold search failed (${status}).`);
     if (blockedPage(html)) return pause("eBay showed a verification page.");
@@ -506,23 +587,87 @@
     return market;
   };
 
+  const summaryLine = (label, m) => `${label}: median $${m.median}, middle half $${m.p25}\u2013$${m.p75} (${m.n} sales)`;
+  const renderMarket = (market) => {
+    if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a market price.");
+    const groups = [
+      market.median != null && ["Working / used", market.samples],
+      market.parts && ["For parts", market.parts.samples],
+    ].filter((g) => g && g[1]?.length);
+    marketEl.replaceChildren(
+      market.median != null ? h("div", {}, summaryLine(`eBay sold${market.condition === "used" ? " (used)" : ""}`, market)) : null,
+      market.parts ? h("div", {}, summaryLine("For parts", market.parts)) : null,
+      groups.length
+        ? h(
+            "details",
+            { class: "comps" },
+            h("summary", {}, "See the sales"),
+            groups.flatMap(([label, list]) => [
+              h("b", {}, label),
+              h("ul", {}, list.map((x) => h("li", {}, h("a", { href: x.url, target: "_blank", rel: "noopener" }, `$${x.total} \u00b7 ${x.title}`)))),
+            ])
+          )
+        : null
+    );
+  };
+
+  // Working price from used sales (falling back to any condition when there are too few);
+  // for Fix and Flip also what broken ones sell for, the floor you can always resell at.
   let lastMarket = null;
-  const getMarket = async (settings, query) => {
+  const getMarket = async (settings, query, forLens) => {
     if (!settings.useSoldComps || !query) return null;
     setStatus(`Checking recent eBay sales for "${query}"…`);
     let market = null;
     try {
-      market = await soldMarket(query);
+      const used = await soldMarket(query, "used");
+      const working = used ? { ...used, condition: "used" } : await soldMarket(query, "any");
+      const parts = forLens !== "use" ? await soldMarket(query, "parts") : null;
+      market = working || parts ? { ...(working || { median: null }), parts } : null;
     } catch (e) {
       console.warn("[Second Look] sold comps failed:", e);
       marketEl.textContent = e.message;
       return null;
     }
-    marketEl.textContent = market
-      ? `eBay sold: median $${market.median}, middle half $${market.p25}–$${market.p75} (${market.n} sales)`
-      : "Not enough eBay sales found to set a market price.";
+    renderMarket(market);
     lastMarket = market;
     return market;
+  };
+
+  // How each listing's total compares with the sold prices; for Flip, the margin before repairs.
+  const priceNotes = (it, market, forLens, feePct) => {
+    const w = market?.median;
+    const pm = market?.parts?.median;
+    it.vsWorking = it.total != null && w > 0 ? it.total / w : null;
+    it.vsParts = forLens !== "use" && it.total != null && pm > 0 ? it.total / pm : null;
+    it.marginBeforeRepair = forLens === "flip" && it.total != null && w > 0 ? Math.round(w * (1 - feePct / 100) - 0.4 - it.total) : null;
+  };
+
+  // ---------- remembered scores ----------
+  // A listing judged under the same lens, wants, search and prices isn't sent to the model again for a day.
+  const SCORE_TTL_MS = 24 * 60 * 60 * 1000;
+  const hash = (str) => {
+    let x = 5381;
+    for (let i = 0; i < str.length; i++) x = ((x << 5) + x + str.charCodeAt(i)) | 0;
+    return (x >>> 0).toString(36);
+  };
+  const scoreKey = (ctx, it) => `${ctx}|${keyOf(it.url)}|${it.total ?? it.priceText}`;
+
+  const applyResult = (it, r, forLens) => {
+    Object.assign(it, {
+      lens: forLens,
+      score: clamp100(r.score | 0),
+      verdict: VERDICT[r.verdict] ? r.verdict : "fair",
+      related: r.related !== false,
+      flags: (r.flags || []).slice(0, 4),
+      reason: r.reason,
+      fault: r.fault || "",
+      difficulty: Math.max(0, Math.min(5, r.difficulty | 0)),
+      partsCost: Math.max(0, r.partsCost | 0),
+    });
+    it.margin = it.marginBeforeRepair != null && it.related ? it.marginBeforeRepair - it.partsCost : null;
+    if (it.vsParts != null && it.vsParts <= 1 && it.related && !it.flags.includes("under parts value")) it.flags.unshift("under parts value");
+    it.baseScore = it.score;
+    it.baseVerdict = it.verdict;
   };
 
   // ---------- listings that loaded after the last scan ----------
@@ -591,35 +736,49 @@
       items.forEach((it) => seen.add(keyOf(it.url)));
 
       const query = queryEl.value.trim();
-      const market = await getMarket(settings, query);
-      if (market) items.forEach((it) => (it.priceVsMarket = it.price != null && market.median > 0 ? it.price / market.median : null));
+      const want = wantEl.value.trim();
+      const forLens = lens;
+      const market = await getMarket(settings, query, forLens);
+      items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
+
+      // Anything already judged in this exact setting comes back from memory, free.
+      const model = settings.provider === "anthropic" ? settings.anthropicModel : settings.textModel;
+      const ctx = hash([forLens, want, query, model, market?.median, market?.parts?.median].join("|"));
+      const { scoreCache = {} } = await chrome.storage.local.get("scoreCache");
+      const fresh = {};
+      let fromMemory = 0;
+      for (const it of items) {
+        const hit = scoreCache[scoreKey(ctx, it)];
+        if (hit && Date.now() - hit.at < SCORE_TTL_MS) {
+          applyResult(it, hit.r, forLens);
+          stick(it);
+          scored.set(keyOf(it.url), it);
+          fromMemory++;
+        }
+      }
+      if (fromMemory) render([...scored.values()]);
+      const toRank = items.filter((it) => it.score == null);
+      let cost = 0;
 
       const size = Math.max(1, settings.batchSize | 0);
       const batches = [];
-      for (let i = 0; i < items.length; i += size) batches.push(items.slice(i, i + size));
+      for (let i = 0; i < toRank.length; i += size) batches.push(toRank.slice(i, i + size));
       // The Claude API handles a few requests at once; a local Ollama model is fastest one at a time.
       const parallel = settings.provider === "anthropic" ? 3 : 1;
-      const model = settings.provider === "anthropic" ? settings.anthropicModel : settings.textModel;
-      let done = 0;
+      let done = fromMemory;
       const session = scored; // if you navigate away mid-scan, late answers belong to the old page
       setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${model}…`);
       const errors = await runBatches(batches, parallel, async (batch) => {
         const payload = batch.map(({ el, ...rest }) => rest); // DOM nodes can't be sent
-        const results = await send("rankBatch", { items: payload, query, market });
+        const res = await send("rankBatch", { items: payload, query, market, lens: forLens, want });
+        cost += res.cost || 0;
         if (scored !== session) return;
         const byId = new Map(batch.map((it) => [it.id, it]));
-        for (const r of results) {
+        for (const r of res.items) {
           const it = byId.get(r.id);
           if (!it) continue;
-          Object.assign(it, {
-            score: clamp100(r.score | 0),
-            verdict: VERDICT[r.verdict] ? r.verdict : "fair",
-            related: r.related !== false,
-            flags: (r.flags || []).slice(0, 4),
-            reason: r.reason,
-          });
-          it.baseScore = it.score;
-          it.baseVerdict = it.verdict;
+          applyResult(it, r, forLens);
+          fresh[scoreKey(ctx, it)] = { at: Date.now(), r };
           stick(it);
           scored.set(keyOf(it.url), it);
         }
@@ -628,14 +787,22 @@
         if (done < items.length) setStatus(`Ranked ${done} of ${items.length} listings with ${model}…`);
       });
 
+      if (Object.keys(fresh).length) {
+        // Keep the memory bounded: drop expired entries, keep the newest 1500.
+        const kept = Object.entries(scoreCache).filter(([, v]) => Date.now() - v.at < SCORE_TTL_MS).slice(-(1500 - Object.keys(fresh).length));
+        await chrome.storage.local.set({ scoreCache: Object.fromEntries([...kept, ...Object.entries(fresh)]) });
+      }
       if (scored !== session) return; // you've moved on to another page
       // Anything not scored (failed batch, or the model skipped it) is offered again next scan.
       const missed = items.filter((it) => it.score == null);
       missed.forEach((it) => seen.delete(keyOf(it.url)));
       setCount(scored.size);
       if (errors.length && missed.length === items.length) throw errors[0];
+      const { spend } = await chrome.storage.local.get("spend");
+      const costNote =
+        settings.provider === "anthropic" && toRank.length ? ` Cost ~${fmtCost(cost)}${spend ? `, this month ~${fmtCost(spend.usd)}` : ""}.` : "";
       setStatus(
-        `Ranked ${items.length - missed.length} of ${items.length} new listings.` +
+        `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${costNote}` +
           (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +
           (!errors.length && missed.length ? " The model skipped some; scan again, or try a smaller batch size in settings." : ""),
         errors.length > 0
@@ -667,7 +834,11 @@
   const renderItem = (listing, r, market) => {
     const v = VERDICT[r.verdict] || VERDICT.fair;
     const score = clamp100(r.score | 0);
-    const vs = market && listing.price != null && market.median > 0 ? ` · ${Math.round((listing.price / market.median) * 100)}% of sold median` : "";
+    const vs =
+      (listing.vsWorking != null ? ` · ${Math.round(listing.vsWorking * 100)}% of sold median` : "") +
+      (listing.vsParts != null ? ` · ${Math.round(listing.vsParts * 100)}% of for-parts median` : "");
+    const rep = r.repair;
+    const margin = listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (rep?.partsCost || 0) : null;
     const questions = (r.questions || []).slice(0, 6);
     const photoBox = h("div");
     (r.photos || []).forEach((p, i) => photoBox.append(h("div", { class: p.adjust < 0 ? "photo drop" : "photo" }, photoText(p, `Photo ${i + 1}: `))));
@@ -680,7 +851,7 @@
           "div",
           {},
           h("div", { class: "title" }, `${v.label} (${score}/100)`),
-          h("div", { class: "meta" }, `${listing.priceText || "no price"}${vs}`),
+          h("div", { class: "meta" }, `${priceStr(listing)}${vs}`),
           h("div", { class: "reason" }, r.summary || ""),
           r.photoAdjust ? h("div", { class: r.photoAdjust < 0 ? "adjust" : "adjust up" }, `Photo check ${signed(r.photoAdjust)} (was ${r.baseScore})`) : null,
           r.flags?.length ? h("div", { class: "flags" }, r.flags.slice(0, 5).map((f) => h("span", { class: "flag" }, f))) : null
@@ -690,6 +861,26 @@
     if (r.offerHigh > 0) {
       parts.push(h("div", { class: "offer" }, "Suggested offer: ", h("b", {}, `$${r.offerLow}–$${r.offerHigh}`)));
     }
+    if (margin != null) {
+      parts.push(
+        h("div", { class: "offer" }, "Flip margin: ", h("b", {}, `\u2248 ${money(margin)}`), ` after eBay fees${rep?.partsCost ? ` and ~$${rep.partsCost} parts` : ""}, at the sold median.`)
+      );
+    }
+    if (rep && (rep.faults?.length || rep.notes)) {
+      const kv = (label, list) => (list?.length ? h("div", {}, h("strong", {}, `${label}: `), list.join(", ")) : null);
+      parts.push(
+        h(
+          "div",
+          { class: "sect" },
+          h("strong", {}, `${DIFFICULTY[rep.difficulty] || DIFFICULTY[0]}${rep.difficulty ? ` (${rep.difficulty}/5)` : ""}${rep.partsCost ? ` · ~$${rep.partsCost} parts` : ""}`),
+          rep.faults?.length ? h("ol", {}, rep.faults.slice(0, 4).map((f) => h("li", {}, f))) : null,
+          kv("Parts", rep.parts),
+          kv("Tools", rep.tools),
+          rep.notes ? h("div", { class: "meta" }, rep.notes) : null
+        )
+      );
+    }
+    if (r.homebrew) parts.push(h("div", { class: "sect" }, h("strong", {}, "Homebrew: "), r.homebrew));
     if (questions.length) {
       const copyBtn = h("button", {
         onclick: async () => {
@@ -751,12 +942,14 @@
       }
       if (!queryEl.value.trim()) queryEl.value = SL.titleToQuery(listing.title);
       const query = queryEl.value.trim();
-      const market = await getMarket(settings, query);
-      setStatus("Analyzing this listing…");
-      const r = await send("analyzeListing", { listing, query, market });
+      const forLens = lens;
+      const market = await getMarket(settings, query, forLens);
+      priceNotes(listing, market, forLens, settings.feePct);
+      setStatus(`Analyzing this listing for ${LENS[forLens].name.toLowerCase()}…`);
+      const r = await send("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
       renderItem(listing, r, market);
       setCount(1);
-      setStatus("");
+      setStatus(settings.provider === "anthropic" && r.cost ? `Cost ~${fmtCost(r.cost)}.` : "");
     } catch (e) {
       setStatus(e.message, true);
     } finally {
@@ -840,7 +1033,8 @@
       const ideas = await send("suggestSearches", {
         site: SL.currentSite(),
         query: queryEl.value.trim(),
-        intent: intentEl.value.trim(),
+        intent: wantEl.value.trim(),
+        lens,
         titles: titles.slice(0, 30),
         market: lastMarket,
       });
@@ -871,7 +1065,7 @@
     }
   };
   ideasBtn.addEventListener("click", getIdeas);
-  intentEl.addEventListener("keydown", (e) => e.key === "Enter" && getIdeas());
+  wantEl.addEventListener("keydown", (e) => e.key === "Enter" && ideasBox.open && getIdeas());
 
   // ---------- show only on results pages (FB is a single-page app) ----------
 
@@ -881,15 +1075,15 @@
   const saveScan = (href) => {
     if (!scored.size) return;
     stash.delete(href);
-    stash.set(href, { scored, seen, lastMarket, query: queryEl.value, market: marketEl.textContent });
+    stash.set(href, { scored, seen, lastMarket, lens, query: queryEl.value, market: [...marketEl.childNodes] });
     if (stash.size > 5) stash.delete(stash.keys().next().value);
   };
   const restoreScan = (href) => {
     const saved = stash.get(href);
-    if (!saved) return false;
+    if (!saved || saved.lens !== lens) return false;
     ({ scored, seen, lastMarket } = saved);
     queryEl.value = saved.query;
-    marketEl.textContent = saved.market;
+    marketEl.replaceChildren(...saved.market);
     render([...scored.values()]);
     setCount(scored.size);
     return true;
@@ -913,7 +1107,6 @@
       ideasBox.open = type === "home"; // on the home page, ideas are the whole point
       ideasList.replaceChildren();
       ideasStatus.textContent = "";
-      intentEl.value = "";
       lastMarket = null;
       clearStickers();
       itemEl.replaceChildren();

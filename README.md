@@ -36,6 +36,31 @@ nothing leaves your computer except one ordinary eBay sold-listings search per s
    a clear real photo of an item in good shape adds a little. The adjustment rules are fixed in
    `photoAdjust` in `background.js`, so you can tune them.
 
+## Use, Fix, Flip
+
+The switch at the top of the panel sets what you want a listing *for*, and scores follow it:
+
+| Lens | Scores high | Sticker shows |
+|---|---|---|
+| **Use** | Working items at a good price; "for parts" and "as is" are marked down | Verdict and score |
+| **Fix** | Broken or untested items with a likely easy, cheap fix, priced near what broken ones sell for | "Easy fix · ~$10 parts", likely fault on hover |
+| **Flip** | The biggest margin: used sold median, minus eBay fees, minus the price, minus likely parts | "≈ $26 margin" |
+
+- **What I want** (under the switch) feeds every scan, single-listing analysis and Search ideas:
+  "working, with controllers, under $80". A listing that misses something says so.
+- **Price comparisons use what you'd actually pay**: price plus shipping when the card shows it, against
+  what sold listings went for including shipping. Fix and Flip also look up the **for-parts** median:
+  pay less than that and the worst case is reselling it broken. "See the sales" lists the sales
+  behind each number.
+- **Analyze this listing** in Fix or Flip adds a repair plan (likely faults, parts, tools, difficulty)
+  and, for anything with a scene, a homebrew note with firmware/model caveats.
+- **Settings**: "What you're into" tells Fix and Flip which repair and homebrew knowledge applies
+  (it starts as electronics, retro tech, games and homebrew). Set "eBay fees" to your category's
+  final value fee so Flip margins match what you'd really clear. The repair rules of thumb live
+  in `FIX_KNOWLEDGE` in `background.js`; add what you learn.
+- Repair guesses are the least reliable thing here: the model only sees the listing text. Use them
+  to decide what to ask the seller, not as a diagnosis.
+
 ## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
 
 Choose "Ollama (local)" as the provider in settings, then:
@@ -101,6 +126,9 @@ refresh the tab.
   compares better than "camera". eBay's "results matching fewer words" are left out of it.
 - Sold-price lookups are remembered for 6 hours per search, so re-scans and new pages with
   the same words don't ask eBay again. If eBay pushes back, lookups pause for 30 minutes.
+- Scores are remembered for a day per listing, lens, wants and price: re-scanning, coming back to
+  a search, or switching lenses back and forth costs nothing the second time. The status line shows
+  what each Claude scan cost and the running total for the month (list prices, approximate).
 - With the Claude API, up to 3 batches are ranked at once; Ollama runs one at a time. If a
   request fails, the listings it carried are offered again on the next scan.
 - Your 3050 Ti has 4 GB of VRAM. If scans are slow, lower "Listings per request"

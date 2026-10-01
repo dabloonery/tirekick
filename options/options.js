@@ -11,7 +11,18 @@ async function load() {
     else el.value = s[f] ?? "";
   }
   showProvider();
+  const look = (await chrome.storage.local.get({ theme: "classic" })).theme;
+  document.querySelector(`input[name="theme"][value="${look === "retro" ? "retro" : "classic"}"]`).checked = true;
+  document.documentElement.dataset.theme = look;
 }
+
+// The look applies straight away (open eBay/Facebook tabs follow it too); no Save needed.
+document.querySelectorAll('input[name="theme"]').forEach((r) =>
+  r.addEventListener("change", () => {
+    document.documentElement.dataset.theme = r.value;
+    chrome.storage.local.set({ theme: r.value });
+  })
+);
 
 function showProvider() {
   const anth = document.getElementById("provider").value === "anthropic";

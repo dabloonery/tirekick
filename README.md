@@ -61,6 +61,20 @@ The switch at the top of the panel sets what you want a listing *for*, and score
 - Repair guesses are the least reliable thing here: the model only sees the listing text. Use them
   to decide what to ask the seller, not as a diagnosis.
 
+## Look
+
+Two looks, picked at the top of the settings page (it switches straight away, open tabs too):
+
+- **Classic**: paper and ink. A Fraunces serif for the wordmark, scores and prices, your system
+  font for everything else, and colour only where it means something (the verdict).
+- **Pocket**: a retro handheld LCD in greens, mono type and hard pixel shadows. In dark mode it
+  becomes a backlit screen.
+
+Both follow your system's light/dark setting. The fonts ship in `fonts/` (SIL Open Font License,
+see `fonts/LICENSE.md`) and are loaded from inside the extension, so no site can block them or
+use them to tell the extension is installed. All the colours and type live in `THEME_CSS` near
+the top of `content/panel.js`.
+
 ## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
 
 Choose "Ollama (local)" as the provider in settings, then:
@@ -101,6 +115,7 @@ Choose "Ollama (local)" as the provider in settings, then:
 | `content/panel.js` | The panel, the scan loop, the badges on cards, the single-listing view, the photo-check popup |
 | `background.js` | Talks to Claude or Ollama (with retries and timeouts), fetches photos, and fetches eBay sold results for Facebook pages; holds the prompts |
 | `options/` | Settings page |
+| `fonts/`, `icons/` | Bundled typefaces (OFL) and the toolbar icon |
 
 Both providers sit behind `rankBatch` and `checkPhoto`, so adding another is small.
 The ranking prompt (`RANK_SYSTEM` in `background.js`) is the part most worth tuning.

@@ -76,7 +76,14 @@
     .actions { display:flex; gap:10px; margin-top:6px; font-size:12px; }
     .actions a, .actions button { color:var(--accent); background:none; border:0; padding:0; font:inherit; cursor:pointer; text-decoration:none; }
     .photo { margin-top:6px; font-size:12px; color:var(--muted); border-left:2px solid var(--rule); padding-left:8px; }
-    .collapsed .controls, .collapsed .list { display:none; }
+    .collapsed .controls, .collapsed .list, .collapsed .itemout { display:none; }
+    [hidden] { display:none !important; }
+    .itemout { overflow:auto; }
+    .sect { padding:8px 12px; border-top:1px solid var(--rule); font-size:12px; }
+    .sect ol { margin:4px 0 0; padding-left:18px; }
+    .sect li { margin:2px 0; }
+    .offer { padding:8px 12px; border-top:1px solid var(--rule); font-size:13px; }
+    .offer b { color:var(--accent); }
     button:focus-visible, input:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   </style>
   <div class="panel">
@@ -84,10 +91,12 @@
     <div class="controls">
       <div><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000"></div>
       <button class="scan" data-act="scan">Scan this page</button>
+      <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
       <div class="market"></div>
       <div class="status" role="status"></div>
     </div>
     <div class="list"></div>
+    <div class="itemout"></div>
   </div>`;
 
   const $ = (sel) => root.querySelector(sel);
@@ -97,6 +106,8 @@
   const listEl = $(".list");
   const queryEl = $("#q");
   const scanBtn = $('[data-act="scan"]');
+  const analyzeBtn = $('[data-act="analyze"]');
+  const itemEl = $(".itemout");
 
   const setStatus = (text, isErr = false) => {
     statusEl.textContent = text;
@@ -111,10 +122,34 @@
 
   // ---------- stickers on the listing cards ----------
 
+  // The sticker lives in the page, so its CSS is injected into the page once.
+  const ensureStickerStyles = () => {
+    if (document.getElementById("second-look-styles")) return;
+    const st = document.createElement("style");
+    st.id = "second-look-styles";
+    st.textContent = `
+      .second-look-sticker { position:absolute; top:8px; left:8px; z-index:50; display:flex; align-items:center;
+        background:var(--sl-c); color:#fff; border-radius:999px; box-shadow:0 0 0 2px #fff, 0 3px 10px rgba(0,0,0,.4);
+        font:600 13px/1.15 system-ui,-apple-system,"Segoe UI",sans-serif; cursor:help; }
+      .second-look-sticker .sl-score { background:#fff; color:var(--sl-c); font-weight:800; font-size:18px;
+        min-width:40px; height:40px; margin:2px; border-radius:999px; display:grid; place-items:center; font-variant-numeric:tabular-nums; }
+      .second-look-sticker .sl-text { display:flex; flex-direction:column; padding:0 14px 0 8px; }
+      .second-look-sticker .sl-verdict { font-weight:800; font-size:14px; white-space:nowrap; }
+      .second-look-sticker .sl-sub { font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; opacity:.92; white-space:nowrap; }
+      .second-look-sticker .sl-pop { display:none; position:absolute; top:100%; left:0; margin-top:8px; width:240px;
+        background:#fff; color:#1E2A38; border-radius:10px; padding:10px 12px; font:400 12px/1.4 system-ui,sans-serif;
+        box-shadow:0 6px 20px rgba(0,0,0,.3); white-space:normal; }
+      .second-look-sticker:hover .sl-pop { display:block; }
+      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; }
+      .second-look-sticker .sl-flags { margin-top:6px; color:#5B6776; }`;
+    document.head.append(st);
+  };
+
   const clearStickers = () => {
     document.querySelectorAll("[data-second-look]").forEach((el) => {
-      el.style.outline = "";
+      if (el.dataset.secondLookPos) el.style.position = "";
       el.removeAttribute("data-second-look");
+      el.removeAttribute("data-second-look-pos");
     });
     document.querySelectorAll(".second-look-sticker").forEach((s) => s.remove());
   };
@@ -122,14 +157,27 @@
   const stick = (item) => {
     const el = item.el;
     if (!el?.isConnected) return;
+    ensureStickerStyles();
     const v = VERDICT[item.verdict] || VERDICT.fair;
     el.setAttribute("data-second-look", item.verdict);
-    el.style.outline = `3px solid ${v.color}`;
-    el.style.outlineOffset = "2px";
-    if (getComputedStyle(el).position === "static") el.style.position = "relative";
+    if (getComputedStyle(el).position === "static") {
+      el.style.position = "relative";
+      el.setAttribute("data-second-look-pos", "1");
+    }
     el.querySelector(":scope > .second-look-sticker")?.remove();
-    const s = h("div", { class: "second-look-sticker", title: `${v.label}: ${item.reason}` }, String(item.score));
-    s.style.cssText = `position:absolute;top:6px;left:6px;z-index:5;background:${v.color};color:#fff;font:700 13px/1 system-ui,sans-serif;padding:5px 8px 5px 12px;border-radius:4px 10px 10px 4px;box-shadow:0 1px 3px rgba(0,0,0,.3);pointer-events:none;`;
+    const s = h(
+      "div",
+      { class: "second-look-sticker", style: `--sl-c:${v.color}` },
+      h("div", { class: "sl-score" }, String(item.score)),
+      h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), h("div", { class: "sl-sub" }, "Second Look score")),
+      h(
+        "div",
+        { class: "sl-pop" },
+        h("b", {}, `${item.score} out of 100: ${v.label}`),
+        item.reason || "",
+        item.flags?.length ? h("div", { class: "sl-flags" }, item.flags.join(" · ")) : null
+      )
+    );
     el.append(s);
   };
 
@@ -190,6 +238,21 @@
 
   let scanning = false;
 
+  const getMarket = async (settings, query) => {
+    if (!settings.useSoldComps || !query) return null;
+    setStatus(`Checking recent eBay sales for "${query}"…`);
+    let market = null;
+    try {
+      market = SL.summarizeSold(await send("fetchSoldHtml", { query }));
+    } catch (e) {
+      console.warn("[Second Look] sold comps failed:", e);
+    }
+    marketEl.textContent = market
+      ? `eBay sold: median $${market.median}, middle half $${market.p25}–$${market.p75} (${market.n} sales)`
+      : "Not enough eBay sales found to set a market price.";
+    return market;
+  };
+
   const scan = async () => {
     if (scanning) return;
     scanning = true;
@@ -207,18 +270,7 @@
       }
 
       const query = queryEl.value.trim();
-      let market = null;
-      if (settings.useSoldComps && query) {
-        setStatus(`Checking recent eBay sales for "${query}"…`);
-        try {
-          market = SL.summarizeSold(await send("fetchSoldHtml", { query }));
-        } catch (e) {
-          console.warn("[Second Look] sold comps failed:", e);
-        }
-        marketEl.textContent = market
-          ? `eBay sold: median $${market.median}, middle half $${market.p25}–$${market.p75} (${market.n} sales)`
-          : "Not enough eBay sales found to set a market price.";
-      }
+      const market = await getMarket(settings, query);
       if (market) items.forEach((it) => (it.priceVsMarket = it.price != null && market.median > 0 ? it.price / market.median : null));
 
       const size = Math.max(1, settings.batchSize | 0);
@@ -252,17 +304,162 @@
 
   scanBtn.addEventListener("click", scan);
 
+  // ---------- one listing, in depth ----------
+
+  let analyzing = false;
+
+  const renderItem = (listing, r, market) => {
+    const v = VERDICT[r.verdict] || VERDICT.fair;
+    const score = Math.max(0, Math.min(100, r.score | 0));
+    const vs = market && listing.price != null && market.median > 0 ? ` · ${Math.round((listing.price / market.median) * 100)}% of sold median` : "";
+    const questions = (r.questions || []).slice(0, 6);
+    const photoBox = h("div");
+    const parts = [
+      h(
+        "div",
+        { class: "row" },
+        h("div", { class: "tag", style: `background:${v.color}`, "aria-label": `Score ${score}` }, String(score)),
+        h(
+          "div",
+          {},
+          h("div", { class: "title" }, `${v.label} (${score}/100)`),
+          h("div", { class: "meta" }, `${listing.priceText || "no price"}${vs}`),
+          h("div", { class: "reason" }, r.summary || ""),
+          r.flags?.length ? h("div", { class: "flags" }, r.flags.slice(0, 5).map((f) => h("span", { class: "flag" }, f))) : null
+        )
+      ),
+    ];
+    if (r.offerHigh > 0) {
+      parts.push(h("div", { class: "offer" }, "Suggested offer: ", h("b", {}, `$${r.offerLow}–$${r.offerHigh}`)));
+    }
+    if (questions.length) {
+      const copyBtn = h("button", {
+        onclick: async () => {
+          try {
+            await navigator.clipboard.writeText(questions.map((q, i) => `${i + 1}. ${q}`).join("\n"));
+            copyBtn.textContent = "Copied";
+          } catch {
+            copyBtn.textContent = "Couldn't copy";
+          }
+        },
+      }, "Copy questions");
+      parts.push(
+        h("div", { class: "sect" }, h("strong", {}, "Ask the seller"), h("ol", {}, questions.map((q) => h("li", {}, q))), h("div", { class: "actions" }, copyBtn))
+      );
+    }
+    if (listing.imageUrls?.length) {
+      const btn = h("button", { onclick: () => checkPhotos(listing, photoBox, btn) }, `Check ${Math.min(3, listing.imageUrls.length)} photo${listing.imageUrls.length > 1 ? "s" : ""}`);
+      parts.push(h("div", { class: "sect" }, h("div", { class: "actions" }, btn), photoBox));
+    }
+    itemEl.replaceChildren(...parts);
+  };
+
+  const checkPhotos = async (listing, box, btn) => {
+    btn.disabled = true;
+    box.replaceChildren();
+    for (const [i, url] of listing.imageUrls.slice(0, 3).entries()) {
+      const line = h("div", { class: "photo" }, `Photo ${i + 1}: looking…`);
+      box.append(line);
+      try {
+        line.textContent = `Photo ${i + 1}: ${(await send("checkPhoto", { imageUrl: url, title: listing.title })).trim()}`;
+      } catch (e) {
+        line.textContent = `Photo ${i + 1}: ${e.message}`;
+      }
+    }
+    btn.disabled = false;
+  };
+
+  const analyze = async () => {
+    if (analyzing) return;
+    analyzing = true;
+    analyzeBtn.disabled = true;
+    itemEl.replaceChildren();
+    marketEl.textContent = "";
+    try {
+      const settings = await send("getSettings");
+      const listing = SL.extractItem();
+      if (!listing.title) {
+        setStatus("Couldn't read this listing. Let it finish loading and try again, or the layout may have changed (README: When it breaks).", true);
+        return;
+      }
+      if (!queryEl.value.trim()) queryEl.value = SL.titleToQuery(listing.title);
+      const query = queryEl.value.trim();
+      const market = await getMarket(settings, query);
+      setStatus("Analyzing this listing…");
+      const r = await send("analyzeListing", { listing, query, market });
+      renderItem(listing, r, market);
+      setStatus("");
+    } catch (e) {
+      setStatus(e.message, true);
+    } finally {
+      analyzing = false;
+      analyzeBtn.disabled = false;
+    }
+  };
+
+  analyzeBtn.addEventListener("click", analyze);
+
+  // ---------- right-click a photo -> result card ----------
+
+  let toastRoot = null;
+  const toast = (imageUrl) => {
+    if (!toastRoot) {
+      const host = h("div", { id: "second-look-toast" });
+      host.style.cssText = "position:fixed;left:16px;bottom:16px;z-index:2147483647;";
+      toastRoot = host.attachShadow({ mode: "open" });
+      toastRoot.innerHTML = `<style>
+        :host { all: initial; }
+        .card { box-sizing:border-box; width:340px; display:grid; grid-template-columns:64px 1fr auto; gap:10px; padding:10px 12px;
+          background:#fff; color:#1E2A38; border:1px solid #D8DEE6; border-radius:10px; box-shadow:0 6px 24px rgba(30,42,56,.25);
+          font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+        @media (prefers-color-scheme: dark) { .card { background:#18212B; color:#E6EBF1; border-color:#2E3B49; } }
+        img { width:64px; height:64px; object-fit:cover; border-radius:6px; background:#D8DEE6; }
+        b { display:block; font-size:12px; margin-bottom:2px; }
+        .err { color:#B42318; }
+        button { background:none; border:0; font-size:16px; color:inherit; opacity:.6; cursor:pointer; align-self:start; }
+      </style><div class="card"><img alt=""><div><b>Second Look photo check</b><span class="txt"></span></div><button aria-label="Close">×</button></div>`;
+      toastRoot.querySelector("button").addEventListener("click", () => host.remove());
+    }
+    const host = toastRoot.host;
+    if (!host.isConnected) document.documentElement.append(host);
+    toastRoot.querySelector("img").src = imageUrl;
+    const txt = toastRoot.querySelector(".txt");
+    return (text, isErr = false) => {
+      txt.textContent = text;
+      txt.className = isErr ? "txt err" : "txt";
+    };
+  };
+
+  const checkPhotoFromMenu = async (imageUrl) => {
+    const say = toast(imageUrl);
+    say("Looking at the photo…");
+    try {
+      const title = SL.pageType() === "item" ? SL.extractItem().title : "";
+      say((await send("checkPhoto", { imageUrl, title })).trim());
+    } catch (e) {
+      say(e.message, true);
+    }
+  };
+
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg?.type === "second-look-check-photo" && msg.imageUrl) checkPhotoFromMenu(msg.imageUrl);
+  });
+
   // ---------- show only on results pages (FB is a single-page app) ----------
 
   let lastHref = "";
   const sync = () => {
     if (location.href === lastHref) return;
     lastHref = location.href;
-    const onResults = !!SL.currentSite();
+    const type = SL.pageType();
+    const onResults = !!type;
     if (onResults && !host.isConnected) document.documentElement.append(host);
     if (!onResults && host.isConnected) host.remove();
     if (onResults) {
+      scanBtn.hidden = type === "item";
+      analyzeBtn.hidden = type !== "item";
       queryEl.value = SL.detectQuery();
+      itemEl.replaceChildren();
       listEl.replaceChildren();
       marketEl.textContent = "";
       setStatus("");

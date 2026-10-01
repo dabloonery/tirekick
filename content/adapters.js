@@ -112,11 +112,81 @@
 
   SL.facebookQuery = () => new URLSearchParams(location.search).get("query") || "";
 
+  // ---------- single listing pages ----------
+  // Layered the same way: site-specific selectors first, then generic page metadata
+  // (og: tags) and the visible text of the main area as a fallback.
+
+  const meta = (prop) =>
+    document.querySelector(`meta[property="${prop}"], meta[name="${prop}"]`)?.getAttribute("content")?.trim() || "";
+
+  const bigEbayImage = (u) => u.replace(/s-l\d+\./, "s-l1600.");
+
+  const uniq = (arr) => [...new Set(arr.filter(Boolean))];
+
+  SL.extractItem = () => {
+    const site = SL.currentSite();
+    if (site === "ebay") {
+      const title = squash(firstText(document, ["h1.x-item-title__mainTitle", '[data-testid="x-item-title"]', "h1"]) || meta("og:title"), 200);
+      const priceText = squash(firstText(document, [".x-price-primary", '[data-testid="x-price-primary"]']), 60);
+      const imgs = [...document.querySelectorAll('.ux-image-carousel img, [data-testid="ux-image-carousel"] img')].map(
+        (i) => i.getAttribute("src") || i.getAttribute("data-src") || ""
+      );
+      return {
+        site,
+        title,
+        priceText,
+        price: SL.parsePrice(priceText),
+        condition: squash(firstText(document, [".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
+        seller: squash(firstText(document, [".x-sellercard-atf", '[data-testid="x-sellercard-atf"]']), 300),
+        shipping: squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300),
+        details: squash(firstText(document, [".x-about-this-item", '[data-testid="x-about-this-item"]']) || meta("og:description"), 1200),
+        imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^https?:/.test(u)).map(bigEbayImage).slice(0, 4),
+        url: location.href.split("?")[0],
+      };
+    }
+    // Facebook Marketplace: class names are useless, so lean on metadata + visible text.
+    const main = document.querySelector('[role="main"]') || document.body;
+    const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
+    const priceText = priceNode ? priceNode.textContent.trim() : "";
+    const imgs = [...main.querySelectorAll("img")]
+      .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
+      .map((i) => i.src);
+    return {
+      site: "facebook",
+      title: squash(firstText(main, ["h1"]) || meta("og:title"), 200),
+      priceText,
+      price: /^free$/i.test(priceText) ? 0 : SL.parsePrice(priceText),
+      condition: "",
+      seller: "",
+      shipping: "",
+      details: squash(meta("og:description") || main.innerText, 2500),
+      imageUrls: uniq([meta("og:image"), ...imgs]).slice(0, 4),
+      url: location.href.split("?")[0],
+    };
+  };
+
+  // A short search phrase for the sold-price comparison, taken from a listing title.
+  SL.titleToQuery = (title) =>
+    (title || "")
+      .replace(/[^\p{L}\p{N}\s.-]/gu, " ")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 6)
+      .join(" ");
+
   // ---------- pick the adapter for this page ----------
 
   SL.currentSite = () => {
-    if (location.hostname === "www.ebay.com" && location.pathname.startsWith("/sch/")) return "ebay";
+    if (location.hostname === "www.ebay.com" && /^\/(sch|itm)\//.test(location.pathname)) return "ebay";
     if (location.hostname === "www.facebook.com" && location.pathname.startsWith("/marketplace")) return "facebook";
+    return null;
+  };
+
+  // "results" = a search results page, "item" = one listing, null = not ours.
+  SL.pageType = () => {
+    const site = SL.currentSite();
+    if (site === "ebay") return location.pathname.startsWith("/itm/") ? "item" : "results";
+    if (site === "facebook") return location.pathname.startsWith("/marketplace/item/") ? "item" : "results";
     return null;
   };
 
@@ -128,6 +198,7 @@
 
   SL.detectQuery = () => {
     const site = SL.currentSite();
+    if (SL.pageType() === "item") return SL.titleToQuery(SL.extractItem().title);
     return site === "ebay" ? SL.ebayQuery() : site === "facebook" ? SL.facebookQuery() : "";
   };
 

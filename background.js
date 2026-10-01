@@ -283,12 +283,39 @@ async function checkPhoto({ imageUrl, title }) {
 // ---------- eBay sold comps ----------
 // Returns raw HTML; the content script parses it (service workers have no DOMParser).
 
+// Be gentle with eBay: remember answers for a while, and if eBay pushes back
+// (error status or a verification page), stop asking for an hour.
+const SOLD_CACHE = new Map(); // query -> { at, html }
+const SOLD_CACHE_MS = 15 * 60 * 1000;
+const SOLD_COOLDOWN_MS = 60 * 60 * 1000;
+
 async function fetchSoldHtml({ query }) {
+  const key = query.trim().toLowerCase();
+  const hit = SOLD_CACHE.get(key);
+  if (hit && Date.now() - hit.at < SOLD_CACHE_MS) return hit.html;
+
+  const { soldCooldownUntil = 0 } = await chrome.storage.local.get("soldCooldownUntil");
+  if (Date.now() < soldCooldownUntil) {
+    const mins = Math.ceil((soldCooldownUntil - Date.now()) / 60000);
+    throw new Error(`Price lookups are paused for ${mins} more minutes because eBay pushed back.`);
+  }
+
+  const pause = async (why) => {
+    await chrome.storage.local.set({ soldCooldownUntil: Date.now() + SOLD_COOLDOWN_MS });
+    throw new Error(`${why} Paused price lookups for an hour. Open eBay normally and solve any check it shows.`);
+  };
+
   const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_ipg=60`;
   // Sent with your eBay cookies so it looks like the one ordinary search it is.
   const res = await fetch(url, { credentials: "include" });
+  if (res.status === 403 || res.status === 429 || res.status === 503) return pause(`eBay answered ${res.status}.`);
   if (!res.ok) throw new Error(`eBay sold search failed (${res.status}).`);
-  return res.text();
+  const html = await res.text();
+  if (/captcha|pardon our interruption|verify yourself|security measure/i.test(html.slice(0, 20000)) && !/s-card|s-item/.test(html)) {
+    return pause("eBay showed a verification page.");
+  }
+  SOLD_CACHE.set(key, { at: Date.now(), html });
+  return html;
 }
 
 // ---------- Message router ----------

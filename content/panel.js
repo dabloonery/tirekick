@@ -246,6 +246,8 @@
       market = SL.summarizeSold(await send("fetchSoldHtml", { query }));
     } catch (e) {
       console.warn("[Second Look] sold comps failed:", e);
+      marketEl.textContent = e.message;
+      return null;
     }
     marketEl.textContent = market
       ? `eBay sold: median $${market.median}, middle half $${market.p25}–$${market.p75} (${market.n} sales)`

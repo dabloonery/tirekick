@@ -63,19 +63,18 @@ Choose "Ollama (local)" as the provider in settings, then:
    - `sudo systemctl restart ollama`
    - Open the extension's options (right-click its icon, Options) and press
      **Test connection**. It should list your installed models.
-4. **Use it.** Search eBay or Facebook Marketplace, scroll so results load, click the
-   toolbar icon to open the panel, then press
-   **Scan this page** in the panel at the bottom right. Click a title in the panel
-   to jump to that card.
+4. **Use it.** Search eBay or Facebook Marketplace, scroll so results load, pull out the
+   **Second Look** tab on the right edge (or click the toolbar icon), then press
+   **Scan this page**. Click a title in the panel to jump to that card.
 
 ## How the pieces fit
 
 | File | Job |
 |---|---|
-| `manifest.json` | Permissions. There are no automatic content scripts: `background.js` injects `content/*` only when you click the toolbar icon |
+| `manifest.json` | Permissions. No content scripts are declared here: with "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
 | `content/adapters.js` | Reads listings off each site into one shared shape; computes the sold-price median |
 | `content/panel.js` | The panel, the scan loop, the badges on cards, the single-listing view, the photo-check popup |
-| `background.js` | Talks to Claude or Ollama, fetches photos and eBay sold results; holds the ranking prompt |
+| `background.js` | Talks to Claude or Ollama (with retries and timeouts), fetches photos, and fetches eBay sold results for Facebook pages; holds the prompts |
 | `options/` | Settings page |
 
 Both providers sit behind `rankBatch` and `checkPhoto`, so adding another is small.
@@ -99,7 +98,11 @@ refresh the tab.
 
 - A 4B model is a quick first filter, not an appraiser. Read its reasons.
 - The sold-price median is only as good as your search words. "Pentax K1000 body"
-  compares better than "camera".
+  compares better than "camera". eBay's "results matching fewer words" are left out of it.
+- Sold-price lookups are remembered for 6 hours per search, so re-scans and new pages with
+  the same words don't ask eBay again. If eBay pushes back, lookups pause for 30 minutes.
+- With the Claude API, up to 3 batches are ranked at once; Ollama runs one at a time. If a
+  request fails, the listings it carried are offered again on the next scan.
 - Your 3050 Ti has 4 GB of VRAM. If scans are slow, lower "Listings per request"
   or try `llama3.2:3b` as the ranking model.
 - This reads pages you're already looking at, one scan at a time when you press the

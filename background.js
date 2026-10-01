@@ -1,8 +1,8 @@
 // Second Look — background service worker.
 // Everything that talks to the outside world lives here:
-//   1. your local Ollama server (text ranking + optional photo check)
+//   1. the model: the Claude API, or your local Ollama server (ranking, analysis, ideas, photo checks)
 //   2. listing photos (fetched and base64-encoded for the vision model)
-//   3. eBay sold listings (used as a market-price reference)
+//   3. eBay sold listings when you're on Facebook (on eBay the page fetches them itself)
 // Content scripts send messages; this file answers them.
 
 const DEFAULTS = {
@@ -23,6 +23,18 @@ async function getSettings() {
   return { ...DEFAULTS, ...stored };
 }
 
+// fetch with a deadline, so a hung server shows an error instead of spinning forever.
+async function fetchWithTimeout(url, opts, ms, slowMsg) {
+  try {
+    return await fetch(url, { ...opts, signal: AbortSignal.timeout(ms) });
+  } catch (e) {
+    if (e.name === "TimeoutError") throw new Error(slowMsg);
+    throw e;
+  }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 // ---------- Ollama ----------
 
 async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
@@ -41,12 +53,14 @@ async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
 
   let res;
   try {
-    res = await fetch(`${ollamaUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    res = await fetchWithTimeout(
+      `${ollamaUrl}/api/chat`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      5 * 60 * 1000,
+      `Ollama took over 5 minutes on "${model}". Lower "Listings per request" or try a smaller model.`
+    );
   } catch (e) {
+    if (/Ollama took/.test(e.message)) throw e;
     throw new Error(`Can't reach Ollama at ${ollamaUrl}. Is it running? (systemctl status ollama)`);
   }
   if (res.status === 403) {
@@ -63,10 +77,11 @@ async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
 
 // ---------- Claude API ----------
 // Plain fetch (the extension has no build step, so no SDK import). Notes for Opus 5.5:
-// thinking is always on and effort defaults to medium, so we set effort low for this
-// simple ranking task; temperature and forced tool_choice are not accepted.
+// thinking is always on and effort defaults to medium, so we set effort low for these
+// simple tasks; temperature and forced tool_choice are not accepted. Thinking tokens count
+// toward max_tokens, so leave generous room (it's a ceiling, not a charge).
 
-async function anthropicMessage({ system, content, schema, maxTokens = 4096 }) {
+async function anthropicMessage({ system, content, schema, maxTokens = 16000 }) {
   const { anthropicKey, anthropicModel, anthropicUrl } = await getSettings();
   if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
   const body = {
@@ -75,12 +90,11 @@ async function anthropicMessage({ system, content, schema, maxTokens = 4096 }) {
     messages: [{ role: "user", content }],
     output_config: {},
   };
-  // Effort and server-side fallback exist only on the 5-series models; Haiku 4.5 rejects them.
-  const isFiveSeries = /^claude-(opus|sonnet|fable|mythos)-5/.test(anthropicModel);
-  if (isFiveSeries) {
-    body.output_config.effort = "low";
-    body.fallbacks = "default"; // fallback if a safety classifier declines the request
-  }
+  // Effort works on Opus 4.5+, Sonnet 4.6+ and every 5-series model; Haiku 4.5, Sonnet 4.5 and older reject it.
+  if (!/haiku|sonnet-4-5|claude-3/.test(anthropicModel)) body.output_config.effort = "low";
+  // Server-side fallback (re-run on another model if a safety classifier declines) is for the 5-series.
+  const isFiveSeries = /^claude-(opus-5|sonnet-5-5|fable-5|mythos-5)/.test(anthropicModel);
+  if (isFiveSeries) body.fallbacks = "default";
   if (system) body.system = system;
   if (schema) body.output_config.format = { type: "json_schema", schema };
 
@@ -92,24 +106,36 @@ async function anthropicMessage({ system, content, schema, maxTokens = 4096 }) {
   };
   if (isFiveSeries) headers["anthropic-beta"] = "server-side-fallback-2026-07-01";
 
+  // Rate limits (429), overload (529) and server errors are worth two quiet retries.
   let res;
-  try {
-    res = await fetch(`${anthropicUrl}/v1/messages`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
-  } catch (e) {
-    throw new Error("Can't reach the Claude API. Check your internet connection.");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      res = await fetchWithTimeout(
+        `${anthropicUrl}/v1/messages`,
+        { method: "POST", headers, body: JSON.stringify(body) },
+        3 * 60 * 1000,
+        "The Claude API took over 3 minutes. Try again, or lower \"Listings per request\"."
+      );
+    } catch (e) {
+      if (/took over/.test(e.message)) throw e;
+      throw new Error("Can't reach the Claude API. Check your internet connection.");
+    }
+    const retryable = res.status === 429 || res.status >= 500;
+    if (!retryable || attempt >= 2) break;
+    const after = Number(res.headers.get("retry-after"));
+    await sleep(Math.min(20, after > 0 ? after : 2 * 2 ** attempt) * 1000);
   }
   if (res.status === 401) throw new Error("The Claude API key was rejected. Check it in the extension options.");
   if (res.status === 429) throw new Error("Claude API rate limit hit. Wait a moment and scan again.");
+  if (res.status === 529) throw new Error("The Claude API is overloaded right now. Try again in a minute.");
   if (!res.ok) {
     const text = await res.text();
+    if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognise the model "${anthropicModel}". Check it in the extension options.`);
     throw new Error(`Claude API error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
   if (data.stop_reason === "refusal") throw new Error("Claude declined this request.");
+  if (data.stop_reason === "max_tokens") throw new Error("Claude's answer was cut off. Lower \"Listings per request\" in settings and try again.");
   return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
 }
 
@@ -184,7 +210,8 @@ async function rankBatch({ items, query, market }) {
   const listingText = items
     .map((it) => {
       const ratio = it.priceVsMarket != null ? ` | price is ${Math.round(it.priceVsMarket * 100)}% of market median` : "";
-      return `id ${it.id} | ${it.site} | ${it.title} | price: ${it.priceText || "unknown"}${ratio}\n  card text: ${it.raw}`;
+      const extra = (it.raw || "").replace(it.title, "").trim(); // the title is already on the line
+      return `id ${it.id} | ${it.site} | ${it.title} | price: ${it.priceText || "unknown"}${ratio}\n  card text: ${extra}`;
     })
     .join("\n");
 
@@ -338,16 +365,18 @@ function photoAdjust(p) {
 
 async function checkPhoto({ imageUrl, title }) {
   const { visionModel, provider } = await getSettings();
-  const imgRes = await fetch(imageUrl);
+  const imgRes = await fetchWithTimeout(imageUrl, {}, 30 * 1000, "The photo took too long to load.");
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
-  const b64 = bufferToBase64(await imgRes.arrayBuffer());
+  const buf = await imgRes.arrayBuffer();
+  if (buf.byteLength > 3.5 * 1024 * 1024) throw new Error("That photo is too large to check (over 3.5 MB).");
+  const b64 = bufferToBase64(buf);
   const prompt = photoPrompt(title);
   let text;
   if (provider === "anthropic") {
     const type = (imgRes.headers.get("content-type") || "").split(";")[0];
     const media_type = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type) ? type : "image/jpeg";
     text = await anthropicMessage({
-      maxTokens: 1024,
+      maxTokens: 4096,
       schema: PHOTO_SCHEMA,
       content: [
         { type: "image", source: { type: "base64", media_type, data: b64 } },
@@ -373,46 +402,26 @@ async function checkPhoto({ imageUrl, title }) {
 }
 
 // ---------- eBay sold comps ----------
-// Returns raw HTML; the content script parses it (service workers have no DOMParser).
-
-// Be gentle with eBay: remember answers for a while, and if eBay pushes back
-// (error status or a verification page), stop asking for an hour.
-const SOLD_CACHE = new Map(); // query -> { at, html }
-const SOLD_CACHE_MS = 15 * 60 * 1000;
-const SOLD_COOLDOWN_MS = 30 * 60 * 1000;
+// Only used from Facebook pages (on eBay the page makes this request itself). Returns the raw
+// status and HTML: the content script parses it (service workers have no DOMParser) and owns
+// the caching and the back-off, so both paths behave the same.
 
 async function fetchSoldHtml({ query }) {
-  const key = query.trim().toLowerCase();
-  const hit = SOLD_CACHE.get(key);
-  if (hit && Date.now() - hit.at < SOLD_CACHE_MS) return hit.html;
-
-  const { soldCooldownUntil = 0 } = await chrome.storage.local.get("soldCooldownUntil");
-  if (Date.now() < soldCooldownUntil) {
-    const mins = Math.ceil((soldCooldownUntil - Date.now()) / 60000);
-    throw new Error(`Price lookups are paused for ${mins} more minutes because eBay pushed back.`);
-  }
-
-  const pause = async (why) => {
-    await chrome.storage.local.set({ soldCooldownUntil: Date.now() + SOLD_COOLDOWN_MS });
-    throw new Error(`${why} Paused price lookups for 30 minutes.`);
-  };
-
   const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_ipg=60`;
   // Sent with your eBay cookies so it looks like the one ordinary search it is.
-  const res = await fetch(url, { credentials: "include" });
-  if (res.status === 403 || res.status === 429 || res.status === 503) return pause(`eBay answered ${res.status}.`);
-  if (!res.ok) throw new Error(`eBay sold search failed (${res.status}).`);
-  const html = await res.text();
-  if (/captcha|pardon our interruption|verify yourself|security measure/i.test(html.slice(0, 20000)) && !/s-card|s-item/.test(html)) {
-    return pause("eBay showed a verification page.");
-  }
-  SOLD_CACHE.set(key, { at: Date.now(), html });
-  return html;
+  const res = await fetchWithTimeout(url, { credentials: "include" }, 30 * 1000, "eBay took too long to answer.");
+  return { status: res.status, html: res.ok ? await res.text() : "" };
 }
 
 // ---------- Message router ----------
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getSettings };
+// Page scripts get the settings without the API key: they never need it.
+async function getPageSettings() {
+  const { anthropicKey, ...rest } = await getSettings();
+  return { ...rest, hasKey: !!anthropicKey };
+}
+
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -449,7 +458,14 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 const AUTO_ID = "second-look-auto";
 
-async function syncAutoScripts() {
+// Install and a settings change can both ask at once; run one at a time so they don't race.
+let syncing = Promise.resolve();
+function syncAutoScripts() {
+  syncing = syncing.catch(() => {}).then(doSyncAutoScripts);
+  return syncing;
+}
+
+async function doSyncAutoScripts() {
   const { showTab } = await getSettings();
   const def = {
     id: AUTO_ID,

@@ -28,33 +28,53 @@
     return "";
   };
 
+  // Lazy-loaded cards often carry a 1x1 placeholder in src and the real photo in a data- attribute.
+  const isPlaceholder = (u) => /^data:|\.gif(\?|$)/i.test(u);
   const firstImage = (root) => {
     const img = root.querySelector("img");
     if (!img) return "";
-    return img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("data-defer-load") || "";
+    const urls = [img.getAttribute("src"), img.getAttribute("data-src"), img.getAttribute("data-defer-load")].filter(Boolean);
+    return urls.find((u) => !isPlaceholder(u)) || urls[0] || "";
   };
+
+  // One stable key per listing, used to remember what's been scored across re-scans and scrolling.
+  SL.keyOf = (url) => {
+    const ebay = url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/);
+    if (ebay) return `ebay:${ebay[1]}`;
+    const fb = url.match(/\/marketplace\/item\/(\d+)/);
+    if (fb) return `fb:${fb[1]}`;
+    return url.split("?")[0];
+  };
+
+  // eBay thumbnails on result cards are small (s-l140 to s-l500); a photo check needs the big one.
+  SL.bigImage = (u) => (/ebayimg\.com/.test(u || "") ? u.replace(/s-l\d+\./, "s-l1600.") : u || "");
 
   const squash = (s, max = 300) => (s || "").replace(/\s+/g, " ").trim().slice(0, max);
 
   // ---------- eBay ----------
   // 2025+ layout: li.s-card. Older layout: li.s-item. Both still appear in guides.
 
-  SL.extractEbay = (root = document) => {
-    const cards = root.querySelectorAll("li.s-card, li.s-item");
+  // strict: stop at eBay's "Results matching fewer words" divider (used for the sold-price median,
+  // where those looser matches would skew the numbers).
+  SL.extractEbay = (root = document, { strict = false } = {}) => {
+    const cards = root.querySelectorAll("li.s-card, li.s-item, li.srp-river-answer");
     const out = [];
     const seen = new Set();
-    cards.forEach((card) => {
-      if (card.classList.contains("srp-river-answer")) return;
+    for (const card of cards) {
+      if (card.classList.contains("srp-river-answer")) {
+        if (strict && /fewer words/i.test(card.textContent)) break;
+        continue;
+      }
       const link = card.querySelector('a[href*="/itm/"]');
-      if (!link) return;
+      if (!link) continue;
       const url = link.href || link.getAttribute("href");
-      const itemId = (url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/) || [])[1] || url;
-      if (seen.has(itemId)) return;
-      seen.add(itemId);
+      const key = SL.keyOf(url);
+      if (seen.has(key)) continue;
+      seen.add(key);
 
       let title = firstText(card, [".s-card__title", ".s-item__title", '[role="heading"]', "h3"]) || link.textContent;
       title = squash(title.replace(/^New Listing/i, "").replace(/Opens in a new window or tab$/i, ""), 160);
-      if (!title || /^shop on ebay$/i.test(title)) return;
+      if (!title || /^shop on ebay$/i.test(title)) continue;
 
       const priceText = squash(firstText(card, [".s-card__price", ".s-item__price"]) || (card.textContent.match(/\$\s?[\d,]+(?:\.\d{2})?/) || [""])[0], 60);
 
@@ -68,7 +88,7 @@
         raw: squash(card.innerText || card.textContent),
         el: card,
       });
-    });
+    }
     return out;
   };
 
@@ -119,8 +139,6 @@
   const meta = (prop) =>
     document.querySelector(`meta[property="${prop}"], meta[name="${prop}"]`)?.getAttribute("content")?.trim() || "";
 
-  const bigEbayImage = (u) => u.replace(/s-l\d+\./, "s-l1600.");
-
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];
 
   SL.extractItem = () => {
@@ -140,7 +158,7 @@
         seller: squash(firstText(document, [".x-sellercard-atf", '[data-testid="x-sellercard-atf"]']), 300),
         shipping: squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300),
         details: squash(firstText(document, [".x-about-this-item", '[data-testid="x-about-this-item"]']) || meta("og:description"), 1200),
-        imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(bigEbayImage).slice(0, 4),
+        imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(SL.bigImage).slice(0, 4),
         url: location.href.split("?")[0],
       };
     }
@@ -235,7 +253,7 @@
 
   SL.summarizeSold = (html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    const prices = SL.extractEbay(doc)
+    const prices = SL.extractEbay(doc, { strict: true })
       .map((it) => it.price)
       .filter((p) => p != null && p > 0)
       .sort((a, b) => a - b);

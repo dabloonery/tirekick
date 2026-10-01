@@ -121,12 +121,13 @@ const RANK_SCHEMA = {
         type: "object",
         properties: {
           id: { type: "integer" },
+          related: { type: "boolean" },
           score: { type: "integer" },
           verdict: { type: "string", enum: ["great", "good", "fair", "pass", "suspicious"] },
           flags: { type: "array", items: { type: "string" } },
           reason: { type: "string" },
         },
-        required: ["id", "score", "verdict", "flags", "reason"],
+        required: ["id", "related", "score", "verdict", "flags", "reason"],
         additionalProperties: false,
       },
     },
@@ -140,8 +141,13 @@ const RANK_SCHEMA = {
 const RANK_SYSTEM = `You help a careful buyer skim second-hand listings.
 For each listing, give a 0-100 score for how worth it is to open and look closer, and one verdict:
 great = strong price for what it appears to be; good = fair-to-good deal, worth a look;
-fair = market price, nothing special; pass = overpriced, wrong item, or for parts when not wanted;
+fair = market price, nothing special; pass = overpriced, or for parts when not wanted;
 suspicious = likely scam, counterfeit, or misleading.
+Also set related: true if the listing is what the search is for, false if it is a different kind of item.
+A listing that does not match the search is NOT automatically a pass: if it is still a genuinely good deal on what it is
+(a bargain on something else), score and label it on its own merits and set related to false. Only mark an unrelated listing
+"pass" when it is also a poor deal. Price-versus-market numbers only apply to related listings; ignore them for unrelated ones.
+If there is no search term, set related to true.
 Red flags to check: price far below the market reference (bait or scam), "replica"/"inspired"/"style" wording,
 "for parts", "not working", "as is", vague or keyword-stuffed titles, shipping that makes the total expensive,
 seller with very low or no feedback, item that doesn't match the search.
@@ -287,7 +293,7 @@ async function checkPhoto({ imageUrl, title }) {
 // (error status or a verification page), stop asking for an hour.
 const SOLD_CACHE = new Map(); // query -> { at, html }
 const SOLD_CACHE_MS = 15 * 60 * 1000;
-const SOLD_COOLDOWN_MS = 60 * 60 * 1000;
+const SOLD_COOLDOWN_MS = 30 * 60 * 1000;
 
 async function fetchSoldHtml({ query }) {
   const key = query.trim().toLowerCase();
@@ -302,7 +308,7 @@ async function fetchSoldHtml({ query }) {
 
   const pause = async (why) => {
     await chrome.storage.local.set({ soldCooldownUntil: Date.now() + SOLD_COOLDOWN_MS });
-    throw new Error(`${why} Paused price lookups for an hour. Open eBay normally and solve any check it shows.`);
+    throw new Error(`${why} Paused price lookups for 30 minutes.`);
   };
 
   const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_ipg=60`;
@@ -339,6 +345,7 @@ const MENU_ID = "second-look-photo";
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.local.get(null);
   await chrome.storage.local.set({ ...DEFAULTS, ...current });
+  await chrome.storage.local.remove("soldCooldownUntil"); // a fresh install/update starts with no pause
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: MENU_ID,

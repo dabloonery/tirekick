@@ -145,7 +145,25 @@
     document.head.append(st);
   };
 
+  // Facebook recycles card elements as you scroll, which drops our stickers. Remember each
+  // scored listing by its URL and put the sticker back when its card reappears.
+  const scored = new Map();
+  const reapplyFacebook = () => {
+    if (!scored.size || SL.currentSite() !== "facebook") return;
+    document.querySelectorAll(ITEM_LINK).forEach((a) => {
+      const key = new URL(a.getAttribute("href"), location.origin).href.split("?")[0];
+      const item = scored.get(key);
+      if (!item) return;
+      const host = stickerHost(a);
+      if (host.querySelector(":scope > .second-look-sticker")) return;
+      item.el = a;
+      stick(item);
+    });
+  };
+  setInterval(reapplyFacebook, 1500);
+
   const clearStickers = () => {
+    scored.clear();
     document.querySelectorAll("[data-second-look]").forEach((el) => {
       if (el.dataset.secondLookPos) el.style.position = "";
       el.removeAttribute("data-second-look");
@@ -154,10 +172,27 @@
     document.querySelectorAll(".second-look-sticker").forEach((s) => s.remove());
   };
 
+  const ITEM_LINK = 'a[href*="/marketplace/item/"]';
+
+  // Where the sticker goes. eBay cards are fine as they are. A Facebook card is a link that may be
+  // inline or zero-height, so climb to the nearest real box that still holds only this one listing.
+  const stickerHost = (el) => {
+    if (SL.currentSite() !== "facebook") return el;
+    let node = el;
+    for (let i = 0; i < 6 && node; i++) {
+      const r = node.getBoundingClientRect();
+      if (getComputedStyle(node).display !== "inline" && r.width >= 100 && r.height >= 100) return node;
+      const up = node.parentElement;
+      if (!up || up.querySelectorAll(ITEM_LINK).length > 1) break;
+      node = up;
+    }
+    return el;
+  };
+
   const stick = (item) => {
-    const el = item.el;
-    if (!el?.isConnected) return;
+    if (!item.el?.isConnected) return;
     ensureStickerStyles();
+    const el = stickerHost(item.el);
     const v = VERDICT[item.verdict] || VERDICT.fair;
     el.setAttribute("data-second-look", item.verdict);
     if (getComputedStyle(el).position === "static") {
@@ -169,11 +204,12 @@
       "div",
       { class: "second-look-sticker", style: `--sl-c:${v.color}` },
       h("div", { class: "sl-score" }, String(item.score)),
-      h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), h("div", { class: "sl-sub" }, "Second Look score")),
+      h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), h("div", { class: "sl-sub" }, item.related === false ? "Not your search" : "Second Look score")),
       h(
         "div",
         { class: "sl-pop" },
         h("b", {}, `${item.score} out of 100: ${v.label}`),
+        item.related === false ? h("div", { class: "sl-flags" }, "Not what you searched for, scored on the deal alone.") : null,
         item.reason || "",
         item.flags?.length ? h("div", { class: "sl-flags" }, item.flags.join(" · ")) : null
       )
@@ -200,7 +236,7 @@
             "div",
             {},
             h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
-            h("div", { class: "meta" }, `${v.label} · ${it.priceText || "no price"}${vsMarket}`),
+            h("div", { class: "meta" }, `${v.label}${it.related === false ? " (not your search)" : ""} · ${it.priceText || "no price"}${it.related === false ? "" : vsMarket}`),
             h("div", { class: "reason" }, it.reason || ""),
             it.flags?.length ? h("div", { class: "flags" }, it.flags.map((f) => h("span", { class: "flag" }, f))) : null,
             h(
@@ -238,12 +274,43 @@
 
   let scanning = false;
 
+  // On eBay the sold-listings search is made from the eBay page itself (same site, your cookies,
+  // normal browser headers), like any request eBay's own pages make. From Facebook it has to go
+  // through the background script. Either way: cached, and paused if eBay pushes back.
+  const soldCache = new Map();
+  const COOLDOWN_MS = 30 * 60 * 1000;
+  const blockedPage = (html) =>
+    /captcha|pardon our interruption|verify yourself|security measure/i.test(html.slice(0, 20000)) && !/s-card|s-item/.test(html);
+
+  const fetchSold = async (query) => {
+    if (location.hostname !== "www.ebay.com") return send("fetchSoldHtml", { query });
+    const key = query.toLowerCase();
+    const hit = soldCache.get(key);
+    if (hit && Date.now() - hit.at < 15 * 60 * 1000) return hit.html;
+
+    const { soldCooldownUntil = 0 } = await chrome.storage.local.get("soldCooldownUntil");
+    if (Date.now() < soldCooldownUntil) {
+      throw new Error(`Price lookups paused for ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min because eBay pushed back.`);
+    }
+    const pause = async (why) => {
+      await chrome.storage.local.set({ soldCooldownUntil: Date.now() + COOLDOWN_MS });
+      throw new Error(`${why} Paused price lookups for 30 minutes.`);
+    };
+    const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_ipg=60`;
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) return pause(`eBay answered HTTP ${res.status}.`);
+    const html = await res.text();
+    if (blockedPage(html)) return pause("eBay showed a verification page.");
+    soldCache.set(key, { at: Date.now(), html });
+    return html;
+  };
+
   const getMarket = async (settings, query) => {
     if (!settings.useSoldComps || !query) return null;
     setStatus(`Checking recent eBay sales for "${query}"…`);
     let market = null;
     try {
-      market = SL.summarizeSold(await send("fetchSoldHtml", { query }));
+      market = SL.summarizeSold(await fetchSold(query));
     } catch (e) {
       console.warn("[Second Look] sold comps failed:", e);
       marketEl.textContent = e.message;
@@ -287,10 +354,12 @@
           Object.assign(it, {
             score: Math.max(0, Math.min(100, r.score | 0)),
             verdict: VERDICT[r.verdict] ? r.verdict : "fair",
+            related: r.related !== false,
             flags: (r.flags || []).slice(0, 4),
             reason: r.reason,
           });
           stick(it);
+          scored.set(it.url, it);
         }
         render(items);
       }

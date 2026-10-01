@@ -245,6 +245,52 @@ async function analyzeListing({ listing, query, market }) {
   return parseModelJson(content);
 }
 
+// ---------- Search ideas ----------
+
+const IDEAS_SCHEMA = {
+  type: "object",
+  properties: {
+    suggestions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          query: { type: "string" },
+          kind: { type: "string", enum: ["idea", "narrow", "broaden", "typo", "alt", "price"] },
+          why: { type: "string" },
+          maxPrice: { type: "integer" },
+          newest: { type: "boolean" },
+        },
+        required: ["query", "kind", "why", "maxPrice", "newest"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["suggestions"],
+  additionalProperties: false,
+};
+
+const IDEAS_SYSTEM = `You help a buyer find second-hand items on eBay or Facebook Marketplace by suggesting better searches.
+Return 4 to 6 suggestions. Each has: query (the exact words to type, 2-7 words), kind, why (under 15 words), maxPrice (whole dollars, 0 for no cap), newest (true to sort newest first).
+kind: idea = a different way to phrase what the buyer wants (model names, numbers, what sellers actually call it); narrow = tighter, to cut junk;
+broaden = looser, to include good matches the current words exclude; typo = a realistic misspelling or spacing variant sellers use (fewer buyers find those listings);
+alt = a related model or alternative name worth checking; price = the same search with a price cap near 80% of the sold median (only when a market reference is given).
+Rules: if the buyer described what they want, most suggestions are kind idea. If result titles are given, base narrow, broaden, typo and alt on patterns you can see in them
+(for example many "for parts" or "broken" listings means a narrow search that excludes them). On eBay you may use minus terms like -parts -repair and quoted phrases; on Facebook use plain words only, no operators.
+Never invent products, specs or prices. Do not repeat the current search. Keep queries short.`;
+
+async function suggestSearches({ site, query, intent, titles, market }) {
+  const lines = [
+    `site: ${site}`,
+    query && `current search: ${query}`,
+    intent && `what the buyer wants: ${intent}`,
+    market && `sold-price reference: median $${market.median}, middle half $${market.p25}-$${market.p75}`,
+    titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
+  ].filter(Boolean);
+  const content = await llmText({ system: IDEAS_SYSTEM, userText: lines.join("\n"), schema: IDEAS_SCHEMA });
+  return parseModelJson(content).suggestions || [];
+}
+
 // ---------- Photos ----------
 
 function bufferToBase64(buf) {
@@ -366,7 +412,7 @@ async function fetchSoldHtml({ query }) {
 
 // ---------- Message router ----------
 
-const HANDLERS = { rankBatch, analyzeListing, checkPhoto, fetchSoldHtml, getSettings };
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -405,20 +451,17 @@ const AUTO_ID = "second-look-auto";
 
 async function syncAutoScripts() {
   const { showTab } = await getSettings();
+  const def = {
+    id: AUTO_ID,
+    matches: ["https://www.ebay.com/", "https://www.ebay.com/sch/*", "https://www.ebay.com/itm/*", "https://www.facebook.com/*"],
+    js: ["content/adapters.js", "content/panel.js"],
+    runAt: "document_idle",
+    persistAcrossSessions: true,
+  };
   const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [AUTO_ID] });
-  if (showTab && !existing.length) {
-    await chrome.scripting.registerContentScripts([
-      {
-        id: AUTO_ID,
-        matches: ["https://www.ebay.com/sch/*", "https://www.ebay.com/itm/*", "https://www.facebook.com/*"],
-        js: ["content/adapters.js", "content/panel.js"],
-        runAt: "document_idle",
-        persistAcrossSessions: true,
-      },
-    ]);
-  } else if (!showTab && existing.length) {
-    await chrome.scripting.unregisterContentScripts({ ids: [AUTO_ID] });
-  }
+  if (showTab && !existing.length) await chrome.scripting.registerContentScripts([def]);
+  else if (showTab) await chrome.scripting.updateContentScripts([def]); // pick up changes after an update
+  else if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: [AUTO_ID] });
 }
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));

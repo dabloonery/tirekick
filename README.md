@@ -131,6 +131,14 @@ Both sites change their markup without warning. If a scan says "No listings foun
   `/marketplace/item/<id>` and reads the text inside. If that breaks, check what the
   card links look like now.
 
+**eBay pages stop loading or show "Checking your browser"**: eBay does this to traffic that
+looks automated, and once it trips, ordinary page loads get it too for a while (refreshing
+usually clears it). Second Look's only automated traffic is the sold-price lookups, now kept
+to a trickle and stopped at the first check. If it keeps happening, untick "Compare prices
+with recent eBay sales" in settings and see whether it stops; if it still happens with the
+lookups off, untick "Show a slim tab" too, which leaves eBay pages completely untouched until
+you click the toolbar icon.
+
 After editing, hit the reload arrow on the extension in `vivaldi://extensions` and
 refresh the tab.
 
@@ -140,7 +148,9 @@ refresh the tab.
 - The sold-price median is only as good as your search words. "Pentax K1000 body"
   compares better than "camera". eBay's "results matching fewer words" are left out of it.
 - Sold-price lookups are remembered for 6 hours per search, so re-scans and new pages with
-  the same words don't ask eBay again. If eBay pushes back, lookups pause for 30 minutes.
+  the same words don't ask eBay again. They're spaced at least 5 seconds apart, capped at 8 an
+  hour, and pause for an hour the moment eBay answers with a browser check. The price box then
+  links to eBay's own sold listings so you can look yourself.
 - Scores are remembered for a day per listing, lens, wants and price: re-scanning, coming back to
   a search, or switching lenses back and forth costs nothing the second time. The status line shows
   what each Claude scan cost and the running total for the month (list prices, approximate).

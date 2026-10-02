@@ -337,7 +337,7 @@
       <details class="ideas">
         <summary>Search ideas</summary>
         <div class="ideas-body">
-          <div class="hint ideas-hint">Uses "What I want" above, or the results you're looking at if that's blank.</div>
+          <div class="hint ideas-hint">Ideas come from "What I want" when it's filled in. Leave it blank to get ideas from the results on this page.</div>
           <button class="ghost" data-act="ideas">Get ideas</button>
           <div class="status ideas-status" role="status"></div>
           <div class="ideas-list"></div>
@@ -474,7 +474,7 @@
   showLens();
 
   const money = (n) => `${n < 0 ? "\u2212" : ""}$${Math.abs(Math.round(n))}`;
-  const fmtCost = (usd) => (usd < 0.01 ? "<$0.01" : `$${usd.toFixed(2)}`);
+  const fmtCost = (usd) => (usd < 0.01 ? "under $0.01" : `~$${usd.toFixed(2)}`);
   const DIFFICULTY = ["Fix: can't tell", "Easy fix", "Fairly easy fix", "Moderate fix", "Hard fix", "Very hard fix"];
 
   // The one-line lens summary for a scored listing: what the sticker and list show under the verdict.
@@ -719,40 +719,51 @@
   // through the background script. Either way the answer (just the summary, not the page) is
   // remembered for a few hours across pages, and lookups pause for 30 minutes if eBay pushes back.
   const SOLD_TTL_MS = 6 * 60 * 60 * 1000;
-  const COOLDOWN_MS = 30 * 60 * 1000;
-  const blockedPage = (html) =>
-    /captcha|pardon our interruption|verify yourself|security measure/i.test(html.slice(0, 20000)) && !/s-card|s-item/.test(html);
+  // eBay answers fast scripted traffic with a browser check ("Checking your browser before you
+  // access eBay", "Pardon Our Interruption"), and once that trips, your ordinary page loads get it
+  // too until it clears. So: few lookups, well spaced, and a long stop at the first sign of it.
+  const COOLDOWN_MS = 60 * 60 * 1000;
+  const GAP_MS = 5000; // between lookups, across all tabs
+  const PER_HOUR = 8;
+  const CHALLENGE = /checking your browser|pardon our interruption|verify yourself|captcha|security measure|access denied|unusual (traffic|activity)/i;
+  const RESULTS = /s-card|s-item|srp-results|srp-river|no exact matches|\b0 results\b/i;
+  // A real results page (even an empty one) is large and has the results markup; a check page is small and doesn't.
+  const blockedPage = (html) => (CHALLENGE.test(html.slice(0, 30000)) && !RESULTS.test(html)) || (!RESULTS.test(html) && html.length < 150000);
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  let lastSoldFetch = 0;
   const fetchSoldHtml = async (query, condition) => {
-    // Space out back-to-back lookups (working + for-parts) so it reads like a person clicking.
-    const wait = lastSoldFetch + 1200 - Date.now();
-    if (wait > 0) await sleep(wait);
-    lastSoldFetch = Date.now();
     const url = SL.soldUrl(query, SL.SOLD_CONDITION[condition]);
     if (location.hostname !== "www.ebay.com") return send("fetchSoldHtml", { url });
     const res = await fetch(url, { credentials: "include", signal: AbortSignal.timeout(30000) });
     return { status: res.status, html: res.ok ? await res.text() : "" };
   };
 
+  const pausedMsg = (until) => `eBay asked for a browser check, so price lookups are paused for ${Math.ceil((until - Date.now()) / 60000)} more min.`;
+
   // Resolves to a market summary, or null when there were too few sales to trust.
-  const soldMarket = async (query, condition = "any") => {
+  const soldMarket = async (query, condition) => {
     const key = `${condition}:${query.trim().toLowerCase()}`;
-    const { soldCache = {}, soldCooldownUntil = 0 } = await chrome.storage.local.get(["soldCache", "soldCooldownUntil"]);
+    const { soldCache = {}, soldCooldownUntil = 0, soldLog = [] } = await chrome.storage.local.get(["soldCache", "soldCooldownUntil", "soldLog"]);
     const hit = soldCache[key];
     if (hit && Date.now() - hit.at < SOLD_TTL_MS) return hit.market;
-    if (Date.now() < soldCooldownUntil) {
-      throw new Error(`Price lookups paused for ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min because eBay pushed back.`);
+    if (Date.now() < soldCooldownUntil) throw new Error(pausedMsg(soldCooldownUntil));
+    const recent = soldLog.filter((t) => Date.now() - t < 60 * 60 * 1000);
+    if (recent.length >= PER_HOUR) {
+      throw new Error(`Price lookups are resting: ${PER_HOUR} in the last hour is plenty for eBay. Searches checked earlier still have prices.`);
     }
-    const pause = async (why) => {
-      await chrome.storage.local.set({ soldCooldownUntil: Date.now() + COOLDOWN_MS });
-      throw new Error(`${why} Paused price lookups for 30 minutes.`);
+    const wait = (recent.at(-1) || 0) + GAP_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    await chrome.storage.local.set({ soldLog: [...recent, Date.now()] });
+
+    const pause = async () => {
+      const until = Date.now() + COOLDOWN_MS;
+      await chrome.storage.local.set({ soldCooldownUntil: until });
+      throw new Error(pausedMsg(until));
     };
     const { status, html } = await fetchSoldHtml(query, condition);
-    if (status === 403 || status === 429 || status === 503) return pause(`eBay answered ${status}.`);
+    if (status === 403 || status === 429 || status === 503) return pause();
     if (!html) throw new Error(`eBay sold search failed (${status}).`);
-    if (blockedPage(html)) return pause("eBay showed a verification page.");
+    if (blockedPage(html)) return pause(); // never cache a check page as "no sales"
     const market = SL.summarizeSold(html);
     // Keep the cache small: drop expired entries, cap at 100 searches.
     const fresh = Object.entries(soldCache).filter(([, v]) => Date.now() - v.at < SOLD_TTL_MS).slice(-99);
@@ -797,13 +808,18 @@
     setStatus(`Checking recent eBay sales for "${query}"…`);
     let market = null;
     try {
+      // One lookup for working (used) prices, a second for for-parts only in Fix and Flip.
       const used = await soldMarket(query, "used");
-      const working = used ? { ...used, condition: "used" } : await soldMarket(query, "any");
+      const working = used && { ...used, condition: "used" };
       const parts = forLens !== "use" ? await soldMarket(query, "parts") : null;
       market = working || parts ? { ...(working || { median: null }), parts } : null;
     } catch (e) {
       console.warn("[Second Look] sold comps failed:", e);
-      marketEl.textContent = e.message;
+      // You can still look yourself: eBay's own sold search, in a normal tab.
+      marketEl.replaceChildren(
+        h("div", {}, e.message),
+        h("div", { class: "actions", style: "margin-top:6px" }, h("a", { href: SL.soldUrl(query, SL.SOLD_CONDITION.used), target: "_blank", rel: "noopener" }, "Open eBay's sold listings"))
+      );
       return null;
     }
     renderMarket(market);
@@ -978,7 +994,7 @@
       if (errors.length && missed.length === items.length) throw errors[0];
       const { spend } = await chrome.storage.local.get("spend");
       const costNote =
-        settings.provider === "anthropic" && toRank.length ? ` Cost ~${fmtCost(cost)}${spend ? `, this month ~${fmtCost(spend.usd)}` : ""}.` : "";
+        settings.provider === "anthropic" && toRank.length ? ` Cost ${fmtCost(cost)}${spend ? `, this month ${fmtCost(spend.usd)}` : ""}.` : "";
       setStatus(
         `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${costNote}` +
           (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +
@@ -1127,7 +1143,7 @@
       const r = await send("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
       renderItem(listing, r, market);
       setCount(1);
-      setStatus(settings.provider === "anthropic" && r.cost ? `Cost ~${fmtCost(r.cost)}.` : "");
+      setStatus(settings.provider === "anthropic" && r.cost ? `Cost ${fmtCost(r.cost)}.` : "");
     } catch (e) {
       setStatus(e.message, true);
     } finally {
@@ -1208,16 +1224,21 @@
     ideasStatus.classList.remove("err");
     ideasStatus.textContent = "Thinking up searches…";
     try {
-      // Titles from what you've scored, else whatever is on the page right now.
-      let titles = [...scored.values()].map((it) => it.title);
-      if (!titles.length && SL.pageType() === "results") titles = SL.extract().map((it) => it.title);
+      // One source or the other: what you typed, or (if that's blank) the results on screen.
+      const want = wantEl.value.trim();
+      let titles = [];
+      if (!want) {
+        titles = [...scored.values()].map((it) => it.title);
+        if (!titles.length && SL.pageType() === "results") titles = SL.extract().map((it) => it.title);
+        titles = titles.slice(0, 30);
+      }
       const ideas = await send("suggestSearches", {
         site: SL.currentSite(),
         query: queryEl.value.trim(),
-        intent: wantEl.value.trim(),
+        intent: want,
         lens,
-        titles: titles.slice(0, 30),
-        market: lastMarket,
+        titles,
+        market: want ? null : lastMarket,
       });
       if (!ideas.length) throw new Error("No ideas this time. Try describing what you want.");
       ideas.slice(0, 6).forEach((idea, i) => {
@@ -1236,7 +1257,11 @@
           )
         );
       });
-      ideasStatus.textContent = "";
+      ideasStatus.textContent = want
+        ? `From what you want: \u201c${want.length > 60 ? want.slice(0, 57) + "\u2026" : want}\u201d.`
+        : titles.length
+          ? `From the ${titles.length} results on this page.`
+          : "From the current search (no results read yet).";
     } catch (e) {
       ideasStatus.classList.add("err");
       ideasStatus.textContent = e.message;

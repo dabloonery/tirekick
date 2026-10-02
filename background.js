@@ -393,15 +393,24 @@ const IDEAS_LENS = {
   flip: "The buyer resells for profit: favour searches that surface underpriced listings (misspellings, vague titles, bundles and lots, untested items) rather than tighter matches.",
 };
 
+// Two sources, never mixed: what the buyer typed, or (when that's blank) the results on screen.
 async function suggestSearches({ site, query, intent, titles, market, lens = "use" }) {
-  const lines = [
-    `site: ${site}`,
-    IDEAS_LENS[lens],
-    query && `current search: ${query}`,
-    intent && `what the buyer wants: ${intent}`,
-    market && `sold-price reference: median $${market.median}, middle half $${market.p25}-$${market.p75}${market.parts ? `; for parts: median $${market.parts.median}` : ""}`,
-    titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
-  ].filter(Boolean);
+  const lines = intent
+    ? [
+        `site: ${site}`,
+        IDEAS_LENS[lens],
+        `what the buyer wants: ${intent}`,
+        "Base every suggestion on what the buyer wants. Most should be kind idea, typo or alt.",
+        query && `(background only: the page they're on searched "${query}". Use it only if their wants don't name an item; don't refine it otherwise.)`,
+      ]
+    : [
+        `site: ${site}`,
+        IDEAS_LENS[lens],
+        query && `current search: ${query}`,
+        market && market.median != null && `sold-price reference: median $${market.median}, middle half $${market.p25}-$${market.p75}${market.parts ? `; for parts: median $${market.parts.median}` : ""}`,
+        titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
+      ];
+  lines.splice(0, lines.length, ...lines.filter(Boolean));
   const { text } = await llmText({ system: IDEAS_SYSTEM, userText: lines.join("\n"), schema: IDEAS_SCHEMA });
   return parseModelJson(text).suggestions || [];
 }
@@ -546,7 +555,6 @@ const MENU_ID = "second-look-photo";
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.local.get(null);
   await chrome.storage.local.set({ ...DEFAULTS, ...current });
-  await chrome.storage.local.remove("soldCooldownUntil"); // a fresh install/update starts with no pause
   await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({

@@ -187,11 +187,30 @@
     .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:10px; height:10px; margin-right:8px; vertical-align:-1px;
       border:1.5px solid var(--rule); border-top-color:var(--ink); border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .actions { display:flex; gap:16px; font-size:12px; font-weight:600; }
+    .actions { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12px; font-weight:600; }
+    .actions > * { white-space:nowrap; }
     .controls > .actions:not(:has(:not([hidden]))) { display:none; }
     .actions a, .actions button { color:var(--ink); background:none; border:0; padding:0; font:inherit; cursor:pointer;
       text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; text-decoration-thickness:1px; }
     .actions a:hover, .actions button:hover:not(:disabled) { text-decoration-color:currentColor; }
+
+    /* what's on this page */
+    .pageinfo { font-size:12px; color:var(--muted); display:grid; gap:8px; }
+    .pi-line b { color:var(--ink); font-weight:600; }
+    .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .pi-line button:hover { text-decoration-color:currentColor; }
+    .pi-skip { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
+    .seg button { border:0; background:none; color:var(--muted); font:600 11.5px/1 var(--ui); padding:5px 10px; border-radius:calc(var(--r-sm) - 2px); cursor:pointer; }
+    .seg button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
+    [data-theme="retro"] .seg { padding:0; gap:0; }
+    [data-theme="retro"] .seg button { border-radius:0; text-transform:uppercase; letter-spacing:.06em; }
+    .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
+    .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+    .fchip { font-size:11px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
+    .fchip.k-new { background:var(--accent); color:#fff; } .fchip.k-good { background:var(--v-great); color:#fff; } .fchip.k-warn { background:var(--v-suspicious); color:#fff; }
+    .fchip.k-plain { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--rule); }
+    [data-theme="retro"] .fchip { border-radius:0; }
 
     /* sold prices */
     .market { font-size:12px; }
@@ -332,6 +351,12 @@
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
         <div class="market"></div>
         <div class="status" role="status"></div>
+        <div class="pageinfo" hidden>
+          <div class="pi-line"></div>
+          <div class="pi-skip" hidden><span>Skipped listings</span>
+            <div class="seg" role="radiogroup" aria-label="Skipped listings"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div>
+          </div>
+        </div>
         <div class="actions"><button data-act="reset" hidden>Start over</button></div>
       </div>
       <details class="ideas">
@@ -369,9 +394,14 @@
   const lensHint = $(".lens-hint");
   const qwrap = $(".qwrap");
   const itemEl = $(".itemout");
+  const pageInfo = $(".pageinfo");
+  const piLine = $(".pi-line");
+  const piSkip = $(".pi-skip");
 
-  const setStatus = (text, isErr = false) => {
+  // action: an optional { label, fn } shown after the text, e.g. Undo.
+  const setStatus = (text, isErr = false, action = null) => {
     statusEl.textContent = text;
+    if (action) statusEl.append(h("button", { onclick: action.fn }, action.label));
     statusEl.classList.toggle("err", isErr);
   };
 
@@ -473,6 +503,7 @@
   });
   showLens();
 
+  const dollars = (n) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
   const money = (n) => `${n < 0 ? "\u2212" : ""}$${Math.abs(Math.round(n))}`;
   const fmtCost = (usd) => (usd < 0.01 ? "under $0.01" : `~$${usd.toFixed(2)}`);
   const DIFFICULTY = ["Fix: can't tell", "Easy fix", "Fairly easy fix", "Moderate fix", "Hard fix", "Very hard fix"];
@@ -480,6 +511,9 @@
   // The one-line lens summary for a scored listing: what the sticker and list show under the verdict.
   const lensLine = (it) => {
     if (it.related === false) return "Not your search";
+    // The number that matters first, so a narrow sticker doesn't cut it off.
+    if (it.auction) return [it.bidCap > 0 ? `Bid \u2264 ${dollars(it.bidCap)}` : "Auction", it.timeLeft && `${it.timeLeft} left`].filter(Boolean).join(" \u00b7 ");
+    if (it.lot && it.lens !== "fix" && it.total != null) return `Lot of ${it.lot} \u00b7 ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
     if (it.lens === "fix") {
       if (/^none$/i.test(it.fault || "")) return "Works as-is";
       return `${DIFFICULTY[it.difficulty] || DIFFICULTY[0]}${it.partsCost > 0 ? ` · ~$${it.partsCost} parts` : ""}`;
@@ -488,9 +522,9 @@
     return it.vsWorking != null ? `${Math.round(it.vsWorking * 100)}% of sold price` : "";
   };
 
-  const dollars = (n) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
   const priceStr = (it) =>
-    it.total == null ? it.priceText || "no price" : `${dollars(it.total)}${it.shipping > 0 ? ` incl. ${dollars(it.shipping)} shipping` : ""}`;
+    (it.auction ? "current bid " : "") +
+    (it.total == null ? it.priceText || "no price" : `${dollars(it.total)}${it.shipping > 0 ? ` incl. ${dollars(it.shipping)} shipping` : ""}`);
 
   const setCount = (n) => {
     countEl.textContent = String(n);
@@ -521,9 +555,29 @@
       .second-look-sticker .sl-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
       .second-look-sticker .sl-verdict { font-weight:650; font-size:13px; white-space:nowrap; }
       .second-look-sticker .sl-sub { font-size:11px; color:var(--sl-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      .second-look-sticker .sl-chip { position:absolute; left:6px; top:100%; margin-top:5px; display:flex; align-items:center; gap:3px; padding:2px 7px;
-        border-radius:999px; background:var(--sl-ink); color:var(--sl-paper); font-weight:600; font-size:10.5px; }
-      .second-look-sticker .sl-chip svg { width:11px; height:11px; }
+      /* small chips: under a sticker, or on their own on a card that hasn't been scored */
+      .second-look-sticker .sl-under { position:absolute; left:4px; top:100%; margin-top:5px; display:flex; gap:4px; }
+      .sl-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:999px; background:#1C1B19; color:#FBFAF7;
+        font:600 10.5px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:nowrap; letter-spacing:normal; text-transform:none; }
+      .sl-chip svg { width:11px; height:11px; }
+      .sl-chip.k-new { background:#C8461F; } .sl-chip.k-good { background:#2F7D4F; } .sl-chip.k-warn { background:#B3261E; }
+      .sl-chip.k-plain { background:#FBFAF7; color:#1C1B19; box-shadow:inset 0 0 0 1px rgba(28,27,25,.25); }
+      .second-look-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:calc(100% - 20px);
+        filter:drop-shadow(0 2px 6px rgba(28,27,25,.3)); pointer-events:auto; }
+      .second-look-marks button { cursor:pointer; border:0; }
+      .sl-retro .sl-chip, .second-look-marks.sl-retro .sl-chip { border-radius:1px; font-family:"SL Mono",ui-monospace,monospace; background:#1F3A1F; color:#CDD6A5; }
+      .sl-retro .sl-chip.k-new { background:#8E1D50; } .sl-retro .sl-chip.k-good { background:#3E6A2B; } .sl-retro .sl-chip.k-warn { background:#8E1D50; }
+      .sl-retro .sl-chip.k-plain { background:#CDD6A5; color:#1F3A1F; box-shadow:inset 0 0 0 1px #1F3A1F; }
+      /* listings you've hidden, filtered out, or (by choice) skipped */
+      html:not([data-sl-showhidden]) [data-sl-hide] { display:none !important; }
+      html[data-sl-showhidden] [data-sl-hide] { opacity:.45; }
+      html[data-sl-skip="dim"] [data-sl-v="pass"] { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
+      html[data-sl-skip="dim"] [data-sl-v="pass"]:hover { opacity:1; filter:none; }
+      html[data-sl-skip="hide"] [data-sl-v="pass"] { display:none !important; }
+      .second-look-sticker .sl-acts { display:flex; gap:12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--sl-rule); }
+      .second-look-sticker .sl-acts button, .second-look-sticker .sl-acts a { all:unset; cursor:pointer; color:var(--sl-ink); font-weight:600; font-size:12px;
+        text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
+      .second-look-sticker .sl-acts :is(button, a):hover { text-decoration-color:currentColor; }
       .second-look-sticker .sl-pop { display:none; position:absolute; top:100%; left:0; margin-top:8px; width:264px; padding:12px 14px;
         background:var(--sl-paper); color:var(--sl-ink); border-radius:10px; box-shadow:0 0 0 1px var(--sl-rule), 0 16px 36px -10px rgba(28,27,25,.45);
         font:400 12px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:normal; text-transform:none; cursor:auto; }
@@ -546,41 +600,110 @@
   };
 
   // Facebook recycles card elements as you scroll, which drops our stickers. Remember each
-  // scored listing by its URL and put the sticker back when its card reappears.
+  // listing by its URL and put the decoration back when its card reappears.
   let scored = new Map(); // key -> scored item
   let seen = new Set(); // keys already sent for scoring (or being scored), so a re-scan only does what's new
   const keyOf = SL.keyOf;
   const ITEM_LINK = 'a[href*="/marketplace/item/"]';
-  const reapplyFacebook = () => {
-    if (!scored.size || SL.currentSite() !== "facebook") return;
-    document.querySelectorAll(ITEM_LINK).forEach((a) => {
-      const key = keyOf(a.href);
-      // Cheap check first (no layout reads): is this card still wearing the right sticker?
-      const tagged = a.closest("[data-second-look]");
-      if (tagged?.dataset.secondLookKey === key && tagged.querySelector(":scope > .second-look-sticker")) return;
-      const item = scored.get(key);
-      if (item) {
-        item.el = a;
-        stick(item);
-      } else if (tagged && (tagged === a || tagged.querySelectorAll(ITEM_LINK).length === 1)) {
-        unstick(tagged); // a recycled card that now shows a listing we haven't scored
-      }
-    });
+
+  // ---------- what's known about each listing without asking a model ----------
+  // Card facts (auction, lot, offers, seller rating) come from the adapters. On top of those:
+  // whether you've seen it before and at what price, duplicates on the page, your filters, and
+  // listings you've marked "Not interested". All of it stays in this browser.
+  const MEMORY_DAYS = 90;
+  const MEMORY_MAX = 6000;
+  // Prices are the item price without shipping: shipping isn't always readable (and varies), so
+  // comparing totals would invent drops. Auctions aren't tracked for drops: their price only rises.
+  let memory = {}; // key -> { p: last price seen, pa: since when, f: first seen, a: last seen }
+  let notInterested = {}; // key -> { t: title, a: when }
+  let prefs = { hideWords: "", needWords: "", minSellerRatings: 10, minSellerPct: 97, autoMarks: true };
+  let skipMode = "show";
+  let showHidden = false;
+  let facts = new Map(); // key -> facts for this page view
+  const dirtyMemory = new Set();
+  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "skipMode"]).then((v) => {
+    memory = v.listingMemory || {};
+    notInterested = v.notInterested || {};
+    skipMode = ["show", "dim", "hide"].includes(v.skipMode) ? v.skipMode : "show";
+    document.documentElement.dataset.slSkip = skipMode;
+  });
+  const loadPrefs = () =>
+    send("getSettings")
+      .then((s) => {
+        prefs = { hideWords: s.hideWords, needWords: s.needWords, minSellerRatings: +s.minSellerRatings || 0, minSellerPct: +s.minSellerPct || 0, autoMarks: s.autoMarks !== false };
+      })
+      .catch(() => {});
+  const prefsReady = loadPrefs();
+
+  // Several tabs may write at once, so merge into what's stored instead of overwriting it.
+  let memoryTimer = 0;
+  const saveMemorySoon = () => {
+    clearTimeout(memoryTimer);
+    memoryTimer = setTimeout(async () => {
+      if (!dirtyMemory.size || !alive()) return;
+      const { listingMemory = {} } = await chrome.storage.local.get("listingMemory");
+      for (const k of dirtyMemory) listingMemory[k] = memory[k];
+      dirtyMemory.clear();
+      const cutoff = Date.now() - MEMORY_DAYS * 864e5;
+      const kept = Object.entries(listingMemory).filter(([, r]) => r && r.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-MEMORY_MAX);
+      memory = Object.fromEntries(kept);
+      await chrome.storage.local.set({ listingMemory: memory });
+    }, 1500);
   };
 
-  const unstick = (el) => {
-    if (el.dataset.secondLookPos) el.style.position = "";
-    el.removeAttribute("data-second-look");
-    el.removeAttribute("data-second-look-key");
-    el.removeAttribute("data-second-look-pos");
-    el.querySelector(":scope > .second-look-sticker")?.remove();
+  // Records a sighting; returns { isNew, drop } relative to what was remembered before.
+  const remember = (key, price, pageHadKnown, auction = false) => {
+    const rec = memory[key];
+    const now = Date.now();
+    const out = { isNew: !rec && pageHadKnown };
+    if (auction) price = null; // keep the last fixed price, if any; a current bid says nothing about drops
+    if (rec && price != null && rec.p != null && price < rec.p - Math.max(1, rec.p * 0.03)) out.drop = { from: rec.p, since: rec.pa };
+    memory[key] = { p: price ?? rec?.p ?? null, pa: rec && (price == null || rec.p === price) ? rec.pa : now, f: rec?.f ?? now, a: now };
+    dirtyMemory.add(key);
+    saveMemorySoon();
+    return out;
   };
 
-  const clearStickers = () => {
-    scored = new Map();
-    seen = new Set();
-    document.querySelectorAll("[data-second-look]").forEach(unstick);
-    document.querySelectorAll(".second-look-sticker").forEach((s) => s.remove());
+  const wordList = (s) => (s || "").split(/[,\n]/).map((w) => w.trim().toLowerCase()).filter(Boolean);
+  const reEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // "charger/adapter" = either word. Matches whole words, so "repro" doesn't catch "reproduced".
+  const hasWord = (text, w) => w.split("/").some((alt) => alt.trim() && new RegExp(`(^|[^a-z0-9])${reEscape(alt.trim())}($|[^a-z0-9])`, "i").test(text));
+  const filterReason = (title) => {
+    for (const w of wordList(prefs.hideWords)) if (hasWord(title, w)) return `“${w}”`;
+    for (const w of wordList(prefs.needWords)) if (!hasWord(title, w)) return `no “${w}”`;
+    return "";
+  };
+  const sellerWarning = (f) => {
+    if (f.sellerCount != null && f.sellerCount < prefs.minSellerRatings) return f.sellerCount === 0 ? "New seller" : `Seller: ${f.sellerCount} ratings`;
+    if (f.sellerPct != null && f.sellerPct < prefs.minSellerPct) return `Seller ${f.sellerPct}% positive`;
+    return "";
+  };
+  const normTitle = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const shortDate = (ts) => new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount"];
+  const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(SL.bigImage(img))}`;
+
+  // The chips a card wears: most useful first, three at most.
+  const chipsFor = (f = {}) => {
+    const c = [];
+    if (showHidden && f.hidden) c.push(["warn", "Not interested"]);
+    else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`]);
+    if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
+    if (f.isNew) c.push(["new", "New to you"]);
+    if (f.sellerWarn) c.push(["warn", f.sellerWarn]);
+    if (f.dup) c.push(["warn", `Same title ×${f.dup}`]);
+    if (f.auction) c.push(["plain", `Auction${f.timeLeft ? ` · ${f.timeLeft} left` : ""}`]);
+    if (f.lot) c.push(["plain", `Lot of ${f.lot}`]);
+    if (f.bestOffer) c.push(["plain", "Offers"]);
+    return c.slice(0, 3);
+  };
+  const chipEls = (f) => chipsFor(f).map(([kind, text]) => h("span", { class: `sl-chip k-${kind}` }, text));
+
+  // Our own buttons sit inside the site's card (on Facebook, inside the link): keep the click ours.
+  const own = (fn) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fn(e);
   };
 
   // Where the sticker goes. eBay cards are fine as they are. A Facebook card is a link that may be
@@ -597,44 +720,200 @@
     }
     return el;
   };
+  // What gets hidden or dimmed: the whole grid cell, so Facebook doesn't leave blank holes.
+  const cellOf = (el) => {
+    if (SL.currentSite() !== "facebook") return el;
+    let node = el;
+    for (let i = 0; i < 10 && node.parentElement && node.parentElement.querySelectorAll(ITEM_LINK).length === 1; i++) node = node.parentElement;
+    return node;
+  };
 
-  const stick = (item) => {
-    if (!item.el?.isConnected) return;
+  const undecorate = (host) => {
+    if (host.dataset.secondLookPos) host.style.position = "";
+    for (const a of ["data-second-look", "data-second-look-key", "data-second-look-pos", "data-sl-hide", "data-sl-v"]) host.removeAttribute(a);
+    host.querySelectorAll(":scope > .second-look-sticker, :scope > .second-look-marks").forEach((n) => n.remove());
+    const cell = host.closest("[data-sl-hide], [data-sl-v]");
+    cell?.removeAttribute("data-sl-hide");
+    cell?.removeAttribute("data-sl-v");
+  };
+
+  // Dress one card: a sticker if it's been scored, otherwise just its chips; hidden if you said so.
+  const decorate = (key, linkEl) => {
+    if (!linkEl?.isConnected) return;
     ensureStickerStyles();
-    const el = stickerHost(item.el);
-    const v = VERDICT[item.verdict] || VERDICT.fair;
-    el.setAttribute("data-second-look", item.verdict);
-    el.setAttribute("data-second-look-key", keyOf(item.url));
-    if (getComputedStyle(el).position === "static") {
-      el.style.position = "relative";
-      el.setAttribute("data-second-look-pos", "1");
+    const host = stickerHost(linkEl);
+    const cell = cellOf(linkEl);
+    const f = facts.get(key) || {};
+    const it = scored.get(key);
+    host.setAttribute("data-second-look-key", key);
+    if (getComputedStyle(host).position === "static") {
+      host.style.position = "relative";
+      host.setAttribute("data-second-look-pos", "1");
     }
-    el.querySelector(":scope > .second-look-sticker")?.remove();
+    if (f.hidden || f.filtered) cell.setAttribute("data-sl-hide", f.hidden ? "not-interested" : "filter");
+    else cell.removeAttribute("data-sl-hide");
+    if (it) cell.setAttribute("data-sl-v", it.verdict);
+    else cell.removeAttribute("data-sl-v");
+    host.querySelectorAll(":scope > .second-look-sticker, :scope > .second-look-marks").forEach((n) => n.remove());
+    if (it) {
+      it.el = linkEl;
+      host.setAttribute("data-second-look", it.verdict);
+      host.append(stickerEl(it, f, key));
+      return;
+    }
+    host.removeAttribute("data-second-look");
+    if (!prefs.autoMarks && !(showHidden && (f.hidden || f.filtered))) return;
+    const chips = chipEls(f);
+    if (showHidden && f.hidden) chips.push(h("button", { class: "sl-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
+    if (chips.length) host.append(h("div", { class: `second-look-marks${theme === "retro" ? " sl-retro" : ""}` }, chips));
+  };
+  const stick = (item) => decorate(keyOf(item.url), item.el);
+
+  const reapplyFacebook = () => {
+    if ((!scored.size && !facts.size) || SL.currentSite() !== "facebook") return;
+    document.querySelectorAll(ITEM_LINK).forEach((a) => {
+      const key = keyOf(a.href);
+      // Cheap check first (no layout reads): is this card still dressed for this listing?
+      const tagged = a.closest("[data-second-look-key]");
+      if (tagged?.dataset.secondLookKey === key && (tagged.querySelector(":scope > .second-look-sticker, :scope > .second-look-marks") || !scored.has(key))) return;
+      if (scored.has(key) || facts.has(key)) decorate(key, a);
+      else if (tagged && (tagged === a || tagged.querySelectorAll(ITEM_LINK).length === 1)) undecorate(tagged); // recycled for a listing we know nothing about
+    });
+  };
+
+  const clearStickers = () => {
+    scored = new Map();
+    seen = new Set();
+    document.querySelectorAll("[data-second-look-key]").forEach(undecorate);
+    document.querySelectorAll("[data-sl-hide], [data-sl-v]").forEach((n) => {
+      n.removeAttribute("data-sl-hide");
+      n.removeAttribute("data-sl-v");
+    });
+    document.querySelectorAll(".second-look-sticker, .second-look-marks").forEach((s) => s.remove());
+  };
+
+  // ---------- the page pass: runs when listings appear, no model involved ----------
+  let passKeys = new Set();
+  let pageHadKnown = null; // first visit to a search: nothing is "new to you" yet
+  let passing = false;
+  const pagePass = async (force = false) => {
+    if (SL.pageType() !== "results" || passing) return;
+    const keysNow = currentKeys();
+    if (!force && keysNow.size === passKeys.size && [...keysNow].every((k) => passKeys.has(k))) return;
+    passing = true;
+    try {
+      await Promise.all([memoryReady, prefsReady]);
+      const items = SL.extract();
+      passKeys = keysNow;
+      if (pageHadKnown === null && items.length) pageHadKnown = items.some((it) => memory[keyOf(it.url)]);
+      // Same title (or same photo) on several listings: reposts, or one seller with several.
+      const groups = new Map();
+      for (const it of items) {
+        const t = normTitle(it.title);
+        if (t.split(" ").length >= 4) groups.set(`t:${t}`, [...(groups.get(`t:${t}`) || []), it]);
+        if (it.imageUrl && !/^data:/.test(it.imageUrl)) groups.set(`i:${it.imageUrl}`, [...(groups.get(`i:${it.imageUrl}`) || []), it]);
+      }
+      const dup = new Map();
+      for (const list of groups.values()) if (list.length > 1) list.forEach((it) => dup.set(it, Math.max(dup.get(it) || 0, list.length)));
+
+      for (const it of items) {
+        const key = keyOf(it.url);
+        const prev = facts.get(key);
+        const sighting = prev ? { isNew: prev.isNew, drop: prev.drop } : remember(key, it.price, !!pageHadKnown, !!it.auction);
+        const f = { ...Object.fromEntries(CARD_FACTS.filter((k) => it[k] != null).map((k) => [k, it[k]])), ...sighting };
+        Object.assign(f, {
+          title: it.title,
+          price: it.price,
+          total: it.total,
+          url: it.url,
+          imageUrl: it.imageUrl,
+          sellerWarn: sellerWarning(it),
+          dup: dup.get(it) || 0,
+          filtered: filterReason(it.title),
+          hidden: !!notInterested[key],
+        });
+        facts.set(key, f);
+        decorate(key, it.el);
+      }
+      renderPageInfo();
+    } finally {
+      passing = false;
+    }
+  };
+
+  // Re-dress everything after a settings change (filters, marks, hidden toggle).
+  const redecorateAll = () => {
+    for (const [key, f] of facts) {
+      f.filtered = filterReason(f.title || "");
+      f.sellerWarn = sellerWarning(f);
+      f.hidden = !!notInterested[key];
+    }
+    const els = new Map(SL.extract().map((it) => [keyOf(it.url), it.el]));
+    for (const key of facts.keys()) if (els.has(key)) decorate(key, els.get(key));
+    render([...scored.values()]);
+    renderPageInfo();
+  };
+
+  // "Not interested": hidden on every page from now on (undo from the panel or settings).
+  const setInterested = async (key, interested) => {
+    const { notInterested: stored = {} } = await chrome.storage.local.get("notInterested");
+    const f = facts.get(key) || scored.get(key) || {};
+    if (interested) delete stored[key];
+    else stored[key] = { t: f.title || "", a: Date.now() };
+    const kept = Object.entries(stored).sort((a, b) => a[1].a - b[1].a).slice(-3000);
+    notInterested = Object.fromEntries(kept);
+    await chrome.storage.local.set({ notInterested });
+    if (facts.has(key)) facts.get(key).hidden = !interested;
+    const el = scored.get(key)?.el || SL.extract().find((it) => keyOf(it.url) === key)?.el;
+    if (el) decorate(key, el);
+    render([...scored.values()]);
+    renderPageInfo();
+    if (!interested) setStatus(`Hidden “${(f.title || "listing").slice(0, 50)}”.`, false, { label: "Undo", fn: () => setInterested(key, true) });
+    else setStatus("");
+  };
+
+  const stickerEl = (item, f, key) => {
+    const v = VERDICT[item.verdict] || VERDICT.fair;
     const CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
     const sub = lensLine(item);
-    let chip = null;
+    // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
+    const under = chipsFor(f)
+      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)))
+      .map(([kind, text]) => h("span", { class: `sl-chip k-${kind}` }, text));
     if (item.photoAdjust) {
-      chip = h("div", { class: "sl-chip", title: "Photo check" }, signed(item.photoAdjust));
+      const chip = h("span", { class: "sl-chip", title: "Photo check" }, signed(item.photoAdjust));
       chip.insertAdjacentHTML("afterbegin", CAMERA); // static markup, no page text involved
+      under.unshift(chip);
     }
-    const s = h(
+    const line = (text) => (text ? h("div", { class: "sl-flags" }, text) : null);
+    return h(
       "div",
-      { class: `second-look-sticker${theme === "retro" ? " sl-retro" : ""}${chip ? " has-chip" : ""}`, "data-v": item.verdict },
+      { class: `second-look-sticker${theme === "retro" ? " sl-retro" : ""}${under.length ? " has-chip" : ""}`, "data-v": item.verdict },
       h("div", { class: "sl-score" }, String(item.score)),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
-      chip,
+      under.length ? h("div", { class: "sl-under" }, under.slice(0, 3)) : null,
       h(
         "div",
         { class: "sl-pop" },
-        h("b", {}, h("span", {}, String(item.score)), ` \u00b7 ${v.label}`),
-        item.related === false ? h("div", { class: "sl-flags" }, "Not what you searched for, scored on the deal alone.") : null,
+        h("b", {}, h("span", {}, String(item.score)), ` · ${v.label}`),
+        item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         item.reason || "",
-        item.fault && !/^none$/i.test(item.fault) ? h("div", { class: "sl-flags" }, `Likely fault: ${item.fault}${item.difficulty ? ` (difficulty ${item.difficulty}/5)` : ""}`) : null,
-        item.photoAdjust ? h("div", { class: "sl-flags" }, `Photo check ${signed(item.photoAdjust)}: ${(item.photos || []).flatMap((p) => p.why).join("; ") || "see panel"}`) : null,
-        item.flags?.length ? h("div", { class: "sl-flags" }, item.flags.join(" · ")) : null
+        f.auction ? line(`Auction: ${f.bids || 0} bid${f.bids === 1 ? "" : "s"}${f.timeLeft ? `, ${f.timeLeft} left` : ""}. The price is only the current bid.${item.bidCap > 0 ? ` Worth bidding up to about ${dollars(item.bidCap)}${item.lens === "flip" ? " to break even" : ""}.` : ""}`) : null,
+        f.lot && item.total != null ? line(`Lot of ${f.lot}: about ${dollars(Math.round((item.total / f.lot) * 100) / 100)} each.`) : null,
+        f.drop ? line(`Was ${dollars(f.drop.from)} when you saw it on ${shortDate(f.drop.since)}.`) : null,
+        f.sellerWarn ? line(`${f.sellerWarn} (your rule: at least ${prefs.minSellerRatings} ratings, ${prefs.minSellerPct}% positive).`) : null,
+        f.dup ? line(`${f.dup} listings on this page share this title or photo: a repost, or one seller with several.`) : null,
+        item.fault && !/^none$/i.test(item.fault) ? line(`Likely fault: ${item.fault}${item.difficulty ? ` (difficulty ${item.difficulty}/5)` : ""}`) : null,
+        item.photoAdjust ? line(`Photo check ${signed(item.photoAdjust)}: ${(item.photos || []).flatMap((p) => p.why).join("; ") || "see panel"}`) : null,
+        item.flags?.length ? line(item.flags.join(" · ")) : null,
+        h(
+          "div",
+          { class: "sl-acts" },
+          h("button", { onclick: own(() => setInterested(key, false)) }, "Not interested"),
+          item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "Search this photo") : null
+        )
       )
     );
-    el.append(s);
   };
 
   // ---------- results list ----------
@@ -645,15 +924,20 @@
     return box;
   };
 
+  const isHidden = (it) => {
+    const f = facts.get(keyOf(it.url));
+    return !showHidden && (!!notInterested[keyOf(it.url)] || !!f?.filtered);
+  };
   const render = (items) => {
     listEl.replaceChildren();
     [...items]
-      .filter((it) => it.score != null)
+      .filter((it) => it.score != null && !isHidden(it) && !(skipMode === "hide" && it.verdict === "pass"))
       .sort((a, b) => b.score - a.score)
       .forEach((it, i) => {
         const v = VERDICT[it.verdict] || VERDICT.fair;
         const box = photoBox(it);
-        const vsMarket = it.vsWorking != null ? ` · ${Math.round(it.vsWorking * 100)}% of sold median` : "";
+        const vsMarket = it.vsWorking != null && !it.auction && !it.lot ? ` · ${Math.round(it.vsWorking * 100)}% of sold median` : "";
+        const f = facts.get(keyOf(it.url)) || it;
         const line = lensLine(it);
         // Only rows appearing for the first time animate in; re-sorting shouldn't replay it for all.
         const row = h(
@@ -665,14 +949,20 @@
             {},
             h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
             h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""} · ${priceStr(it)}${it.related === false ? "" : vsMarket}`),
-            it.lens !== "use" && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` · ${it.fault}` : "")) : null,
+            (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` · ${it.fault}` : "")) : null,
+            (() => {
+              const c = chipsFor(f).filter(([, t]) => !/^Auction|^Lot of/.test(t));
+              return c.length ? h("div", { class: "chips" }, c.map(([k, t]) => h("span", { class: `fchip k-${k}` }, t))) : null;
+            })(),
             h("div", { class: "reason" }, it.reason || ""),
             it.flags?.length ? h("div", { class: "flags" }, it.flags.map((f) => h("span", { class: "flag" }, f))) : null,
             h(
               "div",
               { class: "actions" },
               h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open listing"),
-              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget) }, it.photos ? "Re-check photo" : "Check photo") : null
+              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget) }, it.photos ? "Re-check photo" : "Check photo") : null,
+              it.imageUrl ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is the photo used elsewhere?" }, "Search photo") : null,
+              h("button", { onclick: () => setInterested(keyOf(it.url), !!notInterested[keyOf(it.url)]) }, notInterested[keyOf(it.url)] ? "Undo hide" : "Not interested")
             ),
             box
           )
@@ -828,12 +1118,27 @@
   };
 
   // How each listing's total compares with the sold prices; for Flip, the margin before repairs.
+  // Lots aren't compared with a single item's price, and an auction's price is only the current bid,
+  // so neither gets a margin; auctions get a sensible maximum bid instead (set once the score is in).
   const priceNotes = (it, market, forLens, feePct) => {
     const w = market?.median;
     const pm = market?.parts?.median;
-    it.vsWorking = it.total != null && w > 0 ? it.total / w : null;
-    it.vsParts = forLens !== "use" && it.total != null && pm > 0 ? it.total / pm : null;
-    it.marginBeforeRepair = forLens === "flip" && it.total != null && w > 0 ? Math.round(w * (1 - feePct / 100) - 0.4 - it.total) : null;
+    it.refWorking = w > 0 ? w : null;
+    it.refParts = pm > 0 ? pm : null;
+    it.feePct = feePct;
+    it.vsWorking = it.total != null && w > 0 && !it.lot ? it.total / w : null;
+    it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
+    it.marginBeforeRepair = forLens === "flip" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(w * (1 - feePct / 100) - 0.4 - it.total) : null;
+  };
+  // The most an auction is worth bidding, shipping included: market price (Use), what broken ones
+  // sell for (Fix), break-even after fees and parts (Flip).
+  const bidCapFor = (it) => {
+    const ship = it.shipping || 0;
+    const base =
+      it.lens === "flip" ? (it.refWorking ? it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - (it.partsCost || 0) : null)
+      : it.lens === "fix" ? it.refParts ?? it.refWorking
+      : it.refWorking;
+    return base != null ? Math.max(0, Math.floor(base - ship)) : null;
   };
 
   // ---------- remembered scores ----------
@@ -859,6 +1164,7 @@
       partsCost: Math.max(0, r.partsCost | 0),
     });
     it.margin = it.marginBeforeRepair != null && it.related ? it.marginBeforeRepair - it.partsCost : null;
+    it.bidCap = it.auction && it.related ? bidCapFor(it) : null;
     if (it.vsParts != null && it.vsParts <= 1 && it.related && !it.flags.includes("under parts value")) it.flags.unshift("under parts value");
     it.baseScore = it.score;
     it.baseVerdict = it.verdict;
@@ -886,6 +1192,55 @@
     resetBtn.hidden = !seen.size;
   };
 
+  // One line about the page: what's new, cheaper, flagged, hidden. Plus the skipped-listings control.
+  const renderPageInfo = () => {
+    if (SL.pageType() !== "results" || !facts.size) return (pageInfo.hidden = true);
+    const all = [...facts.values()];
+    const n = (fn) => all.filter(fn).length;
+    const newN = n((f) => f.isNew);
+    const dropN = n((f) => f.drop);
+    const warnN = n((f) => f.sellerWarn || f.dup);
+    const hidN = n((f) => f.hidden);
+    const filN = n((f) => f.filtered && !f.hidden);
+    const bits = [`<b>${all.length}</b> listings`];
+    if (newN) bits.push(`<b>${newN}</b> new to you`);
+    if (dropN) bits.push(`<b>${dropN}</b> cheaper than before`);
+    if (warnN) bits.push(`<b>${warnN}</b> to be careful with`);
+    piLine.innerHTML = bits.join(" \u00b7 "); // numbers and fixed words only
+    if (hidN || filN) {
+      piLine.append(
+        ` \u00b7 ${[hidN && `${hidN} not interested`, filN && `${filN} filtered`].filter(Boolean).join(", ")} `,
+        h("button", { onclick: () => setShowHidden(!showHidden) }, showHidden ? "hide them" : "show")
+      );
+    }
+    piSkip.hidden = !scored.size;
+    root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
+    pageInfo.hidden = false;
+  };
+  const setShowHidden = (on) => {
+    showHidden = on;
+    document.documentElement.toggleAttribute("data-sl-showhidden", on);
+    redecorateAll();
+  };
+  root.querySelectorAll("[data-skip]").forEach((b) =>
+    b.addEventListener("click", () => {
+      skipMode = b.dataset.skip;
+      document.documentElement.dataset.slSkip = skipMode;
+      if (alive()) chrome.storage.local.set({ skipMode }).catch(() => {});
+      render([...scored.values()]);
+      renderPageInfo();
+    })
+  );
+  // Settings changed in another tab or the options page: filters and seller rules apply straight away.
+  chrome.storage.onChanged.addListener((changes) => {
+    if (!alive()) return;
+    if (["hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks"].some((k) => changes[k])) loadPrefs().then(redecorateAll);
+    if (changes.notInterested && !changes.notInterested.newValue) {
+      notInterested = {};
+      redecorateAll();
+    }
+  });
+
   // Run fn over the batches with at most `limit` in flight; one failed batch doesn't stop the rest.
   const runBatches = async (batches, limit, fn) => {
     const errors = [];
@@ -912,16 +1267,21 @@
 
     try {
       const settings = await send("getSettings");
+      await pagePass(true);
       // Only listings we haven't scored yet: scrolling loads more, and a re-scan adds just those.
       // Cards the adapter skips (ads, "Shop on eBay") count as seen so they don't show as new.
+      // Listings you've hidden or filtered out never go to the model.
       const skipped = currentKeys();
-      const items = SL.extract().filter((it) => !seen.has(keyOf(it.url)));
-      items.forEach((it) => skipped.delete(keyOf(it.url)));
+      const fresh0 = SL.extract().filter((it) => !seen.has(keyOf(it.url)));
+      const left = fresh0.filter((it) => !notInterested[keyOf(it.url)] && !facts.get(keyOf(it.url))?.filtered);
+      const leftOut = fresh0.length - left.length;
+      const items = left.map((it) => Object.assign(it, facts.get(keyOf(it.url)) ? { isNew: facts.get(keyOf(it.url)).isNew, drop: facts.get(keyOf(it.url)).drop } : {}));
+      left.forEach((it) => skipped.delete(keyOf(it.url)));
       skipped.forEach((k) => seen.add(k));
       if (!items.length) {
         setStatus(
-          scored.size
-            ? "Nothing new since your last scan. Scroll down to load more listings."
+          scored.size || leftOut
+            ? `Nothing new to score${leftOut ? ` (${leftOut} hidden by you or your filters)` : ""}. Scroll down to load more listings.`
             : "No listings found on this page. Scroll so results load, or the site layout may have changed (README: When it breaks).",
           !scored.size
         );
@@ -945,8 +1305,8 @@
         const hit = scoreCache[scoreKey(ctx, it)];
         if (hit && Date.now() - hit.at < SCORE_TTL_MS) {
           applyResult(it, hit.r, forLens);
+          scored.set(keyOf(it.url), it); // before stick(): decorate() looks the listing up here
           stick(it);
-          scored.set(keyOf(it.url), it);
           fromMemory++;
         }
       }
@@ -973,8 +1333,8 @@
           if (!it) continue;
           applyResult(it, r, forLens);
           fresh[scoreKey(ctx, it)] = { at: Date.now(), r };
-          stick(it);
           scored.set(keyOf(it.url), it);
+          stick(it);
         }
         done += batch.length;
         render([...scored.values()]);
@@ -996,7 +1356,7 @@
       const costNote =
         settings.provider === "anthropic" && toRank.length ? ` Cost ${fmtCost(cost)}${spend ? `, this month ${fmtCost(spend.usd)}` : ""}.` : "";
       setStatus(
-        `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${costNote}` +
+        `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
           (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +
           (!errors.length && missed.length ? " The model skipped some; scan again, or try a smaller batch size in settings." : ""),
         errors.length > 0
@@ -1014,6 +1374,7 @@
   scanBtn.addEventListener("click", scan);
   resetBtn.addEventListener("click", () => {
     clearStickers();
+    redecorateAll(); // the non-AI marks stay
     listEl.replaceChildren();
     marketEl.textContent = "";
     setCount(0);
@@ -1024,6 +1385,43 @@
   // ---------- one listing, in depth ----------
 
   let analyzing = false;
+
+  // On a listing page: remember the visit, and say what's known before any model is asked.
+  let itemFacts = null;
+  const itemPass = async () => {
+    if (SL.pageType() !== "item") return;
+    await Promise.all([memoryReady, prefsReady]);
+    const listing = SL.extractItem();
+    if (!listing.title || SL.pageType() !== "item") return;
+    const key = keyOf(location.href);
+    const before = memory[key];
+    const { drop } = remember(key, listing.price, false, !!listing.auction);
+    itemFacts = {
+      ...Object.fromEntries(CARD_FACTS.filter((k) => listing[k] != null).map((k) => [k, listing[k]])),
+      key,
+      drop,
+      title: listing.title,
+      price: listing.price,
+      total: listing.total,
+      sellerWarn: sellerWarning(listing),
+      hidden: !!notInterested[key],
+      seenBefore: before?.f && Date.now() - before.f > 10 * 60 * 1000 ? before.f : null,
+    };
+    renderItemInfo();
+  };
+  const renderItemInfo = () => {
+    const f = itemFacts;
+    if (!f || SL.pageType() !== "item") return;
+    const chips = chipsFor(f).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+    piLine.replaceChildren(
+      f.seenBefore ? `You first looked at this on ${shortDate(f.seenBefore)}${f.drop ? `; it was ${dollars(f.drop.from)}` : ""}. ` : "",
+      f.hidden ? "You marked it not interested. " : "",
+      h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested"),
+      chips.length ? h("div", { class: "chips" }, chips) : ""
+    );
+    piSkip.hidden = true;
+    pageInfo.hidden = false;
+  };
 
   const renderItem = (listing, r, market) => {
     const v = VERDICT[r.verdict] || VERDICT.fair;
@@ -1052,9 +1450,19 @@
         )
       ),
     ];
-    if (r.offerHigh > 0) {
-      parts.push(h("div", { class: "offer" }, "Suggested offer: ", h("b", {}, `$${r.offerLow}–$${r.offerHigh}`)));
+    if (listing.auction) {
+      parts.push(
+        h(
+          "div",
+          { class: "offer" },
+          `Auction: ${listing.bids || 0} bid${listing.bids === 1 ? "" : "s"}${listing.timeLeft ? `, ${listing.timeLeft} left` : ""}. `,
+          r.offerHigh > 0 ? ["Suggested max bid: ", h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`)] : listing.bidCap > 0 ? ["Worth bidding up to about ", h("b", {}, dollars(listing.bidCap))] : "The price will rise."
+        )
+      );
+    } else if (r.offerHigh > 0) {
+      parts.push(h("div", { class: "offer" }, `${listing.bestOffer ? "Accepts offers. " : ""}Suggested offer: `, h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`)));
     }
+    if (listing.lot && listing.total != null) parts.push(h("div", { class: "meta" }, `Lot of ${listing.lot}: about ${dollars(Math.round((listing.total / listing.lot) * 100) / 100)} each.`));
     if (margin != null) {
       parts.push(
         h("div", { class: "offer" }, "Flip margin: ", h("b", {}, `\u2248 ${money(margin)}`), ` after eBay fees${rep?.partsCost ? ` and ~$${rep.partsCost} parts` : ""}, at the sold median.`)
@@ -1093,7 +1501,8 @@
     if (listing.imageUrls?.length) {
       const n = Math.min(3, listing.imageUrls.length);
       const btn = h("button", { onclick: () => checkPhotos(listing, r, market, photoBox, btn) }, `${r.photos ? "Re-check" : "Check"} ${n} photo${n > 1 ? "s" : ""} (adjusts the score)`);
-      parts.push(h("div", { class: "sect" }, h("div", { class: "actions" }, btn), photoBox));
+      const lensLink = h("a", { href: lensSearchUrl(listing.imageUrls[0]), target: "_blank", rel: "noopener", title: "Reverse image search: is the photo used elsewhere?" }, "Search the main photo");
+      parts.push(h("div", { class: "sect" }, h("div", { class: "actions" }, btn, lensLink), photoBox));
     }
     itemEl.replaceChildren(...parts);
   };
@@ -1141,6 +1550,8 @@
       priceNotes(listing, market, forLens, settings.feePct);
       setStatus(`Analyzing this listing for ${LENS[forLens].name.toLowerCase()}…`);
       const r = await send("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
+      Object.assign(listing, { lens: forLens, partsCost: r.repair?.partsCost || 0 });
+      listing.bidCap = listing.auction ? bidCapFor(listing) : null;
       renderItem(listing, r, market);
       setCount(1);
       setStatus(settings.provider === "anthropic" && r.cost ? `Cost ${fmtCost(r.cost)}.` : "");
@@ -1228,7 +1639,7 @@
       const want = wantEl.value.trim();
       let titles = [];
       if (!want) {
-        titles = [...scored.values()].map((it) => it.title);
+        titles = [...scored.values()].filter((it) => !isHidden(it)).map((it) => it.title);
         if (!titles.length && SL.pageType() === "results") titles = SL.extract().map((it) => it.title);
         titles = titles.slice(0, 30);
       }
@@ -1281,13 +1692,13 @@
   const saveScan = (href) => {
     if (!scored.size) return;
     stash.delete(href);
-    stash.set(href, { scored, seen, lastMarket, lens, query: queryEl.value, market: [...marketEl.childNodes] });
+    stash.set(href, { scored, seen, facts, pageHadKnown, lastMarket, lens, query: queryEl.value, market: [...marketEl.childNodes] });
     if (stash.size > 5) stash.delete(stash.keys().next().value);
   };
   const restoreScan = (href) => {
     const saved = stash.get(href);
     if (!saved || saved.lens !== lens) return false;
-    ({ scored, seen, lastMarket } = saved);
+    ({ scored, seen, facts, pageHadKnown, lastMarket } = saved);
     queryEl.value = saved.query;
     marketEl.replaceChildren(...saved.market);
     render([...scored.values()]);
@@ -1315,12 +1726,17 @@
       ideasStatus.textContent = "";
       lastMarket = null;
       clearStickers();
+      facts = new Map();
+      passKeys = new Set();
+      pageHadKnown = null;
+      pageInfo.hidden = true;
       itemEl.replaceChildren();
       listEl.replaceChildren();
       marketEl.textContent = "";
       setCount(0);
       setStatus("");
       if (type !== "results" || !restoreScan(lastHref)) queryEl.value = SL.detectQuery();
+      if (type === "item") setTimeout(itemPass, 1200); // let the listing finish rendering
     }
   };
 
@@ -1332,7 +1748,10 @@
     sync();
     if (document.hidden) return;
     reapplyFacebook();
-    if (++ticks % 2 === 0) refreshPending();
+    if (++ticks % 2 === 0) {
+      refreshPending();
+      if (!scanning) pagePass();
+    }
   };
   const timer = setInterval(tick, 1000);
   // After an update this copy can't reach the extension any more: get out of the way so the new one can load.

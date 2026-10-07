@@ -61,6 +61,30 @@ The switch at the top of the panel sets what you want a listing *for*, and score
 - Repair guesses are the least reliable thing here: the model only sees the listing text. Use them
   to decide what to ask the seller, not as a diagnosis.
 
+## Without any AI
+
+These run on every results page before you scan, cost nothing, and keep working with no API key:
+
+- **Auctions** are recognised from "3 bids · 2d 4h left". Their price is treated as a current bid,
+  never as a deal on its own; the sticker shows the most worth bidding instead ("Bid ≤ $100"):
+  the sold price in Use, the for-parts price in Fix, break-even after fees and parts in Flip.
+- **Lots** ("lot of 6", "10 pc lot") show a price per item and aren't compared with a single
+  item's sold price. **Offers** ("or Best Offer", "OBO") get a chip.
+- **New to you**: listings you haven't seen before on a search you've looked at before.
+- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen is now cheaper (item price,
+  not shipping; auctions aren't tracked).
+- **Not interested** (in a sticker's hover card or the panel) hides a listing everywhere from now
+  on. Undo right away, or bring hidden ones back with "show" in the panel or in settings.
+- **Filters** in settings: words that always hide a listing (starts with replica, repro, box only
+  and friends) and words a title must have. Hidden and filtered listings are never sent to a model.
+- **Seller warnings** for few ratings or a low positive percentage (eBay; thresholds in settings).
+- **Duplicates**: the same title or photo on several listings on one page.
+- **Search this photo** opens a reverse image search, to catch photos lifted from elsewhere.
+- **Skipped listings**: after a scan, show, dim or hide the ones marked Skip.
+
+What you've seen and hidden is kept only in this browser (90 days for seen listings) and can be
+cleared from settings. Turn off "Mark cards before you scan" to keep cards untouched until you scan.
+
 ## Look
 
 Two looks, picked at the top of the settings page (it switches straight away, open tabs too):

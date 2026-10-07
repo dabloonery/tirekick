@@ -61,6 +61,65 @@
   };
   const withTotal = (it) => ({ ...it, total: it.price == null ? null : Math.round((it.price + (it.shipping || 0)) * 100) / 100 });
 
+  // ---------- facts read straight off a card (no AI) ----------
+  // Auctions: the price is only the current bid. "3 bids · 2d 4h left", "Time left 4h 12m".
+  const hoursLeft = (t) => {
+    let h = 0;
+    for (const [, n, u] of t.matchAll(/(\d+)\s*([dhms])/gi)) h += +n * { d: 24, h: 1, m: 1 / 60, s: 1 / 3600 }[u.toLowerCase()];
+    return Math.round(h * 10) / 10;
+  };
+  // "1.2K" -> 1200
+  const count = (n, k) => Math.round(parseFloat(n.replace(/,/g, "")) * (k ? { K: 1e3, M: 1e6 }[k.toUpperCase()] : 1));
+
+  // Lots and bundles, only when the title says so outright: "lot of 6", "bundle of 12", "10 pc lot".
+  SL.lotSize = (title) => {
+    const m =
+      title.match(/\b(?:lot|bundle|set|bulk lot)\s+of\s+(\d{1,3})\b/i) ||
+      title.match(/\b(\d{1,3})\s*-?\s*(?:pc|pcs|piece|pieces|game|games|item|items|cart|carts|disc|discs)\s+(?:lot|bundle)\b/i) ||
+      title.match(/\b(\d{1,3})\s*-?\s*lot\b/i) ||
+      title.match(/\blot\s*\((\d{1,3})\)/i);
+    const n = m ? +m[1] : 0;
+    return n >= 2 && n <= 200 ? n : 0;
+  };
+
+  // Every text piece with a space between, so neighbours like "3 bids" + "Ends in 2d" don't run
+  // together ("3 bidsEnds in 2d") the way textContent joins them.
+  SL.spacedText = (el) => {
+    if (!el) return "";
+    const out = [];
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) out.push(n.nodeValue);
+    return out.join(" ").replace(/\s+/g, " ");
+  };
+
+  SL.cardFacts = (text, title = "") => {
+    const t = (text || "").replace(/\u00a0/g, " ");
+    const f = {};
+    const bids = t.match(/\b(\d+)\s+bids?\b/i);
+    const left = t.match(/\b(\d+[dhms](?:\s*\d+[hms]){0,2})\s+left\b/i) || t.match(/time left[:\s]+(\d+[dhms](?:\s*\d+[hms]){0,2})/i);
+    if (bids || (left && /bid/i.test(t))) {
+      f.auction = true;
+      f.bids = bids ? +bids[1] : 0;
+      if (left) {
+        f.timeLeft = left[1].replace(/\s+/g, " ");
+        f.hoursLeft = hoursLeft(left[1]);
+      }
+    }
+    if (/\bor best offer\b|\bobo\b|\bor best\b|make (?:me )?an offer|open to offers/i.test(t + " " + title) && !/best offer accepted/i.test(t)) f.bestOffer = true;
+    const lot = SL.lotSize(title);
+    if (lot) f.lot = lot;
+    // Seller rating: "99.5% positive (1.2K)" (2025 cards), "name (1,234) 99.5%" (older), or the listing page's seller card.
+    const a = t.match(/(\d{2,3}(?:\.\d+)?)%\s*positive(?:\s*feedback)?\s*\(([\d,.]+)\s*([KM])?\)/i);
+    const b = t.match(/\(([\d,.]+)\s*([KM])?\)\s*(\d{2,3}(?:\.\d+)?)%/);
+    const pct = t.match(/(\d{2,3}(?:\.\d+)?)%\s*positive/i);
+    if (a) Object.assign(f, { sellerPct: +a[1], sellerCount: count(a[2], a[3]) });
+    else if (b) Object.assign(f, { sellerPct: +b[3], sellerCount: count(b[1], b[2]) });
+    else if (pct) f.sellerPct = +pct[1];
+    const ratings = !a && !b && t.match(/\(([\d,.]+)\s*([KM])?\)\s*(?:feedback|ratings?)/i);
+    if (ratings) f.sellerCount = count(ratings[1], ratings[2]);
+    return f;
+  };
+
   const squash = (s, max = 300) => (s || "").replace(/\s+/g, " ").trim().slice(0, max);
 
   // ---------- eBay ----------
@@ -102,6 +161,7 @@
           imageUrl: firstImage(card),
           raw: squash(text),
           el: card,
+          ...SL.cardFacts(SL.spacedText(card), title),
         })
       );
     }
@@ -143,6 +203,7 @@
           imageUrl: firstImage(a),
           raw: squash(lines.join(" | ")),
           el: a,
+          ...SL.cardFacts(SL.spacedText(a), title),
         })
       );
     });
@@ -169,14 +230,20 @@
         (i) => i.getAttribute("src") || i.getAttribute("data-src") || ""
       );
       const shippingText = squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300);
+      const sellerEl = document.querySelector('.x-sellercard-atf, [data-testid="x-sellercard-atf"]');
+      const seller = squash(SL.spacedText(sellerEl), 300);
+      // Bids, time left and "or Best Offer" live in the buy box; fall back to the top of the page.
+      const boxEl = document.querySelector('.x-buybox, [data-testid="x-buybox"], .x-price-section');
+      const buyBox = boxEl ? SL.spacedText(boxEl) : SL.spacedText(document.querySelector("main, #mainContent") || document.body).slice(0, 4000);
       return withTotal({
+        ...SL.cardFacts(`${buyBox} ${seller}`, title),
         site,
         title,
         priceText,
         price: SL.parsePrice(priceText),
         shipping: SL.parseShipping(shippingText),
         condition: squash(firstText(document, [".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
-        seller: squash(firstText(document, [".x-sellercard-atf", '[data-testid="x-sellercard-atf"]']), 300),
+        seller,
         shippingText,
         details: squash(firstText(document, [".x-about-this-item", '[data-testid="x-about-this-item"]']) || meta("og:description"), 1200),
         imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(SL.bigImage).slice(0, 4),

@@ -19,6 +19,12 @@ const DEFAULTS = {
   feePct: 13.6, // eBay fees as % of the sale, for flip margins
   interests: "Electronics, older and retro tech, video games and consoles, anything with an active homebrew scene.",
   theme: "classic", // "classic" (paper and ink) or "retro" (pocket LCD)
+  // Filters and seller rules: plain checks, no AI. Hidden listings are never sent to the model.
+  hideWords: "replica, reproduction, repro, box only, empty box, manual only, case only, photo only, picture only",
+  needWords: "",
+  minSellerRatings: 10,
+  minSellerPct: 97,
+  autoMarks: true, // chips on cards before any scan: new to you, price drops, warnings
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
 };
 
@@ -244,6 +250,8 @@ Sold-price numbers only apply to related listings. If there is no search term, s
 If the buyer listed wants or must-haves, a listing that misses one scores lower and the reason says which.
 Red flags: price far below market with no explanation (bait), "replica"/"inspired"/"style" wording, box-only or photo-only listings,
 vague or keyword-stuffed titles, shipping that makes the total expensive, seller with very low or no feedback.
+Auctions: the price shown is only the current bid and will rise. Unless it ends within a few hours, don't rate it great or good on
+price alone; judge what it is and what it is likely to sell for, and say it's an auction in the reason. Lots: judge the price per item.
 Use only the text you are given. Never invent specs or seller details. If information is missing, say so.
 Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`;
 
@@ -271,9 +279,12 @@ function parseModelJson(content) {
 }
 
 const priceLine = (it) => {
-  if (it.total == null) return `price: ${it.priceText || "unknown"}`;
   const ship = it.shipping == null ? " (shipping not shown)" : it.shipping > 0 ? ` (incl. $${it.shipping} shipping)` : " (free shipping)";
-  return `total: $${it.total}${ship}`;
+  const parts = [it.total == null ? `price: ${it.priceText || "unknown"}` : `total: $${it.total}${ship}`];
+  if (it.auction) parts.push(`AUCTION: that is the current bid, ${it.bids || 0} bid${it.bids === 1 ? "" : "s"}${it.timeLeft ? `, ${it.timeLeft} left` : ""}`);
+  if (it.lot) parts.push(`lot of ${it.lot}${it.total != null ? ` (about $${Math.round(it.total / it.lot)} each)` : ""}`);
+  if (it.bestOffer) parts.push("accepts offers");
+  return parts.join(" | ");
 };
 
 async function rankBatch({ items, query, market, lens = "use", want = "" }) {
@@ -328,6 +339,7 @@ summary: 2-3 plain sentences on what it is, whether the price is right, and the 
 flags: up to 5 short red or green flags (1-4 words each), e.g. "price far below market", "no return policy", "clear photos".
 questions: 3-5 specific questions to ask the seller before buying, based on what is missing or unclear. For a broken or untested item, ask what exactly happens when it is powered on and what has been tried.
 offerLow / offerHigh: a sensible whole-dollar offer range if negotiation is possible; 0 for both if the price is already fair or you cannot tell.
+For an auction, offerLow / offerHigh are a sensible maximum-bid range instead, and the summary says the current bid will rise.
 homebrew: one sentence on its homebrew or modding scene and any firmware/model caveat, or "" if it has none or it doesn't apply.
 repair (fix-up and flip lenses): likely faults (most likely first), parts and tools needed, difficulty 1-5 (0 = can't tell), rough partsCost in whole dollars, and notes on teardown risks.
 If the buyer listed wants or must-haves, say which ones the listing meets or misses.

@@ -1,4 +1,7 @@
-const FIELDS = ["provider", "anthropicKey", "anthropicModel", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct", "showTab"];
+const FIELDS = ["provider", "anthropicKey", "anthropicModel", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
+  "hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks", "showTab"];
+// Fields that may be left empty on purpose (everything else goes back to its default when cleared).
+const MAY_BE_EMPTY = ["anthropicKey", "interests", "hideWords", "needWords"];
 const msg = document.getElementById("msg");
 
 async function load() {
@@ -15,6 +18,26 @@ async function load() {
   document.querySelector(`input[name="theme"][value="${look === "retro" ? "retro" : "classic"}"]`).checked = true;
   document.documentElement.dataset.theme = look;
 }
+
+// What's remembered in this browser, and a way to clear it.
+async function showMemory() {
+  const { notInterested = {}, listingMemory = {} } = await chrome.storage.local.get(["notInterested", "listingMemory"]);
+  const n = Object.keys(notInterested).length;
+  const m = Object.keys(listingMemory).length;
+  document.getElementById("memoryInfo").textContent =
+    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you" and price drops (kept 90 days, only in this browser).`;
+}
+document.getElementById("clearHidden").addEventListener("click", async () => {
+  await chrome.storage.local.remove("notInterested");
+  showMemory();
+  msg.textContent = "Everything you hid is visible again.";
+});
+document.getElementById("clearMemory").addEventListener("click", async () => {
+  await chrome.storage.local.remove("listingMemory");
+  showMemory();
+  msg.textContent = "Seen listings forgotten.";
+});
+showMemory();
 
 // The look applies straight away (open eBay/Facebook tabs follow it too); no Save needed.
 document.querySelectorAll('input[name="theme"]').forEach((r) =>
@@ -38,10 +61,12 @@ document.getElementById("save").addEventListener("click", async () => {
     const el = document.getElementById(f);
     if (el.type === "checkbox") out[f] = el.checked;
     else if (f === "feePct") out[f] = Math.min(50, Math.max(0, Number(el.value) || 0));
+    else if (f === "minSellerPct") out[f] = Math.min(100, Math.max(0, Number(el.value) || 0));
+    else if (f === "minSellerRatings") out[f] = Math.min(100000, Math.max(0, Math.round(Number(el.value)) || 0));
     else if (el.type === "number") out[f] = Math.min(30, Math.max(1, Math.round(Number(el.value)) || 10));
     else out[f] = el.value.trim();
     // An emptied model or address field goes back to its default instead of breaking requests.
-    if (out[f] === "" && f !== "anthropicKey" && f !== "interests") {
+    if (out[f] === "" && !MAY_BE_EMPTY.includes(f)) {
       delete out[f];
       cleared.push(f);
     }

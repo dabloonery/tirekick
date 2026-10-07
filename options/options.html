@@ -64,6 +64,10 @@
   .check input { margin:4px 0 0; accent-color:var(--ink); width:16px; height:16px; }
   .check .hint { display:block; margin-top:2px; }
 
+  .pair { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pair input { width:110px !important; }
+  .row-btns { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+  button.small { font-size:13px; padding:8px 12px; background:none; color:var(--ink); }
   .looks { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0; padding:0; border:0; }
   .look { position:relative; display:block; padding:14px; border:var(--bw) solid var(--rule); border-radius:var(--r); cursor:pointer; font-weight:400; }
   .look:has(input:checked) { border-color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
@@ -166,6 +170,34 @@
       <label for="feePct">eBay fees for Flip margins (% of the sale)</label>
       <input id="feePct" type="number" min="0" max="50" step="0.1">
       <span class="hint">Your final value fee for the category; check eBay's fee page. A $0.40 per-order fee is added on top.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Filters and marks</h2>
+    <p class="hint">Plain checks that run on every results page before any AI: nothing here costs anything, and listings they hide are never sent to a model.</p>
+    <div class="field">
+      <label for="hideWords">Always hide listings with these words</label>
+      <textarea id="hideWords" rows="2"></textarea>
+      <span class="hint">Comma-separated, matched as whole words in the title. Use <code>/</code> for either: <code>repro/reproduction</code>.</span>
+    </div>
+    <div class="field">
+      <label for="needWords">Only show listings that mention</label>
+      <input id="needWords" type="text" placeholder="e.g. tested/working">
+      <span class="hint">Every entry must appear in the title. Leave blank to show everything.</span>
+    </div>
+    <div class="field">
+      <label>Warn about sellers with fewer than</label>
+      <div class="pair"><input id="minSellerRatings" type="number" min="0" max="100000"> <span>ratings, or under</span> <input id="minSellerPct" type="number" min="0" max="100" step="0.1"> <span>% positive</span></div>
+      <span class="hint">eBay only (Marketplace cards don't show ratings).</span>
+    </div>
+    <div class="field check">
+      <input id="autoMarks" type="checkbox">
+      <label for="autoMarks">Mark cards before you scan<span class="hint">"New to you", price drops since you last saw a listing, seller warnings, duplicates, auctions and lots, as small chips on each card.</span></label>
+    </div>
+    <div class="field">
+      <span class="hint" id="memoryInfo"></span>
+      <div class="row-btns"><button type="button" class="small" id="clearHidden">Unhide everything</button><button type="button" class="small" id="clearMemory">Forget seen listings</button></div>
     </div>
   </section>
 

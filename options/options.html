@@ -89,7 +89,9 @@
   .sample.retro b { background:#1F3A1F; color:#CDD6A5; border-radius:1px; font:600 16px/1 "SL Mono", monospace; }
   .sample.retro strong { font:600 11.5px/1 "SL Mono", monospace; letter-spacing:.08em; text-transform:uppercase; } .sample.retro small { color:#41613A; }
 
-  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:8px; padding-top:22px; border-top:var(--bw) solid var(--rule); }
+  /* Save stays in reach on a long page */
+  .row { position:sticky; bottom:0; display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:8px; padding:14px 0 18px;
+    border-top:var(--bw) solid var(--rule); background:var(--paper); }
   button { font:600 14px/1 var(--ui); padding:11px 16px; border-radius:var(--r-sm); border:var(--bw) solid var(--ink); cursor:pointer; box-shadow:var(--press); }
   [data-theme="retro"] button { font:600 13px/1 var(--display); letter-spacing:.1em; text-transform:uppercase; }
   button:active { transform:translate(1px,1px); }
@@ -137,8 +139,13 @@
       </div>
       <div class="field">
         <label for="anthropicModel">Claude model</label>
-        <input id="anthropicModel" type="text">
-        <span class="hint">Also used for photo checks. <code>claude-opus-5-5</code> is the most capable; <code>claude-haiku-4-5</code> is cheaper if you scan a lot.</span>
+        <input id="anthropicModel" type="text" list="claudeModels" autocomplete="off">
+        <datalist id="claudeModels">
+          <option value="claude-opus-5-5">Opus 5.5: best</option>
+          <option value="claude-sonnet-5-5">Sonnet 5.5: half the price</option>
+          <option value="claude-haiku-4-5">Haiku 4.5: a quarter of the price</option>
+        </datalist>
+        <span class="hint">Pick from the list or type any Claude model ID. Also used for photo checks. You can switch any time from the menu at the bottom of the panel.</span>
       </div>
     </div>
     <div id="ollamaBox">

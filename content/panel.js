@@ -224,12 +224,26 @@
     [data-theme="retro"] .model { border-radius:0; background-color:var(--paper-2); }
     [data-theme="retro"] .spend b, [data-theme="retro"] .sd-grid b { font-family:var(--ui); }
 
+    /* first run, list bar */
+    .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:12.5px; }
+    .listbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 2px; border-top:var(--bw) solid var(--rule); font-size:12px; color:var(--muted); }
+    .sortpick { display:flex; align-items:center; gap:6px; margin:0; font:inherit; letter-spacing:normal; text-transform:none; color:var(--muted); }
+    .sort { appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 12px/1 var(--ui); padding:4px 14px 4px 0; cursor:pointer;
+      background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position:calc(100% - 6px) 55%, calc(100% - 2px) 55%; background-size:4px 4px; background-repeat:no-repeat; }
+    .sort:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .skipwrap { display:flex; align-items:center; gap:6px; }
+    .skipwrap .seg button { padding:4px 8px; }
+    .listbar + .list > .row:first-child { border-top:0; }
+
     /* what's on this page */
-    .pageinfo { font-size:12px; color:var(--muted); display:grid; gap:8px; }
+    .pageinfo { font-size:12px; color:var(--muted); }
+    .pi-reset { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .pi-reset:hover { text-decoration-color:currentColor; }
+    .pageinfo .chips { margin-top:8px; }
     .pi-line b { color:var(--ink); font-weight:600; }
     .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
-    .pi-skip { display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
     .seg button { border:0; background:none; color:var(--muted); font:600 11.5px/1 var(--ui); padding:5px 10px; border-radius:calc(var(--r-sm) - 2px); cursor:pointer; }
     .seg button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
@@ -315,6 +329,7 @@
     .sect li { margin:2px 0; }
     .sect .actions { margin-top:8px; }
     .offer { margin-top:12px; padding:11px 12px; background:var(--paper-2); border-radius:var(--r-sm); font-size:12.5px; }
+    .offer-acts { margin-top:8px; }
     .offer b { font:600 19px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
     .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }
     .adjust.up { color:var(--v-great); }
@@ -365,7 +380,8 @@
       <div class="head">
         <span class="mark">${MARK}</span>
         <div class="grow"><div class="wordmark">Second <em>Look</em></div><small>for careful buyers</small></div>
-        <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+        <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
+        <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
       </div>
       <div class="body">
       <div class="controls">
@@ -377,18 +393,14 @@
         </div>
         <div><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
-          <div class="hint browse-note" hidden>No search here, so Second Look goes by what you're into (settings) and "What I want". Prices are compared with the model's estimates, marked <i>est.</i>; use <b>Check sold prices</b> on any listing for real eBay sales, or type a search above to compare everything against one.</div></div>
+          <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
+        <div class="setup" hidden><b>Add a Claude API key to start.</b> It takes a minute at console.anthropic.com. Or pick your Ollama model in the menu at the bottom if you run one locally.
+          <button class="ghost" data-act="open-settings">Open settings</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
         <div class="market"></div>
         <div class="status" role="status"></div>
-        <div class="pageinfo" hidden>
-          <div class="pi-line"></div>
-          <div class="pi-skip" hidden><span>Skipped listings</span>
-            <div class="seg" role="radiogroup" aria-label="Skipped listings"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div>
-          </div>
-        </div>
-        <div class="actions"><button data-act="reset" hidden>Start over</button></div>
+        <div class="pageinfo" hidden><span class="pi-line"></span><span class="pi-sep" hidden> \u00b7 </span><button class="pi-reset" data-act="reset" hidden>Start over</button></div>
       </div>
       <details class="ideas">
         <summary>Search ideas</summary>
@@ -399,6 +411,12 @@
           <div class="ideas-list"></div>
         </div>
       </details>
+      <div class="listbar" hidden>
+        <label class="sortpick">Sort <select class="sort">
+          <option value="score">best first</option><option value="price">cheapest first</option><option value="margin">biggest margin</option><option value="new">new to you first</option>
+        </select></label>
+        <div class="skipwrap"><span>Skipped</span><div class="seg" role="radiogroup" aria-label="Skipped listings"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
+      </div>
       <div class="list"></div>
       <div class="itemout"></div>
       </div>
@@ -439,7 +457,9 @@
   const itemEl = $(".itemout");
   const pageInfo = $(".pageinfo");
   const piLine = $(".pi-line");
-  const piSkip = $(".pi-skip");
+  const listBar = $(".listbar");
+  const sortSel = $(".sort");
+  const setupCard = $(".setup");
 
   // action: an optional { label, fn } shown after the text, e.g. Undo.
   const setStatus = (text, isErr = false, action = null) => {
@@ -532,6 +552,13 @@
     modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}` }, label)));
     modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : `anthropic|${cfg.anthropicModel}`;
   };
+  const openSettings = () => send("openOptions").catch(() => {});
+  $('[data-act="settings"]').addEventListener("click", openSettings);
+  $('[data-act="open-settings"]').addEventListener("click", openSettings);
+  root.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && wrap.classList.contains("open")) setOpen(false);
+  });
+
   modelSel.addEventListener("change", async () => {
     const [provider, model] = modelSel.value.split("|");
     await chrome.storage.local.set(provider === "ollama" ? { provider } : { provider, anthropicModel: model });
@@ -611,6 +638,7 @@
       return;
     }
     renderModels();
+    setupCard.hidden = !(cfg.provider === "anthropic" && !cfg.hasKey);
     renderSpend((await chrome.storage.local.get("usage")).usage);
   };
   loadFooter();
@@ -718,7 +746,9 @@
       .sl-chip.k-plain { background:#FBFAF7; color:#1C1B19; box-shadow:inset 0 0 0 1px rgba(28,27,25,.25); }
       .second-look-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:calc(100% - 20px);
         filter:drop-shadow(0 2px 6px rgba(28,27,25,.3)); pointer-events:auto; }
-      .second-look-marks button { cursor:pointer; border:0; }
+      .second-look-marks button, .second-look-sticker .sl-under button { cursor:pointer; border:0; }
+      .sl-x { display:none !important; }
+      [data-second-look-key]:hover .sl-x, .sl-x:focus-visible { display:inline-flex !important; }
       .sl-retro .sl-chip, .second-look-marks.sl-retro .sl-chip { border-radius:1px; font-family:"SL Mono",ui-monospace,monospace; background:#1F3A1F; color:#CDD6A5; }
       .sl-retro .sl-chip.k-new { background:#8E1D50; } .sl-retro .sl-chip.k-good { background:#3E6A2B; } .sl-retro .sl-chip.k-warn { background:#8E1D50; }
       .sl-retro .sl-chip.k-plain { background:#CDD6A5; color:#1F3A1F; box-shadow:inset 0 0 0 1px #1F3A1F; }
@@ -771,14 +801,14 @@
   let memory = {}; // key -> { p: last price seen, pa: since when, f: first seen, a: last seen }
   let notInterested = {}; // key -> { t: title, a: when }
   let prefs = { hideWords: "", needWords: "", minSellerRatings: 10, minSellerPct: 97, autoMarks: true };
-  let skipMode = "show";
+  let skipMode = "dim";
   let showHidden = false;
   let facts = new Map(); // key -> facts for this page view
   const dirtyMemory = new Set();
   const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "skipMode"]).then((v) => {
     memory = v.listingMemory || {};
     notInterested = v.notInterested || {};
-    skipMode = ["show", "dim", "hide"].includes(v.skipMode) ? v.skipMode : "show";
+    skipMode = ["show", "dim", "hide"].includes(v.skipMode) ? v.skipMode : "dim"; // greyed out unless you choose otherwise
     document.documentElement.dataset.slSkip = skipMode;
   });
   const loadPrefs = () =>
@@ -919,9 +949,12 @@
     if (!prefs.autoMarks && !(showHidden && (f.hidden || f.filtered))) return;
     const chips = chipEls(f);
     if (showHidden && f.hidden) chips.push(h("button", { class: "sl-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
-    if (chips.length) host.append(h("div", { class: `second-look-marks${theme === "retro" ? " sl-retro" : ""}` }, chips));
+    else if (!f.hidden) chips.push(hideChip(key)); // appears when you hover the card
+    host.append(h("div", { class: `second-look-marks${theme === "retro" ? " sl-retro" : ""}` }, chips));
   };
   const stick = (item) => decorate(keyOf(item.url), item.el);
+  // "✕ Not interested", shown on any card while you hover it.
+  const hideChip = (key) => h("button", { class: "sl-chip k-plain sl-x", title: "Hide this listing everywhere (undo from the panel)", onclick: own(() => setInterested(key, false)) }, "\u2715 Not interested");
 
   const reapplyFacebook = () => {
     if ((!scored.size && !facts.size) || SL.currentSite() !== "facebook") return;
@@ -1045,7 +1078,7 @@
       { class: `second-look-sticker${theme === "retro" ? " sl-retro" : ""}${under.length ? " has-chip" : ""}`, "data-v": item.verdict },
       h("div", { class: "sl-score" }, String(item.score)),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
-      under.length ? h("div", { class: "sl-under" }, under.slice(0, 3)) : null,
+      h("div", { class: "sl-under" }, under.slice(0, 3), hideChip(key)),
       h(
         "div",
         { class: "sl-pop" },
@@ -1084,11 +1117,24 @@
     const f = facts.get(keyOf(it.url));
     return !showHidden && (!!notInterested[keyOf(it.url)] || !!f?.filtered);
   };
+  let sortMode = "score";
+  const SORTS = {
+    score: (a, b) => b.score - a.score,
+    price: (a, b) => (a.total ?? Infinity) - (b.total ?? Infinity) || b.score - a.score,
+    margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || b.score - a.score,
+    new: (a, b) => {
+      const rank = (it) => {
+        const f = facts.get(keyOf(it.url)) || {};
+        return f.drop ? 2 : f.isNew ? 1 : 0;
+      };
+      return rank(b) - rank(a) || b.score - a.score;
+    },
+  };
   const render = (items) => {
     listEl.replaceChildren();
     [...items]
       .filter((it) => it.score != null && !isHidden(it) && !(skipMode === "hide" && it.verdict === "pass"))
-      .sort((a, b) => b.score - a.score)
+      .sort(SORTS[sortMode] || SORTS.score)
       .forEach((it, i) => {
         const v = VERDICT[it.verdict] || VERDICT.fair;
         const box = photoBox(it);
@@ -1111,19 +1157,19 @@
             h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
             h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""} · ${priceStr(it)}${it.related === false ? "" : vsMarket}`),
             (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` · ${it.fault}` : "")) : null,
-            (() => {
-              const c = chipsFor(f).filter(([, t]) => !/^Auction|^Lot of/.test(t));
-              return c.length ? h("div", { class: "chips" }, c.map(([k, t]) => h("span", { class: `fchip k-${k}` }, t))) : null;
-            })(),
             h("div", { class: "reason" }, it.reason || ""),
-            it.flags?.length ? h("div", { class: "flags" }, it.flags.map((f) => h("span", { class: "flag" }, f))) : null,
+            // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
+            (() => {
+              const known = chipsFor(f).filter(([, t]) => !/^Auction|^Lot of/.test(t)).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+              const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
+              return known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null;
+            })(),
             h(
               "div",
               { class: "actions" },
-              h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open listing"),
-              it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Check sold prices") : null,
-              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget) }, it.photos ? "Re-check photo" : "Check photo") : null,
-              it.imageUrl ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is the photo used elsewhere?" }, "Search photo") : null,
+              h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
+              it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
+              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Ask the model to look at the photo (changes the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
               h("button", { onclick: () => setInterested(keyOf(it.url), !!notInterested[keyOf(it.url)]) }, notInterested[keyOf(it.url)] ? "Undo hide" : "Not interested")
             ),
             box
@@ -1399,6 +1445,7 @@
       countEl.hidden = false;
     } else setCount(scored.size);
     resetBtn.hidden = !seen.size;
+    $(".pi-sep").hidden = !seen.size;
   };
 
   // One line about the page: what's new, cheaper, flagged, hidden. Plus the skipped-listings control.
@@ -1422,7 +1469,7 @@
         h("button", { onclick: () => setShowHidden(!showHidden) }, showHidden ? "hide them" : "show")
       );
     }
-    piSkip.hidden = !scored.size;
+    listBar.hidden = !scored.size;
     root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
     pageInfo.hidden = false;
   };
@@ -1431,6 +1478,15 @@
     document.documentElement.toggleAttribute("data-sl-showhidden", on);
     redecorateAll();
   };
+  sortSel.addEventListener("change", () => {
+    sortMode = sortSel.value;
+    if (alive()) chrome.storage.local.set({ sortMode }).catch(() => {});
+    render([...scored.values()]);
+  });
+  chrome.storage.local.get({ sortMode: "score" }).then((v) => {
+    sortMode = SORTS[v.sortMode] ? v.sortMode : "score";
+    sortSel.value = sortMode;
+  });
   root.querySelectorAll("[data-skip]").forEach((b) =>
     b.addEventListener("click", () => {
       skipMode = b.dataset.skip;
@@ -1629,7 +1685,7 @@
       h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested"),
       chips.length ? h("div", { class: "chips" }, chips) : ""
     );
-    piSkip.hidden = true;
+    listBar.hidden = true;
     pageInfo.hidden = false;
   };
 
@@ -1670,7 +1726,22 @@
         )
       );
     } else if (r.offerHigh > 0) {
-      parts.push(h("div", { class: "offer" }, `${listing.bestOffer ? "Accepts offers. " : ""}Suggested offer: `, h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`)));
+      // A first message you can paste to the seller, opening at the low end of the range.
+      const message = `Hi! Is this still available? Would you take $${r.offerLow}?${listing.site === "facebook" ? " I can pick up whenever suits you." : ""}`;
+      const copy = h("button", {
+        onclick: async () => {
+          try {
+            await navigator.clipboard.writeText(message);
+            copy.textContent = "Copied";
+          } catch {
+            copy.textContent = "Couldn't copy";
+          }
+        },
+        title: message,
+      }, "Copy message");
+      parts.push(
+        h("div", { class: "offer" }, `${listing.bestOffer ? "Accepts offers. " : ""}Suggested offer: `, h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`), h("div", { class: "actions offer-acts" }, copy))
+      );
     }
     if (listing.lot && listing.total != null) parts.push(h("div", { class: "meta" }, `Lot of ${listing.lot}: about ${dollars(Math.round((listing.total / listing.lot) * 100) / 100)} each.`));
     if (margin != null) {

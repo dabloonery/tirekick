@@ -275,6 +275,13 @@ function rankSchema(lens, browse = false) {
   };
 }
 
+// Bulk-posted fake Marketplace listings: the most common scam the buyer sees, so it gets spelled out.
+const SCAM_RULE = `Facebook scam pattern: bulk-posted fake listings end the title with a short random code of capital letters and digits
+("Nintendo Game Boy Advance SP M2465", "Halo Special Edition Xbox S1337", "... U2X503"); there are many of them. When the listing
+says "title ends with the code", mark it suspicious with a score under 15 and the flag "scam code in title", unless the code is
+plausibly that exact item's real model or part number (Nikon D3100, Pentax K1000, PS Vita PCH1001). A price that looks too good
+makes it more certain, not less.`;
+
 // This prompt is the part most worth tuning yourself. Small local models
 // follow short, concrete rules better than long abstract ones.
 const RANK_BASE = `You help a buyer skim second-hand listings. For each listing give a 0-100 score and one verdict: great, good, fair, pass or suspicious.
@@ -287,8 +294,9 @@ Red flags: price far below market with no explanation (bait), "replica"/"inspire
 vague or keyword-stuffed titles, shipping that makes the total expensive, seller with very low or no feedback.
 Auctions: the price shown is only the current bid and will rise. Unless it ends within a few hours, don't rate it great or good on
 price alone; judge what it is and what it is likely to sell for, and say it's an auction in the reason. Lots: judge the price per item.
+SCAM_RULE
 Use only the text you are given. Never invent specs or seller details. If information is missing, say so.
-Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`;
+Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`.replace("SCAM_RULE", SCAM_RULE);
 
 // One call that works for either provider; returns { text, cost }.
 async function llmText({ system, userText, schema }) {
@@ -322,6 +330,10 @@ const priceLine = (it) => {
   return parts.join(" | ");
 };
 
+// Scam signals read off the page, spelled out so the model can't miss them.
+const scamNotes = (it) =>
+  [it.titleCode && `title ends with the code "${it.titleCode}"`, it.offSite?.why?.length && `off-site contact: ${it.offSite.why.join("; ")}`].filter(Boolean);
+
 async function rankBatch({ items, query, market, lens = "use", want = "", browse = "" }) {
   const { interests } = await getSettings();
   const listingText = items
@@ -331,7 +343,8 @@ async function rankBatch({ items, query, market, lens = "use", want = "", browse
       if (it.vsParts != null) notes.push(`${Math.round(it.vsParts * 100)}% of for-parts median`);
       if (it.marginBeforeRepair != null) notes.push(`margin before repairs ${it.marginBeforeRepair < 0 ? "-" : ""}$${Math.abs(it.marginBeforeRepair)}`);
       const extra = (it.raw || "").replace(it.title, "").trim(); // the title is already on the line
-      return `id ${it.id} | ${it.site} | ${it.title} | ${priceLine(it)}${notes.length ? ` | ${notes.join(", ")}` : ""}\n  card text: ${extra}`;
+      const scam = scamNotes(it);
+      return `id ${it.id} | ${it.site} | ${it.title} | ${priceLine(it)}${notes.length ? ` | ${notes.join(", ")}` : ""}${scam.length ? ` | SCAM SIGNAL: ${scam.join("; ")}` : ""}\n  card text: ${extra}`;
     })
     .join("\n");
 
@@ -378,7 +391,11 @@ For an auction, offerLow / offerHigh are a sensible maximum-bid range instead, a
 homebrew: one sentence on its homebrew or modding scene and any firmware/model caveat, or "" if it has none or it doesn't apply.
 repair (fix-up and flip lenses): likely faults (most likely first), parts and tools needed, difficulty 1-5 (0 = can't tell), rough partsCost in whole dollars, and notes on teardown risks.
 If the buyer listed wants or must-haves, say which ones the listing meets or misses.
-Use only the information given. Never invent specs, history, or seller details. If something is missing, say so.`;
+SCAM_RULE
+Moving the sale off the site is the other sure sign: a website (often written with spaces, "www . abc . com", "remove the spaces"),
+a phone number written oddly ("505_507__6507"), WhatsApp, Telegram, email, "text me a screenshot", gift cards, or payment before seeing
+the item. Any of those: suspicious, a score under 10, and the summary says plainly that it's the classic Marketplace scam.
+Use only the information given. Never invent specs, history, or seller details. If something is missing, say so.`.replace("SCAM_RULE", SCAM_RULE);
 
 async function analyzeListing({ listing, query, market, lens = "use", want = "" }) {
   const { interests } = await getSettings();
@@ -390,6 +407,7 @@ async function analyzeListing({ listing, query, market, lens = "use", want = "" 
     listing.seller && `seller: ${listing.seller}`,
     listing.shippingText && `shipping: ${listing.shippingText}`,
     listing.marginBeforeRepair != null && `margin before repairs: $${listing.marginBeforeRepair}`,
+    ...scamNotes(listing).map((n) => `SCAM SIGNAL: ${n}`),
     listing.details && `details: ${listing.details}`,
   ].filter(Boolean);
   const { text, cost } = await llmText({
@@ -555,12 +573,28 @@ async function fetchSoldHtml({ url }) {
   if (u.origin !== "https://www.ebay.com" || u.pathname !== "/sch/i.html" || u.searchParams.get("LH_Sold") !== "1") {
     throw new Error("Only eBay sold searches are fetched here.");
   }
-  // Sent with your eBay cookies so it looks like the one ordinary search it is.
+  // Best: from an eBay tab you have open, exactly like eBay's own pages make requests (same site,
+  // same cookies, same browser headers). eBay is much less likely to ask for a browser check then.
+  const tabs = await chrome.tabs.query({ url: "https://www.ebay.com/*" }).catch(() => []);
+  for (const tab of tabs.filter((t) => !t.discarded && t.status === "complete")) {
+    try {
+      const [{ result } = {}] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        args: [url],
+        func: async (u) => {
+          const res = await fetch(u, { credentials: "include", signal: AbortSignal.timeout(30000) });
+          return { status: res.status, html: res.ok ? await res.text() : "" };
+        },
+      });
+      if (result) return result;
+    } catch {
+      // that tab couldn't do it (closed, navigating, a check page); try the next, then the fallback
+    }
+  }
+  // Otherwise from here, still with your eBay cookies.
   const res = await fetchWithTimeout(url, { credentials: "include" }, 30 * 1000, "eBay took too long to answer.");
   return { status: res.status, html: res.ok ? await res.text() : "" };
 }
-
-// ---------- Message router ----------
 
 // ---------- Fonts ----------
 // Page scripts get the bundled fonts as bytes and add them with the FontFace API. Nothing is
@@ -584,6 +618,8 @@ async function getPageSettings() {
 }
 
 const openOptions = async () => chrome.runtime.openOptionsPage();
+// ---------- Message router ----------
+
 const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, openOptions, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -632,7 +668,7 @@ async function doSyncAutoScripts() {
   const { showTab } = await getSettings();
   const def = {
     id: AUTO_ID,
-    matches: ["https://www.ebay.com/", "https://www.ebay.com/sch/*", "https://www.ebay.com/itm/*", "https://www.facebook.com/*"],
+    matches: ["https://www.ebay.com/", "https://www.ebay.com/sch/*", "https://www.ebay.com/itm/*", "https://www.ebay.com/b/*", "https://www.facebook.com/*"],
     js: ["content/adapters.js", "content/panel.js"],
     runAt: "document_idle",
     persistAcrossSessions: true,

@@ -241,6 +241,9 @@
     .pi-reset { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-reset:hover { text-decoration-color:currentColor; }
     .pageinfo .chips { margin-top:8px; }
+    .pageinfo .pi-acts { margin-top:8px; color:var(--muted); font-weight:500; }
+    .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:12.5px; line-height:1.45; }
+    .scamnote b { color:var(--v-suspicious); }
     .pi-line b { color:var(--ink); font-weight:600; }
     .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
@@ -259,6 +262,8 @@
     /* sold prices */
     .market { font-size:12px; }
     .market:not(:empty) { background:var(--paper-2); padding:11px 12px; border-radius:var(--r-sm); }
+    .market:has(> .mnote:only-child) { padding:7px 10px; color:var(--muted); font-size:11.5px; }
+    .mnote a { color:var(--ink); font-weight:600; text-underline-offset:3px; }
     .mgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); gap:12px; }
     .mlabel { color:var(--muted); font-size:11px; }
     .mval { display:block; font:600 22px/1.15 var(--display); font-variant-numeric:lining-nums; margin:2px 0 1px; }
@@ -415,7 +420,7 @@
         <label class="sortpick">Sort <select class="sort">
           <option value="score">best first</option><option value="price">cheapest first</option><option value="margin">biggest margin</option><option value="new">new to you first</option>
         </select></label>
-        <div class="skipwrap"><span>Skipped</span><div class="seg" role="radiogroup" aria-label="Skipped listings"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
+        <div class="skipwrap" title="Listings judged Skip or Suspicious"><span>Skipped</span><div class="seg" role="radiogroup" aria-label="Skipped and suspicious listings"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
       </div>
       <div class="list"></div>
       <div class="itemout"></div>
@@ -609,10 +614,17 @@
     budgetBar.firstChild.style.width = `${Math.min(100, share * 100)}%`;
     if (spendDetail.hidden) return;
     const models = Object.entries(s.models).sort((a, b) => b[1].usd - a[1].usd);
+    // Spending recorded before the per-model split (or by an older version) still counts toward the month.
+    const rest = s.month - models.reduce((t, [, v]) => t + v.usd, 0);
     spendDetail.replaceChildren(
       h("div", { class: "sd-grid" }, [["Today", s.today], ["This month", s.month], ["Last month", s.last]].map(([l, v]) => h("div", {}, h("span", {}, l), h("b", {}, usd(v))))),
-      models.length
-        ? h("div", { class: "sd-models" }, models.map(([m, v]) => h("div", {}, h("span", {}, nameOf(m)), h("span", {}, `${usd(v.usd)} \u00b7 ${v.calls} call${v.calls === 1 ? "" : "s"} \u00b7 ~${usd(v.usd / v.calls)} each`))))
+      models.length || rest >= 0.005
+        ? h(
+            "div",
+            { class: "sd-models" },
+            models.map(([m, v]) => h("div", {}, h("span", {}, nameOf(m)), h("span", {}, `${usd(v.usd)} \u00b7 ${v.calls} call${v.calls === 1 ? "" : "s"} \u00b7 ~${usd(v.usd / v.calls)} each`))),
+            rest >= 0.005 ? h("div", {}, h("span", {}, "Not split by model"), h("span", {}, usd(rest))) : null
+          )
         : h("div", { class: "hint" }, "Nothing spent on Claude this month."),
       h(
         "div",
@@ -671,7 +683,12 @@
     listEl.replaceChildren();
     itemEl.replaceChildren();
     setCount(0);
-    if (had) setStatus(`Switched to ${LENS[lens].name}. Scan again to judge these listings for that (anything already judged this way comes back free).`);
+    if (had)
+      setStatus(
+        SL.pageType() === "item"
+          ? `Switched to ${LENS[lens].name}. Press Analyze this listing to judge it that way.`
+          : `Switched to ${LENS[lens].name}. Scan again to judge these listings for that (anything already judged this way comes back free).`
+      );
     refreshPending();
   };
   root.querySelectorAll("[data-lens]").forEach((b) => b.addEventListener("click", () => setLens(b.dataset.lens)));
@@ -687,7 +704,7 @@
   const dollars = (n) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
   const money = (n) => `${n < 0 ? "\u2212" : ""}$${Math.abs(Math.round(n))}`;
   const fmtCost = (usd) => (usd < 0.01 ? "under $0.01" : `~$${usd.toFixed(2)}`);
-  const DIFFICULTY = ["Fix: can't tell", "Easy fix", "Fairly easy fix", "Moderate fix", "Hard fix", "Very hard fix"];
+  const DIFFICULTY = ["Repair: difficulty unclear", "Easy fix", "Fairly easy fix", "Moderate fix", "Hard fix", "Very hard fix"];
 
   // The one-line lens summary for a scored listing: what the sticker and list show under the verdict.
   const lensLine = (it) => {
@@ -697,10 +714,12 @@
     if (it.lot && it.lens !== "fix" && it.total != null) return `Lot of ${it.lot} \u00b7 ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
     if (it.lens === "fix") {
       if (/^none$/i.test(it.fault || "")) return "Works as-is";
-      return `${DIFFICULTY[it.difficulty] || DIFFICULTY[0]}${it.partsCost > 0 ? ` · ~$${it.partsCost} parts` : ""}`;
+      // No idea how hard? Then the price is the more useful line.
+      if (it.difficulty > 0) return `${DIFFICULTY[it.difficulty]}${it.partsCost > 0 ? ` · ~$${it.partsCost} parts` : ""}`;
+      if (it.partsCost > 0) return `~$${it.partsCost} parts`;
     }
     if (it.lens === "flip") return it.margin != null ? `\u2248 ${money(it.margin)} margin${it.refIsEstimate ? " (est.)" : ""}` : "Margin unknown";
-    if (it.vsWorking == null) return "";
+    if (it.vsWorking == null) return it.lens === "fix" ? "Fault unclear" : "";
     return it.refIsEstimate ? `~${Math.round(it.vsWorking * 100)}% of typical price (est.)` : `${Math.round(it.vsWorking * 100)}% of sold price`;
   };
 
@@ -755,9 +774,11 @@
       /* listings you've hidden, filtered out, or (by choice) skipped */
       html:not([data-sl-showhidden]) [data-sl-hide] { display:none !important; }
       html[data-sl-showhidden] [data-sl-hide] { opacity:.45; }
-      html[data-sl-skip="dim"] [data-sl-v="pass"] { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
-      html[data-sl-skip="dim"] [data-sl-v="pass"]:hover { opacity:1; filter:none; }
-      html[data-sl-skip="hide"] [data-sl-v="pass"] { display:none !important; }
+      html[data-sl-skip="dim"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]) { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
+      html[data-sl-skip="dim"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]):hover { opacity:1; filter:none; }
+      html[data-sl-skip="hide"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]) { display:none !important; }
+      /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering */
+      [data-sl-cell]:has(.second-look-sticker:hover, .second-look-marks:hover) { position:relative; z-index:2147483000 !important; }
       .second-look-sticker .sl-acts { display:flex; gap:12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--sl-rule); }
       .second-look-sticker .sl-acts button, .second-look-sticker .sl-acts a { all:unset; cursor:pointer; color:var(--sl-ink); font-weight:600; font-size:12px;
         text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
@@ -798,15 +819,18 @@
   const MEMORY_MAX = 6000;
   // Prices are the item price without shipping: shipping isn't always readable (and varies), so
   // comparing totals would invent drops. Auctions aren't tracked for drops: their price only rises.
-  let memory = {}; // key -> { p: last price seen, pa: since when, f: first seen, a: last seen }
+  let memory = {}; // key -> { p: last price seen, pa: since when, f: first seen, a: last seen, o: first opened }
   let notInterested = {}; // key -> { t: title, a: when }
   let prefs = { hideWords: "", needWords: "", minSellerRatings: 10, minSellerPct: 97, autoMarks: true };
   let skipMode = "dim";
   let showHidden = false;
   let facts = new Map(); // key -> facts for this page view
+  let codeStems = {}; // Facebook title without its trailing code -> { c: { code: listing key }, a: last seen }
   const dirtyMemory = new Set();
-  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "skipMode"]).then((v) => {
+  const dirtyStems = new Set();
+  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "skipMode", "codeStems"]).then((v) => {
     memory = v.listingMemory || {};
+    codeStems = v.codeStems || {};
     notInterested = v.notInterested || {};
     skipMode = ["show", "dim", "hide"].includes(v.skipMode) ? v.skipMode : "dim"; // greyed out unless you choose otherwise
     document.documentElement.dataset.slSkip = skipMode;
@@ -835,6 +859,34 @@
     }, 1500);
   };
 
+  // Scam campaigns: one fake listing posted over and over, each copy with its own code on the end of
+  // the title ("... Advance SP M2465", "... Advance SP K7731"). Two codes on one title, here or on any
+  // page in the last month, and every copy is certainly fake; no model needed.
+  const STEM_DAYS = 30;
+  let stemTimer = 0;
+  const noteCode = (key, title, code) => {
+    const stem = SL.titleStem(title, code);
+    if (stem.split(" ").length < 4) return ""; // short titles ("Nikon camera") collide by chance
+    const rec = (codeStems[stem] ||= { c: {}, a: 0 });
+    if (rec.c[code] === key) return stem; // nothing new: no write
+    rec.c[code] = key;
+    rec.a = Date.now();
+    dirtyStems.add(stem);
+    clearTimeout(stemTimer);
+    stemTimer = setTimeout(async () => {
+      if (!dirtyStems.size || !alive()) return;
+      const { codeStems: stored = {} } = await chrome.storage.local.get("codeStems");
+      for (const k of dirtyStems) stored[k] = codeStems[k];
+      dirtyStems.clear();
+      const cutoff = Date.now() - STEM_DAYS * 864e5;
+      codeStems = Object.fromEntries(Object.entries(stored).filter(([, r]) => r?.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-3000));
+      await chrome.storage.local.set({ codeStems });
+    }, 300); // soon: a reload right after would lose it, and this is rare
+    return stem;
+  };
+  // The other codes this title has been posted under (by other listings), if any.
+  const otherCodes = (key, stem, code) => Object.entries(codeStems[stem]?.c || {}).filter(([c, k]) => c !== code && k !== key).map(([c]) => c);
+
   // Records a sighting; returns { isNew, drop } relative to what was remembered before.
   const remember = (key, price, pageHadKnown, auction = false) => {
     const rec = memory[key];
@@ -842,7 +894,7 @@
     const out = { isNew: !rec && pageHadKnown };
     if (auction) price = null; // keep the last fixed price, if any; a current bid says nothing about drops
     if (rec && price != null && rec.p != null && price < rec.p - Math.max(1, rec.p * 0.03)) out.drop = { from: rec.p, since: rec.pa };
-    memory[key] = { p: price ?? rec?.p ?? null, pa: rec && (price == null || rec.p === price) ? rec.pa : now, f: rec?.f ?? now, a: now };
+    memory[key] = { p: price ?? rec?.p ?? null, pa: rec && (price == null || rec.p === price) ? rec.pa : now, f: rec?.f ?? now, a: now, ...(rec?.o && { o: rec.o }) };
     dirtyMemory.add(key);
     saveMemorySoon();
     return out;
@@ -864,7 +916,7 @@
   };
   const normTitle = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const shortDate = (ts) => new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount"];
+  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite"];
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(SL.bigImage(img))}`;
 
   // The chips a card wears: most useful first, three at most.
@@ -872,6 +924,10 @@
     const c = [];
     if (showHidden && f.hidden) c.push(["warn", "Not interested"]);
     else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`]);
+    if (f.campaign) c.push(["warn", "Scam: reposted under new codes"]);
+    else if (f.offSite?.sure) c.push(["warn", "Scam: contact off Facebook"]);
+    else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
+    if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     if (f.isNew) c.push(["new", "New to you"]);
     if (f.sellerWarn) c.push(["warn", f.sellerWarn]);
@@ -914,11 +970,10 @@
 
   const undecorate = (host) => {
     if (host.dataset.secondLookPos) host.style.position = "";
-    for (const a of ["data-second-look", "data-second-look-key", "data-second-look-pos", "data-sl-hide", "data-sl-v"]) host.removeAttribute(a);
+    for (const a of ["data-second-look", "data-second-look-key", "data-second-look-pos", "data-sl-hide", "data-sl-v", "data-sl-cell"]) host.removeAttribute(a);
     host.querySelectorAll(":scope > .second-look-sticker, :scope > .second-look-marks").forEach((n) => n.remove());
-    const cell = host.closest("[data-sl-hide], [data-sl-v]");
-    cell?.removeAttribute("data-sl-hide");
-    cell?.removeAttribute("data-sl-v");
+    const cell = host.closest("[data-sl-hide], [data-sl-v], [data-sl-cell]");
+    for (const a of ["data-sl-hide", "data-sl-v", "data-sl-cell"]) cell?.removeAttribute(a);
   };
 
   // Dress one card: a sticker if it's been scored, otherwise just its chips; hidden if you said so.
@@ -930,13 +985,14 @@
     const f = facts.get(key) || {};
     const it = scored.get(key);
     host.setAttribute("data-second-look-key", key);
+    cell.setAttribute("data-sl-cell", "");
     if (getComputedStyle(host).position === "static") {
       host.style.position = "relative";
       host.setAttribute("data-second-look-pos", "1");
     }
     if (f.hidden || f.filtered) cell.setAttribute("data-sl-hide", f.hidden ? "not-interested" : "filter");
     else cell.removeAttribute("data-sl-hide");
-    if (it) cell.setAttribute("data-sl-v", it.verdict);
+    if (it || f.campaign) cell.setAttribute("data-sl-v", it ? it.verdict : "suspicious");
     else cell.removeAttribute("data-sl-v");
     host.querySelectorAll(":scope > .second-look-sticker, :scope > .second-look-marks").forEach((n) => n.remove());
     if (it) {
@@ -972,9 +1028,8 @@
     scored = new Map();
     seen = new Set();
     document.querySelectorAll("[data-second-look-key]").forEach(undecorate);
-    document.querySelectorAll("[data-sl-hide], [data-sl-v]").forEach((n) => {
-      n.removeAttribute("data-sl-hide");
-      n.removeAttribute("data-sl-v");
+    document.querySelectorAll("[data-sl-hide], [data-sl-v], [data-sl-cell]").forEach((n) => {
+      for (const a of ["data-sl-hide", "data-sl-v", "data-sl-cell"]) n.removeAttribute(a);
     });
     document.querySelectorAll(".second-look-sticker, .second-look-marks").forEach((s) => s.remove());
   };
@@ -1002,12 +1057,16 @@
       }
       const dup = new Map();
       for (const list of groups.values()) if (list.length > 1) list.forEach((it) => dup.set(it, Math.max(dup.get(it) || 0, list.length)));
+      // Every coded title is noted first, so two copies on this page find each other.
+      const stems = new Map(items.filter((it) => it.titleCode).map((it) => [it, noteCode(keyOf(it.url), it.title, it.titleCode)]));
 
       for (const it of items) {
         const key = keyOf(it.url);
         const prev = facts.get(key);
-        const sighting = prev ? { isNew: prev.isNew, drop: prev.drop } : remember(key, it.price, !!pageHadKnown, !!it.auction);
-        const f = { ...Object.fromEntries(CARD_FACTS.filter((k) => it[k] != null).map((k) => [k, it[k]])), ...sighting };
+        const sighting = prev ? { fresh: prev.fresh, drop: prev.drop } : remember(key, it.price, !!pageHadKnown, !!it.auction);
+        const f = { ...Object.fromEntries(CARD_FACTS.filter((k) => it[k] != null).map((k) => [k, it[k]])), fresh: sighting.fresh ?? sighting.isNew, drop: sighting.drop };
+        const others = stems.get(it) ? otherCodes(key, stems.get(it), it.titleCode) : [];
+        if (others.length) f.campaign = others.slice(0, 3);
         Object.assign(f, {
           title: it.title,
           price: it.price,
@@ -1020,8 +1079,13 @@
           hidden: !!notInterested[key],
         });
         facts.set(key, f);
-        decorate(key, it.el);
       }
+      // "New to you" only helps on a search you come back to, and only when it picks out a few:
+      // on a feed, or when most of the page is new anyway, every card would wear it.
+      const all = [...facts.values()];
+      const showNew = !!(SL.facebookQuery() || SL.ebayQuery()) && all.filter((f) => f.fresh).length <= all.length * 0.4;
+      all.forEach((f) => (f.isNew = showNew && !!f.fresh));
+      for (const it of items) decorate(keyOf(it.url), it.el);
       renderPageInfo();
     } finally {
       passing = false;
@@ -1084,6 +1148,8 @@
         { class: "sl-pop" },
         h("b", {}, h("span", {}, String(item.score)), ` · ${v.label}`),
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
+        f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
+        !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,
         item.reason || "",
         f.auction ? line(`Auction: ${f.bids || 0} bid${f.bids === 1 ? "" : "s"}${f.timeLeft ? `, ${f.timeLeft} left` : ""}. The price is only the current bid.${item.bidCap > 0 ? ` Worth bidding up to about ${dollars(item.bidCap)}${item.lens === "flip" ? " to break even" : ""}.` : ""}`) : null,
         item.browse && item.sold ? line(`eBay sold \u201c${item.query}\u201d: median ${dollars(item.sold.median)}, middle half ${dollars(item.sold.p25)}\u2013${dollars(item.sold.p75)} (${item.sold.n} sales).`) : null,
@@ -1133,7 +1199,7 @@
   const render = (items) => {
     listEl.replaceChildren();
     [...items]
-      .filter((it) => it.score != null && !isHidden(it) && !(skipMode === "hide" && it.verdict === "pass"))
+      .filter((it) => it.score != null && !isHidden(it) && !(skipMode === "hide" && (it.verdict === "pass" || it.verdict === "suspicious")))
       .sort(SORTS[sortMode] || SORTS.score)
       .forEach((it, i) => {
         const v = VERDICT[it.verdict] || VERDICT.fair;
@@ -1262,7 +1328,7 @@
     return { status: res.status, html: res.ok ? await res.text() : "" };
   };
 
-  const pausedMsg = (until) => `eBay asked for a browser check, so price lookups are paused for ${Math.ceil((until - Date.now()) / 60000)} more min.`;
+  const pausedMsg = (until) => `Price lookups paused ${Math.ceil((until - Date.now()) / 60000)} min (eBay asked for a browser check).`;
 
   // Resolves to a market summary, or null when there were too few sales to trust.
   const soldMarket = async (query, condition) => {
@@ -1273,7 +1339,7 @@
     if (Date.now() < soldCooldownUntil) throw new Error(pausedMsg(soldCooldownUntil));
     const recent = soldLog.filter((t) => Date.now() - t < 60 * 60 * 1000);
     if (recent.length >= PER_HOUR) {
-      throw new Error(`Price lookups are resting: ${PER_HOUR} in the last hour is plenty for eBay. Searches checked earlier still have prices.`);
+      throw new Error(`Price lookups resting: ${PER_HOUR} this hour is plenty for eBay.`);
     }
     const wait = (recent.at(-1) || 0) + GAP_MS - Date.now();
     if (wait > 0) await sleep(wait);
@@ -1341,8 +1407,7 @@
       console.warn("[Second Look] sold comps failed:", e);
       // You can still look yourself: eBay's own sold search, in a normal tab.
       marketEl.replaceChildren(
-        h("div", {}, e.message),
-        h("div", { class: "actions", style: "margin-top:6px" }, h("a", { href: SL.soldUrl(query, SL.SOLD_CONDITION.used), target: "_blank", rel: "noopener" }, "Open eBay's sold listings"))
+        h("div", { class: "mnote" }, `${e.message} `, h("a", { href: SL.soldUrl(query, SL.SOLD_CONDITION.used), target: "_blank", rel: "noopener" }, "See sold listings on eBay"))
       );
       return null;
     }
@@ -1423,12 +1488,22 @@
     if (it.vsParts != null && it.vsParts <= 1 && it.related && !it.flags.includes("under parts value")) it.flags.unshift("under parts value");
     it.baseScore = it.score;
     it.baseVerdict = it.verdict;
+    const f = facts.get(keyOf(it.url));
+    if (f?.titleCode) f.codeOk = it.verdict !== "suspicious"; // the model judged the code a real model number
   };
+  // A reposted scam (see noteCode) needs no model.
+  const scamVerdict = (others) => ({
+    score: 2,
+    verdict: "suspicious",
+    related: true,
+    flags: ["reposted scam"],
+    reason: `Same listing posted again under other codes (${others.join(", ")}): a bulk-posted fake.`,
+  });
 
   // ---------- listings that loaded after the last scan ----------
 
   const currentKeys = () => {
-    const sel = SL.currentSite() === "facebook" ? ITEM_LINK : 'li.s-card a[href*="/itm/"], li.s-item a[href*="/itm/"]';
+    const sel = SL.currentSite() === "facebook" ? ITEM_LINK : SL.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", ");
     const keys = new Set();
     document.querySelectorAll(sel).forEach((a) => keys.add(keyOf(a.href)));
     return keys;
@@ -1577,7 +1652,17 @@
           fromMemory++;
         }
       }
-      if (fromMemory) render([...scored.values()]);
+      // Reposted scams are certain already: marked here, never sent to the model.
+      let scams = 0;
+      for (const it of items) {
+        const f = facts.get(keyOf(it.url));
+        if (it.score != null || !f?.campaign) continue;
+        applyResult(it, scamVerdict(f.campaign), forLens);
+        scored.set(keyOf(it.url), it);
+        stick(it);
+        scams++;
+      }
+      if (fromMemory || scams) render([...scored.values()]);
       const toRank = items.filter((it) => it.score == null);
       let cost = 0;
 
@@ -1586,7 +1671,7 @@
       for (let i = 0; i < toRank.length; i += size) batches.push(toRank.slice(i, i + size));
       // The Claude API handles a few requests at once; a local Ollama model is fastest one at a time.
       const parallel = settings.provider === "anthropic" ? 3 : 1;
-      let done = fromMemory;
+      let done = fromMemory + scams;
       const session = scored; // if you navigate away mid-scan, late answers belong to the old page
       setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${model}…`);
       const errors = await runBatches(batches, parallel, async (batch) => {
@@ -1621,7 +1706,7 @@
       if (errors.length && missed.length === items.length) throw errors[0];
       const costNote = settings.provider === "anthropic" && toRank.length ? ` Cost ${fmtCost(cost)}.` : "";
       setStatus(
-        `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
+        `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${scams ? ` ${scams} reposted scam${scams > 1 ? "s" : ""} marked without the model.` : ""}${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
           (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +
           (!errors.length && missed.length ? " The model skipped some; scan again, or try a smaller batch size in settings." : ""),
         errors.length > 0
@@ -1662,28 +1747,49 @@
     const key = keyOf(location.href);
     const before = memory[key];
     const { drop } = remember(key, listing.price, false, !!listing.auction);
+    memory[key].o = before?.o || Date.now();
+    const old = (t) => (t && Date.now() - t > 10 * 60 * 1000 ? t : null);
+    const stem = listing.titleCode && noteCode(key, listing.title, listing.titleCode);
+    const others = stem ? otherCodes(key, stem, listing.titleCode) : [];
     itemFacts = {
       ...Object.fromEntries(CARD_FACTS.filter((k) => listing[k] != null).map((k) => [k, listing[k]])),
       key,
       drop,
+      site: listing.site,
       title: listing.title,
       price: listing.price,
       total: listing.total,
       sellerWarn: sellerWarning(listing),
       hidden: !!notInterested[key],
-      seenBefore: before?.f && Date.now() - before.f > 10 * 60 * 1000 ? before.f : null,
+      seenBefore: old(before?.f),
+      openedBefore: old(before?.o),
+      campaign: others.length ? others.slice(0, 3) : null,
     };
     renderItemInfo();
   };
+  // Certain scam signs on a listing page, in words; "" when there are none.
+  const scamWarning = (f) =>
+    f.campaign
+      ? `This title has been posted under other codes too (${f.campaign.join(", ")}): one fake listing copied many times.`
+      : f.offSite?.sure
+        ? `It asks you to get in touch outside ${f.site === "ebay" ? "eBay" : "Facebook"} (${f.offSite.why.join("; ")}). That's how these scams take payment.`
+        : "";
   const renderItemInfo = () => {
     const f = itemFacts;
     if (!f || SL.pageType() !== "item") return;
     const chips = chipsFor(f).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+    const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
+    const scam = scamWarning(f);
     piLine.replaceChildren(
-      f.seenBefore ? `You first looked at this on ${shortDate(f.seenBefore)}${f.drop ? `; it was ${dollars(f.drop.from)}` : ""}. ` : "",
-      f.hidden ? "You marked it not interested. " : "",
-      h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested"),
-      chips.length ? h("div", { class: "chips" }, chips) : ""
+      scam ? h("div", { class: "scamnote" }, h("b", {}, "Likely scam. "), scam) : "",
+      when || f.drop ? h("div", {}, `${when || "Seen before"}${f.drop ? `; it was ${dollars(f.drop.from)} then` : ""}.`) : "",
+      chips.length ? h("div", { class: "chips" }, chips) : "",
+      h(
+        "div",
+        { class: "actions pi-acts" },
+        f.hidden ? h("span", {}, "Marked not interested") : null,
+        h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested")
+      )
     );
     listBar.hidden = true;
     pageInfo.hidden = false;
@@ -1831,6 +1937,15 @@
       priceNotes(listing, market, forLens, settings.feePct);
       setStatus(`Analyzing this listing for ${LENS[forLens].name.toLowerCase()}…`);
       const r = await send("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
+      // Certain scam signs (see scamWarning) overrule whatever the model made of the listing.
+      if (itemFacts?.key === keyOf(location.href)) {
+        itemFacts.offSite = listing.offSite; // the description may have loaded since the first look
+        renderItemInfo();
+        if (scamWarning(itemFacts)) {
+          const flag = itemFacts.campaign ? "reposted scam" : "contact off the site";
+          Object.assign(r, { score: Math.min(r.score | 0, 8), verdict: "suspicious", offerLow: 0, offerHigh: 0, flags: [flag, ...(r.flags || []).filter((x) => x !== flag)] });
+        }
+      }
       Object.assign(listing, { lens: forLens, partsCost: r.repair?.partsCost || 0 });
       listing.bidCap = listing.auction ? bidCapFor(listing) : null;
       renderItem(listing, r, market);

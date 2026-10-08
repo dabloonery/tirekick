@@ -54,9 +54,10 @@ async function showSpend() {
     })
   );
   const rows = Object.entries(models).sort((a, b) => b[1].usd - a[1].usd);
-  document.getElementById("spendModels").textContent = rows.length
-    ? "This month: " + rows.map(([id, v]) => `${NAMES[id] || id} ${usd(v.usd)} (${v.calls} calls, ~${usd(v.usd / v.calls)} each)`).join(" \u00b7 ")
-    : "Nothing spent on Claude this month.";
+  const parts = rows.map(([id, v]) => `${NAMES[id] || id} ${usd(v.usd)} (${v.calls} calls, ~${usd(v.usd / v.calls)} each)`);
+  const rest = m - rows.reduce((sum, [, v]) => sum + v.usd, 0); // recorded before the per-model split
+  if (rest >= 0.005) parts.push(`not split by model ${usd(rest)}`);
+  document.getElementById("spendModels").textContent = parts.length ? "This month: " + parts.join(" \u00b7 ") : "Nothing spent on Claude this month.";
 }
 document.getElementById("resetSpend").addEventListener("click", async () => {
   if (!confirm("Reset the spending counter? This only clears Second Look's own estimate, not anything at Anthropic.")) return;
@@ -73,7 +74,7 @@ async function showMemory() {
   const n = Object.keys(notInterested).length;
   const m = Object.keys(listingMemory).length;
   document.getElementById("memoryInfo").textContent =
-    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you" and price drops (kept 90 days, only in this browser).`;
+    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops and reposted scams (kept 90 days, only in this browser).`;
 }
 document.getElementById("clearHidden").addEventListener("click", async () => {
   await chrome.storage.local.remove("notInterested");
@@ -81,7 +82,7 @@ document.getElementById("clearHidden").addEventListener("click", async () => {
   msg.textContent = "Everything you hid is visible again.";
 });
 document.getElementById("clearMemory").addEventListener("click", async () => {
-  await chrome.storage.local.remove("listingMemory");
+  await chrome.storage.local.remove(["listingMemory", "codeStems"]);
   showMemory();
   msg.textContent = "Seen listings forgotten.";
 });

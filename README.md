@@ -21,6 +21,25 @@ Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a loo
 Skip, Suspicious) and one line on the price. Hover it for the reasons. Scroll for more and the
 button becomes "Scan N new listings"; only the new ones are scored.
 
+## Scams
+
+The most common Marketplace scam is one fake listing posted many times, each copy with a random
+code on the end of the title: "Nintendo Game Boy Advance SP M2465", "Halo Special Edition Xbox
+S1337". Second Look watches for it:
+
+- **Reposted under new codes**: the same title seen with two different codes, on one page or any
+  page in the last month, is marked "Scam: reposted under new codes" and greyed out straight away,
+  with no model and no key needed. A scan marks these Suspicious without sending them to the model.
+- **Code in title**: a lone code gets a chip and is spelled out for the model, which marks it
+  Suspicious unless the code is the item's real model number (Pentax K1000, PS Vita PCH1001); the
+  chip goes away when it is.
+- **Contact off the site**: on a listing, a disguised web address ("www . jmyzl . com", "remove the
+  spaces"), an oddly written phone number ("505_507__6507"), "text me a screenshot", WhatsApp or
+  Telegram shows a "Likely scam" note, and the analysis is Suspicious whatever the model thought.
+  A plain phone number ("call or text") is only a hint.
+
+Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide above the results).
+
 ## Everyday use
 
 - **Use / Fix / Flip** at the top of the panel says what you want a listing for (see below).
@@ -29,8 +48,8 @@ button becomes "Scan N new listings"; only the new ones are scored.
 - **Click a title** in the panel to jump to that card. If the panel would cover it, it tucks
   away and the card flashes.
 - **Sort** the results by best, cheapest, biggest margin, or new to you first.
-- **Skipped listings are greyed out** on the page; switch to Show or Hide in the bar above the
-  results.
+- **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide in the
+  bar above the results.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
   now on. Undo is right there, and "show" in the panel brings hidden ones back.
 - **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
@@ -68,9 +87,9 @@ seller, not as a diagnosis. Set "eBay fees" in settings to your category's fee s
 
 ### Browsing with no search
 
-On the Marketplace home feed or a category page there's nothing to compare against, so your
-interests (settings) and "What I want" decide what's relevant. Everything else reads "Not your
-thing" and is greyed out with the skipped listings. Prices are compared with the model's
+On the Marketplace home feed, or a Marketplace or eBay category page, there's nothing to compare
+against, so your interests (settings) and "What I want" decide what's relevant. Everything else
+reads "Not your thing" and is greyed out with the skipped listings. Prices are compared with the model's
 estimate of what that kind of item usually sells for, always marked **est.**; press
 **Sold prices** on a listing for real eBay numbers for that exact item.
 
@@ -78,10 +97,12 @@ estimate of what that kind of item usually sells for, always marked **est.**; pr
 
 These run as soon as a results page loads, cost nothing, and work without an API key:
 
-- **New to you** on listings you haven't seen before, on a search you've looked at before.
+- **New to you** on listings you haven't seen before, on a search you've looked at before (not on
+  feeds, and not when most of the page is new anyway).
 - **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper.
 - **Seller warnings** for few ratings or a low positive percentage (eBay; set the limits in settings).
 - **Duplicates**: the same title or photo on several listings on one page, a common scam pattern.
+- **Scam marks**: reposts under new codes, codes in titles, contact off the site (see Scams).
 - **Filters** in settings: words that always hide a listing (starts with replica, repro, box only…)
   and words a title must have. Hidden and filtered listings are never sent to a model.
 - **Find photo** (in a tag's hover card or the listing view) runs a reverse image search, to catch
@@ -149,8 +170,9 @@ is kept only in this browser; settings can clear it.
 Both sites change their markup without warning. If a scan says "No listings found":
 
 - **eBay**: in DevTools (F12), inspect a result card. Current layout uses `li.s-card` with
-  `.s-card__title` / `.s-card__price`; the older one used `s-item`. Add what you find to the
-  selector lists in `extractEbay` (`content/adapters.js`).
+  `.s-card__title` / `.s-card__price`; the older one used `s-item`; category pages (`/b/…`) use
+  `li.brwrvr__item-card`. Add what you find to `EBAY_CARDS` and the selector lists in
+  `extractEbay` (`content/adapters.js`).
 - **Facebook**: the adapter doesn't use class names. It finds every link to
   `/marketplace/item/<id>` and reads the text inside; check what card links look like now.
 
@@ -158,7 +180,8 @@ Both sites change their markup without warning. If a scan says "No listings foun
 automated, and then ordinary page loads get it too for a while (refreshing usually clears it).
 Second Look's only automated traffic is the sold-price lookups: at least 5 seconds apart, at
 most 8 an hour, remembered for 6 hours, and paused for an hour at the first check (the price
-box then links to eBay's own sold listings). If it keeps happening, untick "Compare prices with
+box then links to eBay's own sold listings). On Facebook, keep an eBay tab open: lookups then run
+from that tab, like eBay's own pages, which eBay questions far less. If it keeps happening, untick "Compare prices with
 recent eBay sales"; if it still happens, untick "Show a slim tab" too, which leaves eBay pages
 untouched until you click the toolbar icon.
 
@@ -170,12 +193,12 @@ refresh the tab. The version number there tells you which copy is running.
 | File | Job |
 |---|---|
 | `manifest.json` | Permissions, icon, keyboard shortcut. With "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
-| `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings) off each site into one shared shape; the sold-price median |
+| `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape; the sold-price median |
 | `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
 | `background.js` | Talks to Claude or Ollama (retries, timeouts, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
 | `options/` | Settings page |
 | `fonts/`, `icons/` | Bundled typefaces (OFL) and the toolbar icon |
 
-The ranking prompt (`RANK_BASE` and `LENS_RULES` in `background.js`) is the part most worth tuning.
+The ranking prompt (`RANK_BASE`, `SCAM_RULE` and `LENS_RULES` in `background.js`) is the part most worth tuning.
 Keep it to pages you're looking at, one scan when you press the button: automated, unattended
 collection is what Meta's and eBay's terms prohibit and what gets accounts flagged.

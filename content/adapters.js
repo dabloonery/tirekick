@@ -122,13 +122,67 @@
 
   const squash = (s, max = 300) => (s || "").replace(/\s+/g, " ").trim().slice(0, max);
 
+  // ---------- scam patterns (Facebook) ----------
+  // Bulk-posted fake listings end their titles with a short random code ("Game Boy Advance SP M2465",
+  // "Halo Special Edition Xbox S1337", "... U2X503") so no two look identical. A real model number
+  // can look the same ("Pentax K1000"), so on its own a code is a hint for the model; the same title
+  // posted again with a different code is certain (see the page pass in panel.js).
+  const NOT_CODE =
+    /^(?:\d+(?:GB|TB|MB|MHZ|GHZ|HZ|MM|CM|IN|W|V|MAH|P|K|X|PCS?|FT|LBS?|OZ)|XBOX\d+|PS\d\w*|[23]DS\w*|N64\w*|NDS\w*|GBA\w*|SNES\w*|DSI\w*|RTX\d+|GTX\d+|RX\d+|GEN\d+|MK\d+|USB\w*|HDMI\w*|4K\w*|1080P?|720P?)$/;
+  SL.titleCode = (title) => {
+    const words = (title || "").trim().split(/\s+/);
+    if (words.length < 3) return "";
+    const last = words.at(-1).replace(/^[#([]+|[)\].,!]+$/g, "");
+    if (!/^[A-Z0-9]{4,8}$/.test(last) || !/[A-Z]/.test(last) || !/\d/.test(last) || NOT_CODE.test(last)) return "";
+    return last;
+  };
+  // The title without its code, for spotting the same listing posted again under another code.
+  SL.titleStem = (title, code) => (code ? title.trim().slice(0, -code.length) : title).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  // Moving the sale off the site is how these scams get paid. Returns { sure, why[] }: sure when
+  // the contact is disguised to slip past Facebook's filters ("www . jmyzl . com", "remove the
+  // spaces", "505_507__6507", "text me a screenshot"); a plain phone number or website is only a hint.
+  const DOT = String.raw`\s*(?:\.|\(dot\)|\[dot\]|\bdot\b)\s*`;
+  const TLD = "(?:com|net|org|shop|store|top|xyz|site|online|club|vip|cc|co|us|io|me)";
+  SL.offSite = (text) => {
+    const t = (text || "").replace(/\u00a0/g, " ");
+    const why = [];
+    let sure = false;
+    const site = t.match(new RegExp(String.raw`\b(?:w\s*w\s*w${DOT})?[a-z0-9-]{3,}${DOT}${TLD}\b`, "i"));
+    if (site) {
+      const hidden = /\s|dot/i.test(site[0].replace(/^w\s*w\s*w/i, "www"));
+      if (hidden) sure = true;
+      if (!/facebook|ebay/i.test(site[0])) why.push(`${hidden ? "disguised " : ""}web address “${site[0].trim()}”`);
+    }
+    if (/remove (?:the |all )?(?:spaces|dots|symbols|underscores)|without (?:the )?spaces|no spaces/i.test(t)) {
+      sure = true;
+      why.push("says to remove the spaces");
+    }
+    const phone = t.match(/(?<![\d$])\(?(\d{3})\)?([\s_.*\/-]{0,3})(\d{3})([\s_.*\/-]{0,3})(\d{4})(?!\d)/);
+    if (phone) {
+      const seps = phone[2] + phone[4];
+      const odd = /[_*\/]/.test(seps) || phone[2].length > 1 || phone[4].length > 1;
+      if (odd) sure = true;
+      why.push(odd ? `disguised phone number “${phone[0].trim()}”` : "phone number in the listing");
+    }
+    const apps = t.match(/\b(whats\s?app|telegram|signal app|wechat|kik|cash\s?app|zelle|venmo|gift ?cards?|e-?mail me|text me|screenshot)\b/gi);
+    if (apps) {
+      const list = [...new Set(apps.map((a) => a.toLowerCase().replace(/\s+/g, " ")))];
+      why.push(`mentions ${list.join(", ")}`);
+      if (list.some((a) => /screenshot|whats|telegram|gift/.test(a))) sure = true; // "call or text" alone is ordinary
+    }
+    return why.length ? { sure, why } : null;
+  };
+
   // ---------- eBay ----------
-  // 2025+ layout: li.s-card. Older layout: li.s-item. Both still appear in guides.
+  // 2025+ layout: li.s-card. Older layout: li.s-item. Both still appear in guides. Category pages
+  // (/b/...) use their own cards, li.brwrvr__item-card with bsig__ parts.
 
   // strict: stop at eBay's "Results matching fewer words" divider (used for the sold-price median,
   // where those looser matches would skew the numbers).
+  SL.EBAY_CARDS = "li.s-card, li.s-item, li.brwrvr__item-card";
   SL.extractEbay = (root = document, { strict = false } = {}) => {
-    const cards = root.querySelectorAll("li.s-card, li.s-item, li.srp-river-answer");
+    const cards = root.querySelectorAll(`${SL.EBAY_CARDS}, li.srp-river-answer`);
     const out = [];
     const seen = new Set();
     for (const card of cards) {
@@ -143,11 +197,11 @@
       if (seen.has(key)) continue;
       seen.add(key);
 
-      let title = firstText(card, [".s-card__title", ".s-item__title", '[role="heading"]', "h3"]) || link.textContent;
+      let title = firstText(card, [".s-card__title", ".s-item__title", ".bsig__title__text", ".bsig__title", '[role="heading"]', "h3"]) || link.textContent;
       title = squash(title.replace(/^New Listing/i, "").replace(/Opens in a new window or tab$/i, ""), 160);
       if (!title || /^shop on ebay$/i.test(title)) continue;
 
-      const priceText = squash(firstText(card, [".s-card__price", ".s-item__price"]) || (card.textContent.match(/\$\s?[\d,]+(?:\.\d{2})?/) || [""])[0], 60);
+      const priceText = squash(firstText(card, [".s-card__price", ".s-item__price", ".bsig__price"]) || (card.textContent.match(/\$\s?[\d,]+(?:\.\d{2})?/) || [""])[0], 60);
 
       const text = card.innerText || card.textContent;
       out.push(
@@ -204,6 +258,7 @@
           raw: squash(lines.join(" | ")),
           el: a,
           ...SL.cardFacts(SL.spacedText(a), title),
+          titleCode: SL.titleCode(title),
         })
       );
     });
@@ -216,7 +271,10 @@
   // /marketplace/<city>/ or /marketplace/<city>/<category> (a category such as "videogames").
   const NOT_CATEGORY = /^(search|item|you|inbox|notifications|create|selling|buying|saved|category)$/i;
   SL.browseContext = () => {
-    if (SL.currentSite() !== "facebook") return "eBay page with no search";
+    if (SL.currentSite() !== "facebook") {
+      const cat = location.pathname.match(/^\/b\/([^/]+)/);
+      return cat ? `eBay category "${decodeURIComponent(cat[1]).replace(/-/g, " ")}" (no search)` : "eBay page with no search";
+    }
     const parts = location.pathname.split("/").filter(Boolean).slice(1); // after "marketplace"
     const cat = parts.find((p, i) => i > 0 && !NOT_CATEGORY.test(p) && !/^\d+$/.test(p)) || "";
     const pretty = cat && cat.replace(/[-_]/g, " ").replace(/([a-z])(games|consoles|electronics)$/i, "$1 $2");
@@ -261,25 +319,33 @@
         url: location.href.split("?")[0],
       });
     }
-    // Facebook Marketplace: class names are useless, so lean on metadata + visible text.
-    const main = document.querySelector('[role="main"]') || document.body;
+    // Facebook Marketplace: class names are useless, so lean on visible text + metadata.
+    // A listing opened from the feed is an overlay (a dialog) over the feed, with the feed still in
+    // [role=main] and the page's og: tags still the feed's; opened directly, it's the main area.
+    const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1")).at(-1);
+    const main = dialog || document.querySelector('[role="main"]') || document.body;
     const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
     const priceText = priceNode ? priceNode.textContent.trim() : "";
     const imgs = [...main.querySelectorAll("img")]
       .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
       .map((i) => i.src);
+    const title = squash(firstText(main, ["h1"]) || (dialog ? "" : meta("og:title")), 200);
+    const text = main.innerText || "";
     return withTotal({
+      ...SL.cardFacts(text, title),
       site: "facebook",
-      title: squash(firstText(main, ["h1"]) || meta("og:title"), 200),
+      title,
       priceText,
       price: /^free$/i.test(priceText) ? 0 : SL.parsePrice(priceText),
       shipping: null,
       condition: "",
       seller: "",
       shippingText: "",
-      details: squash(meta("og:description") || main.innerText, 2500),
-      imageUrls: uniq([meta("og:image"), ...imgs]).slice(0, 4),
+      details: squash(dialog ? text : meta("og:description") || text, 2500),
+      imageUrls: uniq([dialog ? "" : meta("og:image"), ...imgs]).slice(0, 4),
       url: location.href.split("?")[0],
+      titleCode: SL.titleCode(title),
+      offSite: SL.offSite(text),
     });
   };
 
@@ -300,7 +366,7 @@
   // ---------- pick the adapter for this page ----------
 
   SL.currentSite = () => {
-    if (location.hostname === "www.ebay.com" && (location.pathname === "/" || /^\/(sch|itm)\//.test(location.pathname))) return "ebay";
+    if (location.hostname === "www.ebay.com" && (location.pathname === "/" || /^\/(sch|itm|b)\//.test(location.pathname))) return "ebay";
     if (location.hostname === "www.facebook.com" && location.pathname.startsWith("/marketplace")) return "facebook";
     return null;
   };

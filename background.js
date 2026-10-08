@@ -25,6 +25,7 @@ const DEFAULTS = {
   minSellerRatings: 10,
   minSellerPct: 97,
   autoMarks: true, // chips on cards before any scan: new to you, price drops, warnings
+  monthlyBudget: 0, // dollars; 0 = no budget. Claude calls stop once this month's estimated spend reaches it
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
 };
 
@@ -92,8 +93,14 @@ async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
 // toward max_tokens, so leave generous room (it's a ceiling, not a charge).
 
 async function anthropicMessage({ system, content, schema, maxTokens = 16000 }) {
-  const { anthropicKey, anthropicModel, anthropicUrl } = await getSettings();
+  const { anthropicKey, anthropicModel, anthropicUrl, monthlyBudget } = await getSettings();
   if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
+  if (monthlyBudget > 0) {
+    const spent = monthSpent((await chrome.storage.local.get("usage")).usage);
+    if (spent >= monthlyBudget) {
+      throw new Error(`This month's budget of $${monthlyBudget} is used up (about $${spent.toFixed(2)} spent). Raise it in settings, or switch to Ollama in the panel's model menu.`);
+    }
+  }
   const body = {
     model: anthropicModel,
     max_tokens: maxTokens,
@@ -162,6 +169,13 @@ const PRICES = [
   [/haiku-4/, 1, 5],
 ];
 
+// Usage per local day and model: { days: { "2026-10-08": { usd, calls, models: { id: { usd, calls } } } } }.
+// Estimates from token counts at list price: a regular API key can't read the real balance.
+const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in your time zone
+function monthSpent(usage, month = today().slice(0, 7)) {
+  return Object.entries(usage?.days || {}).reduce((sum, [d, v]) => (d.startsWith(month) ? sum + v.usd : sum), 0);
+}
+
 let spendQueue = Promise.resolve(); // parallel batches finish together; add their costs one at a time
 function addSpend(model, usage) {
   const price = PRICES.find(([re]) => re.test(model));
@@ -169,13 +183,23 @@ function addSpend(model, usage) {
   const cost = ((usage.input_tokens || 0) * price[1] + (usage.output_tokens || 0) * price[2]) / 1e6;
   spendQueue = spendQueue
     .then(async () => {
-      const month = new Date().toISOString().slice(0, 7);
-      const { spend } = await chrome.storage.local.get("spend");
-      const usd = (spend?.month === month ? spend.usd : 0) + cost;
-      await chrome.storage.local.set({ spend: { month, usd } });
+      const day = today();
+      const { usage: u = { days: {} }, spend } = await chrome.storage.local.get(["usage", "spend"]);
+      // Carry over the older month-only total the first time.
+      if (spend && !Object.keys(u.days).length && spend.month === day.slice(0, 7)) u.days[day] = { usd: spend.usd, calls: 0, models: {} };
+      const d = (u.days[day] ||= { usd: 0, calls: 0, models: {} });
+      const m = (d.models[model] ||= { usd: 0, calls: 0 });
+      d.usd += cost;
+      d.calls += 1;
+      m.usd += cost;
+      m.calls += 1;
+      const keep = Object.keys(u.days).sort().slice(-400);
+      u.days = Object.fromEntries(keep.map((k) => [k, u.days[k]]));
+      await chrome.storage.local.set({ usage: u });
+      if (spend) await chrome.storage.local.remove("spend");
     })
     .catch(() => {});
-  return spendQueue.then(() => cost); // resolves once saved, so the month total the page reads is current
+  return spendQueue.then(() => cost); // resolves once saved, so the totals the page reads are current
 }
 
 // ---------- Lenses ----------

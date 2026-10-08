@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks", "showTab"];
+  "hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicKey", "interests", "hideWords", "needWords"];
 const msg = document.getElementById("msg");
@@ -18,6 +18,54 @@ async function load() {
   document.querySelector(`input[name="theme"][value="${look === "retro" ? "retro" : "classic"}"]`).checked = true;
   document.documentElement.dataset.theme = look;
 }
+
+// What the Claude API has cost (estimated), from the record the background keeps per day and model.
+const NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-4-5": "Haiku 4.5" };
+const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
+async function showSpend() {
+  const { usage } = await chrome.storage.local.get("usage");
+  const now = new Date();
+  const day = now.toLocaleDateString("en-CA");
+  const month = day.slice(0, 7);
+  const last = new Date(now.getFullYear(), now.getMonth() - 1, 15).toLocaleDateString("en-CA").slice(0, 7);
+  let t = 0, m = 0, l = 0;
+  const models = {};
+  for (const [d, v] of Object.entries(usage?.days || {})) {
+    if (d === day) t += v.usd;
+    if (d.startsWith(last)) l += v.usd;
+    if (!d.startsWith(month)) continue;
+    m += v.usd;
+    for (const [id, mv] of Object.entries(v.models || {})) {
+      models[id] ||= { usd: 0, calls: 0 };
+      models[id].usd += mv.usd;
+      models[id].calls += mv.calls;
+    }
+  }
+  const grid = document.getElementById("spendGrid");
+  grid.replaceChildren(
+    ...[["Today", t], ["This month", m], ["Last month", l]].map(([label, v]) => {
+      const div = document.createElement("div");
+      const span = document.createElement("span");
+      const b = document.createElement("b");
+      span.textContent = label;
+      b.textContent = usd(v);
+      div.append(span, b);
+      return div;
+    })
+  );
+  const rows = Object.entries(models).sort((a, b) => b[1].usd - a[1].usd);
+  document.getElementById("spendModels").textContent = rows.length
+    ? "This month: " + rows.map(([id, v]) => `${NAMES[id] || id} ${usd(v.usd)} (${v.calls} calls, ~${usd(v.usd / v.calls)} each)`).join(" \u00b7 ")
+    : "Nothing spent on Claude this month.";
+}
+document.getElementById("resetSpend").addEventListener("click", async () => {
+  if (!confirm("Reset the spending counter? This only clears Second Look's own estimate, not anything at Anthropic.")) return;
+  await chrome.storage.local.remove(["usage", "spend"]);
+  showSpend();
+  msg.textContent = "Spending counter reset.";
+});
+chrome.storage.onChanged.addListener((c) => c.usage && showSpend());
+showSpend();
 
 // What's remembered in this browser, and a way to clear it.
 async function showMemory() {
@@ -61,6 +109,7 @@ document.getElementById("save").addEventListener("click", async () => {
     const el = document.getElementById(f);
     if (el.type === "checkbox") out[f] = el.checked;
     else if (f === "feePct") out[f] = Math.min(50, Math.max(0, Number(el.value) || 0));
+    else if (f === "monthlyBudget") out[f] = Math.min(100000, Math.max(0, Number(el.value) || 0));
     else if (f === "minSellerPct") out[f] = Math.min(100, Math.max(0, Number(el.value) || 0));
     else if (f === "minSellerRatings") out[f] = Math.min(100000, Math.max(0, Math.round(Number(el.value)) || 0));
     else if (el.type === "number") out[f] = Math.min(30, Math.max(1, Math.round(Number(el.value)) || 10));

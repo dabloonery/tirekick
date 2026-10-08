@@ -193,8 +193,13 @@ refresh the tab.
   hour, and pause for an hour the moment eBay answers with a browser check. The price box then
   links to eBay's own sold listings so you can look yourself.
 - Scores are remembered for a day per listing, lens, wants and price: re-scanning, coming back to
-  a search, or switching lenses back and forth costs nothing the second time. The status line shows
-  what each Claude scan cost and the running total for the month (list prices, approximate).
+  a search, or switching lenses back and forth costs nothing the second time.
+- **Model and spending, at the bottom of the panel.** Pick Opus 5.5 (best), Sonnet 5.5 (half the
+  price), Haiku 4.5 (a quarter) or your Ollama model; it applies straight away. Next to it is this
+  month's Claude spend: click it for today, this month, last month and a per-model breakdown.
+  Set a monthly budget in settings and Claude calls stop when it's reached. These are estimates
+  from token counts at list price; a regular API key can't read your real balance (that's at
+  console.anthropic.com).
 - With the Claude API, up to 3 batches are ranked at once; Ollama runs one at a time. If a
   request fails, the listings it carried are offered again on the next scan.
 - Your 3050 Ti has 4 GB of VRAM. If scans are slow, lower "Listings per request"

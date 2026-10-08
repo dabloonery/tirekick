@@ -196,6 +196,34 @@
       text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; text-decoration-thickness:1px; }
     .actions a:hover, .actions button:hover:not(:disabled) { text-decoration-color:currentColor; }
 
+    /* footer: model switch and what it's costing */
+    .foot { flex:none; border-top:var(--bw) solid var(--rule); background:var(--paper); }
+    .foot-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px 8px 14px; }
+    .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+    .model-pick { margin:0; display:block; min-width:0; text-transform:none; letter-spacing:normal; }
+    .model { max-width:210px; appearance:none; -webkit-appearance:none; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); background:var(--paper);
+      color:var(--ink); font:600 12px/1 var(--ui); padding:6px 24px 6px 9px; cursor:pointer; text-overflow:ellipsis;
+      background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position:calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size:4px 4px; background-repeat:no-repeat; }
+    .model:focus { outline:none; border-color:var(--ink); }
+    .spend { all:unset; cursor:pointer; color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .spend b { color:var(--ink); font:600 14px/1 var(--display); font-variant-numeric:lining-nums tabular-nums; }
+    .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
+    .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
+    .budget { height:3px; background:var(--rule); }
+    .budget i { display:block; height:100%; width:0; background:var(--ink); transition:width .3s; }
+    .budget.warn i { background:var(--v-fair); } .budget.over i { background:var(--v-suspicious); }
+    .spend-detail { padding:12px 14px 4px; font-size:12px; display:grid; gap:8px; border-bottom:var(--bw) solid var(--rule); max-height:40vh; overflow:auto; }
+    .sd-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+    .sd-grid span { display:block; color:var(--muted); font-size:11px; }
+    .sd-grid b { font:600 17px/1.2 var(--display); font-variant-numeric:lining-nums; }
+    .sd-models { display:grid; gap:3px; }
+    .sd-models div { display:flex; justify-content:space-between; gap:8px; }
+    .sd-models div span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
+    .spend-detail .hint a { color:var(--ink); }
+    [data-theme="retro"] .model { border-radius:0; background-color:var(--paper-2); }
+    [data-theme="retro"] .spend b, [data-theme="retro"] .sd-grid b { font-family:var(--ui); }
+
     /* what's on this page */
     .pageinfo { font-size:12px; color:var(--muted); display:grid; gap:8px; }
     .pi-line b { color:var(--ink); font-weight:600; }
@@ -374,6 +402,14 @@
       <div class="list"></div>
       <div class="itemout"></div>
       </div>
+      <div class="foot">
+        <div class="spend-detail" hidden></div>
+        <div class="foot-row">
+          <label class="model-pick" title="Which model judges listings. Changes straight away."><span class="sr">Model</span><select class="model"></select></label>
+          <button class="spend" aria-expanded="false" title="What Second Look has spent on the Claude API"></button>
+        </div>
+        <div class="budget" hidden><i></i></div>
+      </div>
     </div>
    </div>
   </div>`;
@@ -472,6 +508,116 @@
   };
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.theme && alive()) setTheme(changes.theme.newValue);
+  });
+
+  // ---------- footer: model switch and spending ----------
+  // Spending is estimated from token counts at list prices (a regular API key can't read the real
+  // balance). The background records it per day and model; the footer reads that record.
+  const MODELS = [
+    ["anthropic", "claude-opus-5-5", "Opus 5.5 \u00b7 best"],
+    ["anthropic", "claude-sonnet-5-5", "Sonnet 5.5 \u00b7 \u00bd price"],
+    ["anthropic", "claude-haiku-4-5", "Haiku 4.5 \u00b7 \u00bc price"],
+  ];
+  const modelSel = $(".model");
+  const spendBtn = $(".spend");
+  const spendDetail = $(".spend-detail");
+  const budgetBar = $(".budget");
+  let cfg = {};
+  const nameOf = (id) => (MODELS.find(([, m]) => m === id)?.[2].split(" \u00b7")[0]) || id;
+
+  const renderModels = () => {
+    const opts = [...MODELS];
+    if (cfg.anthropicModel && !opts.some(([, m]) => m === cfg.anthropicModel)) opts.push(["anthropic", cfg.anthropicModel, cfg.anthropicModel]);
+    opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama \u00b7 ${cfg.textModel || "qwen3:4b"} \u00b7 free`]);
+    modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}` }, label)));
+    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : `anthropic|${cfg.anthropicModel}`;
+  };
+  modelSel.addEventListener("change", async () => {
+    const [provider, model] = modelSel.value.split("|");
+    await chrome.storage.local.set(provider === "ollama" ? { provider } : { provider, anthropicModel: model });
+    setStatus(
+      provider === "ollama"
+        ? `Using ${model} on Ollama (free, on your computer).`
+        : cfg.hasKey
+          ? `Using ${nameOf(model)} from now on. Scores already made by another model stay until you scan again.`
+          : "Add a Claude API key in the extension's settings to use Claude.",
+      provider === "anthropic" && !cfg.hasKey
+    );
+  });
+
+  const usageSummary = (usage) => {
+    const days = usage?.days || {};
+    const now = new Date();
+    const day = now.toLocaleDateString("en-CA");
+    const month = day.slice(0, 7);
+    const last = new Date(now.getFullYear(), now.getMonth() - 1, 15).toLocaleDateString("en-CA").slice(0, 7);
+    const sum = { today: 0, month: 0, last: 0, calls: 0, models: {} };
+    for (const [d, v] of Object.entries(days)) {
+      if (d === day) sum.today += v.usd;
+      if (d.startsWith(last)) sum.last += v.usd;
+      if (!d.startsWith(month)) continue;
+      sum.month += v.usd;
+      sum.calls += v.calls;
+      for (const [m, mv] of Object.entries(v.models || {})) {
+        const t = (sum.models[m] ||= { usd: 0, calls: 0 });
+        t.usd += mv.usd;
+        t.calls += mv.calls;
+      }
+    }
+    return sum;
+  };
+  const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
+  let lastUsage = null;
+  // Always pass the record explicitly: after a reset it's undefined, and that must show $0.00.
+  const renderSpend = (usage) => {
+    lastUsage = usage;
+    const s = usageSummary(usage);
+    const budget = +cfg.monthlyBudget || 0;
+    const share = budget ? s.month / budget : 0;
+    const level = share >= 1 ? "over" : share >= 0.8 ? "warn" : "";
+    spendBtn.className = `spend ${level}`;
+    spendBtn.replaceChildren(h("b", {}, usd(s.month)), budget ? ` of $${budget} this month` : " this month");
+    budgetBar.hidden = !budget;
+    budgetBar.className = `budget ${level}`;
+    budgetBar.firstChild.style.width = `${Math.min(100, share * 100)}%`;
+    if (spendDetail.hidden) return;
+    const models = Object.entries(s.models).sort((a, b) => b[1].usd - a[1].usd);
+    spendDetail.replaceChildren(
+      h("div", { class: "sd-grid" }, [["Today", s.today], ["This month", s.month], ["Last month", s.last]].map(([l, v]) => h("div", {}, h("span", {}, l), h("b", {}, usd(v))))),
+      models.length
+        ? h("div", { class: "sd-models" }, models.map(([m, v]) => h("div", {}, h("span", {}, nameOf(m)), h("span", {}, `${usd(v.usd)} \u00b7 ${v.calls} call${v.calls === 1 ? "" : "s"} \u00b7 ~${usd(v.usd / v.calls)} each`))))
+        : h("div", { class: "hint" }, "Nothing spent on Claude this month."),
+      h(
+        "div",
+        { class: "hint" },
+        budget
+          ? `Budget: $${budget} a month, ${Math.round(share * 100)}% used. Claude calls stop when it's reached. `
+          : "No monthly budget set; you can set one in settings. ",
+        "Estimated from token counts at list price. Your actual balance is at ",
+        h("a", { href: "https://console.anthropic.com/settings/billing", target: "_blank", rel: "noopener" }, "console.anthropic.com"),
+        "."
+      )
+    );
+  };
+  spendBtn.addEventListener("click", () => {
+    spendDetail.hidden = !spendDetail.hidden;
+    spendBtn.setAttribute("aria-expanded", String(!spendDetail.hidden));
+    renderSpend(lastUsage);
+  });
+  const loadFooter = async () => {
+    try {
+      cfg = await send("getSettings");
+    } catch {
+      return;
+    }
+    renderModels();
+    renderSpend((await chrome.storage.local.get("usage")).usage);
+  };
+  loadFooter();
+  chrome.storage.onChanged.addListener((changes) => {
+    if (!alive()) return;
+    if (changes.usage) renderSpend(changes.usage.newValue);
+    if (["provider", "anthropicModel", "textModel", "anthropicKey", "monthlyBudget"].some((k) => changes[k])) loadFooter();
   });
 
   // ---------- lens: what you want the listing for ----------
@@ -1417,9 +1563,7 @@
       missed.forEach((it) => seen.delete(keyOf(it.url)));
       setCount(scored.size);
       if (errors.length && missed.length === items.length) throw errors[0];
-      const { spend } = await chrome.storage.local.get("spend");
-      const costNote =
-        settings.provider === "anthropic" && toRank.length ? ` Cost ${fmtCost(cost)}${spend ? `, this month ${fmtCost(spend.usd)}` : ""}.` : "";
+      const costNote = settings.provider === "anthropic" && toRank.length ? ` Cost ${fmtCost(cost)}.` : "";
       setStatus(
         `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
           (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +

@@ -220,7 +220,17 @@ function marketText(query, market) {
 
 // ---------- Ranking ----------
 
-function rankSchema(lens) {
+// Browsing with no search: no sold-price reference, so the model estimates a typical used price
+// from general knowledge (always shown as an estimate) and writes an eBay search for the exact
+// item, which the panel can use for a real sold-price check on request.
+const BROWSE_RULES = (context) => `No search term: the buyer is browsing ${context}. There is no sold-price reference.
+related: true only if the item fits the buyer's interests or wants (above); false otherwise. Without interests or wants, true for everything.
+A listing that is not related gets verdict pass unless it is an exceptional deal on what it is (then great, and say so).
+estLow / estHigh: the typical used selling price range in whole dollars for this kind of item in this condition, from your general knowledge.
+Use 0 and 0 when you can't tell (vague or generic title, unknown model). This is an estimate, not market data; judge the price against it and write "est." when you do.
+query: 2-6 words that would find sold listings of this exact item on eBay (brand, model, key variant), "" if the title is too vague.`;
+
+function rankSchema(lens, browse = false) {
   const props = {
     id: { type: "integer" },
     related: { type: "boolean" },
@@ -230,6 +240,7 @@ function rankSchema(lens) {
     reason: { type: "string" },
   };
   if (lens !== "use") Object.assign(props, { fault: { type: "string" }, difficulty: { type: "integer" }, partsCost: { type: "integer" } });
+  if (browse) Object.assign(props, { estLow: { type: "integer" }, estHigh: { type: "integer" }, query: { type: "string" } });
   return {
     type: "object",
     properties: {
@@ -246,7 +257,7 @@ const RANK_BASE = `You help a buyer skim second-hand listings. For each listing 
 suspicious = likely scam, counterfeit, or misleading, whatever the lens.
 related: true if the listing is what the search (or the buyer's wants) is for, false if it is a different kind of item.
 An unrelated listing is not automatically a pass: if it is a genuinely good find on its own terms, score it on its merits and set related to false.
-Sold-price numbers only apply to related listings. If there is no search term, set related to true.
+Sold-price numbers only apply to related listings.
 If the buyer listed wants or must-haves, a listing that misses one scores lower and the reason says which.
 Red flags: price far below market with no explanation (bait), "replica"/"inspired"/"style" wording, box-only or photo-only listings,
 vague or keyword-stuffed titles, shipping that makes the total expensive, seller with very low or no feedback.
@@ -287,7 +298,7 @@ const priceLine = (it) => {
   return parts.join(" | ");
 };
 
-async function rankBatch({ items, query, market, lens = "use", want = "" }) {
+async function rankBatch({ items, query, market, lens = "use", want = "", browse = "" }) {
   const { interests } = await getSettings();
   const listingText = items
     .map((it) => {
@@ -301,9 +312,9 @@ async function rankBatch({ items, query, market, lens = "use", want = "" }) {
     .join("\n");
 
   const { text, cost } = await llmText({
-    system: lensSystem(RANK_BASE, lens, interests),
-    userText: [marketText(query, market), want && `What the buyer wants: ${want}`, `Listings:\n${listingText}`].filter(Boolean).join("\n\n"),
-    schema: rankSchema(lens),
+    system: [lensSystem(RANK_BASE, lens, interests), browse && BROWSE_RULES(browse)].filter(Boolean).join("\n\n"),
+    userText: [!browse && marketText(query, market), want && `What the buyer wants: ${want}`, `Listings:\n${listingText}`].filter(Boolean).join("\n\n"),
+    schema: rankSchema(lens, !!browse),
   });
   return { items: parseModelJson(text).items || [], cost };
 }

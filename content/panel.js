@@ -176,6 +176,8 @@
     .lens button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
     .hint { color:var(--muted); font-size:12px; }
     .lens-hint { margin-top:6px; }
+    .browse-note { margin-top:6px; }
+    .browse-note b { color:var(--ink); font-weight:600; }
 
     .scan { background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 13.5px/1 var(--ui);
       box-shadow:var(--press); cursor:pointer; transition:opacity .15s, transform .08s, box-shadow .08s; }
@@ -346,7 +348,8 @@
           <div class="hint lens-hint"></div>
         </div>
         <div><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
-        <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000"></div>
+        <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
+          <div class="hint browse-note" hidden>No search here, so Second Look goes by what you're into (settings) and "What I want". Prices are compared with the model's estimates, marked <i>est.</i>; use <b>Check sold prices</b> on any listing for real eBay sales, or type a search above to compare everything against one.</div></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
         <div class="market"></div>
@@ -393,6 +396,10 @@
   const wantEl = $("#want");
   const lensHint = $(".lens-hint");
   const qwrap = $(".qwrap");
+  const browseNote = $(".browse-note");
+  // Browse mode: a results page with nothing to compare against (e.g. the Marketplace home feed).
+  const showBrowseNote = () => (browseNote.hidden = SL.pageType() !== "results" || !!queryEl.value.trim());
+  queryEl.addEventListener("input", showBrowseNote);
   const itemEl = $(".itemout");
   const pageInfo = $(".pageinfo");
   const piLine = $(".pi-line");
@@ -510,7 +517,7 @@
 
   // The one-line lens summary for a scored listing: what the sticker and list show under the verdict.
   const lensLine = (it) => {
-    if (it.related === false) return "Not your search";
+    if (it.related === false) return it.browse ? "Not your thing" : "Not your search";
     // The number that matters first, so a narrow sticker doesn't cut it off.
     if (it.auction) return [it.bidCap > 0 ? `Bid \u2264 ${dollars(it.bidCap)}` : "Auction", it.timeLeft && `${it.timeLeft} left`].filter(Boolean).join(" \u00b7 ");
     if (it.lot && it.lens !== "fix" && it.total != null) return `Lot of ${it.lot} \u00b7 ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
@@ -518,8 +525,9 @@
       if (/^none$/i.test(it.fault || "")) return "Works as-is";
       return `${DIFFICULTY[it.difficulty] || DIFFICULTY[0]}${it.partsCost > 0 ? ` · ~$${it.partsCost} parts` : ""}`;
     }
-    if (it.lens === "flip") return it.margin != null ? `\u2248 ${money(it.margin)} margin` : "Margin unknown";
-    return it.vsWorking != null ? `${Math.round(it.vsWorking * 100)}% of sold price` : "";
+    if (it.lens === "flip") return it.margin != null ? `\u2248 ${money(it.margin)} margin${it.refIsEstimate ? " (est.)" : ""}` : "Margin unknown";
+    if (it.vsWorking == null) return "";
+    return it.refIsEstimate ? `~${Math.round(it.vsWorking * 100)}% of typical price (est.)` : `${Math.round(it.vsWorking * 100)}% of sold price`;
   };
 
   const priceStr = (it) =>
@@ -899,6 +907,8 @@
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         item.reason || "",
         f.auction ? line(`Auction: ${f.bids || 0} bid${f.bids === 1 ? "" : "s"}${f.timeLeft ? `, ${f.timeLeft} left` : ""}. The price is only the current bid.${item.bidCap > 0 ? ` Worth bidding up to about ${dollars(item.bidCap)}${item.lens === "flip" ? " to break even" : ""}.` : ""}`) : null,
+        item.browse && item.sold ? line(`eBay sold \u201c${item.query}\u201d: median ${dollars(item.sold.median)}, middle half ${dollars(item.sold.p25)}\u2013${dollars(item.sold.p75)} (${item.sold.n} sales).`) : null,
+        item.browse && !item.sold && item.est ? line(`Typical used price est. ${dollars(item.est.lo)}\u2013${dollars(item.est.hi)}: the model's estimate, not sales data.${item.query ? " Check sold prices in the panel for real numbers." : ""}`) : null,
         f.lot && item.total != null ? line(`Lot of ${f.lot}: about ${dollars(Math.round((item.total / f.lot) * 100) / 100)} each.`) : null,
         f.drop ? line(`Was ${dollars(f.drop.from)} when you saw it on ${shortDate(f.drop.since)}.`) : null,
         f.sellerWarn ? line(`${f.sellerWarn} (your rule: at least ${prefs.minSellerRatings} ratings, ${prefs.minSellerPct}% positive).`) : null,
@@ -936,7 +946,12 @@
       .forEach((it, i) => {
         const v = VERDICT[it.verdict] || VERDICT.fair;
         const box = photoBox(it);
-        const vsMarket = it.vsWorking != null && !it.auction && !it.lot ? ` · ${Math.round(it.vsWorking * 100)}% of sold median` : "";
+        const vsMarket =
+          it.vsWorking != null && !it.auction && !it.lot
+            ? it.refIsEstimate
+              ? ` · ~${Math.round(it.vsWorking * 100)}% of typical (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
+              : ` · ${Math.round(it.vsWorking * 100)}% of sold median${it.sold ? ` (${it.sold.n} sales)` : ""}`
+            : "";
         const f = facts.get(keyOf(it.url)) || it;
         const line = lensLine(it);
         // Only rows appearing for the first time animate in; re-sorting shouldn't replay it for all.
@@ -960,6 +975,7 @@
               "div",
               { class: "actions" },
               h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open listing"),
+              it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Check sold prices") : null,
               it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget) }, it.photos ? "Re-check photo" : "Check photo") : null,
               it.imageUrl ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is the photo used elsewhere?" }, "Search photo") : null,
               h("button", { onclick: () => setInterested(keyOf(it.url), !!notInterested[keyOf(it.url)]) }, notInterested[keyOf(it.url)] ? "Undo hide" : "Not interested")
@@ -985,6 +1001,32 @@
     void card.offsetWidth; // restart the animation if it's still running
     card.classList.add("second-look-flash");
     setTimeout(() => card.classList.remove("second-look-flash"), 2200);
+  };
+
+  // Browsing: one real eBay sold-price check for one listing, using the search the model wrote for it.
+  // Goes through the same gentle, cached, rate-limited lookup as everything else.
+  const checkSold = async (it, btn) => {
+    btn.disabled = true;
+    btn.textContent = "Checking\u2026";
+    try {
+      const settings = await send("getSettings");
+      if (!settings.useSoldComps) throw new Error("Price comparisons with eBay sales are turned off in settings.");
+      const m = await soldMarket(it.query, "used");
+      if (!m) {
+        setStatus(`Not enough eBay sales of \u201c${it.query}\u201d to compare. The estimate stays.`);
+        btn.textContent = "No sold data";
+        return;
+      }
+      it.sold = { median: m.median, n: m.n, p25: m.p25, p75: m.p75 };
+      useReference(it, m.median, false);
+      stick(it);
+      render([...scored.values()]);
+      setStatus(`eBay sold \u201c${it.query}\u201d: median $${m.median} from ${m.n} sales.`);
+    } catch (e) {
+      setStatus(e.message, true);
+      btn.disabled = false;
+      btn.textContent = "Check sold prices";
+    }
   };
 
   const runPhotoCheck = async (it, box, btn) => {
@@ -1151,6 +1193,19 @@
   };
   const scoreKey = (ctx, it) => `${ctx}|${keyOf(it.url)}|${it.total ?? it.priceText}`;
 
+  // Point a listing's comparisons at a reference price: the model's estimate (browsing) or a real
+  // sold median. Recomputes % of price, flip margin and the auction bid cap; no model call.
+  const useReference = (it, ref, isEstimate) => {
+    it.refWorking = ref > 0 ? ref : null;
+    it.refIsEstimate = isEstimate;
+    it.vsWorking = it.refWorking && it.total != null && !it.lot ? it.total / it.refWorking : null;
+    it.margin =
+      it.lens === "flip" && it.refWorking && it.total != null && !it.lot && !it.auction && it.related
+        ? Math.round(it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - it.total - (it.partsCost || 0))
+        : it.margin;
+    it.bidCap = it.auction && it.related ? bidCapFor(it) : null;
+  };
+
   const applyResult = (it, r, forLens) => {
     Object.assign(it, {
       lens: forLens,
@@ -1165,6 +1220,14 @@
     });
     it.margin = it.marginBeforeRepair != null && it.related ? it.marginBeforeRepair - it.partsCost : null;
     it.bidCap = it.auction && it.related ? bidCapFor(it) : null;
+    if (it.browse) {
+      it.query = (r.query || "").trim().slice(0, 80);
+      const hi = Math.max(0, r.estHigh | 0);
+      const lo = Math.min(Math.max(0, r.estLow | 0) || hi, hi);
+      it.est = hi > 0 ? { lo, hi } : null;
+      if (it.sold) useReference(it, it.sold.median, false);
+      else if (it.est) useReference(it, (lo + hi) / 2, true);
+    }
     if (it.vsParts != null && it.vsParts <= 1 && it.related && !it.flags.includes("under parts value")) it.flags.unshift("under parts value");
     it.baseScore = it.score;
     it.baseVerdict = it.verdict;
@@ -1292,12 +1355,14 @@
       const query = queryEl.value.trim();
       const want = wantEl.value.trim();
       const forLens = lens;
+      const browse = query ? "" : SL.browseContext(); // no search: interests guide, prices are estimates
+      items.forEach((it) => (it.browse = !!browse));
       const market = await getMarket(settings, query, forLens);
       items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
 
       // Anything already judged in this exact setting comes back from memory, free.
       const model = settings.provider === "anthropic" ? settings.anthropicModel : settings.textModel;
-      const ctx = hash([forLens, want, query, model, market?.median, market?.parts?.median].join("|"));
+      const ctx = hash([forLens, want, query, browse, model, market?.median, market?.parts?.median].join("|"));
       const { scoreCache = {} } = await chrome.storage.local.get("scoreCache");
       const fresh = {};
       let fromMemory = 0;
@@ -1324,7 +1389,7 @@
       setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${model}…`);
       const errors = await runBatches(batches, parallel, async (batch) => {
         const payload = batch.map(({ el, ...rest }) => rest); // DOM nodes can't be sent
-        const res = await send("rankBatch", { items: payload, query, market, lens: forLens, want });
+        const res = await send("rankBatch", { items: payload, query, market, lens: forLens, want, browse });
         cost += res.cost || 0;
         if (scored !== session) return;
         const byId = new Map(batch.map((it) => [it.id, it]));
@@ -1368,6 +1433,7 @@
       wrap.classList.remove("busy");
       scanBtn.disabled = false;
       refreshPending();
+      renderPageInfo(); // the skipped-listings control appears once something is scored
     }
   };
 
@@ -1736,6 +1802,7 @@
       setCount(0);
       setStatus("");
       if (type !== "results" || !restoreScan(lastHref)) queryEl.value = SL.detectQuery();
+      showBrowseNote();
       if (type === "item") setTimeout(itemPass, 1200); // let the listing finish rendering
     }
   };

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Second Look",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Scans eBay and Facebook Marketplace search results with an AI model and flags the listings worth a closer look.",
   "permissions": [
     "storage",

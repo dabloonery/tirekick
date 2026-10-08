@@ -583,7 +583,8 @@ async function getPageSettings() {
   return { ...rest, hasKey: !!anthropicKey };
 }
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, getSettings: getPageSettings };
+const openOptions = async () => chrome.runtime.openOptionsPage();
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, openOptions, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -599,7 +600,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 const MENU_ID = "second-look-photo";
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
   const current = await chrome.storage.local.get(null);
   await chrome.storage.local.set({ ...DEFAULTS, ...current });
   await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));

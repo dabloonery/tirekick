@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Second Look",
-  "version": "0.8.0",
-  "description": "Scans eBay and Facebook Marketplace search results with an AI model and flags the listings worth a closer look.",
+  "version": "0.9.0",
+  "description": "Score tags, sold-price comparisons and scam checks on eBay and Facebook Marketplace listings, judged by Claude or a local model.",
   "permissions": [
     "storage",
     "contextMenus",
@@ -37,6 +37,14 @@
       "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
+    }
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+L"
+      },
+      "description": "Open or tuck away the Second Look panel"
     }
   }
 }

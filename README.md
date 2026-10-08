@@ -1,124 +1,118 @@
 # Second Look
 
-A browser extension that scans an eBay or Facebook Marketplace search results page,
-ranks every listing with a language model (the Claude API, or Ollama on your own
-laptop), and puts a score sticker on each card. Optional: compare prices against recent eBay sold
-listings, and ask a vision model to look at a listing photo.
+A browser extension for buying second-hand on eBay and Facebook Marketplace. It puts a small
+score tag on every listing you're looking at, compares prices with what the same thing actually
+sold for, flags likely scams, and remembers what you've already seen. A language model (the
+Claude API, or Ollama on your own computer) does the judging; a lot of the useful parts don't
+need a model at all.
 
-Listing titles and card text go to whichever model provider you pick; with Ollama
-nothing leaves your computer except one ordinary eBay sold-listings search per scan
-(turn that off in settings if you like).
+It only works on pages you're looking at, when you ask. Nothing browses or checks prices in the
+background.
 
 ## Quick start (Claude API, about 5 minutes)
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
-   Developer mode, click **Load unpacked**, pick this folder.
-2. Open the extension's options, paste a Claude API key (console.anthropic.com),
-   and save. The default model is `claude-opus-5-5`; `claude-haiku-4-5` is cheaper.
-3. Search eBay or Facebook Marketplace. A slim **Second Look** tab sits on the right edge of
-   the page; pull it out to open the panel. Press **Scan this page**. Scroll for more
-   listings and the button turns into "Scan N new listings" (only the new ones are scored).
-   The toolbar button isn't needed; right-click it and hide it if you like.
-   If eBay ever misbehaves, untick "Show a slim tab" in options: the panel then loads
-   only when you click the toolbar icon. Each listing gets a
-   badge like "91 · Great deal · Second Look score" (the number is out of 100). Hover it
-   for the reason.
-4. Open a single listing and press **Analyze this listing** for a verdict, red flags,
-   questions to ask the seller, a suggested offer, and a photo check.
-5. Open **Search ideas** in the panel (it's open by default on eBay's home page). Describe what
-   you want, or leave it blank after a scan to get refinements from the results you're seeing:
-   tighter searches that cut junk, looser ones, common misspellings, alternative names, and a
-   price cap based on the sold median. Click a suggestion to run it. One model call per
-   request; nothing runs on its own.
-6. Right-click any photo on eBay or Facebook and choose **Check this photo with Second Look**.
-   Photo checks (the "Check photo" buttons too) change the rating: a stock photo, visible damage,
-   or a photo that doesn't match the title lowers the score (and can mark a listing suspicious);
-   a clear real photo of an item in good shape adds a little. The adjustment rules are fixed in
-   `photoAdjust` in `background.js`, so you can tune them.
+   Developer mode, click **Load unpacked**, and pick this folder. The settings page opens.
+2. Paste a Claude API key (from console.anthropic.com) and save.
+3. Search eBay or Facebook Marketplace. Pull out the slim **Second Look** tab on the right edge
+   (or press **Alt+Shift+L**) and press **Scan this page**.
+
+Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Market price,
+Skip, Suspicious) and one line on the price. Hover it for the reasons. Scroll for more and the
+button becomes "Scan N new listings"; only the new ones are scored.
+
+## Everyday use
+
+- **Use / Fix / Flip** at the top of the panel says what you want a listing for (see below).
+- **What I want**: "working, with charger, under $80". Every scan, analysis and search idea
+  takes it into account, and a listing that misses something says so.
+- **Click a title** in the panel to jump to that card. If the panel would cover it, it tucks
+  away and the card flashes.
+- **Sort** the results by best, cheapest, biggest margin, or new to you first.
+- **Skipped listings are greyed out** on the page; switch to Show or Hide in the bar above the
+  results.
+- **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
+  now on. Undo is right there, and "show" in the panel brings hidden ones back.
+- **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
+  seller (copyable), a suggested offer with a ready-to-send message, and a photo check.
+- **Search ideas** suggests better searches: tighter, looser, common misspellings, other names.
+- **Right-click any photo** and choose "Check this photo with Second Look".
+- **Esc** tucks the panel away; the sliders icon opens settings.
 
 ## Use, Fix, Flip
 
-The switch at the top of the panel sets what you want a listing *for*, and scores follow it:
-
-| Lens | Scores high | Sticker shows |
+| Lens | Scores high | The tag shows |
 |---|---|---|
-| **Use** | Working items at a good price; "for parts" and "as is" are marked down | Verdict and score |
-| **Fix** | Broken or untested items with a likely easy, cheap fix, priced near what broken ones sell for | "Easy fix · ~$10 parts", likely fault on hover |
-| **Flip** | The biggest margin: used sold median, minus eBay fees, minus the price, minus likely parts | "≈ $26 margin" |
+| **Use** | Working items at a good price; "for parts" and "as is" are marked down | How the price compares with sold ones |
+| **Fix** | Broken or untested items with a likely easy, cheap fix, priced near what broken ones sell for | "Easy fix · ~$10 parts"; the likely fault on hover |
+| **Flip** | The biggest margin: sold price, minus eBay fees, minus the price, minus likely parts | "≈ $26 margin" |
 
-- **What I want** (under the switch) feeds every scan, single-listing analysis and Search ideas:
-  "working, with controllers, under $80". A listing that misses something says so.
-- **Price comparisons use what you'd actually pay**: price plus shipping when the card shows it, against
-  what sold listings went for including shipping. Fix and Flip also look up the **for-parts** median:
-  pay less than that and the worst case is reselling it broken. "See the sales" lists the sales
-  behind each number.
-- **Analyze this listing** in Fix or Flip adds a repair plan (likely faults, parts, tools, difficulty)
-  and, for anything with a scene, a homebrew note with firmware/model caveats.
-- **Settings**: "What you're into" tells Fix and Flip which repair and homebrew knowledge applies
-  (it starts as electronics, retro tech, games and homebrew). Set "eBay fees" to your category's
-  final value fee so Flip margins match what you'd really clear. The repair rules of thumb live
-  in `FIX_KNOWLEDGE` in `background.js`; add what you learn.
-- Repair guesses are the least reliable thing here: the model only sees the listing text. Use them
-  to decide what to ask the seller, not as a diagnosis.
+Fix and Flip know the usual faults for electronics, retro tech and consoles (dirty cartridge
+connectors, tired capacitors, worn disc drives…) and what has a homebrew scene; "What you're
+into" in settings steers that, and the rules of thumb live in `FIX_KNOWLEDGE` in
+`background.js`. On a listing page they add a repair plan: likely faults, parts, tools,
+difficulty. Repair guesses come from the listing text only: use them to decide what to ask the
+seller, not as a diagnosis. Set "eBay fees" in settings to your category's fee so margins are real.
 
-## Browsing with no search
+## Prices
 
-On the Marketplace home feed (or a category page) there's nothing to compare prices against, so
-a scan works differently:
+- Comparisons use what you'd actually pay (price plus shipping) against what sold listings went
+  for. The used median comes from recent eBay sales; Fix and Flip also look up what **broken** ones
+  sell for: pay less than that and the worst case is reselling it as-is. "The sales behind these"
+  lists the sales behind each number. eBay's "results matching fewer words" are left out.
+- The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
+  "Compare prices against" if the page's search is vague.
+- **Auctions** are recognised ("3 bids · 2d 4h left"). Their price is only a current bid, so the
+  tag shows the most worth bidding instead: "Bid ≤ $100".
+- **Lots** ("lot of 6") show a price per item. "Or Best Offer" / OBO gets an "Offers" chip.
 
-- **Your interests are the guide.** "What you're into" (settings) and "What I want" decide what's
-  relevant; anything else reads "Not your thing" and counts as Skip unless it's an exceptional deal,
-  so "Skipped listings: Hide" clears the feed down to your kind of thing. Category pages
-  (e.g. `/marketplace/nyc/videogames`) tell the model which category it's looking at.
-- **Prices are estimates, and say so.** The model gives a typical used price range from general
-  knowledge; stickers read "~50% of typical price (est.)".
-- **Real numbers on request.** "Check sold prices" on any listing runs one eBay sold search the
-  model wrote for that exact item (same gentle limits as always) and swaps the estimate for real
-  sold data. Nothing is looked up on eBay while you browse.
+### Browsing with no search
 
-Type a search into "Compare prices against" to compare everything against one sold price instead.
+On the Marketplace home feed or a category page there's nothing to compare against, so your
+interests (settings) and "What I want" decide what's relevant. Everything else reads "Not your
+thing" and is greyed out with the skipped listings. Prices are compared with the model's
+estimate of what that kind of item usually sells for, always marked **est.**; press
+**Sold prices** on a listing for real eBay numbers for that exact item.
 
 ## Without any AI
 
-These run on every results page before you scan, cost nothing, and keep working with no API key:
+These run as soon as a results page loads, cost nothing, and work without an API key:
 
-- **Auctions** are recognised from "3 bids · 2d 4h left". Their price is treated as a current bid,
-  never as a deal on its own; the sticker shows the most worth bidding instead ("Bid ≤ $100"):
-  the sold price in Use, the for-parts price in Fix, break-even after fees and parts in Flip.
-- **Lots** ("lot of 6", "10 pc lot") show a price per item and aren't compared with a single
-  item's sold price. **Offers** ("or Best Offer", "OBO") get a chip.
-- **New to you**: listings you haven't seen before on a search you've looked at before.
-- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen is now cheaper (item price,
-  not shipping; auctions aren't tracked).
-- **Not interested** (in a sticker's hover card or the panel) hides a listing everywhere from now
-  on. Undo right away, or bring hidden ones back with "show" in the panel or in settings.
-- **Filters** in settings: words that always hide a listing (starts with replica, repro, box only
-  and friends) and words a title must have. Hidden and filtered listings are never sent to a model.
-- **Seller warnings** for few ratings or a low positive percentage (eBay; thresholds in settings).
-- **Duplicates**: the same title or photo on several listings on one page.
-- **Search this photo** opens a reverse image search, to catch photos lifted from elsewhere.
-- **Skipped listings**: after a scan, show, dim or hide the ones marked Skip.
+- **New to you** on listings you haven't seen before, on a search you've looked at before.
+- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper.
+- **Seller warnings** for few ratings or a low positive percentage (eBay; set the limits in settings).
+- **Duplicates**: the same title or photo on several listings on one page, a common scam pattern.
+- **Filters** in settings: words that always hide a listing (starts with replica, repro, box only…)
+  and words a title must have. Hidden and filtered listings are never sent to a model.
+- **Find photo** (in a tag's hover card or the listing view) runs a reverse image search, to catch
+  photos lifted from elsewhere.
 
-What you've seen and hidden is kept only in this browser (90 days for seen listings) and can be
-cleared from settings. Turn off "Mark cards before you scan" to keep cards untouched until you scan.
+Turn off "Mark cards before you scan" in settings to keep cards untouched until you scan.
+
+## Model and cost
+
+The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
+**Sonnet 5.5** (half the price), **Haiku 4.5** (a quarter), or your **Ollama** model (free, local).
+Next to it is this month's Claude spend; click it for today, this month, last month and each
+model's cost per call. Set a monthly budget in settings and Claude calls stop when it's reached.
+
+To keep costs down, scores are remembered for a day (re-scans and coming back are free), up to
+three requests run at once, and a failed request's listings come back on the next scan. Spending
+is estimated from token counts at list price: a regular API key can't read your real balance,
+which is at console.anthropic.com.
 
 ## Look
 
-Two looks, picked at the top of the settings page (it switches straight away, open tabs too):
+Two looks, picked at the top of settings; open tabs switch straight away:
 
-- **Classic**: paper and ink. A Fraunces serif for the wordmark, scores and prices, your system
-  font for everything else, and colour only where it means something (the verdict).
-- **Pocket**: a retro handheld LCD in greens, mono type and hard pixel shadows. In dark mode it
-  becomes a backlit screen.
+- **Classic**: paper and ink, with colour only where it means something.
+- **Pocket**: a retro handheld LCD in greens; a backlit screen in dark mode.
 
 Both follow your system's light/dark setting. The fonts ship in `fonts/` (SIL Open Font License,
-see `fonts/LICENSE.md`) and are loaded from inside the extension, so no site can block them or
-use them to tell the extension is installed. All the colours and type live in `THEME_CSS` near
-the top of `content/panel.js`.
+see `fonts/LICENSE.md`) and load from inside the extension. Colours and type live in `THEME_CSS`
+near the top of `content/panel.js`.
 
 ## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
-
-Choose "Ollama (local)" as the provider in settings, then:
 
 1. **Install Ollama with NVIDIA support and start it**
    ```
@@ -131,79 +125,57 @@ Choose "Ollama (local)" as the provider in settings, then:
    ollama pull moondream
    ollama run qwen3:4b "say hi"        # sanity check; watch nvidia-smi in another terminal
    ```
-3. **Load the extension, then let Ollama accept it**
-   - In Vivaldi open `vivaldi://extensions`, turn on Developer mode, click
-     **Load unpacked**, pick this folder. Copy the extension's ID (32 letters).
-     Keep the folder where it is: the ID is tied to its path.
-   - `sudo systemctl edit ollama` and add:
-     ```
-     [Service]
-     Environment="OLLAMA_ORIGINS=chrome-extension://PASTE_ID_HERE"
-     ```
-   - `sudo systemctl restart ollama`
-   - Open the extension's options (right-click its icon, Options) and press
-     **Test connection**. It should list your installed models.
-4. **Use it.** Search eBay or Facebook Marketplace, scroll so results load, pull out the
-   **Second Look** tab on the right edge (or click the toolbar icon), then press
-   **Scan this page**. Click a title in the panel to jump to that card.
+3. **Let Ollama accept the extension.** Copy the extension's ID (32 letters) from
+   `vivaldi://extensions`; keep the folder where it is, since the ID is tied to its path. Then
+   `sudo systemctl edit ollama`, add the lines below, and `sudo systemctl restart ollama`.
+   ```
+   [Service]
+   Environment="OLLAMA_ORIGINS=chrome-extension://PASTE_ID_HERE"
+   ```
+4. Choose Ollama in the panel's model menu (or in settings) and press **Test connection** in
+   settings; it should list your models.
 
-## How the pieces fit
+A 4B model is a quick first filter, not an appraiser: read its reasons. With 4 GB of VRAM
+(a 3050 Ti), lower "Listings per request" if scans are slow, or try `llama3.2:3b`.
 
-| File | Job |
-|---|---|
-| `manifest.json` | Permissions. No content scripts are declared here: with "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
-| `content/adapters.js` | Reads listings off each site into one shared shape; computes the sold-price median |
-| `content/panel.js` | The panel, the scan loop, the badges on cards, the single-listing view, the photo-check popup |
-| `background.js` | Talks to Claude or Ollama (with retries and timeouts), fetches photos, and fetches eBay sold results for Facebook pages; holds the prompts |
-| `options/` | Settings page |
-| `fonts/`, `icons/` | Bundled typefaces (OFL) and the toolbar icon |
+## Privacy
 
-Both providers sit behind `rankBatch` and `checkPhoto`, so adding another is small.
-The ranking prompt (`RANK_SYSTEM` in `background.js`) is the part most worth tuning.
+Listing titles and card text go to the model you pick; with Ollama nothing leaves your computer
+except eBay sold-price searches (turn those off in settings). What you've seen, hidden and spent
+is kept only in this browser; settings can clear it.
 
 ## When it breaks
 
 Both sites change their markup without warning. If a scan says "No listings found":
 
-- **eBay**: in DevTools (F12), inspect a result card. Current layout uses
-  `li.s-card` with `.s-card__title` / `.s-card__price`; the older one used `s-item`.
-  Add whatever you find to the selector lists at the top of `extractEbay`.
-- **Facebook**: the adapter doesn't use class names at all. It finds every link to
-  `/marketplace/item/<id>` and reads the text inside. If that breaks, check what the
-  card links look like now.
+- **eBay**: in DevTools (F12), inspect a result card. Current layout uses `li.s-card` with
+  `.s-card__title` / `.s-card__price`; the older one used `s-item`. Add what you find to the
+  selector lists in `extractEbay` (`content/adapters.js`).
+- **Facebook**: the adapter doesn't use class names. It finds every link to
+  `/marketplace/item/<id>` and reads the text inside; check what card links look like now.
 
-**eBay pages stop loading or show "Checking your browser"**: eBay does this to traffic that
-looks automated, and once it trips, ordinary page loads get it too for a while (refreshing
-usually clears it). Second Look's only automated traffic is the sold-price lookups, now kept
-to a trickle and stopped at the first check. If it keeps happening, untick "Compare prices
-with recent eBay sales" in settings and see whether it stops; if it still happens with the
-lookups off, untick "Show a slim tab" too, which leaves eBay pages completely untouched until
-you click the toolbar icon.
+**eBay shows "Checking your browser" or won't load**: eBay does this to traffic that looks
+automated, and then ordinary page loads get it too for a while (refreshing usually clears it).
+Second Look's only automated traffic is the sold-price lookups: at least 5 seconds apart, at
+most 8 an hour, remembered for 6 hours, and paused for an hour at the first check (the price
+box then links to eBay's own sold listings). If it keeps happening, untick "Compare prices with
+recent eBay sales"; if it still happens, untick "Show a slim tab" too, which leaves eBay pages
+untouched until you click the toolbar icon.
 
-After editing, hit the reload arrow on the extension in `vivaldi://extensions` and
-refresh the tab.
+After editing any file, press the reload arrow on the extension in `vivaldi://extensions` and
+refresh the tab. The version number there tells you which copy is running.
 
-## Things to know
+## How the pieces fit
 
-- A 4B model is a quick first filter, not an appraiser. Read its reasons.
-- The sold-price median is only as good as your search words. "Pentax K1000 body"
-  compares better than "camera". eBay's "results matching fewer words" are left out of it.
-- Sold-price lookups are remembered for 6 hours per search, so re-scans and new pages with
-  the same words don't ask eBay again. They're spaced at least 5 seconds apart, capped at 8 an
-  hour, and pause for an hour the moment eBay answers with a browser check. The price box then
-  links to eBay's own sold listings so you can look yourself.
-- Scores are remembered for a day per listing, lens, wants and price: re-scanning, coming back to
-  a search, or switching lenses back and forth costs nothing the second time.
-- **Model and spending, at the bottom of the panel.** Pick Opus 5.5 (best), Sonnet 5.5 (half the
-  price), Haiku 4.5 (a quarter) or your Ollama model; it applies straight away. Next to it is this
-  month's Claude spend: click it for today, this month, last month and a per-model breakdown.
-  Set a monthly budget in settings and Claude calls stop when it's reached. These are estimates
-  from token counts at list price; a regular API key can't read your real balance (that's at
-  console.anthropic.com).
-- With the Claude API, up to 3 batches are ranked at once; Ollama runs one at a time. If a
-  request fails, the listings it carried are offered again on the next scan.
-- Your 3050 Ti has 4 GB of VRAM. If scans are slow, lower "Listings per request"
-  or try `llama3.2:3b` as the ranking model.
-- This reads pages you're already looking at, one scan at a time when you press the
-  button. Keep it that way: automated, unattended collection is what Meta and eBay's
-  terms prohibit and what gets accounts flagged.
+| File | Job |
+|---|---|
+| `manifest.json` | Permissions, icon, keyboard shortcut. With "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
+| `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings) off each site into one shared shape; the sold-price median |
+| `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
+| `background.js` | Talks to Claude or Ollama (retries, timeouts, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
+| `options/` | Settings page |
+| `fonts/`, `icons/` | Bundled typefaces (OFL) and the toolbar icon |
+
+The ranking prompt (`RANK_BASE` and `LENS_RULES` in `background.js`) is the part most worth tuning.
+Keep it to pages you're looking at, one scan when you press the button: automated, unattended
+collection is what Meta's and eBay's terms prohibit and what gets accounts flagged.

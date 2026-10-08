@@ -353,8 +353,10 @@
   // fault words ("for parts", "untested", "blinking red light") would skew the sold search, so they go.
   const NOISE =
     /\b(for parts( or repair| only)?|not working|non[- ]?working|untested|tested|works?|working|broken|as[- ]is|read( description)?|please read|parts|repair|faulty|damaged|no power|powers on|blinking( red)?( light)?|red light|cracked|(great|good|nice) condition|great|good|nice|clean|excellent|mint|rare|vintage|lot|bundle|free shipping|fast shipping|l@@k|wow)\b/gi;
+  // On Facebook a trailing code ("... U2X503") would only make the sold search come back empty.
   SL.titleToQuery = (title) =>
     (title || "")
+      .slice(0, SL.currentSite() === "facebook" && SL.titleCode(title) ? -SL.titleCode(title).length : undefined)
       .replace(NOISE, " ")
       .replace(/[^\p{L}\p{N}\s.-]/gu, " ")
       .split(/\s+/)

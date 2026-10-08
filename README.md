@@ -61,6 +61,23 @@ The switch at the top of the panel sets what you want a listing *for*, and score
 - Repair guesses are the least reliable thing here: the model only sees the listing text. Use them
   to decide what to ask the seller, not as a diagnosis.
 
+## Browsing with no search
+
+On the Marketplace home feed (or a category page) there's nothing to compare prices against, so
+a scan works differently:
+
+- **Your interests are the guide.** "What you're into" (settings) and "What I want" decide what's
+  relevant; anything else reads "Not your thing" and counts as Skip unless it's an exceptional deal,
+  so "Skipped listings: Hide" clears the feed down to your kind of thing. Category pages
+  (e.g. `/marketplace/nyc/videogames`) tell the model which category it's looking at.
+- **Prices are estimates, and say so.** The model gives a typical used price range from general
+  knowledge; stickers read "~50% of typical price (est.)".
+- **Real numbers on request.** "Check sold prices" on any listing runs one eBay sold search the
+  model wrote for that exact item (same gentle limits as always) and swaps the estimate for real
+  sold data. Nothing is looked up on eBay while you browse.
+
+Type a search into "Compare prices against" to compare everything against one sold price instead.
+
 ## Without any AI
 
 These run on every results page before you scan, cost nothing, and keep working with no API key:

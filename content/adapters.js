@@ -212,6 +212,17 @@
 
   SL.facebookQuery = () => new URLSearchParams(location.search).get("query") || "";
 
+  // With no search, what is this page? Marketplace addresses look like /marketplace/ (home feed),
+  // /marketplace/<city>/ or /marketplace/<city>/<category> (a category such as "videogames").
+  const NOT_CATEGORY = /^(search|item|you|inbox|notifications|create|selling|buying|saved|category)$/i;
+  SL.browseContext = () => {
+    if (SL.currentSite() !== "facebook") return "eBay page with no search";
+    const parts = location.pathname.split("/").filter(Boolean).slice(1); // after "marketplace"
+    const cat = parts.find((p, i) => i > 0 && !NOT_CATEGORY.test(p) && !/^\d+$/.test(p)) || "";
+    const pretty = cat && cat.replace(/[-_]/g, " ").replace(/([a-z])(games|consoles|electronics)$/i, "$1 $2");
+    return pretty ? `Facebook Marketplace category "${pretty}" (no search)` : "Facebook Marketplace home feed: mixed items for sale near the buyer (no search)";
+  };
+
   // ---------- single listing pages ----------
   // Layered the same way: site-specific selectors first, then generic page metadata
   // (og: tags) and the visible text of the main area as a fallback.

@@ -2,7 +2,8 @@
 // Everything that talks to the outside world lives here:
 //   1. the model: the Claude API, or your local Ollama server (ranking, analysis, ideas, photo checks)
 //   2. listing photos (fetched and base64-encoded for the vision model)
-//   3. eBay sold listings when you're on Facebook (on eBay the page fetches them itself)
+//   3. eBay sold listings when you're on Facebook (through an open eBay tab when there is one;
+//      on eBay the page fetches them itself)
 // Content scripts send messages; this file answers them.
 
 const DEFAULTS = {
@@ -698,12 +699,32 @@ async function ensureInjected(tabId) {
   return !!present;
 }
 
+// On a page Second Look doesn't work on, the icon says so for a few seconds instead of doing nothing.
+async function notHere(tabId) {
+  const title = "Second Look works on eBay searches, categories and listings, and on Facebook Marketplace.";
+  await chrome.action.setBadgeBackgroundColor({ tabId, color: "#6B675F" }).catch(() => {});
+  await chrome.action.setBadgeText({ tabId, text: "?" }).catch(() => {});
+  await chrome.action.setTitle({ tabId, title }).catch(() => {});
+  setTimeout(() => {
+    chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
+    chrome.action.setTitle({ tabId, title: chrome.runtime.getManifest().action.default_title }).catch(() => {});
+  }, 5000);
+}
+
 async function openPanel(tabId) {
   try {
     await ensureInjected(tabId);
-    await chrome.scripting.executeScript({ target: { tabId }, func: () => window.dispatchEvent(new CustomEvent("second-look-toggle")) });
-  } catch (e) {
-    console.warn("[Second Look] can't open on this page:", e.message); // not an eBay/Facebook page
+    const [{ result: ours } = {}] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.SecondLook?.pageType()) return false;
+        window.dispatchEvent(new CustomEvent("second-look-toggle"));
+        return true;
+      },
+    });
+    if (!ours) await notHere(tabId);
+  } catch {
+    await notHere(tabId); // a page the extension can't touch (not eBay or Facebook)
   }
 }
 

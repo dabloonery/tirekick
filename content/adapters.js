@@ -159,7 +159,8 @@
       why.push("says to remove the spaces");
     }
     const phone = t.match(/(?<![\d$])\(?(\d{3})\)?([\s_.*\/-]{0,3})(\d{3})([\s_.*\/-]{0,3})(\d{4})(?!\d)/);
-    if (phone) {
+    // Ten digits with nothing between them is more likely a serial or part number than a phone.
+    if (phone && (phone[2] + phone[4] || /^\(/.test(phone[0]))) {
       const seps = phone[2] + phone[4];
       const odd = /[_*\/]/.test(seps) || phone[2].length > 1 || phone[4].length > 1;
       if (odd) sure = true;

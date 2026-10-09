@@ -13,7 +13,7 @@ background.
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens.
-2. Paste a Claude API key (from console.anthropic.com) and save.
+2. Paste a Claude API key (from console.anthropic.com). Settings save as you go.
 3. Search eBay or Facebook Marketplace. Pull out the slim **Second Look** tab on the right edge
    (or press **Alt+Shift+L**) and press **Scan this page**.
 
@@ -44,19 +44,23 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
 
 - **Use / Fix / Flip** at the top of the panel says what you want a listing for (see below).
 - **What I want**: "working, with charger, under $80". Every scan, analysis and search idea
-  takes it into account, and a listing that misses something says so.
+  takes it into account, and a listing that misses something says so. Change it (or the compare
+  words) after a scan and the button becomes **Rescan with your changes**.
 - **Click a title** in the panel to jump to that card. If the panel would cover it, it tucks
   away and the card flashes.
-- **Sort** the results by best, cheapest, biggest margin, or new to you first.
+- **Sort** the results by best (what you searched for first), cheapest, biggest margin, or new to
+  you first.
 - **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide in the
   bar above the results.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
   now on. Undo is right there, and "show" in the panel brings hidden ones back.
 - **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
   seller (copyable), a suggested offer with a ready-to-send message, and a photo check.
-- **Search ideas** suggests better searches: tighter, looser, common misspellings, other names.
+- **Search ideas** (at the bottom of the panel) suggests better searches: tighter, looser, common
+  misspellings, other names.
 - **Right-click any photo** and choose "Check this photo with Second Look".
-- **Esc** tucks the panel away; the sliders icon opens settings.
+- **Esc** tucks the panel away; the sliders icon opens settings. On a page Second Look doesn't
+  work on, the toolbar icon shows a "?" for a moment instead of opening.
 
 ## Use, Fix, Flip
 

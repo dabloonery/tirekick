@@ -48,8 +48,8 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
   words) after a scan and the button becomes **Rescan with your changes**.
 - **Click a title** in the panel to jump to that card. If the panel would cover it, it tucks
   away and the card flashes.
-- **Sort** the results by best (what you searched for first), cheapest, biggest margin, or new to
-  you first.
+- **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
+  price, auctions ending soonest, biggest margin, or new and cheaper first.
 - **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide in the
   bar above the results.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
@@ -99,18 +99,43 @@ estimate of what that kind of item usually sells for, always marked **est.**; pr
 
 ## Without any AI
 
-These run as soon as a results page loads, cost nothing, and work without an API key:
+Everything here is free, needs no API key, and runs only on pages you're looking at.
 
-- **New to you** on listings you haven't seen before, on a search you've looked at before (not on
-  feeds, and not when most of the page is new anyway).
-- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper.
-- **Seller warnings** for few ratings or a low positive percentage (eBay; set the limits in settings).
-- **Duplicates**: the same title or photo on several listings on one page, a common scam pattern.
+**On the cards**, as soon as a results page loads:
+
 - **Scam marks**: reposts under new codes, codes in titles, contact off the site (see Scams).
-- **Filters** in settings: words that always hide a listing (starts with replica, repro, box only…)
-  and words a title must have. Hidden and filtered listings are never sent to a model.
-- **Find photo** (in a tag's hover card or the listing view) runs a reverse image search, to catch
-  photos lifted from elsewhere.
+- **% of sold**: once sold prices are known for the search, every card says how its price
+  (with shipping) compares, in green when it's 70% or less. Lots and auctions are left out.
+- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper.
+- **New to you** on a search you've looked at before (not on feeds, and not when most of the
+  page is new anyway).
+- **Auctions ending soon**: "Ends in 45m · no bids" in the last three hours.
+- **Seller warnings** for few ratings or a low positive percentage (eBay; limits in settings), and
+  **duplicates**: the same title or photo on several listings on one page.
+- **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
+  ✕ **Not interested**.
+
+**In the panel**:
+
+- **Just compare sold prices** (under the Scan button): the eBay sold-price lookup on its own, with
+  no model. Prices already looked up for a search in the last six hours apply by themselves.
+- **The list** shows every listing on the page before any scan, priced with shipping, and sorts
+  by cheapest (lots per item), furthest under the sold price, auctions ending soonest, or new and
+  cheaper first. Click a title to jump to the card.
+- **Saved**: listings you save, from either site, with the price when you saved them and the
+  latest you've seen ("$52 (↓ from $60)"), and searches you save with **Save this search**, which
+  remember when you last looked. "Copy the list" gives you titles, prices and links as text.
+  Prices update whenever a saved listing is on your screen again; nothing is checked in the
+  background.
+- **Same search on Marketplace / on eBay** runs your words on the other site.
+
+**On a listing page**: when you saw it before, its price history ("$70 (Sep 30) → $60 (Oct 5) →
+$55 now"), Save, Not interested, and Sold on eBay.
+
+**In settings**: words that always hide a listing (starts with replica, repro, box only…) and
+words a title must have. Hidden and filtered listings are never sent to a model. **Find photo**
+(in a tag's hover card or the listing view) runs a reverse image search, to catch photos lifted
+from elsewhere.
 
 Turn off "Mark cards before you scan" in settings to keep cards untouched until you scan.
 
@@ -166,8 +191,9 @@ A 4B model is a quick first filter, not an appraiser: read its reasons. With 4 G
 ## Privacy
 
 Listing titles and card text go to the model you pick; with Ollama nothing leaves your computer
-except eBay sold-price searches (turn those off in settings). What you've seen, hidden and spent
-is kept only in this browser; settings can clear it.
+except eBay sold-price searches (turn those off in settings). What you've seen, saved, hidden and spent
+is kept only in this browser. Settings can clear what's seen and hidden; remove saved things from
+the Saved section.
 
 ## When it breaks
 

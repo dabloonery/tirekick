@@ -3,6 +3,15 @@ const FIELDS = ["provider", "anthropicKey", "anthropicModel", "ollamaUrl", "text
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicKey", "interests", "hideWords", "needWords"];
 const msg = document.getElementById("msg");
+const testMsg = document.getElementById("testMsg");
+// A short note at the bottom of the page ("Saved."), gone after a moment.
+let noteTimer = 0;
+const note = (text) => {
+  msg.textContent = text;
+  msg.classList.add("show");
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => msg.classList.remove("show"), 2200);
+};
 
 async function load() {
   // Settings with defaults filled in come from the background script (it leaves out the key).
@@ -63,9 +72,17 @@ document.getElementById("resetSpend").addEventListener("click", async () => {
   if (!confirm("Reset the spending counter? This only clears Second Look's own estimate, not anything at Anthropic.")) return;
   await chrome.storage.local.remove(["usage", "spend"]);
   showSpend();
-  msg.textContent = "Spending counter reset.";
+  note("Spending counter reset.");
 });
-chrome.storage.onChanged.addListener((c) => c.usage && showSpend());
+chrome.storage.onChanged.addListener((c) => {
+  if (c.usage) showSpend();
+  // The panel's model menu changes these too; keep this page in step (unless you're typing in one).
+  for (const f of ["provider", "anthropicModel", "textModel"]) {
+    const el = document.getElementById(f);
+    if (c[f] && document.activeElement !== el) el.value = c[f].newValue ?? el.value;
+  }
+  if (c.provider) showProvider();
+});
 showSpend();
 
 // What's remembered in this browser, and a way to clear it.
@@ -79,12 +96,12 @@ async function showMemory() {
 document.getElementById("clearHidden").addEventListener("click", async () => {
   await chrome.storage.local.remove("notInterested");
   showMemory();
-  msg.textContent = "Everything you hid is visible again.";
+  note("Everything you hid is visible again.");
 });
 document.getElementById("clearMemory").addEventListener("click", async () => {
   await chrome.storage.local.remove(["listingMemory", "codeStems"]);
   showMemory();
-  msg.textContent = "Seen listings forgotten.";
+  note("Seen listings forgotten.");
 });
 showMemory();
 
@@ -103,37 +120,39 @@ function showProvider() {
 }
 document.getElementById("provider").addEventListener("change", showProvider);
 
-document.getElementById("save").addEventListener("click", async () => {
-  const out = {};
-  const cleared = [];
-  for (const f of FIELDS) {
-    const el = document.getElementById(f);
-    if (el.type === "checkbox") out[f] = el.checked;
-    else if (f === "feePct") out[f] = Math.min(50, Math.max(0, Number(el.value) || 0));
-    else if (f === "monthlyBudget") out[f] = Math.min(100000, Math.max(0, Number(el.value) || 0));
-    else if (f === "minSellerPct") out[f] = Math.min(100, Math.max(0, Number(el.value) || 0));
-    else if (f === "minSellerRatings") out[f] = Math.min(100000, Math.max(0, Math.round(Number(el.value)) || 0));
-    else if (el.type === "number") out[f] = Math.min(30, Math.max(1, Math.round(Number(el.value)) || 10));
-    else out[f] = el.value.trim();
-    // An emptied model or address field goes back to its default instead of breaking requests.
-    if (out[f] === "" && !MAY_BE_EMPTY.includes(f)) {
-      delete out[f];
-      cleared.push(f);
-    }
+// Each field saves when you leave it (or tick it): no Save button to forget.
+const valueOf = (f) => {
+  const el = document.getElementById(f);
+  if (el.type === "checkbox") return el.checked;
+  const n = Number(el.value);
+  if (f === "feePct") return Math.min(50, Math.max(0, n || 0));
+  if (f === "monthlyBudget") return Math.min(100000, Math.max(0, n || 0));
+  if (f === "minSellerPct") return Math.min(100, Math.max(0, n || 0));
+  if (f === "minSellerRatings") return Math.min(100000, Math.max(0, Math.round(n) || 0));
+  if (el.type === "number") return Math.min(30, Math.max(1, Math.round(n) || 10));
+  return f === "ollamaUrl" ? el.value.trim().replace(/\/+$/, "") : el.value.trim();
+};
+async function saveField(f) {
+  const v = valueOf(f);
+  // An emptied model or address field goes back to its default instead of breaking requests.
+  if (v === "" && !MAY_BE_EMPTY.includes(f)) {
+    await chrome.storage.local.remove(f);
+    await load();
+    return note("Back to the default.");
   }
-  if (out.ollamaUrl) out.ollamaUrl = out.ollamaUrl.replace(/\/+$/, "");
-  await chrome.storage.local.remove(cleared);
-  await chrome.storage.local.set(out);
-  if (cleared.length) await load();
-  msg.textContent = "Saved.";
-});
+  await chrome.storage.local.set({ [f]: v });
+  const el = document.getElementById(f);
+  if (el.type === "number" && String(v) !== el.value) el.value = v; // show what was actually kept
+  note(f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : "Saved.");
+}
+for (const f of FIELDS) document.getElementById(f).addEventListener("change", () => saveField(f));
 
 // Claude: checks the key and that the model name exists, without spending anything.
 async function testClaude() {
   const key = document.getElementById("anthropicKey").value.trim();
   const model = document.getElementById("anthropicModel").value.trim() || "claude-opus-5-5";
-  if (!key) return (msg.textContent = "Paste an API key first.");
-  msg.textContent = "Testing…";
+  if (!key) return (testMsg.textContent = "Paste an API key first.");
+  testMsg.textContent = "Testing…";
   try {
     const res = await fetch(`https://api.anthropic.com/v1/models/${encodeURIComponent(model)}`, {
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
@@ -142,9 +161,9 @@ async function testClaude() {
     if (res.status === 404) throw new Error(`The key works, but there's no model called "${model}".`);
     if (!res.ok) throw new Error(`The Claude API answered ${res.status}.`);
     const info = await res.json();
-    msg.textContent = `Connected. ${info.display_name || model} is available.`;
+    testMsg.textContent = `Connected. ${info.display_name || model} is available.`;
   } catch (e) {
-    msg.textContent = e.message.includes("Failed to fetch") ? "Can't reach the Claude API. Check your connection." : e.message;
+    testMsg.textContent = e.message.includes("Failed to fetch") ? "Can't reach the Claude API. Check your connection." : e.message;
   }
 }
 
@@ -152,7 +171,7 @@ async function testClaude() {
 document.getElementById("test").addEventListener("click", async () => {
   if (document.getElementById("provider").value === "anthropic") return testClaude();
   const url = document.getElementById("ollamaUrl").value.trim().replace(/\/+$/, "");
-  msg.textContent = "Testing…";
+  testMsg.textContent = "Testing…";
   try {
     const res = await fetch(`${url}/api/tags`);
     if (res.status === 403) throw new Error("Ollama refused this extension. Set OLLAMA_ORIGINS (README step 3).");
@@ -161,11 +180,11 @@ document.getElementById("test").addEventListener("click", async () => {
     const names = models.map((m) => m.name);
     const want = [document.getElementById("textModel").value.trim(), document.getElementById("visionModel").value.trim()];
     const missing = want.filter((w) => w && !names.some((n) => n === w || n === `${w}:latest`));
-    msg.textContent = missing.length
+    testMsg.textContent = missing.length
       ? `Connected. Not installed yet: ${missing.join(", ")}.`
       : `Connected. Installed: ${names.join(", ") || "none"}.`;
   } catch (e) {
-    msg.textContent = e.message.includes("Failed to fetch") ? `Can't reach Ollama at ${url}. Is it running?` : e.message;
+    testMsg.textContent = e.message.includes("Failed to fetch") ? `Can't reach Ollama at ${url}. Is it running?` : e.message;
   }
 });
 

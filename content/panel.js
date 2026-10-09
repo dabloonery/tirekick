@@ -308,7 +308,7 @@
     [hidden] { display:none !important; }
 
     /* search ideas */
-    .ideas { margin:0 16px 14px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
+    .ideas { margin:4px 16px 14px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
     .ideas > summary { list-style:none; cursor:pointer; padding:11px 12px; font-weight:600; display:flex; align-items:center; gap:8px; }
     .ideas > summary::-webkit-details-marker { display:none; }
     .ideas > summary::after { content:""; margin:0 4px 0 auto; width:6px; height:6px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted);
@@ -335,6 +335,7 @@
     .sect .actions { margin-top:8px; }
     .offer { margin-top:12px; padding:11px 12px; background:var(--paper-2); border-radius:var(--r-sm); font-size:12.5px; }
     .offer-acts { margin-top:8px; }
+    .msg-preview { margin-top:8px; color:var(--muted); font-style:italic; }
     .offer b { font:600 19px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
     .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }
     .adjust.up { color:var(--v-great); }
@@ -407,15 +408,6 @@
         <div class="status" role="status"></div>
         <div class="pageinfo" hidden><span class="pi-line"></span><span class="pi-sep" hidden> \u00b7 </span><button class="pi-reset" data-act="reset" hidden>Start over</button></div>
       </div>
-      <details class="ideas">
-        <summary>Search ideas</summary>
-        <div class="ideas-body">
-          <div class="hint ideas-hint">Ideas come from "What I want" when it's filled in. Leave it blank to get ideas from the results on this page.</div>
-          <button class="ghost" data-act="ideas">Get ideas</button>
-          <div class="status ideas-status" role="status"></div>
-          <div class="ideas-list"></div>
-        </div>
-      </details>
       <div class="listbar" hidden>
         <label class="sortpick">Sort <select class="sort">
           <option value="score">best first</option><option value="price">cheapest first</option><option value="margin">biggest margin</option><option value="new">new to you first</option>
@@ -424,6 +416,15 @@
       </div>
       <div class="list"></div>
       <div class="itemout"></div>
+      <details class="ideas">
+        <summary>Search ideas</summary>
+        <div class="ideas-body">
+          <div class="hint ideas-hint">From "What I want" if you've filled it in, otherwise from the results on this page.</div>
+          <button class="ghost" data-act="ideas">Get ideas</button>
+          <div class="status ideas-status" role="status"></div>
+          <div class="ideas-list"></div>
+        </div>
+      </details>
       </div>
       <div class="foot">
         <div class="spend-detail" hidden></div>
@@ -686,13 +687,15 @@
     if (had)
       setStatus(
         SL.pageType() === "item"
-          ? `Switched to ${LENS[lens].name}. Press Analyze this listing to judge it that way.`
+          ? `Switched to ${LENS[lens].name}. Press Analyze to judge this listing that way.`
           : `Switched to ${LENS[lens].name}. Scan again to judge these listings for that (anything already judged this way comes back free).`
       );
     refreshPending();
   };
   root.querySelectorAll("[data-lens]").forEach((b) => b.addEventListener("click", () => setLens(b.dataset.lens)));
   wantEl.addEventListener("change", () => alive() && chrome.storage.local.set({ want: wantEl.value.trim() }).catch(() => {}));
+  // The scan button says when your edits mean a rescan (refreshPending is defined further down).
+  for (const el of [wantEl, queryEl]) el.addEventListener("input", () => refreshPending());
   chrome.storage.local.get({ lens: "use", want: "", theme: "classic" }).then((v) => {
     lens = LENS[v.lens] ? v.lens : "use";
     if (!wantEl.value) wantEl.value = v.want;
@@ -1185,7 +1188,7 @@
   };
   let sortMode = "score";
   const SORTS = {
-    score: (a, b) => b.score - a.score,
+    score: (a, b) => (a.related === false) - (b.related === false) || b.score - a.score, // what you searched for first
     price: (a, b) => (a.total ?? Infinity) - (b.total ?? Infinity) || b.score - a.score,
     margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || b.score - a.score,
     new: (a, b) => {
@@ -1303,6 +1306,11 @@
   // ---------- scan ----------
 
   let scanning = false;
+  // What the last scan judged for. Change your wants, the comparison or the lens and the next
+  // scan judges the whole page again (anything judged this way before still comes back free).
+  let scanInputs = null;
+  const inputsNow = () => [lens, wantEl.value.trim(), queryEl.value.trim()].join("|");
+  const inputsChanged = () => scanInputs !== null && scored.size > 0 && scanInputs !== inputsNow();
 
   // On eBay the sold-listings search is made from the eBay page itself (same site, your cookies,
   // normal browser headers), like any request eBay's own pages make. From Facebook it has to go
@@ -1513,7 +1521,7 @@
     if (scanning || SL.pageType() !== "results") return;
     let n = 0;
     if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);
-    scanBtn.textContent = n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : "Scan this page";
+    scanBtn.textContent = inputsChanged() ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : "Scan this page";
     countEl.classList.toggle("new", n > 0);
     if (n) {
       countEl.textContent = `+${n}`;
@@ -1607,6 +1615,12 @@
 
     try {
       const settings = await send("getSettings");
+      if (inputsChanged()) {
+        clearStickers();
+        listEl.replaceChildren();
+        redecorateAll(); // the non-AI marks stay
+      }
+      scanInputs = inputsNow();
       await pagePass(true);
       // Only listings we haven't scored yet: scrolling loads more, and a re-scan adds just those.
       // Cards the adapter skips (ads, "Shop on eBay") count as seen so they don't show as new.
@@ -1724,6 +1738,7 @@
 
   scanBtn.addEventListener("click", scan);
   resetBtn.addEventListener("click", () => {
+    scanInputs = null;
     clearStickers();
     redecorateAll(); // the non-AI marks stay
     listEl.replaceChildren();
@@ -1846,7 +1861,14 @@
         title: message,
       }, "Copy message");
       parts.push(
-        h("div", { class: "offer" }, `${listing.bestOffer ? "Accepts offers. " : ""}Suggested offer: `, h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`), h("div", { class: "actions offer-acts" }, copy))
+        h(
+          "div",
+          { class: "offer" },
+          `${listing.bestOffer ? "Accepts offers. " : ""}Suggested offer: `,
+          h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`),
+          h("div", { class: "msg-preview" }, `\u201c${message}\u201d`),
+          h("div", { class: "actions offer-acts" }, copy)
+        )
       );
     }
     if (listing.lot && listing.total != null) parts.push(h("div", { class: "meta" }, `Lot of ${listing.lot}: about ${dollars(Math.round((listing.total / listing.lot) * 100) / 100)} each.`));
@@ -1950,6 +1972,7 @@
       listing.bidCap = listing.auction ? bidCapFor(listing) : null;
       renderItem(listing, r, market);
       setCount(1);
+      analyzeBtn.textContent = "Analyze again";
       setStatus(settings.provider === "anthropic" && r.cost ? `Cost ${fmtCost(r.cost)}.` : "");
     } catch (e) {
       setStatus(e.message, true);
@@ -2088,13 +2111,13 @@
   const saveScan = (href) => {
     if (!scored.size) return;
     stash.delete(href);
-    stash.set(href, { scored, seen, facts, pageHadKnown, lastMarket, lens, query: queryEl.value, market: [...marketEl.childNodes] });
+    stash.set(href, { scored, seen, facts, pageHadKnown, lastMarket, scanInputs, lens, query: queryEl.value, market: [...marketEl.childNodes] });
     if (stash.size > 5) stash.delete(stash.keys().next().value);
   };
   const restoreScan = (href) => {
     const saved = stash.get(href);
     if (!saved || saved.lens !== lens) return false;
-    ({ scored, seen, facts, pageHadKnown, lastMarket } = saved);
+    ({ scored, seen, facts, pageHadKnown, lastMarket, scanInputs } = saved);
     queryEl.value = saved.query;
     marketEl.replaceChildren(...saved.market);
     render([...scored.values()]);
@@ -2121,6 +2144,8 @@
       ideasList.replaceChildren();
       ideasStatus.textContent = "";
       lastMarket = null;
+      scanInputs = null;
+      analyzeBtn.textContent = "Analyze this listing";
       clearStickers();
       facts = new Map();
       passKeys = new Set();

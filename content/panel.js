@@ -183,6 +183,10 @@
       box-shadow:var(--press); cursor:pointer; transition:opacity .15s, transform .08s, box-shadow .08s; }
     .scan:hover:not(:disabled) { opacity:.88; }
     .scan:disabled { opacity:.55; cursor:progress; }
+    .freeprices { margin-top:-4px; text-align:center; color:var(--muted); font-size:12px; }
+    .freeprices button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .freeprices button:hover { text-decoration-color:currentColor; }
+    .freeprices button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .status { color:var(--muted); font-size:12px; }
     .status:empty { display:none; }
     .status.err { color:var(--v-suspicious); border-left:2px solid currentColor; padding-left:10px; }
@@ -242,6 +246,8 @@
     .pi-reset:hover { text-decoration-color:currentColor; }
     .pageinfo .chips { margin-top:8px; }
     .pageinfo .pi-acts { margin-top:8px; color:var(--muted); font-weight:500; }
+    .pi-search { margin-top:8px; }
+    .pi-search:empty { display:none; }
     .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:12.5px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
     .pi-line b { color:var(--ink); font-weight:600; }
@@ -290,6 +296,9 @@
     .tag { --p:50; --c:var(--v-fair); width:44px; height:44px; border-radius:50%; position:relative; display:grid; place-items:center;
       background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--rule) 0); }
     .tag::before { content:""; position:absolute; inset:2px; border-radius:50%; background:var(--paper); }
+    .ptag { width:44px; padding-top:1px; font:600 15px/1.2 var(--display); font-variant-numeric:lining-nums tabular-nums; text-align:center; color:var(--ink); overflow-wrap:anywhere; }
+    .row.plain { padding:11px 0; }
+    .row.plain .actions { margin-top:6px; gap:6px 14px; }
     .tag span { position:relative; font:600 17px/1 var(--display); color:var(--c); font-variant-numeric:lining-nums tabular-nums; }
     [data-v="great"] { --c:var(--v-great); } [data-v="good"] { --c:var(--v-good); } [data-v="fair"] { --c:var(--v-fair); }
     [data-v="pass"] { --c:var(--v-pass); } [data-v="suspicious"] { --c:var(--v-suspicious); }
@@ -308,17 +317,29 @@
     [hidden] { display:none !important; }
 
     /* search ideas */
-    .ideas { margin:4px 16px 14px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
-    .ideas > summary { list-style:none; cursor:pointer; padding:11px 12px; font-weight:600; display:flex; align-items:center; gap:8px; }
-    .ideas > summary::-webkit-details-marker { display:none; }
-    .ideas > summary::after { content:""; margin:0 4px 0 auto; width:6px; height:6px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted);
+    .fold { margin:4px 16px 14px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
+    .fold > summary { list-style:none; cursor:pointer; padding:11px 12px; font-weight:600; display:flex; align-items:center; gap:8px; }
+    .fold > summary::-webkit-details-marker { display:none; }
+    .fold > summary::after { content:""; margin:0 4px 0 auto; width:6px; height:6px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted);
       transform:rotate(45deg); transition:transform .2s; }
-    .ideas[open] > summary::after { transform:rotate(-135deg); }
-    .ideas-body { padding:0 12px 12px; display:grid; gap:10px; }
+    .fold[open] > summary::after { transform:rotate(-135deg); }
+    .fold-body { padding:0 12px 12px; display:grid; gap:10px; }
     .ghost { background:none; color:var(--ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:9px; font:600 13px/1 var(--ui); cursor:pointer; transition:background .15s, color .15s; }
     .ghost:hover:not(:disabled) { background:var(--ink); color:var(--on-ink); }
     .ghost:disabled { opacity:.55; cursor:progress; }
     .ideas-list:empty { display:none; }
+    .fold + .fold { margin-top:-4px; }
+    .fold .cnt { color:var(--muted); font-weight:500; }
+    .saved-body .sub { display:block; margin:4px 0 0; color:var(--muted); font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+    .srow { display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--rule); }
+    .sub + .srow { border-top:0; }
+    .srow > div { flex:1; min-width:0; }
+    .srow a { color:var(--ink); font-weight:600; text-decoration:none; overflow-wrap:anywhere; }
+    .srow a:hover { text-decoration:underline; text-underline-offset:3px; }
+    .srow .meta { margin-top:1px; }
+    .srow .down { color:var(--v-great); font-weight:600; }
+    .sx { flex:none; width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); font:16px/1 var(--ui); cursor:pointer; }
+    .sx:hover { background:var(--paper-2); color:var(--ink); }
     .idea { display:block; padding:10px 0; border-top:1px solid var(--rule); color:var(--ink); text-decoration:none; animation:fade .25s ease both; }
     .idea:hover .q { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
     .kind { color:var(--muted); font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
@@ -370,7 +391,7 @@
     [data-theme="retro"] .tag span { font-size:16px; }
     [data-theme="retro"] .flag, [data-theme="retro"] .chip { border-radius:0; border-color:var(--muted); }
     [data-theme="retro"] .idea .q { font:600 13px/1.35 var(--display); }
-    [data-theme="retro"] .ideas > summary { font:600 12px/1 var(--display); letter-spacing:.1em; text-transform:uppercase; }
+    [data-theme="retro"] .fold > summary { font:600 12px/1 var(--display); letter-spacing:.1em; text-transform:uppercase; }
     [data-theme="retro"] .busy .status:not(.err):not(:empty)::before { content:"\\25AE"; width:auto; height:auto; border:0; margin-right:6px; vertical-align:0; animation:blink 1s steps(1) infinite; }
     @keyframes blink { 50% { opacity:0; } }
 
@@ -404,21 +425,26 @@
           <button class="ghost" data-act="open-settings">Open settings</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
+        <div class="freeprices" hidden><button data-act="prices">Just compare sold prices</button> <span>free, no AI</span></div>
         <div class="market"></div>
         <div class="status" role="status"></div>
-        <div class="pageinfo" hidden><span class="pi-line"></span><span class="pi-sep" hidden> \u00b7 </span><button class="pi-reset" data-act="reset" hidden>Start over</button></div>
+        <div class="pageinfo" hidden><span class="pi-line"></span><span class="pi-sep" hidden> \u00b7 </span><button class="pi-reset" data-act="reset" hidden>Start over</button><div class="actions pi-search"></div></div>
       </div>
       <div class="listbar" hidden>
         <label class="sortpick">Sort <select class="sort">
-          <option value="score">best first</option><option value="price">cheapest first</option><option value="margin">biggest margin</option><option value="new">new to you first</option>
+          <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest under sold price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest margin</option><option value="new">new or cheaper first</option>
         </select></label>
         <div class="skipwrap" title="Listings judged Skip or Suspicious"><span>Skipped</span><div class="seg" role="radiogroup" aria-label="Skipped and suspicious listings"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
       </div>
       <div class="list"></div>
       <div class="itemout"></div>
-      <details class="ideas">
+      <details class="fold saved">
+        <summary>Saved <span class="cnt"></span></summary>
+        <div class="fold-body saved-body"></div>
+      </details>
+      <details class="fold ideas">
         <summary>Search ideas</summary>
-        <div class="ideas-body">
+        <div class="fold-body ideas-body">
           <div class="hint ideas-hint">From "What I want" if you've filled it in, otherwise from the results on this page.</div>
           <button class="ghost" data-act="ideas">Get ideas</button>
           <div class="status ideas-status" role="status"></div>
@@ -463,9 +489,11 @@
   const itemEl = $(".itemout");
   const pageInfo = $(".pageinfo");
   const piLine = $(".pi-line");
+  const piSearch = $(".pi-search");
   const listBar = $(".listbar");
   const sortSel = $(".sort");
   const setupCard = $(".setup");
+  const freeRow = $(".freeprices");
 
   // action: an optional { label, fn } shown after the text, e.g. Undo.
   const setStatus = (text, isErr = false, action = null) => {
@@ -782,7 +810,7 @@
       html[data-sl-skip="hide"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]) { display:none !important; }
       /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering */
       [data-sl-cell]:has(.second-look-sticker:hover, .second-look-marks:hover) { position:relative; z-index:2147483000 !important; }
-      .second-look-sticker .sl-acts { display:flex; gap:12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--sl-rule); }
+      .second-look-sticker .sl-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--sl-rule); }
       .second-look-sticker .sl-acts button, .second-look-sticker .sl-acts a { all:unset; cursor:pointer; color:var(--sl-ink); font-weight:600; font-size:12px;
         text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
       .second-look-sticker .sl-acts :is(button, a):hover { text-decoration-color:currentColor; }
@@ -822,18 +850,22 @@
   const MEMORY_MAX = 6000;
   // Prices are the item price without shipping: shipping isn't always readable (and varies), so
   // comparing totals would invent drops. Auctions aren't tracked for drops: their price only rises.
-  let memory = {}; // key -> { p: last price seen, pa: since when, f: first seen, a: last seen, o: first opened }
+  let memory = {}; // key -> { p: last price seen, pa: since when, f: first seen, a: last seen, o: first opened, h: earlier [price, since] }
   let notInterested = {}; // key -> { t: title, a: when }
   let prefs = { hideWords: "", needWords: "", minSellerRatings: 10, minSellerPct: 97, autoMarks: true };
   let skipMode = "dim";
   let showHidden = false;
   let facts = new Map(); // key -> facts for this page view
   let codeStems = {}; // Facebook title without its trailing code -> { c: { code: listing key }, a: last seen }
+  let saved = {}; // key -> { t: title, u: url, img, p0: price when saved, a0: when, p: last price seen, a: last seen }
+  let savedSearches = {}; // "site|query" -> { site, q, url, a0: when saved, v: last visit, n: listings then, fresh: new to you then }
   const dirtyMemory = new Set();
   const dirtyStems = new Set();
-  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "skipMode", "codeStems"]).then((v) => {
+  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "skipMode", "codeStems", "saved", "savedSearches"]).then((v) => {
     memory = v.listingMemory || {};
     codeStems = v.codeStems || {};
+    saved = v.saved || {};
+    savedSearches = v.savedSearches || {};
     notInterested = v.notInterested || {};
     skipMode = ["show", "dim", "hide"].includes(v.skipMode) ? v.skipMode : "dim"; // greyed out unless you choose otherwise
     document.documentElement.dataset.slSkip = skipMode;
@@ -859,7 +891,7 @@
       const kept = Object.entries(listingMemory).filter(([, r]) => r && r.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-MEMORY_MAX);
       memory = Object.fromEntries(kept);
       await chrome.storage.local.set({ listingMemory: memory });
-    }, 1500);
+    }, 300); // soon: if you click through to a listing, a slower save would be lost
   };
 
   // Scam campaigns: one fake listing posted over and over, each copy with its own code on the end of
@@ -897,7 +929,10 @@
     const out = { isNew: !rec && pageHadKnown };
     if (auction) price = null; // keep the last fixed price, if any; a current bid says nothing about drops
     if (rec && price != null && rec.p != null && price < rec.p - Math.max(1, rec.p * 0.03)) out.drop = { from: rec.p, since: rec.pa };
-    memory[key] = { p: price ?? rec?.p ?? null, pa: rec && (price == null || rec.p === price) ? rec.pa : now, f: rec?.f ?? now, a: now, ...(rec?.o && { o: rec.o }) };
+    // Every price change is kept (the last five), so a listing page can show its history.
+    const changed = rec && price != null && rec.p != null && rec.p !== price;
+    const hist = changed ? [...(rec.h || []), [rec.p, rec.pa]].slice(-5) : rec?.h;
+    memory[key] = { p: price ?? rec?.p ?? null, pa: rec && (price == null || rec.p === price) ? rec.pa : now, f: rec?.f ?? now, a: now, ...(rec?.o && { o: rec.o }), ...(hist?.length && { h: hist }) };
     dirtyMemory.add(key);
     saveMemorySoon();
     return out;
@@ -932,10 +967,13 @@
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
+    if (f.vsSold != null) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${Math.round(f.vsSold * 100)}% of sold`]);
     if (f.isNew) c.push(["new", "New to you"]);
     if (f.sellerWarn) c.push(["warn", f.sellerWarn]);
     if (f.dup) c.push(["warn", `Same title ×${f.dup}`]);
-    if (f.auction) c.push(["plain", `Auction${f.timeLeft ? ` · ${f.timeLeft} left` : ""}`]);
+    // An auction in its last few hours, especially with no bids, is when bargains happen.
+    if (f.auction && f.hoursLeft != null && f.hoursLeft <= 3) c.push(["new", `Ends in ${f.timeLeft}${f.bids === 0 ? " · no bids" : ""}`]);
+    else if (f.auction) c.push(["plain", `Auction${f.timeLeft ? ` · ${f.timeLeft} left` : ""}`]);
     if (f.lot) c.push(["plain", `Lot of ${f.lot}`]);
     if (f.bestOffer) c.push(["plain", "Offers"]);
     return c.slice(0, 3);
@@ -1008,12 +1046,138 @@
     if (!prefs.autoMarks && !(showHidden && (f.hidden || f.filtered))) return;
     const chips = chipEls(f);
     if (showHidden && f.hidden) chips.push(h("button", { class: "sl-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
-    else if (!f.hidden) chips.push(hideChip(key)); // appears when you hover the card
+    else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Sold / Not interested appear when you hover the card
     host.append(h("div", { class: `second-look-marks${theme === "retro" ? " sl-retro" : ""}` }, chips));
   };
   const stick = (item) => decorate(keyOf(item.url), item.el);
   // "✕ Not interested", shown on any card while you hover it.
   const hideChip = (key) => h("button", { class: "sl-chip k-plain sl-x", title: "Hide this listing everywhere (undo from the panel)", onclick: own(() => setInterested(key, false)) }, "\u2715 Not interested");
+  // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
+  const soldLink = (title) => SL.soldUrl(SL.titleToQuery(title), SL.SOLD_CONDITION.used);
+  // What every card offers on hover. A saved listing keeps its star showing.
+  const hoverChips = (key, f) => [
+    saved[key]
+      ? h("button", { class: "sl-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "\u2605 Saved")
+      : h("button", { class: "sl-chip k-plain sl-x", title: "Keep it under Saved in the panel", onclick: own(() => toggleSave(key)) }, "\u2606 Save"),
+    f.title ? h("button", { class: "sl-chip k-plain sl-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
+    hideChip(key),
+  ];
+
+  // ---------- saved listings and searches (kept in this browser, across both sites) ----------
+  // Several tabs may write at once, so each change is merged into what's stored.
+  const writeStored = async (name, mutate) => {
+    const stored = (await chrome.storage.local.get(name))[name] || {};
+    mutate(stored);
+    await chrome.storage.local.set({ [name]: stored });
+    return stored;
+  };
+  const toggleSave = async (key) => {
+    const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
+    const was = !!saved[key];
+    saved = await writeStored("saved", (s) => {
+      if (was) delete s[key];
+      else s[key] = { t: f.title || "", u: f.url || location.href.split("?")[0], img: f.imageUrl || "", p0: f.price ?? null, a0: Date.now(), p: f.price ?? null, a: Date.now() };
+    });
+    afterSavedChange();
+    setStatus(was ? "Removed from Saved." : `Saved \u201c${(f.title || "listing").slice(0, 50)}\u201d. It's under Saved at the bottom of the panel.`, false, { label: "Undo", fn: () => toggleSave(key) });
+  };
+  const searchKey = (q) => `${SL.currentSite()}|${q.trim().toLowerCase()}`;
+  const pageSearch = () => (SL.currentSite() === "ebay" ? SL.ebayQuery() : SL.facebookQuery()).trim();
+  const toggleSearch = async (q) => {
+    const k = searchKey(q);
+    const was = !!savedSearches[k];
+    savedSearches = await writeStored("savedSearches", (s) => {
+      if (was) delete s[k];
+      else s[k] = { site: SL.currentSite(), q, url: location.href, a0: Date.now(), v: Date.now(), n: facts.size, fresh: 0 };
+    });
+    afterSavedChange();
+    setStatus(was ? "Search removed from Saved." : `Saved the search \u201c${q}\u201d. Open it again from Saved; new listings will say "New to you".`);
+  };
+  const savedBox = $(".saved");
+  const siteName = (k) => (k.startsWith("fb") ? "Marketplace" : "eBay");
+  const removeStored = async (name, k) => {
+    const next = await writeStored(name, (s) => delete s[k]);
+    if (name === "saved") saved = next;
+    else savedSearches = next;
+    afterSavedChange();
+  };
+  // The Saved section: listings with the price you saved them at and the latest you've seen, and
+  // searches with when you last looked. Built when opened.
+  const renderSaved = () => {
+    const items = Object.entries(saved).sort((a, b) => b[1].a0 - a[1].a0);
+    const searches = Object.entries(savedSearches).sort((a, b) => b[1].v - a[1].v);
+    $(".saved .cnt").textContent = items.length + searches.length ? String(items.length + searches.length) : "";
+    if (!savedBox.open) return;
+    const priceLine = (k, r) => {
+      const now = r.p != null ? dollars(r.p) : "no price";
+      const moved = r.p0 != null && r.p != null && r.p !== r.p0;
+      return [
+        `${siteName(k)} \u00b7 ${now}`,
+        moved ? h("span", { class: r.p < r.p0 ? "down" : "" }, ` (${r.p < r.p0 ? "\u2193" : "\u2191"} from ${dollars(r.p0)})`) : "",
+        ` \u00b7 ${r.a - r.a0 > 60000 ? `seen ${shortDate(r.a)}` : `saved ${shortDate(r.a0)}`}`,
+      ];
+    };
+    const copy = h("button", {
+      onclick: async () => {
+        const text = items.map(([k, r]) => `${r.t} \u2014 ${r.p != null ? dollars(r.p) : "no price"} (${siteName(k)})\n${r.u}`).join("\n\n");
+        try {
+          await navigator.clipboard.writeText(text);
+          copy.textContent = "Copied";
+        } catch {
+          copy.textContent = "Couldn't copy";
+        }
+      },
+    }, "Copy the list");
+    $(".saved-body").replaceChildren(
+      ...(!items.length && !searches.length
+        ? [h("div", { class: "hint" }, "Hover any card and press \u2606 Save to keep it here, or save a search from the line under the Scan button. Both sites, kept in this browser. Prices update whenever the listing is on your screen again.")]
+        : [
+            items.length ? h("b", { class: "sub" }, "Listings") : null,
+            ...items.map(([k, r]) =>
+              h(
+                "div",
+                { class: "srow" },
+                h("div", {}, h("a", { href: r.u, target: "_blank", rel: "noopener" }, r.t || r.u), h("div", { class: "meta" }, priceLine(k, r))),
+                h("button", { class: "sx", title: "Remove from Saved", "aria-label": "Remove from Saved", onclick: () => removeStored("saved", k) }, "\u00d7")
+              )
+            ),
+            searches.length ? h("b", { class: "sub" }, "Searches") : null,
+            ...searches.map(([k, r]) =>
+              h(
+                "div",
+                { class: "srow" },
+                h(
+                  "div",
+                  {},
+                  h("a", { href: r.url, title: "Run this search again" }, `\u201c${r.q}\u201d`),
+                  h("div", { class: "meta" }, `${r.site === "ebay" ? "eBay" : "Marketplace"} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`)
+                ),
+                h("button", { class: "sx", title: "Remove this search", "aria-label": "Remove this search", onclick: () => removeStored("savedSearches", k) }, "\u00d7")
+              )
+            ),
+            items.length ? h("div", { class: "actions" }, copy) : null,
+          ])
+    );
+  };
+  savedBox.addEventListener("toggle", renderSaved);
+  // After any change to Saved (here, or in another tab): the section, the cards' stars, the listing view.
+  const afterSavedChange = () => {
+    renderSaved();
+    if (SL.pageType() === "results" && facts.size) redecorateAll();
+    if (SL.pageType() === "item") renderItemInfo();
+  };
+  chrome.storage.onChanged.addListener((changes) => {
+    if (!alive() || !(changes.saved || changes.savedSearches)) return;
+    if (changes.saved) saved = changes.saved.newValue || {};
+    if (changes.savedSearches) savedSearches = changes.savedSearches.newValue || {};
+    afterSavedChange();
+  });
+  memoryReady.then(renderSaved);
+
+  // The same words on the other site, in a new tab.
+  const otherSiteUrl = (q) =>
+    SL.currentSite() === "ebay" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(q)}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`;
+
 
   const reapplyFacebook = () => {
     if ((!scored.size && !facts.size) || SL.currentSite() !== "facebook") return;
@@ -1073,6 +1237,8 @@
         Object.assign(f, {
           title: it.title,
           price: it.price,
+          priceText: it.priceText,
+          shipping: it.shipping,
           total: it.total,
           url: it.url,
           imageUrl: it.imageUrl,
@@ -1081,18 +1247,74 @@
           filtered: filterReason(it.title),
           hidden: !!notInterested[key],
         });
+        f.vsSold = vsSoldOf(f);
         facts.set(key, f);
       }
+      await notePrices(items);
       // "New to you" only helps on a search you come back to, and only when it picks out a few:
       // on a feed, or when most of the page is new anyway, every card would wear it.
       const all = [...facts.values()];
       const showNew = !!(SL.facebookQuery() || SL.ebayQuery()) && all.filter((f) => f.fresh).length <= all.length * 0.4;
       all.forEach((f) => (f.isNew = showNew && !!f.fresh));
       for (const it of items) decorate(keyOf(it.url), it.el);
+      await noteSearchVisit(all);
       renderPageInfo();
+      render();
+      // Sold prices already looked up for this search (in the last few hours) apply for free.
+      if (!lastMarket && !cacheTried) {
+        cacheTried = true;
+        const m = await cachedMarket(queryEl.value);
+        if (m && !lastMarket) {
+          renderMarket(m);
+          applyMarket(m);
+        }
+      }
     } finally {
       passing = false;
     }
+  };
+
+  // ---------- prices without a model ----------
+  // How a listing's total compares with the eBay sold median for this search. Lots and auctions
+  // (where the price is only a bid) aren't compared with one item's selling price.
+  let cacheTried = false;
+  let marketFor = ""; // the search the cards' "% of sold" is for
+  const vsSoldOf = (f) => (lastMarket?.median > 0 && f.total != null && !f.lot && !f.auction ? f.total / lastMarket.median : null);
+  const applyMarket = (market) => {
+    lastMarket = market;
+    marketFor = queryEl.value.trim().toLowerCase();
+    for (const f of facts.values()) f.vsSold = vsSoldOf(f);
+    redecorateAll();
+    refreshPending();
+  };
+  const cachedMarket = async (query) => {
+    if (!query.trim()) return null;
+    const { soldCache = {} } = await chrome.storage.local.get("soldCache");
+    const hit = soldCache[`used:${query.trim().toLowerCase()}`];
+    return hit?.market && Date.now() - hit.at < SOLD_TTL_MS ? { ...hit.market, condition: "used" } : null;
+  };
+
+  // Saved listings take the latest price whenever they're on screen (no checking in the background).
+  const notePrices = async (items) => {
+    const seenNow = items.filter((it) => saved[keyOf(it.url)] && it.price != null);
+    const stale = seenNow.filter((it) => {
+      const s = saved[keyOf(it.url)];
+      return s.p !== it.price || Date.now() - s.a > 60 * 60 * 1000;
+    });
+    if (!stale.length) return;
+    saved = await writeStored("saved", (s) => {
+      for (const it of stale) if (s[keyOf(it.url)]) Object.assign(s[keyOf(it.url)], { p: it.price, a: Date.now() });
+    });
+  };
+  // A saved search remembers when you last looked and how much was new then.
+  const noteSearchVisit = async (all) => {
+    const q = pageSearch();
+    const rec = q && savedSearches[searchKey(q)];
+    if (!rec || (rec.n === all.length && Date.now() - rec.v < 10 * 60 * 1000)) return;
+    savedSearches = await writeStored("savedSearches", (s) => {
+      const r = s[searchKey(q)];
+      if (r) Object.assign(r, { v: Date.now(), n: all.length, fresh: all.filter((f) => f.fresh).length, url: location.href });
+    });
   };
 
   // Re-dress everything after a settings change (filters, marks, hidden toggle).
@@ -1104,7 +1326,7 @@
     }
     const els = new Map(SL.extract().map((it) => [keyOf(it.url), it.el]));
     for (const key of facts.keys()) if (els.has(key)) decorate(key, els.get(key));
-    render([...scored.values()]);
+    render();
     renderPageInfo();
   };
 
@@ -1120,7 +1342,7 @@
     if (facts.has(key)) facts.get(key).hidden = !interested;
     const el = scored.get(key)?.el || SL.extract().find((it) => keyOf(it.url) === key)?.el;
     if (el) decorate(key, el);
-    render([...scored.values()]);
+    render();
     renderPageInfo();
     if (!interested) setStatus(`Hidden “${(f.title || "listing").slice(0, 50)}”.`, false, { label: "Undo", fn: () => setInterested(key, true) });
     else setStatus("");
@@ -1132,7 +1354,7 @@
     const sub = lensLine(item);
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
-      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)))
+      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !/% of sold$/.test(t))
       .map(([kind, text]) => h("span", { class: `sl-chip k-${kind}` }, text));
     if (item.photoAdjust) {
       const chip = h("span", { class: "sl-chip", title: "Photo check" }, signed(item.photoAdjust));
@@ -1145,7 +1367,7 @@
       { class: `second-look-sticker${theme === "retro" ? " sl-retro" : ""}${under.length ? " has-chip" : ""}`, "data-v": item.verdict },
       h("div", { class: "sl-score" }, String(item.score)),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
-      h("div", { class: "sl-under" }, under.slice(0, 3), hideChip(key)),
+      h("div", { class: "sl-under" }, under.slice(0, 3), hoverChips(key, { ...item, ...f })),
       h(
         "div",
         { class: "sl-pop" },
@@ -1167,8 +1389,10 @@
         h(
           "div",
           { class: "sl-acts" },
+          h("button", { onclick: own(() => toggleSave(key)) }, saved[key] ? "Unsave" : "Save"),
           h("button", { onclick: own(() => setInterested(key, false)) }, "Not interested"),
-          item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "Search this photo") : null
+          h("a", { href: soldLink(item.title), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "Sold on eBay"),
+          item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "Find photo") : null
         )
       )
     );
@@ -1186,74 +1410,133 @@
     const f = facts.get(keyOf(it.url));
     return !showHidden && (!!notInterested[keyOf(it.url)] || !!f?.filtered);
   };
+  // Skipped and suspicious listings (and reposted scams, judged without a model) follow the Skipped setting.
+  const isSkip = (it) => it.verdict === "pass" || it.verdict === "suspicious" || (it.score == null && !!facts.get(keyOf(it.url))?.campaign);
+
+  // Every listing on the page, scored or not: before a scan the list is the page in a form you
+  // can sort, with the free facts; scoring fills in verdicts as they arrive.
+  const pageItems = () => {
+    const out = [];
+    for (const [key, f] of facts) out.push(scored.get(key) || { ...f, key });
+    for (const [key, it] of scored) if (!facts.has(key)) out.push(it);
+    return out;
+  };
+  const sc = (it) => it.score ?? -1;
+  const perItem = (it) => (it.total == null ? Infinity : it.lot ? it.total / it.lot : it.total);
+  const vsSold = (it) => it.vsWorking ?? facts.get(keyOf(it.url))?.vsSold ?? Infinity;
+  const endsIn = (it) => (it.auction ? (it.hoursLeft ?? 1e6) : Infinity);
   let sortMode = "score";
+  // Ties keep the page's own order (sort is stable).
   const SORTS = {
-    score: (a, b) => (a.related === false) - (b.related === false) || b.score - a.score, // what you searched for first
-    price: (a, b) => (a.total ?? Infinity) - (b.total ?? Infinity) || b.score - a.score,
-    margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || b.score - a.score,
+    score: (a, b) => (a.score == null) - (b.score == null) || (a.related === false) - (b.related === false) || sc(b) - sc(a), // your search first
+    price: (a, b) => perItem(a) - perItem(b) || sc(b) - sc(a),
+    value: (a, b) => vsSold(a) - vsSold(b) || perItem(a) - perItem(b),
+    margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || sc(b) - sc(a),
+    ending: (a, b) => endsIn(a) - endsIn(b) || perItem(a) - perItem(b),
     new: (a, b) => {
       const rank = (it) => {
         const f = facts.get(keyOf(it.url)) || {};
         return f.drop ? 2 : f.isNew ? 1 : 0;
       };
-      return rank(b) - rank(a) || b.score - a.score;
+      return rank(b) - rank(a) || sc(b) - sc(a);
     },
   };
-  const render = (items) => {
+  const shownKeys = new Set(); // rows that already animated in; re-sorting shouldn't replay it
+  const render = () => {
     listEl.replaceChildren();
-    [...items]
-      .filter((it) => it.score != null && !isHidden(it) && !(skipMode === "hide" && (it.verdict === "pass" || it.verdict === "suspicious")))
+    if (SL.pageType() !== "results") return;
+    pageItems()
+      .filter((it) => !isHidden(it) && !(skipMode === "hide" && isSkip(it)))
       .sort(SORTS[sortMode] || SORTS.score)
       .forEach((it, i) => {
+        const key = keyOf(it.url);
+        const f = facts.get(key) || it;
+        const still = shownKeys.has(key);
+        shownKeys.add(key);
+        const known = chipsFor(f)
+          .filter(([, t]) => !/^Auction|^Lot of|% of sold$/.test(t))
+          .map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+        const saveBtn = h("button", { onclick: () => toggleSave(key) }, saved[key] ? "\u2605 Saved" : "Save");
+        const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
+        // Not scored (yet): the price is the headline, with what's known for free.
+        if (it.score == null) {
+          const vs = f.vsSold != null ? ` \u00b7 ${Math.round(f.vsSold * 100)}% of sold median` : "";
+          const each = it.lot && it.total != null ? ` \u00b7 lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
+          listEl.append(
+            h(
+              "div",
+              { class: still ? "row plain still" : "row plain", style: `--i:${Math.min(i, 8)}` },
+              h("div", { class: "ptag" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
+              h(
+                "div",
+                {},
+                h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
+                h("div", { class: "meta" }, `${priceStr(it)}${vs}${each}${it.auction && it.timeLeft ? ` \u00b7 ${it.timeLeft} left` : ""}`),
+                known.length ? h("div", { class: "flags" }, known) : null,
+                h(
+                  "div",
+                  { class: "actions" },
+                  h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
+                  h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
+                  saveBtn,
+                  hideBtn
+                )
+              )
+            )
+          );
+          return;
+        }
         const v = VERDICT[it.verdict] || VERDICT.fair;
         const box = photoBox(it);
         const vsMarket =
           it.vsWorking != null && !it.auction && !it.lot
             ? it.refIsEstimate
-              ? ` · ~${Math.round(it.vsWorking * 100)}% of typical (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-              : ` · ${Math.round(it.vsWorking * 100)}% of sold median${it.sold ? ` (${it.sold.n} sales)` : ""}`
+              ? ` \u00b7 ~${Math.round(it.vsWorking * 100)}% of typical (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
+              : ` \u00b7 ${Math.round(it.vsWorking * 100)}% of sold median${it.sold ? ` (${it.sold.n} sales)` : ""}`
             : "";
-        const f = facts.get(keyOf(it.url)) || it;
         const line = lensLine(it);
-        // Only rows appearing for the first time animate in; re-sorting shouldn't replay it for all.
-        const row = h(
-          "div",
-          { class: it.shown ? "row still" : "row", style: `--i:${Math.min(i, 8)}` },
-          h("div", { class: "tag", "data-v": it.verdict, style: `--p:${it.score}`, "aria-label": `Score ${it.score}` }, h("span", {}, String(it.score))),
+        const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
+        listEl.append(
           h(
             "div",
-            {},
-            h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
-            h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""} · ${priceStr(it)}${it.related === false ? "" : vsMarket}`),
-            (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` · ${it.fault}` : "")) : null,
-            h("div", { class: "reason" }, it.reason || ""),
-            // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
-            (() => {
-              const known = chipsFor(f).filter(([, t]) => !/^Auction|^Lot of/.test(t)).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
-              const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
-              return known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null;
-            })(),
+            { class: still ? "row still" : "row", style: `--i:${Math.min(i, 8)}` },
+            h("div", { class: "tag", "data-v": it.verdict, style: `--p:${it.score}`, "aria-label": `Score ${it.score}` }, h("span", {}, String(it.score))),
             h(
               "div",
-              { class: "actions" },
-              h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
-              it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
-              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Ask the model to look at the photo (changes the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
-              h("button", { onclick: () => setInterested(keyOf(it.url), !!notInterested[keyOf(it.url)]) }, notInterested[keyOf(it.url)] ? "Undo hide" : "Not interested")
-            ),
-            box
+              {},
+              h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
+              h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""} \u00b7 ${priceStr(it)}${it.related === false ? "" : vsMarket}`),
+              (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` \u00b7 ${it.fault}` : "")) : null,
+              h("div", { class: "reason" }, it.reason || ""),
+              // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
+              known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null,
+              h(
+                "div",
+                { class: "actions" },
+                h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
+                it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
+                it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Ask the model to look at the photo (changes the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
+                saveBtn,
+                hideBtn
+              ),
+              box
+            )
           )
         );
-        it.shown = true;
-        listEl.append(row);
       });
   };
 
   // Scroll to the card and outline it for a moment. If the open panel would cover it, tuck the
   // panel away (the tab stays, one click brings it back) so you can actually see the listing.
+  const elFor = (key) => {
+    const id = key.split(":")[1];
+    if (key.startsWith("fb:")) return document.querySelector(`a[href*="/marketplace/item/${id}"]`);
+    return document.querySelector(`a[href*="/itm/"][href*="${id}"]`)?.closest(SL.EBAY_CARDS) || null;
+  };
   const focusCard = (it) => {
-    if (!it.el?.isConnected) return window.open(it.url, "_blank", "noopener");
-    const card = stickerHost(it.el);
+    const el = it.el?.isConnected ? it.el : elFor(keyOf(it.url));
+    if (!el) return window.open(it.url, "_blank", "noopener");
+    const card = stickerHost(el);
     card.scrollIntoView({ behavior: "smooth", block: "center" });
     const c = card.getBoundingClientRect();
     if (wrap.classList.contains("open") && c.right > panel.getBoundingClientRect().left) showOpen(false);
@@ -1281,7 +1564,7 @@
       it.sold = { median: m.median, n: m.n, p25: m.p25, p75: m.p75 };
       useReference(it, m.median, false);
       stick(it);
-      render([...scored.values()]);
+      render();
       setStatus(`eBay sold \u201c${it.query}\u201d: median $${m.median} from ${m.n} sales.`);
     } catch (e) {
       setStatus(e.message, true);
@@ -1296,7 +1579,7 @@
     try {
       applyPhotos(it, [await send("checkPhoto", { imageUrl: SL.bigImage(it.imageUrl), title: it.title })]);
       stick(it);
-      render([...scored.values()]); // the score may have changed, so the order may too
+      render(); // the score may have changed, so the order may too
     } catch (e) {
       box.replaceChildren(h("div", { class: "photo drop" }, e.message));
       btn.disabled = false;
@@ -1518,6 +1801,7 @@
   };
 
   const refreshPending = () => {
+    freeRow.hidden = scanning || SL.pageType() !== "results" || !queryEl.value.trim() || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
     if (scanning || SL.pageType() !== "results") return;
     let n = 0;
     if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);
@@ -1552,7 +1836,17 @@
         h("button", { onclick: () => setShowHidden(!showHidden) }, showHidden ? "hide them" : "show")
       );
     }
-    listBar.hidden = !scored.size;
+    listBar.hidden = !facts.size;
+    // Search tools: keep this search, or run it on the other site.
+    const q = pageSearch();
+    piSearch.replaceChildren(
+      ...(q
+        ? [
+            h("button", { onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "\u2605 Saved search" : "\u2606 Save this search"),
+            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, SL.currentSite() === "ebay" ? "Same search on Marketplace \u2197" : "Same search on eBay \u2197"),
+          ]
+        : [])
+    );
     root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
     pageInfo.hidden = false;
   };
@@ -1564,7 +1858,7 @@
   sortSel.addEventListener("change", () => {
     sortMode = sortSel.value;
     if (alive()) chrome.storage.local.set({ sortMode }).catch(() => {});
-    render([...scored.values()]);
+    render();
   });
   chrome.storage.local.get({ sortMode: "score" }).then((v) => {
     sortMode = SORTS[v.sortMode] ? v.sortMode : "score";
@@ -1575,7 +1869,7 @@
       skipMode = b.dataset.skip;
       document.documentElement.dataset.slSkip = skipMode;
       if (alive()) chrome.storage.local.set({ skipMode }).catch(() => {});
-      render([...scored.values()]);
+      render();
       renderPageInfo();
     })
   );
@@ -1649,6 +1943,7 @@
       const browse = query ? "" : SL.browseContext(); // no search: interests guide, prices are estimates
       items.forEach((it) => (it.browse = !!browse));
       const market = await getMarket(settings, query, forLens);
+      if (market?.median > 0) applyMarket(market); // every card, scored or not
       items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
 
       // Anything already judged in this exact setting comes back from memory, free.
@@ -1676,7 +1971,7 @@
         stick(it);
         scams++;
       }
-      if (fromMemory || scams) render([...scored.values()]);
+      if (fromMemory || scams) render();
       const toRank = items.filter((it) => it.score == null);
       let cost = 0;
 
@@ -1703,7 +1998,7 @@
           stick(it);
         }
         done += batch.length;
-        render([...scored.values()]);
+        render();
         if (done < items.length) setStatus(`Ranked ${done} of ${items.length} listings with ${model}…`);
       });
 
@@ -1737,6 +2032,29 @@
   };
 
   scanBtn.addEventListener("click", scan);
+
+  // The sold-price half of a scan on its own: one eBay lookup, every card gets "% of sold", no model.
+  const pricesOnly = async () => {
+    const query = queryEl.value.trim();
+    if (!query || scanning) return;
+    freeRow.hidden = true;
+    wrap.classList.add("busy");
+    try {
+      const settings = await send("getSettings");
+      if (!settings.useSoldComps) return setStatus("Comparing with eBay sales is turned off in settings (On the page).", true);
+      const market = await getMarket(settings, query, "use");
+      if (!market?.median) return setStatus(market ? "Not enough working ones sold to compare with." : "");
+      applyMarket(market);
+      const n = [...facts.values()].filter((f) => f.vsSold != null).length;
+      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. No AI used. Sort by \u201cfurthest under sold price\u201d to see the cheapest for what they are.`);
+    } catch (e) {
+      setStatus(e.message, true);
+    } finally {
+      wrap.classList.remove("busy");
+      refreshPending();
+    }
+  };
+  $('[data-act="prices"]').addEventListener("click", pricesOnly);
   resetBtn.addEventListener("click", () => {
     scanInputs = null;
     clearStickers();
@@ -1779,7 +2097,12 @@
       seenBefore: old(before?.f),
       openedBefore: old(before?.o),
       campaign: others.length ? others.slice(0, 3) : null,
+      url: listing.url,
+      imageUrl: listing.imageUrls?.[0] || "",
+      history: memory[key].h || [],
+      since: memory[key].pa,
     };
+    if (saved[key]) await notePrices([{ url: listing.url, price: listing.price }]);
     renderItemInfo();
   };
   // Certain scam signs on a listing page, in words; "" when there are none.
@@ -1795,17 +2118,28 @@
     const chips = chipsFor(f).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
     const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
     const scam = scamWarning(f);
+    // Every price you've seen it at: "$70 (Sep 30) → $60 (Oct 5) → $55 now".
+    const history =
+      f.history.length && f.price != null
+        ? `Price history: ${f.history.map(([p, t]) => `${dollars(p)} (${shortDate(t)})`).join(" \u2192 ")} \u2192 ${dollars(f.price)} now.`
+        : "";
+    const sv = saved[f.key];
     piLine.replaceChildren(
       scam ? h("div", { class: "scamnote" }, h("b", {}, "Likely scam. "), scam) : "",
       when || f.drop ? h("div", {}, `${when || "Seen before"}${f.drop ? `; it was ${dollars(f.drop.from)} then` : ""}.`) : "",
+      history ? h("div", {}, history) : "",
+      sv?.p0 != null && f.price != null && f.price !== sv.p0 ? h("div", {}, `Saved on ${shortDate(sv.a0)} at ${dollars(sv.p0)}.`) : "",
       chips.length ? h("div", { class: "chips" }, chips) : "",
       h(
         "div",
         { class: "actions pi-acts" },
         f.hidden ? h("span", {}, "Marked not interested") : null,
-        h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested")
+        h("button", { onclick: () => toggleSave(f.key) }, sv ? "\u2605 Saved" : "\u2606 Save"),
+        h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested"),
+        h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold on eBay \u2197")
       )
     );
+    piSearch.replaceChildren();
     listBar.hidden = true;
     pageInfo.hidden = false;
   };
@@ -2031,7 +2365,7 @@
       if (hit) {
         applyPhotos(hit, [p]);
         stick(hit);
-        render([...scored.values()]);
+        render();
       }
       say(photoText(p) + (hit ? " Applied to this listing's score." : ""));
     } catch (e) {
@@ -2120,7 +2454,7 @@
     ({ scored, seen, facts, pageHadKnown, lastMarket, scanInputs } = saved);
     queryEl.value = saved.query;
     marketEl.replaceChildren(...saved.market);
-    render([...scored.values()]);
+    render();
     setCount(scored.size);
     return true;
   };
@@ -2144,7 +2478,9 @@
       ideasList.replaceChildren();
       ideasStatus.textContent = "";
       lastMarket = null;
+      cacheTried = false;
       scanInputs = null;
+      freeRow.hidden = true;
       analyzeBtn.textContent = "Analyze this listing";
       clearStickers();
       facts = new Map();
@@ -2170,10 +2506,8 @@
     sync();
     if (document.hidden) return;
     reapplyFacebook();
-    if (++ticks % 2 === 0) {
-      refreshPending();
-      if (!scanning) pagePass();
-    }
+    if (!scanning) pagePass(); // cheap when nothing changed: compares the listing links only
+    if (++ticks % 2 === 0) refreshPending();
   };
   const timer = setInterval(tick, 1000);
   // After an update this copy can't reach the extension any more: get out of the way so the new one can load.

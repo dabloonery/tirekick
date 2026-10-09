@@ -76,6 +76,7 @@ document.getElementById("resetSpend").addEventListener("click", async () => {
 });
 chrome.storage.onChanged.addListener((c) => {
   if (c.usage) showSpend();
+  if (c.saved || c.savedSearches) showMemory();
   // The panel's model menu changes these too; keep this page in step (unless you're typing in one).
   for (const f of ["provider", "anthropicModel", "textModel"]) {
     const el = document.getElementById(f);
@@ -87,11 +88,13 @@ showSpend();
 
 // What's remembered in this browser, and a way to clear it.
 async function showMemory() {
-  const { notInterested = {}, listingMemory = {} } = await chrome.storage.local.get(["notInterested", "listingMemory"]);
+  const { notInterested = {}, listingMemory = {}, saved = {}, savedSearches = {} } = await chrome.storage.local.get(["notInterested", "listingMemory", "saved", "savedSearches"]);
   const n = Object.keys(notInterested).length;
   const m = Object.keys(listingMemory).length;
+  const sv = Object.keys(saved).length + Object.keys(savedSearches).length;
   document.getElementById("memoryInfo").textContent =
-    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops and reposted scams (kept 90 days, only in this browser).`;
+    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops, price history and reposted scams (kept 90 days, only in this browser).` +
+    (sv ? ` ${sv} saved (listings and searches), kept until you remove them in the panel.` : "");
 }
 document.getElementById("clearHidden").addEventListener("click", async () => {
   await chrome.storage.local.remove("notInterested");

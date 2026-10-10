@@ -34,11 +34,15 @@ async function getSettings() {
   return { ...DEFAULTS, ...stored };
 }
 
-// fetch with a deadline, so a hung server shows an error instead of spinning forever.
+// fetch with a deadline, so a hung server shows an error instead of spinning forever. opts.signal
+// is the Stop button (see "Stopping" below).
+const STOPPED = "Stopped.";
 async function fetchWithTimeout(url, opts, ms, slowMsg) {
+  const stop = opts.signal;
   try {
-    return await fetch(url, { ...opts, signal: AbortSignal.timeout(ms) });
+    return await fetch(url, { ...opts, signal: stop ? AbortSignal.any([AbortSignal.timeout(ms), stop]) : AbortSignal.timeout(ms) });
   } catch (e) {
+    if (stop?.aborted) throw new Error(STOPPED);
     if (e.name === "TimeoutError") throw new Error(slowMsg);
     throw e;
   }
@@ -48,7 +52,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------- Ollama ----------
 
-async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
+async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
   const { ollamaUrl } = await getSettings();
   const body = {
     model,
@@ -66,12 +70,12 @@ async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
   try {
     res = await fetchWithTimeout(
       `${ollamaUrl}/api/chat`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal },
       5 * 60 * 1000,
       `Ollama took over 5 minutes on "${model}". Lower "Listings per request" or try a smaller model.`
     );
   } catch (e) {
-    if (/Ollama took/.test(e.message)) throw e;
+    if (/Ollama took/.test(e.message) || e.message === STOPPED) throw e;
     throw new Error(`Can't reach Ollama at ${ollamaUrl}. Is it running? (systemctl status ollama)`);
   }
   if (res.status === 403) {
@@ -92,7 +96,7 @@ async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
 // simple tasks; temperature and forced tool_choice are not accepted. Thinking tokens count
 // toward max_tokens, so leave generous room (it's a ceiling, not a charge).
 
-async function anthropicMessage({ system, content, schema, maxTokens = 16000 }) {
+async function anthropicMessage({ system, content, schema, maxTokens = 16000, signal }) {
   const { anthropicKey, anthropicModel, anthropicUrl, monthlyBudget } = await getSettings();
   if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
   if (monthlyBudget > 0) {
@@ -129,16 +133,16 @@ async function anthropicMessage({ system, content, schema, maxTokens = 16000 }) 
     try {
       res = await fetchWithTimeout(
         `${anthropicUrl}/v1/messages`,
-        { method: "POST", headers, body: JSON.stringify(body) },
+        { method: "POST", headers, body: JSON.stringify(body), signal },
         3 * 60 * 1000,
         "The Claude API took over 3 minutes. Try again, or lower \"Listings per request\"."
       );
     } catch (e) {
-      if (/took over/.test(e.message)) throw e;
+      if (/took over/.test(e.message) || e.message === STOPPED) throw e;
       throw new Error("Can't reach the Claude API. Check your internet connection.");
     }
     const retryable = res.status === 429 || res.status >= 500;
-    if (!retryable || attempt >= 2) break;
+    if (!retryable || attempt >= 2 || signal?.aborted) break;
     const after = Number(res.headers.get("retry-after"));
     await sleep(Math.min(20, after > 0 ? after : 2 * 2 ** attempt) * 1000);
   }
@@ -299,12 +303,13 @@ Use only the text you are given. Never invent specs or seller details. If inform
 Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`.replace("SCAM_RULE", SCAM_RULE);
 
 // One call that works for either provider; returns { text, cost }.
-async function llmText({ system, userText, schema }) {
+async function llmText({ system, userText, schema, signal }) {
   const { provider, textModel } = await getSettings();
-  if (provider === "anthropic") return anthropicMessage({ system, content: userText, schema });
+  if (provider === "anthropic") return anthropicMessage({ system, content: userText, schema, signal });
   const text = await ollamaChat({
     model: textModel,
     format: schema,
+    signal,
     messages: [
       { role: "system", content: system },
       { role: "user", content: userText },
@@ -334,7 +339,7 @@ const priceLine = (it) => {
 const scamNotes = (it) =>
   [it.titleCode && `title ends with the code "${it.titleCode}"`, it.offSite?.why?.length && `off-site contact: ${it.offSite.why.join("; ")}`].filter(Boolean);
 
-async function rankBatch({ items, query, market, lens = "use", want = "", browse = "" }) {
+async function rankBatch({ items, query, market, lens = "use", want = "", browse = "", signal }) {
   const { interests } = await getSettings();
   const listingText = items
     .map((it) => {
@@ -352,8 +357,35 @@ async function rankBatch({ items, query, market, lens = "use", want = "", browse
     system: [lensSystem(RANK_BASE, lens, interests), browse && BROWSE_RULES(browse)].filter(Boolean).join("\n\n"),
     userText: [!browse && marketText(query, market), want && `What the buyer wants: ${want}`, `Listings:\n${listingText}`].filter(Boolean).join("\n\n"),
     schema: rankSchema(lens, !!browse),
+    signal,
   });
+  if (cost > 0) await noteRankRate(items.length, cost);
   return { items: parseModelJson(text).items || [], cost };
+}
+
+// ---------- What a scan will cost, before you press Scan ----------
+// What scoring has actually cost per listing with each model (recent scans weigh most); before
+// there's any history, a rough figure from list prices and typical token counts.
+async function noteRankRate(n, cost) {
+  const { anthropicModel } = await getSettings();
+  const { rankRate = {} } = await chrome.storage.local.get("rankRate");
+  const r = (rankRate[anthropicModel] ||= { usd: 0, items: 0 });
+  r.usd += cost;
+  r.items += n;
+  if (r.items > 300) (r.usd /= 2), (r.items /= 2);
+  await chrome.storage.local.set({ rankRate });
+}
+async function perListingCost() {
+  const { provider, anthropicModel, batchSize } = await getSettings();
+  if (provider !== "anthropic") return 0;
+  const { rankRate = {} } = await chrome.storage.local.get("rankRate");
+  const r = rankRate[anthropicModel];
+  if (r?.items >= 10) return r.usd / r.items;
+  const price = PRICES.find(([re]) => re.test(anthropicModel));
+  if (!price) return 0;
+  const b = Math.max(1, batchSize | 0);
+  // About 200 input tokens a listing plus ~1,600 of instructions per request; about 160 output a listing plus ~300 a request.
+  return ((200 + 1600 / b) * price[1] + (160 + 300 / b) * price[2]) / 1e6;
 }
 
 // ---------- One listing, in depth ----------
@@ -397,7 +429,7 @@ a phone number written oddly ("505_507__6507"), WhatsApp, Telegram, email, "text
 the item. Any of those: suspicious, a score under 10, and the summary says plainly that it's the classic Marketplace scam.
 Use only the information given. Never invent specs, history, or seller details. If something is missing, say so.`.replace("SCAM_RULE", SCAM_RULE);
 
-async function analyzeListing({ listing, query, market, lens = "use", want = "" }) {
+async function analyzeListing({ listing, query, market, lens = "use", want = "", signal }) {
   const { interests } = await getSettings();
   const lines = [
     `site: ${listing.site}`,
@@ -414,6 +446,7 @@ async function analyzeListing({ listing, query, market, lens = "use", want = "" 
     system: lensSystem(ITEM_BASE, lens, interests),
     userText: [marketText(query, market), want && `What the buyer wants: ${want}`, `Listing:\n${lines.join("\n")}`].filter(Boolean).join("\n\n"),
     schema: itemSchema(lens),
+    signal,
   });
   return { ...parseModelJson(text), cost };
 }
@@ -459,7 +492,7 @@ const IDEAS_LENS = {
 };
 
 // Two sources, never mixed: what the buyer typed, or (when that's blank) the results on screen.
-async function suggestSearches({ site, query, intent, titles, market, lens = "use" }) {
+async function suggestSearches({ site, query, intent, titles, market, lens = "use", signal }) {
   const lines = intent
     ? [
         `site: ${site}`,
@@ -476,7 +509,7 @@ async function suggestSearches({ site, query, intent, titles, market, lens = "us
         titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
       ];
   lines.splice(0, lines.length, ...lines.filter(Boolean));
-  const { text } = await llmText({ system: IDEAS_SYSTEM, userText: lines.join("\n"), schema: IDEAS_SCHEMA });
+  const { text } = await llmText({ system: IDEAS_SYSTEM, userText: lines.join("\n"), schema: IDEAS_SCHEMA, signal });
   return parseModelJson(text).suggestions || [];
 }
 
@@ -525,9 +558,9 @@ function photoAdjust(p) {
   return { adjust: Math.max(-40, Math.min(10, adjust)), why };
 }
 
-async function checkPhoto({ imageUrl, title }) {
+async function checkPhoto({ imageUrl, title, signal }) {
   const { visionModel, provider } = await getSettings();
-  const imgRes = await fetchWithTimeout(imageUrl, {}, 30 * 1000, "The photo took too long to load.");
+  const imgRes = await fetchWithTimeout(imageUrl, { signal }, 30 * 1000, "The photo took too long to load.");
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
   const buf = await imgRes.arrayBuffer();
   if (buf.byteLength > 3.5 * 1024 * 1024) throw new Error("That photo is too large to check (over 3.5 MB).");
@@ -538,6 +571,7 @@ async function checkPhoto({ imageUrl, title }) {
     const type = (imgRes.headers.get("content-type") || "").split(";")[0];
     const media_type = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type) ? type : "image/jpeg";
     ({ text } = await anthropicMessage({
+      signal,
       maxTokens: 4096,
       schema: PHOTO_SCHEMA,
       content: [
@@ -547,6 +581,7 @@ async function checkPhoto({ imageUrl, title }) {
     }));
   } else {
     text = await ollamaChat({
+      signal,
       model: visionModel,
       numCtx: 4096,
       format: PHOTO_SCHEMA,
@@ -614,7 +649,7 @@ async function getFont({ file }) {
 // Page scripts get the settings without the API key: they never need it.
 async function getPageSettings() {
   const { anthropicKey, ...rest } = await getSettings();
-  return { ...rest, hasKey: !!anthropicKey };
+  return { ...rest, hasKey: !!anthropicKey, scanRate: await perListingCost() };
 }
 
 const openOptions = async () => chrome.runtime.openOptionsPage();
@@ -636,14 +671,31 @@ async function openTabs({ urls }) {
 }
 // ---------- Message router ----------
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, openOptions, openTabs, getSettings: getPageSettings };
+// ---------- Stopping ----------
+// A request the page tags with a reqId can be cancelled: Stop sends those ids here and each one's
+// fetch is aborted. (A model may still bill for what it had already read.)
+const inflight = new Map(); // reqId -> AbortController
+async function abort({ ids }) {
+  for (const id of ids || []) inflight.get(id)?.abort();
+  return true;
+}
+
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, openOptions, openTabs, abort, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
   if (!handler) return false;
-  handler(msg.payload || {})
+  const payload = msg.payload || {};
+  const id = typeof payload.reqId === "string" ? payload.reqId : "";
+  if (id) {
+    const ac = new AbortController();
+    inflight.set(id, ac);
+    payload.signal = ac.signal;
+  }
+  handler(payload)
     .then((data) => sendResponse({ ok: true, data }))
-    .catch((err) => sendResponse({ ok: false, error: err.message || String(err) }));
+    .catch((err) => sendResponse({ ok: false, error: err.message || String(err) }))
+    .finally(() => id && inflight.delete(id));
   return true; // keep the channel open for the async reply
 });
 

@@ -170,12 +170,20 @@
     .scan { background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 13.5px/1 var(--ui);
       box-shadow:var(--press); cursor:pointer; transition:opacity .15s, transform .08s, box-shadow .08s; }
     .scan:hover:not(:disabled) { opacity:.88; }
+    .scan .cost { font-weight:500; opacity:.75; }
     .scan:disabled { opacity:.55; cursor:progress; }
     .freeprices { margin-top:-4px; text-align:center; color:var(--muted); font-size:12px; }
     .freeprices button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .freeprices button:hover { text-decoration-color:currentColor; }
     .freeprices button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .status { color:var(--muted); font-size:12px; }
+    .statusrow { display:flex; align-items:flex-start; gap:10px; }
+    .statusrow .status { flex:1; min-width:0; }
+    .statusrow:not(:has(.status:not(:empty), .stopbtn:not([hidden]))) { display:none; }
+    .stopbtn { flex:none; margin-left:auto; border:var(--bw) solid var(--v-suspicious); background:none; color:var(--v-suspicious); border-radius:999px; padding:3px 12px;
+      font:600 12px/1.3 var(--ui); cursor:pointer; }
+    .stopbtn:hover:not(:disabled) { background:var(--v-suspicious); color:#fff; }
+    .stopbtn:disabled { opacity:.6; cursor:progress; }
     .status:empty { display:none; }
     .status.err { color:var(--v-suspicious); border-left:2px solid currentColor; padding-left:10px; }
     .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:10px; height:10px; margin-right:8px; vertical-align:-1px;
@@ -409,7 +417,7 @@
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
         <div class="freeprices" hidden><button data-act="prices">Just compare sold prices</button> <span>free, no AI</span></div>
         <div class="market"></div>
-        <div class="status" role="status"></div>
+        <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are cancelled">Stop</button></div>
         <div class="pageinfo" hidden><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
       </div>
       <div class="listbar" hidden>
@@ -494,6 +502,36 @@
     if (action) statusEl.append(h("button", { onclick: action.fn }, action.label));
     statusEl.classList.toggle("err", isErr);
   };
+
+  // ---------- busy, and the Stop button ----------
+  // Anything the model is working on goes through sendAI, so Stop can cancel it in the background.
+  const stopBtn = $(".stopbtn");
+  const live = new Set(); // request ids under way
+  let stopRequested = false;
+  let busyN = 0;
+  const sendAI = (type, payload) => {
+    if (stopRequested) return Promise.reject(new Error("Stopped."));
+    const reqId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    live.add(reqId);
+    return send(type, { ...payload, reqId }).finally(() => live.delete(reqId));
+  };
+  const setBusy = (on) => {
+    busyN = Math.max(0, busyN + (on ? 1 : -1));
+    wrap.classList.toggle("busy", busyN > 0);
+    stopBtn.hidden = busyN === 0;
+    if (!busyN) {
+      stopRequested = false;
+      stopBtn.disabled = false;
+      stopBtn.textContent = "Stop";
+    }
+  };
+  const isStop = (e) => stopRequested || e?.message === "Stopped.";
+  stopBtn.addEventListener("click", () => {
+    stopRequested = true;
+    stopBtn.disabled = true;
+    stopBtn.textContent = "Stopping\u2026";
+    if (live.size) send("abort", { ids: [...live] }).catch(() => {});
+  });
 
   // Once the page is scanned (or priced, or analyzed), "What I want" and "Compare prices against" fold
   // into one line, so the results get the room. Edit opens them again until the next scan.
@@ -679,7 +717,7 @@
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
     if (changes.usage) renderSpend(changes.usage.newValue);
-    if (["provider", "anthropicModel", "textModel", "anthropicKey", "monthlyBudget"].some((k) => changes[k])) loadFooter();
+    if (["provider", "anthropicModel", "textModel", "anthropicKey", "monthlyBudget", "rankRate", "batchSize"].some((k) => changes[k])) loadFooter().then(refreshPending);
   });
 
   // ---------- lens: what you want the listing for ----------
@@ -1633,13 +1671,16 @@
   const runPhotoCheck = async (it, box, btn) => {
     btn.disabled = true;
     box.replaceChildren(h("div", { class: "photo" }, "Looking at the photo…"));
+    setBusy(true);
     try {
-      applyPhotos(it, [await send("checkPhoto", { imageUrl: SL.bigImage(it.imageUrl), title: it.title })]);
+      applyPhotos(it, [await sendAI("checkPhoto", { imageUrl: SL.bigImage(it.imageUrl), title: it.title })]);
       stick(it);
       render(); // the score may have changed, so the order may too
     } catch (e) {
-      box.replaceChildren(h("div", { class: "photo drop" }, e.message));
+      box.replaceChildren(h("div", { class: "photo drop" }, isStop(e) ? "Stopped." : e.message));
       btn.disabled = false;
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -1691,6 +1732,7 @@
     }
     const wait = (recent.at(-1) || 0) + GAP_MS - Date.now();
     if (wait > 0) await sleep(wait);
+    if (stopRequested) throw new Error("Stopped.");
     await chrome.storage.local.set({ soldLog: [...recent, Date.now()] });
 
     const pause = async () => {
@@ -1864,7 +1906,14 @@
     if (scanning || SL.pageType() !== "results") return;
     let n = 0;
     if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);
-    scanBtn.textContent = inputsChanged() ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : "Scan this page";
+    // What a press would cost (Claude only): the listings it would send, at what scoring has cost
+    // you per listing with this model. Ones judged the same way before come back free, so it's a ceiling.
+    const changed = inputsChanged();
+    const toScore = [...facts.entries()].filter(([k, f]) => (changed || !seen.has(k)) && !f.hidden && !f.filtered && !f.campaign).length;
+    const est = cfg.provider === "anthropic" && cfg.hasKey && cfg.scanRate > 0 ? toScore * cfg.scanRate : 0;
+    const label = changed ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : toScore ? `Scan ${toScore} listing${toScore > 1 ? "s" : ""}` : "Scan this page";
+    scanBtn.replaceChildren(label, est && (changed || n || !seen.size) ? h("span", { class: "cost" }, ` \u00b7 ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}`) : "");
+    scanBtn.title = est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "";
     // The tab's badge, most useful first: listings at your price, then new ones to scan, then scored.
     const deals = dealCount();
     countEl.classList.toggle("deal", deals > 0);
@@ -2042,7 +2091,7 @@
     const errors = [];
     let next = 0;
     const worker = async () => {
-      while (next < batches.length) {
+      while (next < batches.length && !stopRequested) {
         const batch = batches[next++];
         try {
           await fn(batch);
@@ -2058,7 +2107,7 @@
   const scan = async () => {
     if (scanning) return;
     scanning = true;
-    wrap.classList.add("busy");
+    setBusy(true);
     scanBtn.disabled = true;
 
     try {
@@ -2098,6 +2147,10 @@
       const browse = query ? "" : SL.browseContext(); // no search: interests guide, prices are estimates
       items.forEach((it) => (it.browse = !!browse));
       const market = await getMarket(settings, query, forLens);
+      if (stopRequested) {
+        items.forEach((it) => seen.delete(keyOf(it.url)));
+        return setStatus("Stopped before anything went to the model.");
+      }
       if (market?.median > 0) applyMarket(market); // every card, scored or not
       items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
 
@@ -2140,7 +2193,7 @@
       setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${model}…`);
       const errors = await runBatches(batches, parallel, async (batch) => {
         const payload = batch.map(({ el, ...rest }) => rest); // DOM nodes can't be sent
-        const res = await send("rankBatch", { items: payload, query, market, lens: forLens, want, browse });
+        const res = await sendAI("rankBatch", { items: payload, query, market, lens: forLens, want, browse });
         cost += res.cost || 0;
         if (scored !== session) return;
         const byId = new Map(batch.map((it) => [it.id, it]));
@@ -2167,8 +2220,11 @@
       const missed = items.filter((it) => it.score == null);
       missed.forEach((it) => seen.delete(keyOf(it.url)));
       setCount(scored.size);
+      const costNote = toRank.length && cost > 0 ? ` Cost ${fmtCost(cost)}.` : "";
+      if (stopRequested) {
+        return setStatus(`Stopped. Ranked ${items.length - missed.length} of ${items.length}; the other ${missed.length} are offered again.${costNote}`);
+      }
       if (errors.length && missed.length === items.length) throw errors[0];
-      const costNote = settings.provider === "anthropic" && toRank.length ? ` Cost ${fmtCost(cost)}.` : "";
       setStatus(
         `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${scams ? ` ${scams} reposted scam${scams > 1 ? "s" : ""} marked without the model.` : ""}${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
           (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +
@@ -2176,10 +2232,11 @@
         errors.length > 0
       );
     } catch (e) {
-      setStatus(e.message, true);
+      if (isStop(e)) setStatus("Stopped.");
+      else setStatus(e.message, true);
     } finally {
       scanning = false;
-      wrap.classList.remove("busy");
+      setBusy(false);
       scanBtn.disabled = false;
       refreshPending();
       renderPageInfo(); // the skipped-listings control appears once something is scored
@@ -2193,7 +2250,7 @@
     const query = queryEl.value.trim();
     if (!query || scanning) return;
     freeRow.hidden = true;
-    wrap.classList.add("busy");
+    setBusy(true);
     try {
       const settings = await send("getSettings");
       if (!settings.useSoldComps) return setStatus("Comparing with eBay sales is turned off in settings (On the page).", true);
@@ -2205,7 +2262,7 @@
     } catch (e) {
       setStatus(e.message, true);
     } finally {
-      wrap.classList.remove("busy");
+      setBusy(false);
       refreshPending();
     }
   };
@@ -2411,18 +2468,21 @@
     btn.disabled = true;
     box.replaceChildren();
     const photos = [];
+    setBusy(true);
     for (const [i, url] of listing.imageUrls.slice(0, 3).entries()) {
+      if (stopRequested) break;
       const line = h("div", { class: "photo" }, `Photo ${i + 1}: looking…`);
       box.append(line);
       try {
-        const p = await send("checkPhoto", { imageUrl: url, title: listing.title });
+        const p = await sendAI("checkPhoto", { imageUrl: url, title: listing.title });
         photos.push(p);
         line.textContent = photoText(p, `Photo ${i + 1}: `);
       } catch (e) {
-        line.textContent = `Photo ${i + 1}: ${e.message}`;
+        line.textContent = `Photo ${i + 1}: ${isStop(e) ? "stopped" : e.message}`;
         line.classList.add("drop");
       }
     }
+    setBusy(false);
     if (photos.length) {
       applyPhotos(r, photos);
       renderItem(listing, r, market); // redraw with the adjusted score
@@ -2432,7 +2492,7 @@
   const analyze = async () => {
     if (analyzing) return;
     analyzing = true;
-    wrap.classList.add("busy");
+    setBusy(true);
     analyzeBtn.disabled = true;
     itemEl.replaceChildren();
     marketEl.textContent = "";
@@ -2449,7 +2509,7 @@
       const market = await getMarket(settings, query, forLens);
       priceNotes(listing, market, forLens, settings.feePct);
       setStatus(`Analyzing this listing for ${LENS[forLens].name.toLowerCase()}…`);
-      const r = await send("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
+      const r = await sendAI("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
       // Certain scam signs (see scamWarning) overrule whatever the model made of the listing.
       if (itemFacts?.key === keyOf(location.href)) {
         itemFacts.offSite = listing.offSite; // the description may have loaded since the first look
@@ -2467,10 +2527,11 @@
       editingInputs = false;
       setStatus(settings.provider === "anthropic" && r.cost ? `Cost ${fmtCost(r.cost)}.` : "");
     } catch (e) {
-      setStatus(e.message, true);
+      if (isStop(e)) setStatus("Stopped. Nothing was analyzed.");
+      else setStatus(e.message, true);
     } finally {
       analyzing = false;
-      wrap.classList.remove("busy");
+      setBusy(false);
       analyzeBtn.disabled = false;
       updateFold();
     }
@@ -2514,7 +2575,7 @@
     say("Looking at the photo…");
     try {
       const title = SL.pageType() === "item" ? SL.extractItem().title : "";
-      const p = await send("checkPhoto", { imageUrl: SL.bigImage(imageUrl), title });
+      const p = await sendAI("checkPhoto", { imageUrl: SL.bigImage(imageUrl), title });
       // If this photo belongs to a listing we've scored, the check counts toward its rating.
       const big = SL.bigImage(imageUrl);
       const hit = [...scored.values()].find((it) => it.imageUrl && SL.bigImage(it.imageUrl) === big);
@@ -2539,7 +2600,7 @@
 
   const getIdeas = async () => {
     ideasBtn.disabled = true;
-    wrap.classList.add("busy");
+    setBusy(true);
     ideasList.replaceChildren();
     ideasStatus.classList.remove("err");
     ideasStatus.textContent = "Thinking up searches…";
@@ -2552,7 +2613,7 @@
         if (!titles.length && SL.pageType() === "results") titles = SL.extract().map((it) => it.title);
         titles = titles.slice(0, 30);
       }
-      const ideas = await send("suggestSearches", {
+      const ideas = await sendAI("suggestSearches", {
         site: SL.currentSite(),
         query: queryEl.value.trim(),
         intent: want,
@@ -2583,11 +2644,11 @@
           ? `From the ${titles.length} results on this page.`
           : "From the current search (no results read yet).";
     } catch (e) {
-      ideasStatus.classList.add("err");
-      ideasStatus.textContent = e.message;
+      ideasStatus.classList.toggle("err", !isStop(e));
+      ideasStatus.textContent = isStop(e) ? "Stopped." : e.message;
     } finally {
       ideasBtn.disabled = false;
-      wrap.classList.remove("busy");
+      setBusy(false);
     }
   };
   ideasBtn.addEventListener("click", getIdeas);

@@ -619,9 +619,25 @@ async function getPageSettings() {
 }
 
 const openOptions = async () => chrome.runtime.openOptionsPage();
+
+// Saved searches, opened in background tabs in one go (a page can only open one tab per click).
+// Only eBay and Marketplace addresses, and at most 12.
+async function openTabs({ urls }) {
+  const ok = (u) => {
+    try {
+      const { protocol, hostname, pathname } = new URL(u);
+      return protocol === "https:" && ((hostname === "www.ebay.com" && /^\/(sch|b)\//.test(pathname)) || (hostname === "www.facebook.com" && pathname.startsWith("/marketplace")));
+    } catch {
+      return false;
+    }
+  };
+  const list = (urls || []).filter(ok).slice(0, 12);
+  for (const url of list) await chrome.tabs.create({ url, active: false });
+  return list.length;
+}
 // ---------- Message router ----------
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, openOptions, getSettings: getPageSettings };
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, openOptions, openTabs, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];

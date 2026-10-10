@@ -115,6 +115,22 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
   ✕ **Not interested**.
 
+**Filtering a search** (the bar above the list; each search remembers its own):
+
+- **Words**, like an eBay search: `dmg -case -game` keeps listings with "dmg" and drops any with
+  "case" or "game"; `1000/2000` is either; `"must go"` is a phrase. They match the title and the
+  card's text, so `-china` drops "from China" on eBay.
+- **$ min – max**, shipping included: a minimum clears out the cases and cables.
+- **New only** hides everything you've seen before, for the searches you check every day.
+- **Projects only** keeps listings that say broken, untested, for parts, no power, disc read error
+  and the like: the "any of these words" search Marketplace can't do. Those words also show as a
+  chip on cards (and moving sale, must go, estate sale: sellers who want it gone).
+- **Deal at ≤ $** is your price for this search. Listings at or under it get an "At your $60" mark,
+  and the slim tab on the edge of the page counts them (★3) even with the panel closed. When sold
+  prices are known it suggests 70% of the median.
+
+Filtered listings are never sent to a model, so filtering before a scan also makes it cheaper.
+
 **In the panel**:
 
 - **Just compare sold prices** (under the Scan button): the eBay sold-price lookup on its own, with
@@ -124,7 +140,8 @@ Everything here is free, needs no API key, and runs only on pages you're looking
   cheaper first. Click a title to jump to the card.
 - **Saved**: listings you save, from either site, with the price when you saved them and the
   latest you've seen ("$52 (↓ from $60)"), and searches you save with **Save this search**, which
-  remember when you last looked. "Copy the list" gives you titles, prices and links as text.
+  remember when you last looked and how many were at your price. **Open all searches** opens each
+  in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text.
   Prices update whenever a saved listing is on your screen again; nothing is checked in the
   background.
 - **Same search on Marketplace / on eBay** runs your words on the other site.

@@ -44,8 +44,9 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
 
 - **Use / Fix / Flip** at the top of the panel says what you want a listing for (see below).
 - **What I want**: "working, with charger, under $80". Every scan, analysis and search idea
-  takes it into account, and a listing that misses something says so. Change it (or the compare
-  words) after a scan and the button becomes **Rescan with your changes**.
+  takes it into account, and a listing that misses something says so. After a scan it folds into
+  one line with the compare words (**Edit** opens them); change either and the button becomes
+  **Rescan with your changes**.
 - **Click a title** in the panel to jump to that card. If the panel would cover it, it tucks
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
@@ -125,7 +126,7 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **Projects only** keeps listings that say broken, untested, for parts, no power, disc read error
   and the like: the "any of these words" search Marketplace can't do. Those words also show as a
   chip on cards (and moving sale, must go, estate sale: sellers who want it gone).
-- **Deal at ≤ $** is your price for this search. Listings at or under it get an "At your $60" mark,
+- **Deal at ≤ $** is your price for this search (it stays when you clear the filter with ×). Listings at or under it get an "At your $60" mark,
   and the slim tab on the edge of the page counts them (★3) even with the panel closed. When sold
   prices are known it suggests 70% of the median.
 
@@ -144,7 +145,7 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
   in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text.
   Prices update whenever a saved listing is on your screen again; nothing is checked in the
   background.
-- **Same search on Marketplace / on eBay** runs your words on the other site.
+- **Try on Marketplace / Try on eBay** runs your words on the other site.
 
 **On a listing page**: when you saw it before, its price history ("$70 (Sep 30) → $60 (Oct 5) →
 $55 now"), Save, Not interested, and Sold on eBay.
@@ -170,14 +171,9 @@ which is at console.anthropic.com.
 
 ## Look
 
-Two looks, picked at the top of settings; open tabs switch straight away:
-
-- **Classic**: paper and ink, with colour only where it means something.
-- **Pocket**: a retro handheld LCD in greens; a backlit screen in dark mode.
-
-Both follow your system's light/dark setting. The fonts ship in `fonts/` (SIL Open Font License,
-see `fonts/LICENSE.md`) and load from inside the extension. Colours and type live in `THEME_CSS`
-near the top of `content/panel.js`.
+Paper and ink, with colour only where it means something; it follows your system's light/dark
+setting. The serif ships in `fonts/` (SIL Open Font License, see `fonts/LICENSE.md`) and loads
+from inside the extension. Colours and type live in `THEME_CSS` near the top of `content/panel.js`.
 
 ## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
 
@@ -244,7 +240,7 @@ refresh the tab. The version number there tells you which copy is running.
 | `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
 | `background.js` | Talks to Claude or Ollama (retries, timeouts, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
 | `options/` | Settings page |
-| `fonts/`, `icons/` | Bundled typefaces (OFL) and the toolbar icon |
+| `fonts/`, `icons/` | The bundled serif (OFL) and the toolbar icon |
 
 The ranking prompt (`RANK_BASE`, `SCAM_RULE` and `LENS_RULES` in `background.js`) is the part most worth tuning.
 Keep it to pages you're looking at, one scan when you press the button: automated, unattended

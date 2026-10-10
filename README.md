@@ -60,6 +60,7 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
 - **Search ideas** (at the bottom of the panel) suggests better searches: tighter, looser, common
   misspellings, other names.
 - **Right-click any photo** and choose "Check this photo with Second Look".
+- **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Esc** tucks the panel away; the sliders icon opens settings. On a page Second Look doesn't
   work on, the toolbar icon shows a "?" for a moment instead of opening.
 
@@ -230,7 +231,8 @@ A 4B model is a quick first filter, not an appraiser: read its reasons. With 4 G
 Listing titles and card text go to the model you pick; with Ollama or LM Studio nothing leaves your computer
 except eBay sold-price searches (turn those off in settings). What you've seen, saved, hidden and spent
 is kept only in this browser. Settings can clear what's seen and hidden; remove saved things from
-the Saved section.
+the Saved section. **Settings → Backup** saves it all to a file (never your API keys) and restores
+it in another browser or profile, adding to what's there.
 
 ## When it breaks
 

@@ -1,7 +1,33 @@
-const FIELDS = ["provider", "anthropicKey", "anthropicModel", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
+const FIELDS = ["provider", "anthropicKey", "anthropicModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
   "hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
-const MAY_BE_EMPTY = ["anthropicKey", "interests", "hideWords", "needWords"];
+const MAY_BE_EMPTY = ["anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "hideWords", "needWords"];
+
+// Services that speak the OpenAI chat API. Picking one fills in its address.
+const PRESETS = {
+  openrouter: { url: "https://openrouter.ai/api/v1", hint: "One key for models from Google, Meta, Mistral, DeepSeek, Qwen and more. Key at openrouter.ai/keys. Costs are reported exactly." },
+  openai: { url: "https://api.openai.com/v1", hint: "Key at platform.openai.com/api-keys." },
+  gemini: { url: "https://generativelanguage.googleapis.com/v1beta/openai", hint: "Key at aistudio.google.com/apikey. There's a free tier with rate limits." },
+  deepseek: { url: "https://api.deepseek.com/v1", hint: "Key at platform.deepseek.com/api_keys." },
+  mistral: { url: "https://api.mistral.ai/v1", hint: "Key at console.mistral.ai/api-keys." },
+  xai: { url: "https://api.x.ai/v1", hint: "Key at console.x.ai." },
+  lmstudio: { url: "http://localhost:1234/v1", hint: "Free and private. In LM Studio, load a model and start the server (Developer tab); no key needed." },
+  custom: { url: "", hint: "Any service with an OpenAI-style /v1/chat/completions. Test connection asks your permission to reach it." },
+};
+const showPreset = () => {
+  document.getElementById("oaiPresetHint").textContent = PRESETS[document.getElementById("oaiPreset").value]?.hint || "";
+};
+// Second Look may reach the listed services already; any other address needs your OK once.
+async function allowOrigin(url) {
+  let origin;
+  try {
+    origin = new URL(url).origin;
+  } catch {
+    return false;
+  }
+  const origins = [`${origin}/*`];
+  return (await chrome.permissions.contains({ origins })) || chrome.permissions.request({ origins }).catch(() => false);
+}
 const msg = document.getElementById("msg");
 const testMsg = document.getElementById("testMsg");
 // A short note at the bottom of the page ("Saved."), gone after a moment.
@@ -75,7 +101,7 @@ chrome.storage.onChanged.addListener((c) => {
   if (c.usage) showSpend();
   if (c.saved || c.savedSearches) showMemory();
   // The panel's model menu changes these too; keep this page in step (unless you're typing in one).
-  for (const f of ["provider", "anthropicModel", "textModel"]) {
+  for (const f of ["provider", "anthropicModel", "oaiModel", "textModel"]) {
     const el = document.getElementById(f);
     if (c[f] && document.activeElement !== el) el.value = c[f].newValue ?? el.value;
   }
@@ -106,11 +132,24 @@ document.getElementById("clearMemory").addEventListener("click", async () => {
 showMemory();
 
 function showProvider() {
-  const anth = document.getElementById("provider").value === "anthropic";
-  document.getElementById("anthropicBox").hidden = !anth;
-  document.getElementById("ollamaBox").hidden = anth;
+  const p = document.getElementById("provider").value;
+  document.getElementById("anthropicBox").hidden = p !== "anthropic";
+  document.getElementById("oaiBox").hidden = p !== "openai";
+  document.getElementById("ollamaBox").hidden = p !== "ollama";
+  testMsg.textContent = "";
+  showPreset();
 }
 document.getElementById("provider").addEventListener("change", showProvider);
+document.getElementById("oaiPreset").addEventListener("change", async (e) => {
+  const preset = PRESETS[e.target.value];
+  showPreset();
+  if (preset?.url) {
+    const url = document.getElementById("oaiUrl");
+    url.value = preset.url;
+    await saveField("oaiUrl");
+  }
+  document.getElementById("oaiModels").replaceChildren();
+});
 
 // Each field saves when you leave it (or tick it): no Save button to forget.
 const valueOf = (f) => {
@@ -121,8 +160,9 @@ const valueOf = (f) => {
   if (f === "monthlyBudget") return Math.min(100000, Math.max(0, n || 0));
   if (f === "minSellerPct") return Math.min(100, Math.max(0, n || 0));
   if (f === "minSellerRatings") return Math.min(100000, Math.max(0, Math.round(n) || 0));
+  if (f === "oaiPriceIn" || f === "oaiPriceOut") return Math.min(1000, Math.max(0, n || 0));
   if (el.type === "number") return Math.min(30, Math.max(1, Math.round(n) || 10));
-  return f === "ollamaUrl" ? el.value.trim().replace(/\/+$/, "") : el.value.trim();
+  return f === "ollamaUrl" || f === "oaiUrl" ? el.value.trim().replace(/\/+$/, "") : el.value.trim();
 };
 async function saveField(f) {
   const v = valueOf(f);
@@ -160,8 +200,34 @@ async function testClaude() {
 }
 
 // Ollama: lists installed models so you can see whether the names above match.
+// Other services: lists the models, so you can pick one instead of guessing its ID.
+async function testOpenAI() {
+  const url = document.getElementById("oaiUrl").value.trim().replace(/\/+$/, "");
+  const key = document.getElementById("oaiKey").value.trim();
+  if (!url) return (testMsg.textContent = "Pick a service, or enter its address.");
+  if (!(await allowOrigin(url))) return (testMsg.textContent = "Second Look needs your permission to reach that address.");
+  testMsg.textContent = "Testing…";
+  try {
+    const res = await fetch(`${url}/models`, { headers: key ? { Authorization: `Bearer ${key}` } : {} });
+    if (res.status === 401 || res.status === 403) throw new Error("The key was rejected.");
+    if (!res.ok) throw new Error(`The service answered ${res.status}.`);
+    const body = await res.json();
+    const ids = (body.data || body.models || []).map((m) => (m.id || m.name || "").replace(/^models\//, "")).filter(Boolean).sort();
+    document.getElementById("oaiModels").replaceChildren(...ids.slice(0, 500).map((id) => Object.assign(document.createElement("option"), { value: id })));
+    const model = document.getElementById("oaiModel").value.trim();
+    testMsg.textContent = !ids.length
+      ? "Connected."
+      : model && !ids.includes(model)
+        ? `Connected, but there's no model called "${model}" here. ${ids.length} models are listed in the Model box.`
+        : `Connected. ${ids.length} model${ids.length === 1 ? "" : "s"} available${model ? `; ${model} is one of them` : ": click the Model box to pick one"}.`;
+  } catch (e) {
+    testMsg.textContent = /Failed to fetch/.test(e.message) ? `Can't reach ${url}.${/localhost|127\.0\.0\.1/.test(url) ? " Is the server running?" : ""}` : e.message;
+  }
+}
+
 document.getElementById("test").addEventListener("click", async () => {
   if (document.getElementById("provider").value === "anthropic") return testClaude();
+  if (document.getElementById("provider").value === "openai") return testOpenAI();
   const url = document.getElementById("ollamaUrl").value.trim().replace(/\/+$/, "");
   testMsg.textContent = "Testing…";
   try {

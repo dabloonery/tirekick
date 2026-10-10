@@ -239,6 +239,17 @@
     .sd-models div span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
     .spend-detail .hint a { color:var(--ink); }
 
+    /* first-run walkthrough */
+    .welcome { display:grid; gap:8px; padding:12px 14px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:12.5px; }
+    .welcome b { font:600 15px/1.2 var(--display); }
+    .welcome ol { margin:0; padding:0; list-style:none; display:grid; gap:4px; counter-reset:step; }
+    .welcome li { counter-increment:step; position:relative; padding-left:26px; line-height:1.45; }
+    .welcome li::before { content:counter(step); position:absolute; left:0; top:1px; width:18px; height:18px; display:grid; place-items:center; border-radius:50%; background:var(--ink); color:var(--paper); font:600 11px/1 var(--ui); }
+    .welcome li button { border:0; background:none; padding:0; color:var(--ink); font:inherit; text-align:left; cursor:pointer; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .welcome li button:hover { text-decoration-color:var(--ink); }
+    .welcome .tip { color:var(--muted); }
+    .welcome .go { justify-self:start; }
+
     /* first run, list bar */
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:12.5px; }
     .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 8px;
@@ -410,6 +421,7 @@
       <div class="head">
         <span class="mark">${MARK}</span>
         <div class="grow"><div class="wordmark">Second <em>Look</em></div><small>for careful buyers</small></div>
+        <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
         <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
         <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
       </div>
@@ -421,6 +433,16 @@
       <div class="view view-page">
       <div class="controls">
         <div class="hint other-note">Nothing to scan on this page. Open a search, a category or a listing; your saved listings and searches are under Saved.</div>
+        <div class="welcome" hidden>
+          <b>Welcome to Second Look</b>
+          <ol>
+            <li><button data-step="lens">Choose what you're buying for</button>: Use, or Fix &amp; flip.</li>
+            <li><button data-step="want">Say what you want</button>, like "working, with charger". Optional.</li>
+            <li><button data-step="scan">Press Scan</button> and every listing gets a score and a reason.</li>
+          </ol>
+          <div class="tip">No key yet? The free marks still work: hover a card for scam checks, <i>Save</i> and <i>Sold</i> prices.</div>
+          <button class="ghost go" data-act="intro-done">Got it</button>
+        </div>
         <div class="lenswrap">
           <label class="lens-label" id="lens-label">Buying to</label>
           <div class="lens" role="radiogroup" aria-labelledby="lens-label">
@@ -752,6 +774,46 @@
     if (changes.usage) renderSpend(changes.usage.newValue);
     if (["provider", "anthropicModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize"].some((k) => changes[k])) loadFooter().then(refreshPending);
   });
+
+
+  // ---------- first-run walkthrough ----------
+  // Shown once (and again from the ? button). The first time on a search or listing page the panel opens by itself.
+  const welcome = $(".welcome");
+  const showIntro = (show) => {
+    welcome.hidden = !show;
+    if (show) setView("page");
+  };
+  $('[data-act="intro-done"]').addEventListener("click", () => {
+    showIntro(false);
+    introPending = false;
+    if (alive()) chrome.storage.local.set({ introDone: true }).catch(() => {});
+  });
+  $('[data-act="help"]').addEventListener("click", () => {
+    if (SL.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved.");
+    showIntro(welcome.hidden);
+    if (!welcome.hidden) welcome.scrollIntoView({ block: "nearest" });
+  });
+  welcome.querySelectorAll("[data-step]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const step = b.dataset.step;
+      if (step === "want") wantEl.focus();
+      else if (step === "scan") (scanBtn.hidden ? analyzeBtn : scanBtn).focus();
+      else root.querySelector("[data-lens][aria-checked='true']")?.focus();
+    })
+  );
+  let introPending = false;
+  let introOpened = false;
+  // Called on every page change: the card only appears where there is something to try it on.
+  const applyIntro = () => {
+    if (!introPending || SL.pageType() === "other") return;
+    showIntro(true);
+    if (!touched && !introOpened) showOpen(true);
+    introOpened = true;
+  };
+  chrome.storage.local.get("introDone").then(({ introDone }) => {
+    introPending = !introDone && alive();
+    applyIntro();
+  }).catch(() => {});
 
   // ---------- lens: what you want the listing for ----------
 
@@ -2887,6 +2949,7 @@
       ideasBox.hidden = true;
       wrap.dataset.page = type;
       setView(type === "other" ? "saved" : "page");
+      applyIntro();
       ideasList.replaceChildren();
       ideasStatus.textContent = "";
       lastMarket = null;

@@ -240,7 +240,14 @@
       if (!itemId || seen.has(itemId)) return;
       seen.add(itemId);
 
-      const lines = (a.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean);
+      // innerText gives one line per text block, but only for cards being shown; a card we've hidden
+      // (filtered, not interested) falls back to its text pieces, which split the same way here.
+      let lines = (a.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean);
+      if (lines.length < 2 && !a.getClientRects().length) {
+        const walk = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
+        lines = [];
+        for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest(".second-look-sticker, .second-look-marks")) lines.push(n.nodeValue.trim());
+      }
       if (!lines.length) return;
       const priceLine = lines.find((l) => /\$\s?[\d,]|^free$/i.test(l)) || "";
       const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l));

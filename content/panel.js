@@ -176,6 +176,14 @@
     .lens button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
     .hint { color:var(--muted); font-size:12px; }
     .lens-hint { margin-top:6px; }
+    .inputs { display:grid; gap:12px; }
+    .folded .inputs, .folded .lens-hint { display:none; }
+    .inputs-sum { display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:8px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:12px; color:var(--muted); }
+    .inputs-sum b { color:var(--ink); font-weight:600; }
+    .inputs-sum .sum-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .inputs-sum button { all:unset; flex:none; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .inputs-sum button:hover { text-decoration-color:currentColor; }
+    .inputs-sum button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .browse-note { margin-top:6px; }
     .browse-note b { color:var(--ink); font-weight:600; }
 
@@ -230,15 +238,34 @@
 
     /* first run, list bar */
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:12.5px; }
-    .listbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 2px; border-top:var(--bw) solid var(--rule); font-size:12px; color:var(--muted); }
+    .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 8px;
+      border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:12px; color:var(--muted); }
+    .listbar + .list > .row:first-child { border-top:0; }
     .sortpick { display:flex; align-items:center; gap:6px; margin:0; font:inherit; letter-spacing:normal; text-transform:none; color:var(--muted); }
-    .sort { appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 12px/1 var(--ui); padding:4px 14px 4px 0; cursor:pointer;
+    .sort { field-sizing:content; max-width:190px; appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 12px/1 var(--ui); padding:4px 14px 4px 0; cursor:pointer;
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 6px) 55%, calc(100% - 2px) 55%; background-size:4px 4px; background-repeat:no-repeat; }
     .sort:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .skipwrap { display:flex; align-items:center; gap:6px; }
+    .qf { flex:1 1 100%; display:grid; gap:6px; margin-bottom:4px; }
+    .qf-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .qf input { padding:6px 9px; font-size:12px; }
+    .qf-wordwrap { position:relative; flex:1 1 140px; display:flex; }
+    .qf-words { flex:1; width:auto; padding-right:26px !important; }
+    .qf-price { display:flex; align-items:center; gap:3px; color:var(--muted); }
+    .qf-price input { width:58px; }
+    .qt { border:var(--bw) solid var(--rule); background:none; color:var(--muted); font:600 11.5px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
+    .qt:hover { color:var(--ink); border-color:var(--muted); }
+    .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
+    [data-theme="retro"] .qt { border-radius:0; text-transform:uppercase; letter-spacing:.06em; }
+    .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 11.5px/1 var(--ui); letter-spacing:normal; text-transform:none; }
+    .qf-deal input { width:62px; }
+    .qf-deal:has(input:not(:placeholder-shown)) input { border-color:var(--accent); }
+    .qf-clear { position:absolute; right:3px; top:50%; transform:translateY(-50%); width:22px; height:22px; display:grid; place-items:center; border:0; border-radius:var(--r-sm);
+      background:none; color:var(--muted); font:16px/1 var(--ui); cursor:pointer; }
+    .qf-clear:hover { background:var(--paper-2); color:var(--ink); }
+    .qf.on .qf-words, .qf.on .qf-price input:not(:placeholder-shown) { border-color:var(--ink); }
     .skipwrap .seg button { padding:4px 8px; }
-    .listbar + .list > .row:first-child { border-top:0; }
 
     /* what's on this page */
     .pageinfo { font-size:12px; color:var(--muted); }
@@ -263,6 +290,9 @@
     .fchip { font-size:11px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
     .fchip.k-new { background:var(--accent); color:#fff; } .fchip.k-good { background:var(--v-great); color:#fff; } .fchip.k-warn { background:var(--v-suspicious); color:#fff; }
     .fchip.k-plain { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--rule); }
+    .fchip.k-deal { background:var(--accent); color:#fff; }
+    .ptag.deal { color:var(--accent); }
+    .count.deal { background:var(--accent); color:#fff; }
     [data-theme="retro"] .fchip { border-radius:0; }
 
     /* sold prices */
@@ -312,6 +342,9 @@
     .flags { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
     .flag { font-size:11px; padding:1px 8px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
     .row .actions { margin-top:8px; }
+    /* in the list, actions stay quiet so titles and prices lead */
+    .list .actions a, .list .actions button { color:var(--muted); font-weight:500; text-decoration-color:transparent; }
+    .list .actions a:hover, .list .actions button:hover:not(:disabled) { color:var(--ink); text-decoration-color:currentColor; }
     .photo { margin-top:8px; font-size:12px; padding:8px 10px; background:var(--paper-2); border-left:2px solid var(--ink); border-radius:0 var(--r-sm) var(--r-sm) 0; }
     .photo.drop { border-left-color:var(--v-suspicious); }
     [hidden] { display:none !important; }
@@ -418,9 +451,12 @@
           </div>
           <div class="hint lens-hint"></div>
         </div>
+        <div class="inputs">
         <div><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
+        </div>
+        <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <div class="setup" hidden><b>Add a Claude API key to start.</b> It takes a minute at console.anthropic.com. Or pick your Ollama model in the menu at the bottom if you run one locally.
           <button class="ghost" data-act="open-settings">Open settings</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
@@ -431,6 +467,17 @@
         <div class="pageinfo" hidden><span class="pi-line"></span><span class="pi-sep" hidden> \u00b7 </span><button class="pi-reset" data-act="reset" hidden>Start over</button><div class="actions pi-search"></div></div>
       </div>
       <div class="listbar" hidden>
+        <div class="qf" role="search" aria-label="Filter this search">
+          <div class="qf-row">
+            <span class="qf-wordwrap"><input class="qf-words" placeholder="Filter: dmg -case -game" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
+            <span class="qf-price"><input class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
+          </div>
+          <div class="qf-row qf-toggles">
+            <button class="qt" data-q="fresh" aria-pressed="false" title="Hide every listing you've seen before">New only</button>
+            <button class="qt" data-q="projects" aria-pressed="false" title="Only listings that say broken, untested, for parts, no power…">Projects only</button>
+            <label class="qf-deal" title="Your price for this search">Deal at \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
+          </div>
+        </div>
         <label class="sortpick">Sort <select class="sort">
           <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest under sold price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest margin</option><option value="new">new or cheaper first</option>
         </select></label>
@@ -501,6 +548,31 @@
     if (action) statusEl.append(h("button", { onclick: action.fn }, action.label));
     statusEl.classList.toggle("err", isErr);
   };
+
+  // Once the page is scanned (or priced, or analyzed), "What I want" and "Compare prices against" fold
+  // into one line, so the results get the room. Edit opens them again until the next scan.
+  let editingInputs = false;
+  const inputsSum = $(".inputs-sum");
+  const updateFold = () => {
+    const type = SL.pageType();
+    const done = type === "results" ? scored.size > 0 || !!lastMarket : type === "item" ? itemEl.childElementCount > 0 : false;
+    const typingHere = root.activeElement && $(".inputs").contains(root.activeElement);
+    const fold = done && !editingInputs && !typingHere;
+    wrap.classList.toggle("folded", fold);
+    inputsSum.hidden = !fold;
+    if (!fold) return;
+    const q = queryEl.value.trim();
+    const want = wantEl.value.trim();
+    $(".sum-text").replaceChildren(
+      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", " \u00b7 ", want ? ["wants ", h("b", {}, want)] : "no wants set"].flat()
+    );
+    $(".sum-text").title = `${q ? `Comparing prices with eBay sales of \u201c${q}\u201d` : "No price comparison"}; ${want ? `what you want: ${want}` : "nothing in What I want"}`;
+  };
+  $('[data-act="edit-inputs"]').addEventListener("click", () => {
+    editingInputs = true;
+    updateFold();
+    wantEl.focus();
+  });
 
   // Open/closed: the tab is always there; the panel slides out when you pull the tab.
   let touched = false; // the user (or the toolbar icon) has opened/closed it on this page
@@ -794,6 +866,7 @@
       .sl-chip svg { width:11px; height:11px; }
       .sl-chip.k-new { background:#C8461F; } .sl-chip.k-good { background:#2F7D4F; } .sl-chip.k-warn { background:#B3261E; }
       .sl-chip.k-plain { background:#FBFAF7; color:#1C1B19; box-shadow:inset 0 0 0 1px rgba(28,27,25,.25); }
+      .sl-chip.k-deal { background:#C8461F; color:#fff; font-size:11.5px; padding:3px 9px; box-shadow:0 0 0 2px #FBFAF7; }
       .second-look-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:calc(100% - 20px);
         filter:drop-shadow(0 2px 6px rgba(28,27,25,.3)); pointer-events:auto; }
       .second-look-marks button, .second-look-sticker .sl-under button { cursor:pointer; border:0; }
@@ -802,6 +875,7 @@
       .sl-retro .sl-chip, .second-look-marks.sl-retro .sl-chip { border-radius:1px; font-family:"SL Mono",ui-monospace,monospace; background:#1F3A1F; color:#CDD6A5; }
       .sl-retro .sl-chip.k-new { background:#8E1D50; } .sl-retro .sl-chip.k-good { background:#3E6A2B; } .sl-retro .sl-chip.k-warn { background:#8E1D50; }
       .sl-retro .sl-chip.k-plain { background:#CDD6A5; color:#1F3A1F; box-shadow:inset 0 0 0 1px #1F3A1F; }
+      .sl-retro .sl-chip.k-deal { background:#8E1D50; color:#CDD6A5; box-shadow:0 0 0 2px #CDD6A5; }
       /* listings you've hidden, filtered out, or (by choice) skipped */
       html:not([data-sl-showhidden]) [data-sl-hide] { display:none !important; }
       html[data-sl-showhidden] [data-sl-hide] { opacity:.45; }
@@ -926,7 +1000,7 @@
   const remember = (key, price, pageHadKnown, auction = false) => {
     const rec = memory[key];
     const now = Date.now();
-    const out = { isNew: !rec && pageHadKnown };
+    const out = { isNew: !rec && pageHadKnown, known: !!rec };
     if (auction) price = null; // keep the last fixed price, if any; a current bid says nothing about drops
     if (rec && price != null && rec.p != null && price < rec.p - Math.max(1, rec.p * 0.03)) out.drop = { from: rec.p, since: rec.pa };
     // Every price change is kept (the last five), so a listing page can show its history.
@@ -942,11 +1016,50 @@
   const reEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // "charger/adapter" = either word. Matches whole words, so "repro" doesn't catch "reproduced".
   const hasWord = (text, w) => w.split("/").some((alt) => alt.trim() && new RegExp(`(^|[^a-z0-9])${reEscape(alt.trim())}($|[^a-z0-9])`, "i").test(text));
-  const filterReason = (title) => {
+  // Why a listing is filtered out ("" if it isn't): your settings' word lists, then this search's filter bar.
+  const filterReason = (f) => {
+    const title = f.title || "";
     for (const w of wordList(prefs.hideWords)) if (hasWord(title, w)) return `“${w}”`;
     for (const w of wordList(prefs.needWords)) if (!hasWord(title, w)) return `no “${w}”`;
+    return quickReason(f);
+  };
+
+  // ---------- the filter bar: per search, remembered, no AI ----------
+  // Words work like an eBay search: "dmg -case -game" needs dmg and drops anything with case or game;
+  // "a/b" is either; quotes keep a phrase together. They match the title and the card's text, so
+  // "-china" catches "from China" on eBay. Prices include shipping when the card shows it.
+  // deal: your own price for this search. Not a filter: cards at or under it are marked, and the tab
+  // on the page edge counts them even with the panel closed.
+  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, projects: false, deal: 0 };
+  let quick = { ...NO_QUICK };
+  let quickReady = Promise.resolve(); // this search's saved filter, loaded on each page change
+  const quickTerms = (words) =>
+    [...(words || "").matchAll(/(-?)"([^"]+)"|(-?)(\S+)/g)]
+      .map((m) => ({ not: !!(m[1] || m[3]), w: (m[2] || m[4] || "").toLowerCase() }))
+      .filter((t) => t.w && t.w !== "-");
+  const quickReason = (f) => {
+    const text = `${f.title || ""} ${f.text || ""}`;
+    for (const t of quickTerms(quick.words)) {
+      if (t.not && hasWord(text, t.w)) return `“${t.w}”`;
+      if (!t.not && !hasWord(text, t.w)) return `no “${t.w}”`;
+    }
+    const p = f.total ?? f.price;
+    if (quick.min > 0 && p != null && p < quick.min) return `under $${quick.min}`;
+    if (quick.max > 0 && p != null && p > quick.max) return `over $${quick.max}`;
+    if (quick.fresh && f.known) return "seen before";
+    if (quick.projects && !f.project) return "not a project";
     return "";
   };
+  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.projects);
+  const isDeal = (f) => quick.deal > 0 && f.total != null && f.total <= quick.deal && !f.campaign;
+  const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
+
+  // Words that say "fix-up project" (what a fixer hunts for, and Marketplace can't search for all at
+  // once) and words that say the seller wants it gone. Read from the title and card text.
+  const PROJECT =
+    /\b(for parts(?: or repair| only)?|parts only|parts or repair|not working|non[- ]?working|untested|as[- ]is|broken|no power|won'?t (?:turn|power) on|doesn'?t (?:work|turn on|power on)|needs (?:repair|work|fixing|a new \w+)|faulty|for repair|disc read error|no (?:display|video|sound|picture)|red ring|yellow light|cracked screen|water damage)\b/i;
+  const MOTIVATED = /\b(moving(?: sale)?|must go|need(?:s)? (?:it )?gone|estate sale|cleaning out|garage sale|downsizing|first come first served|priced to sell|quick sale)\b/i;
+  const clueOf = (re, text) => (text.match(re)?.[1] || "").toLowerCase().replace(/\s+/g, " ");
   const sellerWarning = (f) => {
     if (f.sellerCount != null && f.sellerCount < prefs.minSellerRatings) return f.sellerCount === 0 ? "New seller" : `Seller: ${f.sellerCount} ratings`;
     if (f.sellerPct != null && f.sellerPct < prefs.minSellerPct) return `Seller ${f.sellerPct}% positive`;
@@ -962,6 +1075,7 @@
     const c = [];
     if (showHidden && f.hidden) c.push(["warn", "Not interested"]);
     else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`]);
+    if (f.deal) c.push(["deal", `At your $${quick.deal}`]);
     if (f.campaign) c.push(["warn", "Scam: reposted under new codes"]);
     else if (f.offSite?.sure) c.push(["warn", "Scam: contact off Facebook"]);
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
@@ -969,6 +1083,9 @@
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     if (f.vsSold != null) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${Math.round(f.vsSold * 100)}% of sold`]);
     if (f.isNew) c.push(["new", "New to you"]);
+    // Fixers want "untested" and "no power"; for anyone else it's a warning.
+    if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
+    if (f.motivated) c.push(["plain", f.motivated]);
     if (f.sellerWarn) c.push(["warn", f.sellerWarn]);
     if (f.dup) c.push(["warn", `Same title ×${f.dup}`]);
     // An auction in its last few hours, especially with no bids, is when bargains happen.
@@ -1088,7 +1205,7 @@
     const was = !!savedSearches[k];
     savedSearches = await writeStored("savedSearches", (s) => {
       if (was) delete s[k];
-      else s[k] = { site: SL.currentSite(), q, url: location.href, a0: Date.now(), v: Date.now(), n: facts.size, fresh: 0 };
+      else s[k] = { site: SL.currentSite(), q, url: location.href, a0: Date.now(), v: Date.now(), n: facts.size, fresh: 0, deal: quick.deal || 0, deals: dealCount() };
     });
     afterSavedChange();
     setStatus(was ? "Search removed from Saved." : `Saved the search \u201c${q}\u201d. Open it again from Saved; new listings will say "New to you".`);
@@ -1150,13 +1267,29 @@
                   "div",
                   {},
                   h("a", { href: r.url, title: "Run this search again" }, `\u201c${r.q}\u201d`),
-                  h("div", { class: "meta" }, `${r.site === "ebay" ? "eBay" : "Marketplace"} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`)
+                  h("div", { class: "meta" }, [
+                    `${r.site === "ebay" ? "eBay" : "Marketplace"} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`,
+                    r.deal ? h("span", { class: r.deals ? "down" : "" }, ` \u00b7 ${r.deals || "none"} at your $${r.deal}`) : "",
+                  ])
                 ),
                 h("button", { class: "sx", title: "Remove this search", "aria-label": "Remove this search", onclick: () => removeStored("savedSearches", k) }, "\u00d7")
               )
             ),
-            items.length ? h("div", { class: "actions" }, copy) : null,
-          ])
+            h(
+              "div",
+              { class: "actions" },
+              searches.length > 1
+                ? h("button", {
+                    onclick: async () => {
+                      const n = await send("openTabs", { urls: searches.map(([, r]) => r.url) }).catch(() => 0);
+                      setStatus(n ? `Opened ${n} saved search${n === 1 ? "" : "es"} in background tabs. What's new in each says New to you.` : "Couldn't open the saved searches.", !n);
+                    },
+                    title: "Each saved search in its own background tab; what's new will say New to you",
+                  }, `Open all ${searches.length} searches`)
+                : null,
+              items.length ? copy : null
+            ),
+          ].filter(Boolean))
     );
   };
   savedBox.addEventListener("toggle", renderSaved);
@@ -1211,7 +1344,7 @@
     if (!force && keysNow.size === passKeys.size && [...keysNow].every((k) => passKeys.has(k))) return;
     passing = true;
     try {
-      await Promise.all([memoryReady, prefsReady]);
+      await Promise.all([memoryReady, prefsReady, quickReady]);
       const items = SL.extract();
       passKeys = keysNow;
       if (pageHadKnown === null && items.length) pageHadKnown = items.some((it) => memory[keyOf(it.url)]);
@@ -1244,10 +1377,15 @@
           imageUrl: it.imageUrl,
           sellerWarn: sellerWarning(it),
           dup: dup.get(it) || 0,
-          filtered: filterReason(it.title),
+          text: (it.raw || "").replace(it.title, "").slice(0, 300),
           hidden: !!notInterested[key],
         });
         f.vsSold = vsSoldOf(f);
+        f.known = prev ? prev.known : !!sighting.known;
+        f.project = clueOf(PROJECT, `${it.title} ${f.text}`);
+        f.motivated = clueOf(MOTIVATED, `${it.title} ${f.text}`);
+        f.filtered = filterReason(f);
+        f.deal = isDeal(f);
         facts.set(key, f);
       }
       await notePrices(items);
@@ -1286,6 +1424,7 @@
     for (const f of facts.values()) f.vsSold = vsSoldOf(f);
     redecorateAll();
     refreshPending();
+    showQuick(); // the "Deal at" box can now suggest a price
   };
   const cachedMarket = async (query) => {
     if (!query.trim()) return null;
@@ -1310,22 +1449,26 @@
   const noteSearchVisit = async (all) => {
     const q = pageSearch();
     const rec = q && savedSearches[searchKey(q)];
-    if (!rec || (rec.n === all.length && Date.now() - rec.v < 10 * 60 * 1000)) return;
+    const deals = all.filter((f) => f.deal && !f.hidden && !f.filtered).length;
+    if (!rec || (rec.n === all.length && rec.deals === deals && Date.now() - rec.v < 10 * 60 * 1000)) return;
     savedSearches = await writeStored("savedSearches", (s) => {
       const r = s[searchKey(q)];
-      if (r) Object.assign(r, { v: Date.now(), n: all.length, fresh: all.filter((f) => f.fresh).length, url: location.href });
+      if (r) Object.assign(r, { v: Date.now(), n: all.length, fresh: all.filter((f) => f.fresh).length, deals, deal: quick.deal || 0, url: location.href });
     });
   };
 
   // Re-dress everything after a settings change (filters, marks, hidden toggle).
   const redecorateAll = () => {
     for (const [key, f] of facts) {
-      f.filtered = filterReason(f.title || "");
+      f.filtered = filterReason(f);
       f.sellerWarn = sellerWarning(f);
       f.hidden = !!notInterested[key];
     }
-    const els = new Map(SL.extract().map((it) => [keyOf(it.url), it.el]));
-    for (const key of facts.keys()) if (els.has(key)) decorate(key, els.get(key));
+    // Find each card directly: a hidden card can't always be read again by the adapter.
+    for (const key of facts.keys()) {
+      const el = elFor(key);
+      if (el) decorate(key, el);
+    }
     render();
     renderPageInfo();
   };
@@ -1340,7 +1483,7 @@
     notInterested = Object.fromEntries(kept);
     await chrome.storage.local.set({ notInterested });
     if (facts.has(key)) facts.get(key).hidden = !interested;
-    const el = scored.get(key)?.el || SL.extract().find((it) => keyOf(it.url) === key)?.el;
+    const el = scored.get(key)?.el?.isConnected ? scored.get(key).el : elFor(key);
     if (el) decorate(key, el);
     render();
     renderPageInfo();
@@ -1389,9 +1532,9 @@
         h(
           "div",
           { class: "sl-acts" },
-          h("button", { onclick: own(() => toggleSave(key)) }, saved[key] ? "Unsave" : "Save"),
+          h("button", { onclick: own(() => toggleSave(key)) }, saved[key] ? "\u2605 Saved" : "\u2606 Save"),
           h("button", { onclick: own(() => setInterested(key, false)) }, "Not interested"),
-          h("a", { href: soldLink(item.title), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "Sold on eBay"),
+          h("a", { href: soldLink(item.title), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation(), title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
           item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "Find photo") : null
         )
       )
@@ -1422,13 +1565,14 @@
     return out;
   };
   const sc = (it) => it.score ?? -1;
+  const dealOf = (it) => (facts.get(keyOf(it.url))?.deal ? 1 : 0);
   const perItem = (it) => (it.total == null ? Infinity : it.lot ? it.total / it.lot : it.total);
   const vsSold = (it) => it.vsWorking ?? facts.get(keyOf(it.url))?.vsSold ?? Infinity;
   const endsIn = (it) => (it.auction ? (it.hoursLeft ?? 1e6) : Infinity);
   let sortMode = "score";
   // Ties keep the page's own order (sort is stable).
   const SORTS = {
-    score: (a, b) => (a.score == null) - (b.score == null) || (a.related === false) - (b.related === false) || sc(b) - sc(a), // your search first
+    score: (a, b) => (a.score == null) - (b.score == null) || (a.related === false) - (b.related === false) || sc(b) - sc(a) || dealOf(b) - dealOf(a), // your search first
     price: (a, b) => perItem(a) - perItem(b) || sc(b) - sc(a),
     value: (a, b) => vsSold(a) - vsSold(b) || perItem(a) - perItem(b),
     margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || sc(b) - sc(a),
@@ -1456,7 +1600,7 @@
         const known = chipsFor(f)
           .filter(([, t]) => !/^Auction|^Lot of|% of sold$/.test(t))
           .map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
-        const saveBtn = h("button", { onclick: () => toggleSave(key) }, saved[key] ? "\u2605 Saved" : "Save");
+        const saveBtn = h("button", { onclick: () => toggleSave(key) }, saved[key] ? "\u2605 Saved" : "\u2606 Save");
         const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
         // Not scored (yet): the price is the headline, with what's known for free.
         if (it.score == null) {
@@ -1466,12 +1610,19 @@
             h(
               "div",
               { class: still ? "row plain still" : "row plain", style: `--i:${Math.min(i, 8)}` },
-              h("div", { class: "ptag" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
+              h("div", { class: f.deal ? "ptag deal" : "ptag" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
               h(
                 "div",
                 {},
                 h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
-                h("div", { class: "meta" }, `${priceStr(it)}${vs}${each}${it.auction && it.timeLeft ? ` \u00b7 ${it.timeLeft} left` : ""}`),
+                (() => {
+                  // The tag already shows the price; the line adds only what it doesn't say.
+                  const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]
+                    .filter(Boolean)
+                    .join(" \u00b7 ");
+                  const line = `${bits}${vs}${each}`.replace(/^ \u00b7 /, "");
+                  return line ? h("div", { class: "meta" }, line) : null;
+                })(),
                 known.length ? h("div", { class: "flags" }, known) : null,
                 h(
                   "div",
@@ -1801,13 +1952,21 @@
   };
 
   const refreshPending = () => {
+    updateFold();
     freeRow.hidden = scanning || SL.pageType() !== "results" || !queryEl.value.trim() || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
     if (scanning || SL.pageType() !== "results") return;
     let n = 0;
     if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);
     scanBtn.textContent = inputsChanged() ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : "Scan this page";
-    countEl.classList.toggle("new", n > 0);
-    if (n) {
+    // The tab's badge, most useful first: listings at your price, then new ones to scan, then scored.
+    const deals = dealCount();
+    countEl.classList.toggle("deal", deals > 0);
+    countEl.classList.toggle("new", !deals && n > 0);
+    countEl.title = deals ? `${deals} at your price` : n ? `${n} not scanned yet` : "";
+    if (deals) {
+      countEl.textContent = `\u2605${deals}`;
+      countEl.hidden = false;
+    } else if (n) {
       countEl.textContent = `+${n}`;
       countEl.hidden = false;
     } else setCount(scored.size);
@@ -1826,6 +1985,8 @@
     const hidN = n((f) => f.hidden);
     const filN = n((f) => f.filtered && !f.hidden);
     const bits = [`<b>${all.length}</b> listings`];
+    const dealN = dealCount();
+    if (dealN) bits.push(`<b>${dealN}</b> at your price`);
     if (newN) bits.push(`<b>${newN}</b> new to you`);
     if (dropN) bits.push(`<b>${dropN}</b> cheaper than before`);
     if (warnN) bits.push(`<b>${warnN}</b> to be careful with`);
@@ -1842,8 +2003,8 @@
     piSearch.replaceChildren(
       ...(q
         ? [
-            h("button", { onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "\u2605 Saved search" : "\u2606 Save this search"),
-            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, SL.currentSite() === "ebay" ? "Same search on Marketplace \u2197" : "Same search on eBay \u2197"),
+            h("button", { onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "\u2605 Saved search" : "\u2606 Save search"),
+            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, SL.currentSite() === "ebay" ? "Try on Marketplace \u2197" : "Try on eBay \u2197"),
           ]
         : [])
     );
@@ -1855,6 +2016,84 @@
     document.documentElement.toggleAttribute("data-sl-showhidden", on);
     redecorateAll();
   };
+  // The filter bar: each search keeps its own, so a saved search comes back filtered the same way.
+  const qf = $(".qf");
+  const qfWords = $(".qf-words");
+  const qfMin = $(".qf-min");
+  const qfMax = $(".qf-max");
+  const qfDeal = $(".qf-dealin");
+  const quickKey = () => `${SL.currentSite()}|${(pageSearch() || location.pathname).toLowerCase()}`;
+  // fill: also write the boxes (on load and Clear). Otherwise they're yours: never overwritten mid-edit.
+  const showQuick = (fill = false) => {
+    if (fill) {
+      qfWords.value = quick.words;
+      qfMin.value = quick.min || "";
+      qfMax.value = quick.max || "";
+      qfDeal.value = quick.deal || "";
+    }
+    // With sold prices known, suggest 70% of the median as a starting point.
+    const hint = lastMarket?.median > 0 ? Math.round(lastMarket.median * 0.7) : 0;
+    qfDeal.placeholder = hint ? `$${hint}?` : "$";
+    qfDeal.title = hint ? `Your price for this search. 70% of the eBay sold median would be $${hint}.` : "Your price for this search: listings at or under it are marked, and counted on the tab.";
+    root.querySelectorAll("[data-q]").forEach((b) => b.setAttribute("aria-pressed", String(!!quick[b.dataset.q])));
+    qf.classList.toggle("on", quickActive());
+    $(".qf-clear").hidden = !quickActive();
+  };
+  const loadQuick = async () => {
+    const { quickFilters = {} } = await chrome.storage.local.get("quickFilters");
+    quick = { ...NO_QUICK, ...(quickFilters[quickKey()] || {}) };
+    showQuick(true);
+  };
+  let quickTimer = 0;
+  const applyQuick = (save = true) => {
+    for (const f of facts.values()) {
+      f.filtered = filterReason(f);
+      f.deal = isDeal(f);
+    }
+    redecorateAll();
+    showQuick();
+    refreshPending();
+    if (!save || !alive()) return;
+    noteSearchVisit([...facts.values()]).catch(() => {});
+    clearTimeout(quickTimer);
+    const key = quickKey();
+    const value = { ...quick, a: Date.now() };
+    quickTimer = setTimeout(async () => {
+      const { quickFilters = {} } = await chrome.storage.local.get("quickFilters");
+      if (quickActive() || value.deal) quickFilters[key] = value;
+      else delete quickFilters[key];
+      const kept = Object.entries(quickFilters).sort((a, b) => a[1].a - b[1].a).slice(-200);
+      await chrome.storage.local.set({ quickFilters: Object.fromEntries(kept) });
+    }, 400);
+  };
+  const money0 = (v) => Math.max(0, Math.round(Number(String(v).replace(/[$,\s]/g, "")) || 0));
+  let typing = 0;
+  const readBoxes = () => {
+    clearTimeout(typing);
+    Object.assign(quick, { words: qfWords.value, min: money0(qfMin.value), max: money0(qfMax.value), deal: money0(qfDeal.value) });
+  };
+  const onQuickInput = () => {
+    clearTimeout(typing);
+    typing = setTimeout(() => {
+      readBoxes();
+      applyQuick();
+    }, 250);
+  };
+  [qfWords, qfMin, qfMax, qfDeal].forEach((el) => el.addEventListener("input", onQuickInput));
+  root.querySelectorAll("[data-q]").forEach((b) =>
+    b.addEventListener("click", () => {
+      readBoxes(); // whatever you just typed counts too
+      quick[b.dataset.q] = !quick[b.dataset.q];
+      applyQuick();
+    })
+  );
+  $(".qf-clear").addEventListener("click", () => {
+    clearTimeout(typing);
+    quick = { ...NO_QUICK, deal: quick.deal }; // your price isn't a filter; it stays
+    showQuick(true);
+    applyQuick();
+  });
+
   sortSel.addEventListener("change", () => {
     sortMode = sortSel.value;
     if (alive()) chrome.storage.local.set({ sortMode }).catch(() => {});
@@ -1909,6 +2148,7 @@
 
     try {
       const settings = await send("getSettings");
+      editingInputs = false;
       if (inputsChanged()) {
         clearStickers();
         listEl.replaceChildren();
@@ -2100,6 +2340,8 @@
       url: listing.url,
       imageUrl: listing.imageUrls?.[0] || "",
       history: memory[key].h || [],
+      project: clueOf(PROJECT, `${listing.title} ${listing.condition || ""} ${listing.details || ""}`),
+      motivated: clueOf(MOTIVATED, `${listing.title} ${listing.details || ""}`),
       since: memory[key].pa,
     };
     if (saved[key]) await notePrices([{ url: listing.url, price: listing.price }]);
@@ -2136,7 +2378,7 @@
         f.hidden ? h("span", {}, "Marked not interested") : null,
         h("button", { onclick: () => toggleSave(f.key) }, sv ? "\u2605 Saved" : "\u2606 Save"),
         h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested"),
-        h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold on eBay \u2197")
+        h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197")
       )
     );
     piSearch.replaceChildren();
@@ -2307,6 +2549,7 @@
       renderItem(listing, r, market);
       setCount(1);
       analyzeBtn.textContent = "Analyze again";
+      editingInputs = false;
       setStatus(settings.provider === "anthropic" && r.cost ? `Cost ${fmtCost(r.cost)}.` : "");
     } catch (e) {
       setStatus(e.message, true);
@@ -2314,6 +2557,7 @@
       analyzing = false;
       wrap.classList.remove("busy");
       analyzeBtn.disabled = false;
+      updateFold();
     }
   };
 
@@ -2480,6 +2724,7 @@
       lastMarket = null;
       cacheTried = false;
       scanInputs = null;
+      editingInputs = false;
       freeRow.hidden = true;
       analyzeBtn.textContent = "Analyze this listing";
       clearStickers();
@@ -2493,7 +2738,9 @@
       setCount(0);
       setStatus("");
       if (type !== "results" || !restoreScan(lastHref)) queryEl.value = SL.detectQuery();
+      if (type === "results") quickReady = loadQuick();
       showBrowseNote();
+      updateFold();
       if (type === "item") setTimeout(itemPass, 1200); // let the listing finish rendering
     }
   };

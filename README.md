@@ -20,6 +20,10 @@ background.
    eBay and Marketplace page; the free marks on the cards work with the panel closed. Click the tab
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
 
+The first time, the panel opens by itself with a three-step welcome (choose Use or Fix & flip, say
+what you want, press Scan); each step is a link that jumps to the right box. **Got it** closes it for
+good, and the **?** button in the panel header brings it back.
+
 The panel has two views: **This page** (everything below) and **Saved** (your saved listings and
 searches, and everything you've hidden), which works on any eBay or Marketplace page.
 

@@ -411,7 +411,7 @@
           <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
-        <div class="setup" hidden><b>Add a Claude API key to start.</b> It takes a minute at console.anthropic.com. Or pick your Ollama model in the menu at the bottom if you run one locally.
+        <div class="setup" hidden><b class="setup-title">Add a Claude API key to start.</b> <span class="setup-text">It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings.</span>
           <button class="ghost" data-act="open-settings">Open settings</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
@@ -457,7 +457,7 @@
         <div class="spend-detail" hidden></div>
         <div class="foot-row">
           <label class="model-pick" title="Which model judges listings. Changes straight away."><span class="sr">Model</span><select class="model"></select></label>
-          <button class="spend" aria-expanded="false" title="What Second Look has spent on the Claude API"></button>
+          <button class="spend" aria-expanded="false" title="What Second Look has spent on paid AI services"></button>
         </div>
         <div class="budget" hidden><i></i></div>
       </div>
@@ -613,9 +613,11 @@
   const renderModels = () => {
     const opts = [...MODELS];
     if (cfg.anthropicModel && !opts.some(([, m]) => m === cfg.anthropicModel)) opts.push(["anthropic", cfg.anthropicModel, cfg.anthropicModel]);
+    // Another AI service, once one is set up in settings.
+    if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName} \u00b7 ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
     opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama \u00b7 ${cfg.textModel || "qwen3:4b"} \u00b7 free`]);
-    modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}` }, label)));
-    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : `anthropic|${cfg.anthropicModel}`;
+    modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}`, title: label }, label)));
+    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : `anthropic|${cfg.anthropicModel}`;
   };
   const openSettings = () => send("openOptions").catch(() => {});
   $('[data-act="settings"]').addEventListener("click", openSettings);
@@ -626,13 +628,15 @@
 
   modelSel.addEventListener("change", async () => {
     const [provider, model] = modelSel.value.split("|");
-    await chrome.storage.local.set(provider === "ollama" ? { provider } : { provider, anthropicModel: model });
+    await chrome.storage.local.set(provider === "anthropic" ? { provider, anthropicModel: model } : { provider });
     setStatus(
       provider === "ollama"
         ? `Using ${model} on Ollama (free, on your computer).`
-        : cfg.hasKey
-          ? `Using ${nameOf(model)} from now on. Scores already made by another model stay until you scan again.`
-          : "Add a Claude API key in the extension's settings to use Claude.",
+        : provider === "openai"
+          ? `Using ${model} on ${cfg.oaiName} from now on.`
+          : cfg.hasKey
+            ? `Using ${nameOf(model)} from now on. Scores already made by another model stay until you scan again.`
+            : "Add a Claude API key in the extension's settings to use Claude.",
       provider === "anthropic" && !cfg.hasKey
     );
   });
@@ -685,16 +689,16 @@
             models.map(([m, v]) => h("div", {}, h("span", {}, nameOf(m)), h("span", {}, `${usd(v.usd)} \u00b7 ${v.calls} call${v.calls === 1 ? "" : "s"} \u00b7 ~${usd(v.usd / v.calls)} each`))),
             rest >= 0.005 ? h("div", {}, h("span", {}, "Not split by model"), h("span", {}, usd(rest))) : null
           )
-        : h("div", { class: "hint" }, "Nothing spent on Claude this month."),
+        : h("div", { class: "hint" }, "Nothing spent on paid AI this month."),
       h(
         "div",
         { class: "hint" },
         budget
-          ? `Budget: $${budget} a month, ${Math.round(share * 100)}% used. Claude calls stop when it's reached. `
+          ? `Budget: $${budget} a month, ${Math.round(share * 100)}% used. Paid AI stops when it's reached. `
           : "No monthly budget set; you can set one in settings. ",
-        "Estimated from token counts at list price. Your actual balance is at ",
+        "Claude is estimated from token counts at list price (your real balance is at ",
         h("a", { href: "https://console.anthropic.com/settings/billing", target: "_blank", rel: "noopener" }, "console.anthropic.com"),
-        "."
+        "); OpenRouter reports its own costs; other services count at the prices you entered in settings."
       )
     );
   };
@@ -710,14 +714,26 @@
       return;
     }
     renderModels();
-    setupCard.hidden = !(cfg.provider === "anthropic" && !cfg.hasKey);
+    // What's missing before the model can run, if anything.
+    const keyless = /LM Studio/.test(cfg.oaiName || "");
+    const missing =
+      cfg.provider === "anthropic" && !cfg.hasKey
+        ? ["Add a Claude API key to start.", "It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings."]
+        : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
+          ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
+          : null;
+    setupCard.hidden = !missing;
+    if (missing) {
+      $(".setup-title").textContent = missing[0];
+      $(".setup-text").textContent = missing[1];
+    }
     renderSpend((await chrome.storage.local.get("usage")).usage);
   };
   loadFooter();
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
     if (changes.usage) renderSpend(changes.usage.newValue);
-    if (["provider", "anthropicModel", "textModel", "anthropicKey", "monthlyBudget", "rankRate", "batchSize"].some((k) => changes[k])) loadFooter().then(refreshPending);
+    if (["provider", "anthropicModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize"].some((k) => changes[k])) loadFooter().then(refreshPending);
   });
 
   // ---------- lens: what you want the listing for ----------
@@ -1910,7 +1926,7 @@
     // you per listing with this model. Ones judged the same way before come back free, so it's a ceiling.
     const changed = inputsChanged();
     const toScore = [...facts.entries()].filter(([k, f]) => (changed || !seen.has(k)) && !f.hidden && !f.filtered && !f.campaign).length;
-    const est = cfg.provider === "anthropic" && cfg.hasKey && cfg.scanRate > 0 ? toScore * cfg.scanRate : 0;
+    const est = cfg.provider !== "ollama" && cfg.scanRate > 0 ? toScore * cfg.scanRate : 0;
     const label = changed ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : toScore ? `Scan ${toScore} listing${toScore > 1 ? "s" : ""}` : "Scan this page";
     scanBtn.replaceChildren(label, est && (changed || n || !seen.size) ? h("span", { class: "cost" }, ` \u00b7 ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}`) : "");
     scanBtn.title = est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "";
@@ -2155,7 +2171,7 @@
       items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
 
       // Anything already judged in this exact setting comes back from memory, free.
-      const model = settings.provider === "anthropic" ? settings.anthropicModel : settings.textModel;
+      const model = settings.provider === "anthropic" ? settings.anthropicModel : settings.provider === "openai" ? settings.oaiModel : settings.textModel;
       const ctx = hash([forLens, want, query, browse, model, market?.median, market?.parts?.median].join("|"));
       const { scoreCache = {} } = await chrome.storage.local.get("scoreCache");
       const fresh = {};
@@ -2186,8 +2202,8 @@
       const size = Math.max(1, settings.batchSize | 0);
       const batches = [];
       for (let i = 0; i < toRank.length; i += size) batches.push(toRank.slice(i, i + size));
-      // The Claude API handles a few requests at once; a local Ollama model is fastest one at a time.
-      const parallel = settings.provider === "anthropic" ? 3 : 1;
+      // Online services handle a few requests at once; a model on your own computer is fastest one at a time.
+      const parallel = settings.provider === "ollama" || (settings.provider === "openai" && /localhost|127\.0\.0\.1/.test(settings.oaiUrl)) ? 1 : 3;
       let done = fromMemory + scams;
       const session = scored; // if you navigate away mid-scan, late answers belong to the old page
       setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${model}…`);

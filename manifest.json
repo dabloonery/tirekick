@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Second Look",
-  "version": "0.15.0",
-  "description": "Score tags, sold-price comparisons and scam checks on eBay and Facebook Marketplace listings, judged by Claude or a local model.",
+  "version": "0.16.0",
+  "description": "Score tags, sold-price comparisons, scam checks and search tools for eBay and Facebook Marketplace, judged by Claude, other AI services or a local model.",
   "permissions": [
     "storage",
     "contextMenus",
@@ -12,10 +12,22 @@
     "http://localhost:11434/*",
     "http://127.0.0.1:11434/*",
     "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://openrouter.ai/*",
+    "https://api.deepseek.com/*",
+    "https://api.mistral.ai/*",
+    "https://api.x.ai/*",
+    "http://localhost:1234/*",
+    "http://127.0.0.1:1234/*",
     "https://www.ebay.com/*",
     "https://www.facebook.com/*",
     "https://i.ebayimg.com/*",
     "https://*.fbcdn.net/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
   ],
   "background": {
     "service_worker": "background.js"

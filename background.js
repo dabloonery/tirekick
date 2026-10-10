@@ -7,10 +7,18 @@
 // Content scripts send messages; this file answers them.
 
 const DEFAULTS = {
-  provider: "anthropic", // "anthropic" (Claude API) or "ollama" (local)
+  provider: "anthropic", // "anthropic" (Claude API), "openai" (any OpenAI-compatible service) or "ollama" (local)
   anthropicKey: "",
   anthropicModel: "claude-opus-5-5",
   anthropicUrl: "https://api.anthropic.com", // only changed for testing
+  // Any service that speaks the OpenAI chat API: OpenAI, Gemini, OpenRouter, DeepSeek, Mistral, xAI, LM Studio...
+  oaiPreset: "openrouter",
+  oaiUrl: "https://openrouter.ai/api/v1",
+  oaiKey: "",
+  oaiModel: "",
+  oaiVisionModel: "", // blank = the same model
+  oaiPriceIn: 0, // $ per million tokens, for spend tracking where the service doesn't report cost (0 = not tracked)
+  oaiPriceOut: 0,
   ollamaUrl: "http://localhost:11434",
   textModel: "qwen3:4b",
   visionModel: "moondream",
@@ -99,12 +107,7 @@ async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
 async function anthropicMessage({ system, content, schema, maxTokens = 16000, signal }) {
   const { anthropicKey, anthropicModel, anthropicUrl, monthlyBudget } = await getSettings();
   if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
-  if (monthlyBudget > 0) {
-    const spent = monthSpent((await chrome.storage.local.get("usage")).usage);
-    if (spent >= monthlyBudget) {
-      throw new Error(`This month's budget of $${monthlyBudget} is used up (about $${spent.toFixed(2)} spent). Raise it in settings, or switch to Ollama in the panel's model menu.`);
-    }
-  }
+  await checkBudget(monthlyBudget);
   const body = {
     model: anthropicModel,
     max_tokens: maxTokens,
@@ -161,6 +164,90 @@ async function anthropicMessage({ system, content, schema, maxTokens = 16000, si
   return { text, cost: await addSpend(data.model || anthropicModel, data.usage) };
 }
 
+// Paid services stop once this month's estimated spend reaches the budget.
+async function checkBudget(monthlyBudget) {
+  if (!(monthlyBudget > 0)) return;
+  const spent = monthSpent((await chrome.storage.local.get("usage")).usage);
+  if (spent >= monthlyBudget) {
+    throw new Error(`This month's budget of $${monthlyBudget} is used up (about $${spent.toFixed(2)} spent). Raise it in settings, or switch to Ollama in the panel's model menu.`);
+  }
+}
+
+// ---------- Other AI services (the OpenAI chat API) ----------
+// One code path for every service that speaks it. Structured output first (a JSON schema); if a
+// service or model doesn't take that, plain JSON mode with the schema in the instructions; then
+// no format at all (the reply is still read as JSON).
+const OAI_NAMES = [
+  [/openai\.com/, "OpenAI"], [/googleapis\.com/, "Gemini"], [/openrouter\.ai/, "OpenRouter"],
+  [/deepseek\.com/, "DeepSeek"], [/mistral\.ai/, "Mistral"], [/x\.ai/, "xAI"], [/localhost:1234|127\.0\.0\.1:1234/, "LM Studio"],
+];
+const oaiName = (url) => OAI_NAMES.find(([re]) => re.test(url))?.[1] || new URL(url).host;
+
+async function openaiChat({ messages, schema, model, signal }) {
+  const { oaiUrl, oaiKey, oaiModel, oaiPriceIn, oaiPriceOut, monthlyBudget } = await getSettings();
+  model ||= oaiModel;
+  const name = oaiName(oaiUrl);
+  if (!model) throw new Error(`Pick a model for ${name} in settings (Test connection lists them).`);
+  const origin = new URL(oaiUrl).origin;
+  if (!(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) {
+    throw new Error(`Second Look isn't allowed to reach ${origin} yet. In settings, press Test connection to allow it.`);
+  }
+  await checkBudget(monthlyBudget);
+  const headers = { "Content-Type": "application/json" };
+  if (oaiKey) headers.Authorization = `Bearer ${oaiKey}`;
+  const openrouter = /openrouter\.ai/.test(oaiUrl);
+  if (openrouter) headers["X-Title"] = "Second Look";
+  const formats = schema
+    ? [{ type: "json_schema", json_schema: { name: "answer", strict: true, schema } }, { type: "json_object" }, null]
+    : [null];
+  let res, text;
+  for (const [i, format] of formats.entries()) {
+    const sys = format?.type === "json_schema" || !schema ? messages : withSchemaNote(messages, schema);
+    const body = { model, messages: sys };
+    if (format) body.response_format = format;
+    if (openrouter) body.usage = { include: true }; // OpenRouter then reports the exact cost
+    for (let attempt = 0; ; attempt++) {
+      try {
+        res = await fetchWithTimeout(`${oaiUrl.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers, body: JSON.stringify(body), signal }, 3 * 60 * 1000, `${name} took over 3 minutes. Try again, or lower "Listings per request".`);
+      } catch (e) {
+        if (/took over/.test(e.message) || e.message === STOPPED) throw e;
+        throw new Error(name === "LM Studio" ? "Can't reach LM Studio. Is its server running (Developer tab)?" : `Can't reach ${name}. Check your internet connection.`);
+      }
+      if (!(res.status === 429 || res.status >= 500) || attempt >= 2 || signal?.aborted) break;
+      await sleep(Math.min(20, Number(res.headers.get("retry-after")) || 2 * 2 ** attempt) * 1000);
+    }
+    if (res.ok) break;
+    text = await res.text();
+    // This service or model doesn't take that output format: try the next, plainer one.
+    if (res.status === 400 && i < formats.length - 1 && /response_format|json_schema|json_object|structured|schema|not supported/i.test(text)) continue;
+    break;
+  }
+  if (res.status === 401 || res.status === 403) throw new Error(`${name} rejected the key. Check it in settings.`);
+  if (res.status === 429) throw new Error(`${name} rate limit hit. Wait a moment and try again.`);
+  if (res.status === 402) throw new Error(`${name} says the account is out of credit.`);
+  if (!res.ok) {
+    text ??= await res.text();
+    if (res.status === 404 && /model/i.test(text)) throw new Error(`${name} doesn't recognise the model "${model}". Pick one in settings (Test connection lists them).`);
+    throw new Error(`${name} error ${res.status}: ${text.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  const choice = data.choices?.[0];
+  if (choice?.message?.refusal) throw new Error(`${name} declined this request.`);
+  if (choice?.finish_reason === "length") throw new Error(`${name}'s answer was cut off. Lower "Listings per request" in settings and try again.`);
+  const content = choice?.message?.content;
+  const out = Array.isArray(content) ? content.map((c) => c.text || "").join("") : content || "";
+  // Cost: OpenRouter says exactly; otherwise your prices per million tokens, if you entered them.
+  const u = data.usage || {};
+  const usd = typeof u.cost === "number" ? u.cost : oaiPriceIn > 0 || oaiPriceOut > 0 ? ((u.prompt_tokens || 0) * oaiPriceIn + (u.completion_tokens || 0) * oaiPriceOut) / 1e6 : 0;
+  return { text: out, cost: usd > 0 ? await addSpend(data.model || model, null, usd) : 0 };
+}
+// Plain JSON mode doesn't carry the schema, so it goes into the instructions.
+function withSchemaNote(messages, schema) {
+  const note = `Reply with only a JSON object matching this JSON schema, nothing else:\n${JSON.stringify(schema)}`;
+  const [first, ...rest] = messages;
+  return first.role === "system" ? [{ ...first, content: `${first.content}\n\n${note}` }, ...rest] : [{ role: "system", content: note }, ...messages];
+}
+
 // ---------- What it costs ----------
 // List prices per million tokens (input, output). Thinking is billed as output and is
 // included in output_tokens. Approximate: a server-side fallback may bill a different model.
@@ -181,10 +268,11 @@ function monthSpent(usage, month = today().slice(0, 7)) {
 }
 
 let spendQueue = Promise.resolve(); // parallel batches finish together; add their costs one at a time
-function addSpend(model, usage) {
+// usd: the cost when the service reported it (or it was worked out elsewhere); otherwise from Claude's list prices.
+function addSpend(model, usage, usd) {
   const price = PRICES.find(([re]) => re.test(model));
-  if (!price || !usage) return Promise.resolve(0);
-  const cost = ((usage.input_tokens || 0) * price[1] + (usage.output_tokens || 0) * price[2]) / 1e6;
+  if (usd == null && (!price || !usage)) return Promise.resolve(0);
+  const cost = usd ?? ((usage.input_tokens || 0) * price[1] + (usage.output_tokens || 0) * price[2]) / 1e6;
   spendQueue = spendQueue
     .then(async () => {
       const day = today();
@@ -306,6 +394,7 @@ Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you
 async function llmText({ system, userText, schema, signal }) {
   const { provider, textModel } = await getSettings();
   if (provider === "anthropic") return anthropicMessage({ system, content: userText, schema, signal });
+  if (provider === "openai") return openaiChat({ messages: [{ role: "system", content: system }, { role: "user", content: userText }], schema, signal });
   const text = await ollamaChat({
     model: textModel,
     format: schema,
@@ -322,6 +411,14 @@ function parseModelJson(content) {
   try {
     return JSON.parse(content);
   } catch {
+    // Some models wrap the JSON in ```json fences or a sentence; take the outermost object.
+    const a = content.indexOf("{");
+    const b = content.lastIndexOf("}");
+    if (a >= 0 && b > a) {
+      try {
+        return JSON.parse(content.slice(a, b + 1));
+      } catch {}
+    }
     throw new Error("The model returned something unreadable. Try again, or lower \"Listings per request\" in settings.");
   }
 }
@@ -366,22 +463,25 @@ async function rankBatch({ items, query, market, lens = "use", want = "", browse
 // ---------- What a scan will cost, before you press Scan ----------
 // What scoring has actually cost per listing with each model (recent scans weigh most); before
 // there's any history, a rough figure from list prices and typical token counts.
+const modelInUse = (s) => (s.provider === "anthropic" ? s.anthropicModel : s.provider === "openai" ? s.oaiModel : s.textModel);
 async function noteRankRate(n, cost) {
-  const { anthropicModel } = await getSettings();
+  const model = modelInUse(await getSettings());
   const { rankRate = {} } = await chrome.storage.local.get("rankRate");
-  const r = (rankRate[anthropicModel] ||= { usd: 0, items: 0 });
+  const r = (rankRate[model] ||= { usd: 0, items: 0 });
   r.usd += cost;
   r.items += n;
   if (r.items > 300) (r.usd /= 2), (r.items /= 2);
   await chrome.storage.local.set({ rankRate });
 }
 async function perListingCost() {
-  const { provider, anthropicModel, batchSize } = await getSettings();
-  if (provider !== "anthropic") return 0;
+  const settings = await getSettings();
+  const { provider, anthropicModel, batchSize, oaiPriceIn, oaiPriceOut } = settings;
+  if (provider === "ollama") return 0;
   const { rankRate = {} } = await chrome.storage.local.get("rankRate");
-  const r = rankRate[anthropicModel];
+  const r = rankRate[modelInUse(settings)];
   if (r?.items >= 10) return r.usd / r.items;
-  const price = PRICES.find(([re]) => re.test(anthropicModel));
+  // No history yet: Claude's list prices, or the prices you entered for another service.
+  const price = provider === "anthropic" ? PRICES.find(([re]) => re.test(anthropicModel)) : oaiPriceIn > 0 || oaiPriceOut > 0 ? [null, oaiPriceIn, oaiPriceOut] : null;
   if (!price) return 0;
   const b = Math.max(1, batchSize | 0);
   // About 200 input tokens a listing plus ~1,600 of instructions per request; about 160 output a listing plus ~300 a request.
@@ -559,7 +659,7 @@ function photoAdjust(p) {
 }
 
 async function checkPhoto({ imageUrl, title, signal }) {
-  const { visionModel, provider } = await getSettings();
+  const { visionModel, provider, oaiVisionModel } = await getSettings();
   const imgRes = await fetchWithTimeout(imageUrl, { signal }, 30 * 1000, "The photo took too long to load.");
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
   const buf = await imgRes.arrayBuffer();
@@ -578,6 +678,15 @@ async function checkPhoto({ imageUrl, title, signal }) {
         { type: "image", source: { type: "base64", media_type, data: b64 } },
         { type: "text", text: prompt },
       ],
+    }));
+  } else if (provider === "openai") {
+    const type = (imgRes.headers.get("content-type") || "").split(";")[0];
+    const mime = /^image\//.test(type) ? type : "image/jpeg";
+    ({ text } = await openaiChat({
+      signal,
+      model: oaiVisionModel || undefined, // blank: the main model, which must then handle images
+      schema: PHOTO_SCHEMA,
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:${mime};base64,${b64}` } }] }],
     }));
   } else {
     text = await ollamaChat({
@@ -648,8 +757,8 @@ async function getFont({ file }) {
 
 // Page scripts get the settings without the API key: they never need it.
 async function getPageSettings() {
-  const { anthropicKey, ...rest } = await getSettings();
-  return { ...rest, hasKey: !!anthropicKey, scanRate: await perListingCost() };
+  const { anthropicKey, oaiKey, ...rest } = await getSettings();
+  return { ...rest, hasKey: !!anthropicKey, hasOaiKey: !!oaiKey, oaiName: rest.oaiUrl ? oaiName(rest.oaiUrl) : "", scanRate: await perListingCost() };
 }
 
 const openOptions = async () => chrome.runtime.openOptionsPage();

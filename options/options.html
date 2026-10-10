@@ -78,10 +78,10 @@
 
   <section>
     <h2>Model</h2>
-    <p class="hint">Where the judging runs: the Claude API (best quality, no setup) or Ollama on your own computer (private, free). Listing titles and card text go to whichever you choose.</p>
+    <p class="hint">Where the judging runs: the Claude API, another AI service (OpenAI, Gemini, OpenRouter and others), or Ollama on your own computer (private, free). Listing titles and card text go to whichever you choose.</p>
     <div class="field">
       <label for="provider">Model provider</label>
-      <select id="provider"><option value="anthropic">Claude API</option><option value="ollama">Ollama (local)</option></select>
+      <select id="provider"><option value="anthropic">Claude API</option><option value="openai">Other AI services (OpenAI, Gemini, OpenRouter…)</option><option value="ollama">Ollama (local)</option></select>
     </div>
     <div id="anthropicBox">
       <div class="field">
@@ -98,6 +98,47 @@
           <option value="claude-haiku-4-5">Haiku 4.5: a quarter of the price</option>
         </datalist>
         <span class="hint">Pick from the list or type any Claude model ID. Also used for photo checks. You can switch any time from the menu at the bottom of the panel.</span>
+      </div>
+    </div>
+    <div id="oaiBox">
+      <div class="field">
+        <label for="oaiPreset">Service</label>
+        <select id="oaiPreset">
+          <option value="openrouter">OpenRouter: hundreds of models with one key</option>
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="mistral">Mistral</option>
+          <option value="xai">xAI (Grok)</option>
+          <option value="lmstudio">LM Studio, on this computer</option>
+          <option value="custom">Another OpenAI-compatible service</option>
+        </select>
+        <span class="hint" id="oaiPresetHint"></span>
+      </div>
+      <div class="field">
+        <label for="oaiUrl">Address</label>
+        <input id="oaiUrl" type="text" autocomplete="off" placeholder="https://…/v1">
+      </div>
+      <div class="field">
+        <label for="oaiKey">API key</label>
+        <input id="oaiKey" type="password" autocomplete="off">
+        <span class="hint">Stored only in this browser profile.</span>
+      </div>
+      <div class="field">
+        <label for="oaiModel">Model</label>
+        <input id="oaiModel" type="text" list="oaiModels" autocomplete="off" placeholder="Test connection lists what's available">
+        <datalist id="oaiModels"></datalist>
+        <span class="hint">Pick one from the list after Test connection, or type its ID. Small, cheap models are fine for scoring; bigger ones judge repairs and scams better.</span>
+      </div>
+      <div class="field">
+        <label for="oaiVisionModel">Photo model</label>
+        <input id="oaiVisionModel" type="text" list="oaiModels" autocomplete="off" placeholder="Blank: the model above">
+        <span class="hint">Only used for photo checks; it has to accept images.</span>
+      </div>
+      <div class="field">
+        <label>Price, for the spending counter</label>
+        <div class="pair"><span>$</span><input id="oaiPriceIn" type="number" min="0" step="0.01"> <span>per million in,</span> <span>$</span><input id="oaiPriceOut" type="number" min="0" step="0.01"> <span>per million out</span></div>
+        <span class="hint">From the service's pricing page. Leave at 0 and spending isn't counted (OpenRouter reports its own costs, so it's counted anyway).</span>
       </div>
     </div>
     <div id="ollamaBox">
@@ -129,11 +170,11 @@
     <div class="spendgrid" id="spendGrid"></div>
     <div id="spendModels" class="hint"></div>
     <div class="field" style="margin-top:14px">
-      <label for="monthlyBudget">Monthly budget for the Claude API (dollars)</label>
+      <label for="monthlyBudget">Monthly budget for paid AI (dollars)</label>
       <input id="monthlyBudget" type="number" min="0" step="1" placeholder="0 = no budget">
-      <span class="hint">When this month's estimated spend reaches it, Claude calls stop until next month (or until you raise it). 0 means no budget. The panel's footer shows how much is used.</span>
+      <span class="hint">When this month's estimated spend reaches it, paid AI stops until next month (or until you raise it). 0 means no budget. The panel's footer shows how much is used.</span>
     </div>
-    <p class="hint">Estimated from token counts at list price; a regular API key can't read your real balance, which is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>. <button type="button" class="small" id="resetSpend">Reset the counter</button></p>
+    <p class="hint">Claude is estimated from token counts at list price (a regular API key can't read your real balance, which is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>); OpenRouter reports its own costs; other services count at the prices you enter above. <button type="button" class="small" id="resetSpend">Reset the counter</button></p>
   </section>
 
   <section>

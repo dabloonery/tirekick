@@ -160,9 +160,33 @@ Turn off "Mark cards before you scan" in settings to keep cards untouched until 
 ## Model and cost
 
 The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
-**Sonnet 5.5** (half the price), **Haiku 4.5** (a quarter), or your **Ollama** model (free, local).
-Next to it is this month's Claude spend; click it for today, this month, last month and each
-model's cost per call. Set a monthly budget in settings and Claude calls stop when it's reached.
+**Sonnet 5.5** (half the price), **Haiku 4.5** (a quarter), the other AI service you've set up,
+or your **Ollama** model (free, local). Next to it is this month's spend on paid AI; click it for
+today, this month, last month and each model's cost per call. Set a monthly budget in settings and
+paid AI stops when it's reached.
+
+The **Scan** button says how many listings it would send and about what that costs ("Scan 48
+listings · about $0.26"), from what scoring has actually cost you per listing with that model.
+**Stop** appears beside the status line while the model works (scans, analyses, photo checks,
+ideas): nothing new is sent, requests under way are cancelled, and what already came back stays.
+
+### Other AI services
+
+Settings → Model → "Other AI services" works with anything that speaks the OpenAI chat API:
+
+| Service | Notes |
+|---|---|
+| **OpenRouter** | One key for hundreds of models (Google, Meta, Mistral, DeepSeek, Qwen…); reports its own costs, so spending is exact |
+| **OpenAI** | Key at platform.openai.com |
+| **Google Gemini** | Key at aistudio.google.com; free tier with rate limits |
+| **DeepSeek**, **Mistral**, **xAI** | Keys from each console |
+| **LM Studio** | On your own computer, free and private: load a model and start its server |
+| Anything else | Enter its /v1 address; Test connection asks your permission to reach it |
+
+Pick the service, paste the key, press **Test connection** (it lists the models), and pick one. A
+separate photo model is optional (it has to accept images). For spending on services other than
+Claude and OpenRouter, enter their prices per million tokens. If a model can't do structured
+output, Second Look falls back to plain JSON, so most chat models work; small ones judge less well.
 
 To keep costs down, scores are remembered for a day (re-scans and coming back are free), up to
 three requests run at once, and a failed request's listings come back on the next scan. Spending
@@ -203,7 +227,7 @@ A 4B model is a quick first filter, not an appraiser: read its reasons. With 4 G
 
 ## Privacy
 
-Listing titles and card text go to the model you pick; with Ollama nothing leaves your computer
+Listing titles and card text go to the model you pick; with Ollama or LM Studio nothing leaves your computer
 except eBay sold-price searches (turn those off in settings). What you've seen, saved, hidden and spent
 is kept only in this browser. Settings can clear what's seen and hidden; remove saved things from
 the Saved section.
@@ -238,7 +262,7 @@ refresh the tab. The version number there tells you which copy is running.
 | `manifest.json` | Permissions, icon, keyboard shortcut. With "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
 | `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape; the sold-price median |
 | `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
-| `background.js` | Talks to Claude or Ollama (retries, timeouts, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
+| `background.js` | Talks to Claude, other AI services or Ollama (retries, timeouts, Stop, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
 | `options/` | Settings page |
 | `fonts/`, `icons/` | The bundled serif (OFL) and the toolbar icon |
 

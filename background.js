@@ -24,7 +24,7 @@ const DEFAULTS = {
   visionModel: "moondream",
   batchSize: 10,
   useSoldComps: true,
-  lens: "use", // "use" (buy to use), "fix" (fix-up project) or "flip" (resell)
+  lens: "use", // "use" (buy to use it yourself) or "project" (fix & flip)
   feePct: 13.6, // eBay fees as % of the sale, for flip margins
   interests: "Electronics, older and retro tech, video games and consoles, anything with an active homebrew scene.",
   // Filters and seller rules: plain checks, no AI. Hidden listings are never sent to the model.
@@ -295,23 +295,25 @@ function addSpend(model, usage, usd) {
 }
 
 // ---------- Lenses ----------
-// The same listing is judged differently depending on what you want it for.
+// The same listing is judged differently depending on what you want it for: to use yourself, or
+// as a fix & flip project. (Older versions had separate "fix" and "flip"; both mean "project" now.)
+const lensOf = (lens) => (lens === "fix" || lens === "flip" ? "project" : LENS_RULES[lens] ? lens : "use");
 
 const LENS_RULES = {
   use: `Lens: buy to use. The buyer wants a working item for themselves.
 great = strong price for a working item; good = fair-to-good deal, worth a look; fair = market price, nothing special;
 pass = overpriced, or for parts / not working / untested "as is" (unless the buyer says they want that).`,
-  fix: `Lens: fix-up project. The buyer repairs things and LIKES broken, untested, "as is" and for-parts listings when the likely fault is common and fixable.
-Score by: cheap compared with the for-parts and working prices, likely fault is well known and easy, parts are cheap and available.
-great = cheap with a likely easy fix; good = reasonable project; fair = fair price, nothing special; pass = expensive for a broken item, or a fault that is hard to fix.
+  project: `Lens: fix & flip. The buyer repairs things and resells them. They LIKE broken, untested, "as is" and for-parts listings
+when the likely fault is common and fixable, and working items priced well under what they resell for.
+Score by the better of two angles:
+- a fix-up: cheap compared with the for-parts and working prices, a well-known easy fault, cheap parts that are easy to get;
+- a resale margin: "margin before repairs" (resale at the working median, minus fees, minus the buy price) minus likely parts, with low risk.
+great = cheap with an easy fix, or a big margin with low risk; good = a reasonable project or a solid margin; fair = thin margin, nothing special;
+pass = expensive for what it is, a hard fault, or no margin. Items that sell slowly, are fragile or heavy to ship, or have uncertain faults are riskier.
+In the reason, say which angle makes it worth it (the fix, the margin, or both).
 fault: the most likely problem in a few words ("none" if it works, "unknown" if you can't tell).
-difficulty: 1 = easy (cleaning, cable, battery, shell, drop-in part) to 5 = very hard (board rework, unobtainable parts); 0 = can't tell.
+difficulty: 1 = easy (cleaning, cable, battery, shell, drop-in part) to 5 = very hard (board rework, unobtainable parts); 0 = can't tell or it works.
 partsCost: rough whole-dollar cost of the parts, 0 if none or unknown.`,
-  flip: `Lens: flip for profit. The buyer resells, often after a fix or clean-up.
-Score by expected profit and risk. "margin before repairs" is resale at the working median, minus fees, minus the buy price.
-great = big margin with low risk; good = solid margin; fair = thin margin; pass = little or no margin, or high risk.
-Items that sell slowly, are fragile or heavy to ship, or have uncertain faults are higher risk.
-fault, difficulty and partsCost as for a fix-up: "none" and 0 for an item that works.`,
 };
 
 // Rules of thumb for the buyer's hobby categories. Only applied where they fit the listing.
@@ -321,7 +323,7 @@ const FIX_KNOWLEDGE = `Repair and homebrew knowledge (use only where it fits the
 - Homebrew: an active scene adds value and usefulness (e.g. Wii, PS2, PSP, PS Vita, 3DS/DS, original Xbox, GameCube, Dreamcast, some Switch units). Whether a unit can run it can depend on firmware version, model or serial number; say "depends on firmware/serial" unless the listing states it.`;
 
 const lensSystem = (base, lens, interests) =>
-  [base, LENS_RULES[lens] || LENS_RULES.use, interests && `Buyer's interests: ${interests}`, lens !== "use" && FIX_KNOWLEDGE]
+  [base, LENS_RULES[lensOf(lens)], interests && `Buyer's interests: ${interests}`, lensOf(lens) === "project" && FIX_KNOWLEDGE]
     .filter(Boolean)
     .join("\n\n");
 
@@ -587,8 +589,7 @@ Never invent products, specs or prices. Do not repeat the current search. Keep q
 
 const IDEAS_LENS = {
   use: "",
-  fix: "The buyer is looking for fix-up projects: include searches that surface broken, untested, \"as is\" and for-parts listings (on eBay, words like \"for parts\", \"untested\", \"not working\").",
-  flip: "The buyer resells for profit: favour searches that surface underpriced listings (misspellings, vague titles, bundles and lots, untested items) rather than tighter matches.",
+  project: "The buyer fixes things up and resells them: include searches that surface broken, untested, \"as is\" and for-parts listings (on eBay, words like \"for parts\", \"untested\", \"not working\"), and underpriced ones (misspellings, vague titles, bundles and lots).",
 };
 
 // Two sources, never mixed: what the buyer typed, or (when that's blank) the results on screen.
@@ -596,14 +597,14 @@ async function suggestSearches({ site, query, intent, titles, market, lens = "us
   const lines = intent
     ? [
         `site: ${site}`,
-        IDEAS_LENS[lens],
+        IDEAS_LENS[lensOf(lens)],
         `what the buyer wants: ${intent}`,
         "Base every suggestion on what the buyer wants. Most should be kind idea, typo or alt.",
         query && `(background only: the page they're on searched "${query}". Use it only if their wants don't name an item; don't refine it otherwise.)`,
       ]
     : [
         `site: ${site}`,
-        IDEAS_LENS[lens],
+        IDEAS_LENS[lensOf(lens)],
         query && `current search: ${query}`,
         market && market.median != null && `sold-price reference: median $${market.median}, middle half $${market.p25}-$${market.p75}${market.parts ? `; for parts: median $${market.parts.median}` : ""}`,
         titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
@@ -846,9 +847,9 @@ async function doSyncAutoScripts() {
   const { showTab } = await getSettings();
   const def = {
     id: AUTO_ID,
-    matches: ["https://www.ebay.com/", "https://www.ebay.com/sch/*", "https://www.ebay.com/itm/*", "https://www.ebay.com/b/*", "https://www.facebook.com/*"],
+    matches: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
     js: ["content/adapters.js", "content/panel.js"],
-    runAt: "document_idle",
+    runAt: "document_end", // the tab shows as soon as the page is parsed, not after every image loads
     persistAcrossSessions: true,
   };
   const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [AUTO_ID] });

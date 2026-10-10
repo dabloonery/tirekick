@@ -14,8 +14,12 @@ background.
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens.
 2. Paste a Claude API key (from console.anthropic.com). Settings save as you go.
-3. Search eBay or Facebook Marketplace. Pull out the slim **Second Look** tab on the right edge
-   (or press **Alt+Shift+L**) and press **Scan this page**.
+3. Search eBay or Facebook Marketplace. A slim **Second Look** tab sits on the right edge of every
+   eBay and Marketplace page; the free marks on the cards work with the panel closed. Click the tab
+   (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
+
+The panel has two views: **This page** (everything below) and **Saved** (your saved listings and
+searches, and everything you've hidden), which works on any eBay or Marketplace page.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Market price,
 Skip, Suspicious) and one line on the price. Hover it for the reasons. Scroll for more and the
@@ -28,11 +32,12 @@ code on the end of the title: "Nintendo Game Boy Advance SP M2465", "Halo Specia
 S1337". Second Look watches for it:
 
 - **Reposted under new codes**: the same title seen with two different codes, on one page or any
-  page in the last month, is marked "Scam: reposted under new codes" and greyed out straight away,
+  page in the last month, is marked "Scam: reposted" and greyed out straight away,
   with no model and no key needed. A scan marks these Suspicious without sending them to the model.
-- **Code in title**: a lone code gets a chip and is spelled out for the model, which marks it
-  Suspicious unless the code is the item's real model number (Pentax K1000, PS Vita PCH1001); the
-  chip goes away when it is.
+- **Code in title**: a lone code gets a chip and counts as a likely scam straight away: greyed out,
+  last in every sort, never a deal at your price. A scan spells it out for the model, which marks
+  it Suspicious unless the code is the item's real model number (Pentax K1000, PS Vita PCH1001);
+  then the chip and the greying go away.
 - **Contact off the site**: on a listing, a disguised web address ("www . jmyzl . com", "remove the
   spaces"), an oddly written phone number ("505_507__6507"), "text me a screenshot", WhatsApp or
   Telegram shows a "Likely scam" note, and the analysis is Suspicious whatever the model thought.
@@ -42,7 +47,7 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
 
 ## Everyday use
 
-- **Use / Fix / Flip** at the top of the panel says what you want a listing for (see below).
+- **Buying to: Use / Fix & flip** at the top of the panel says what you want listings for (see below).
 - **What I want**: "working, with charger, under $80". Every scan, analysis and search idea
   takes it into account, and a listing that misses something says so. After a scan it folds into
   one line with the compare words (**Edit** opens them); change either and the button becomes
@@ -54,36 +59,40 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
 - **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide in the
   bar above the results.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
-  now on. Undo is right there, and "show" in the panel brings hidden ones back.
+  now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Undo.
 - **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
   seller (copyable), a suggested offer with a ready-to-send message, and a photo check.
-- **Search ideas** (at the bottom of the panel) suggests better searches: tighter, looser, common
-  misspellings, other names.
+- **✦ Ideas** (next to Save search) suggests other ways to search for what's on the page: the
+  misspellings sellers make, other model names, tighter or looser words. Click one to run it,
+  ☆ to save it, hover for why. On eBay's front page, "Find searches for what I want" does the same
+  from "What I want".
 - **Right-click any photo** and choose "Check this photo with Second Look".
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Esc** tucks the panel away; the sliders icon opens settings. On a page Second Look doesn't
   work on, the toolbar icon shows a "?" for a moment instead of opening.
 
-## Use, Fix, Flip
+## Use, or Fix & flip
 
-| Lens | Scores high | The tag shows |
+| Buying to | Scores high | The tag shows |
 |---|---|---|
-| **Use** | Working items at a good price; "for parts" and "as is" are marked down | How the price compares with sold ones |
-| **Fix** | Broken or untested items with a likely easy, cheap fix, priced near what broken ones sell for | "Easy fix · ~$10 parts"; the likely fault on hover |
-| **Flip** | The biggest margin: sold price, minus eBay fees, minus the price, minus likely parts | "≈ $26 margin" |
+| **Use** | Working items for yourself at a good price; "for parts" and "as is" are marked down | How the price compares with sold ones |
+| **Fix & flip** | Projects: an easy, cheap fix, a resale margin after eBay fees and parts, or both; broken and untested ones are welcome | "Easy fix · ≈ $16 margin", or "≈ $26 margin" for one that works; the likely fault on hover |
 
-Fix and Flip know the usual faults for electronics, retro tech and consoles (dirty cartridge
+Fix & flip knows the usual faults for electronics, retro tech and consoles (dirty cartridge
 connectors, tired capacitors, worn disc drives…) and what has a homebrew scene; "What you're
 into" in settings steers that, and the rules of thumb live in `FIX_KNOWLEDGE` in
-`background.js`. On a listing page they add a repair plan: likely faults, parts, tools,
+`background.js`. On a listing page it adds a repair plan: likely faults, parts, tools,
 difficulty. Repair guesses come from the listing text only: use them to decide what to ask the
 seller, not as a diagnosis. Set "eBay fees" in settings to your category's fee so margins are real.
+
+The filter bar's broken-listing switch follows the mode: **Hide broken** in Use, **Broken only**
+in Fix & flip (for when you only want fix-ups).
 
 ## Prices
 
 - Comparisons use what you'd actually pay (price plus shipping) against what sold listings went
-  for. The used median comes from recent eBay sales; Fix and Flip also look up what **broken** ones
-  sell for: pay less than that and the worst case is reselling it as-is. "The sales behind these"
+  for. The used median comes from recent eBay sales; Fix & flip also looks up what **broken** ones
+  sell for (when the page has broken or untested listings): pay less than that and the worst case is reselling it as-is. "The sales behind these"
   lists the sales behind each number. eBay's "results matching fewer words" are left out.
 - The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
   "Compare prices against" if the page's search is vague.
@@ -124,9 +133,10 @@ Everything here is free, needs no API key, and runs only on pages you're looking
   card's text, so `-china` drops "from China" on eBay.
 - **$ min – max**, shipping included: a minimum clears out the cases and cables.
 - **New only** hides everything you've seen before, for the searches you check every day.
-- **Projects only** keeps listings that say broken, untested, for parts, no power, disc read error
-  and the like: the "any of these words" search Marketplace can't do. Those words also show as a
-  chip on cards (and moving sale, must go, estate sale: sellers who want it gone).
+- **Hide broken** (Use) or **Broken only** (Fix & flip) acts on listings that say broken, untested,
+  for parts, no power, disc read error and the like: the "any of these words" search Marketplace
+  can't do. Those words also show as a chip on cards (and moving sale, must go, estate sale:
+  sellers who want it gone).
 - **Deal at ≤ $** is your price for this search (it stays when you clear the filter with ×). Listings at or under it get an "At your $60" mark,
   and the slim tab on the edge of the page counts them (★3) even with the panel closed. When sold
   prices are known it suggests 70% of the median.
@@ -142,7 +152,8 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
   cheaper first. Click a title to jump to the card.
 - **Saved**: listings you save, from either site, with the price when you saved them and the
   latest you've seen ("$52 (↓ from $60)"), and searches you save with **Save this search**, which
-  remember when you last looked and how many were at your price. **Open all searches** opens each
+  remember when you last looked and how many were at your price; they're in the **Saved** view, which
+  also lists what you've hidden. **Open all searches** opens each
   in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text.
   Prices update whenever a saved listing is on your screen again; nothing is checked in the
   background.

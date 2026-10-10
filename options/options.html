@@ -63,6 +63,23 @@
   button { font:600 14px/1 var(--ui); padding:11px 16px; border-radius:var(--r-sm); border:var(--bw) solid var(--ink); cursor:pointer; box-shadow:var(--press); }
   button:active { transform:translate(1px,1px); }
   #testMsg { font-size:13.5px; }
+
+  /* Readiness banner and jump links */
+  .status-card { display:flex; gap:14px; align-items:flex-start; padding:14px 16px; margin:18px 0 6px; border:var(--bw) solid var(--rule); border-radius:var(--r); background:var(--paper-2); }
+  .status-card .dot { flex:none; width:12px; height:12px; margin-top:6px; border-radius:50%; background:var(--accent); }
+  .status-card.ready .dot { background:#2E7D4F; }
+  .status-card b { display:block; font:600 17px/1.3 var(--display); }
+  .status-card p { margin:2px 0 10px; color:var(--muted); font-size:13.5px; }
+  .status-card .row-btns { margin-top:0; }
+  .status-card a.btn { display:inline-block; font:600 13px/1 var(--ui); padding:8px 12px; border-radius:var(--r-sm); border:var(--bw) solid var(--ink); color:var(--ink); text-decoration:none; }
+  .status-card a.btn.primary { background:var(--ink); color:var(--on-ink); }
+  nav.jump { display:flex; flex-wrap:wrap; gap:6px 14px; margin:14px 0 0; font-size:13px; }
+  nav.jump a { color:var(--muted); text-decoration:none; border-bottom:1px solid var(--rule); }
+  nav.jump a:hover { color:var(--ink); border-color:var(--ink); }
+  .keyrow { display:flex; gap:8px; }
+  .keyrow input { flex:1; }
+  .keyrow button { flex:none; }
+  section { scroll-margin-top:16px; }
   [hidden] { display:none !important; }
   :focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 </style>
@@ -75,8 +92,21 @@
   </header>
   <p class="lede">Changes save as you make them and apply to open eBay and Facebook tabs straight away.</p>
 
+  <div class="status-card" id="statusCard" role="status" aria-live="polite">
+    <span class="dot" aria-hidden="true"></span>
+    <div>
+      <b id="statusTitle">Checking…</b>
+      <p id="statusText"></p>
+      <div class="row-btns">
+        <a class="btn primary" id="keyLink" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" hidden>Get a Claude API key</a>
+        <a class="btn" href="https://www.ebay.com/sch/i.html?_nkw=film+camera" target="_blank" rel="noopener">Try it on eBay</a>
+        <a class="btn" href="https://www.facebook.com/marketplace/" target="_blank" rel="noopener">Try it on Marketplace</a>
+      </div>
+    </div>
+  </div>
+  <nav class="jump" aria-label="Sections"><a href="#sec-model">Model</a><a href="#sec-spending">Spending</a><a href="#sec-judging">Judging</a><a href="#sec-filters">Filters</a><a href="#sec-page">On the page</a><a href="#sec-backup">Backup</a></nav>
 
-  <section>
+  <section id="sec-model">
     <h2>Model</h2>
     <p class="hint">Where the judging runs: the Claude API, another AI service (OpenAI, Gemini, OpenRouter and others), or Ollama on your own computer (private, free). Listing titles and card text go to whichever you choose.</p>
     <div class="field">
@@ -86,8 +116,8 @@
     <div id="anthropicBox">
       <div class="field">
         <label for="anthropicKey">Claude API key</label>
-        <input id="anthropicKey" type="password" autocomplete="off" placeholder="sk-ant-...">
-        <span class="hint">Create one at console.anthropic.com. Stored only in this browser profile.</span>
+        <div class="keyrow"><input id="anthropicKey" type="password" autocomplete="off" placeholder="sk-ant-..."><button type="button" class="small" data-reveal="anthropicKey" aria-label="Show or hide the key">Show</button></div>
+        <span class="hint">Create one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It is checked as soon as you paste it. Stored only in this browser profile.</span>
       </div>
       <div class="field">
         <label for="anthropicModel">Claude model</label>
@@ -121,7 +151,7 @@
       </div>
       <div class="field">
         <label for="oaiKey">API key</label>
-        <input id="oaiKey" type="password" autocomplete="off">
+        <div class="keyrow"><input id="oaiKey" type="password" autocomplete="off"><button type="button" class="small" data-reveal="oaiKey" aria-label="Show or hide the key">Show</button></div>
         <span class="hint">Stored only in this browser profile.</span>
       </div>
       <div class="field">
@@ -165,7 +195,7 @@
     <div class="field"><div class="row-btns"><button type="button" class="small" id="test">Test connection</button><span id="testMsg" class="hint" role="status"></span></div></div>
   </section>
 
-  <section>
+  <section id="sec-spending">
     <h2>Spending</h2>
     <div class="spendgrid" id="spendGrid"></div>
     <div id="spendModels" class="hint"></div>
@@ -177,7 +207,7 @@
     <p class="hint">Claude is estimated from token counts at list price (a regular API key can't read your real balance, which is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>); OpenRouter reports its own costs; other services count at the prices you enter above. <button type="button" class="small" id="resetSpend">Reset the counter</button></p>
   </section>
 
-  <section>
+  <section id="sec-judging">
     <h2>Judging</h2>
     <div class="field">
       <label for="interests">What you're into</label>
@@ -191,7 +221,7 @@
     </div>
   </section>
 
-  <section>
+  <section id="sec-filters">
     <h2>Filters and marks</h2>
     <p class="hint">Plain checks that run on every results page before any AI: nothing here costs anything, and listings they hide are never sent to a model.</p>
     <div class="field">
@@ -219,7 +249,7 @@
     </div>
   </section>
 
-  <section>
+  <section id="sec-page">
     <h2>On the page</h2>
     <div class="field check">
       <input id="useSoldComps" type="checkbox">
@@ -231,7 +261,7 @@
     </div>
   </section>
 
-  <section>
+  <section id="sec-backup">
     <h2>Backup</h2>
     <p class="hint">Everything Second Look keeps lives only in this browser. A backup file holds your saved listings and searches, each search's filter and price, what you've hidden, what you've seen, spending and these settings, but never your API keys. Restoring adds to what's here and takes the backup's settings.</p>
     <div class="row-btns"><button type="button" class="small" id="backup">Save a backup</button><button type="button" class="small" id="restore">Restore from a backup…</button><input type="file" id="restoreFile" accept="application/json,.json" hidden></div>

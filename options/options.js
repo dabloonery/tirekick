@@ -177,7 +177,50 @@ async function saveField(f) {
   if (el.type === "number" && String(v) !== el.value) el.value = v; // show what was actually kept
   note(f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : "Saved.");
 }
-for (const f of FIELDS) document.getElementById(f).addEventListener("change", () => saveField(f));
+for (const f of FIELDS) {
+  document.getElementById(f).addEventListener("change", async () => {
+    await saveField(f);
+    showStatus();
+    // A new key is checked straight away, so a typo shows up now rather than on the first scan.
+    if ((f === "anthropicKey" && document.getElementById(f).value.trim()) || (f === "oaiKey" && document.getElementById(f).value.trim())) document.getElementById("test").click();
+  });
+}
+for (const b of document.querySelectorAll("[data-reveal]")) {
+  b.addEventListener("click", () => {
+    const input = document.getElementById(b.dataset.reveal);
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    b.textContent = show ? "Hide" : "Show";
+  });
+}
+
+// The banner at the top: is the model ready to run, and if not, what's the one thing missing?
+async function showStatus() {
+  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "oaiKey", "oaiModel", "oaiUrl", "textModel"]);
+  const provider = s.provider || "anthropic";
+  const card = document.getElementById("statusCard");
+  let ready = false, title, text;
+  if (provider === "anthropic") {
+    ready = !!s.anthropicKey;
+    const m = s.anthropicModel || "claude-opus-5-5";
+    title = ready ? `Ready: ${NAMES[m] || m}` : "One step left: add a Claude API key";
+    text = ready ? "Open an eBay or Marketplace search and press Scan, or just look at the free marks on the cards." : "Paste it below and it is checked right away. Prefer not to use Claude? Pick another AI service or Ollama under Model; the free marks and sold-price tools work without any model.";
+  } else if (provider === "openai") {
+    const keyless = /localhost|127\.0\.0\.1/.test(s.oaiUrl || "");
+    ready = !!s.oaiModel && (!!s.oaiKey || keyless);
+    title = ready ? `Ready: ${s.oaiModel}` : "Finish setting up your AI service";
+    text = ready ? "Open an eBay or Marketplace search and press Scan." : `It needs ${!s.oaiKey && !keyless ? "an API key and " : ""}a model. Test connection lists the models you can pick.`;
+  } else {
+    ready = !!s.textModel;
+    title = ready ? `Ready: ${s.textModel} on Ollama` : "Pick an Ollama model";
+    text = ready ? "Open an eBay or Marketplace search and press Scan. Test connection checks that Ollama is running." : "Enter the name of a model you have pulled, then press Test connection.";
+  }
+  card.classList.toggle("ready", ready);
+  document.getElementById("statusTitle").textContent = title;
+  document.getElementById("statusText").textContent = text;
+  document.getElementById("keyLink").hidden = ready || provider !== "anthropic";
+}
+chrome.storage.onChanged.addListener(() => showStatus());
 
 // Claude: checks the key and that the model name exists, without spending anything.
 async function testClaude() {
@@ -246,7 +289,7 @@ document.getElementById("test").addEventListener("click", async () => {
   }
 });
 
-load();
+load().then(showStatus);
 
 // ---------- Backup ----------
 // Collections are merged on restore (a backup never deletes anything here); settings come from the backup.

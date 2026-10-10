@@ -2284,14 +2284,26 @@
   };
   $('[data-act="prices"]').addEventListener("click", pricesOnly);
   resetBtn.addEventListener("click", () => {
+    // Keep what's being cleared for a moment: scores cost money, so Start over can be undone.
+    const before = { scored, seen, scanInputs, market: [...marketEl.childNodes] };
     scanInputs = null;
     clearStickers();
     redecorateAll(); // the non-AI marks stay
-    listEl.replaceChildren();
     marketEl.textContent = "";
     setCount(0);
-    setStatus("");
     refreshPending();
+    setStatus("Cleared the scores on this page.", false, {
+      label: "Undo",
+      fn: () => {
+        ({ scored, seen, scanInputs } = before);
+        marketEl.replaceChildren(...before.market);
+        redecorateAll();
+        setCount(scored.size);
+        refreshPending();
+        renderPageInfo();
+        setStatus("");
+      },
+    });
   });
 
   // ---------- one listing, in depth ----------

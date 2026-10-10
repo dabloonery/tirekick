@@ -247,3 +247,57 @@ document.getElementById("test").addEventListener("click", async () => {
 });
 
 load();
+
+// ---------- Backup ----------
+// Collections are merged on restore (a backup never deletes anything here); settings come from the backup.
+const BACKUP_SETS = ["saved", "savedSearches", "quickFilters", "notInterested", "listingMemory", "codeStems", "usage"];
+const SECRET = ["anthropicKey", "oaiKey"];
+document.getElementById("backup").addEventListener("click", async () => {
+  const all = await chrome.storage.local.get([...FIELDS, ...BACKUP_SETS]);
+  const settings = Object.fromEntries(FIELDS.filter((f) => !SECRET.includes(f) && all[f] !== undefined).map((f) => [f, all[f]]));
+  const data = { app: "second-look", version: chrome.runtime.getManifest().version, at: new Date().toISOString(), settings };
+  for (const k of BACKUP_SETS) if (all[k]) data[k] = all[k];
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+  a.download = `second-look-backup-${new Date().toLocaleDateString("en-CA")}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  const n = Object.keys(data.saved || {}).length;
+  const ns = Object.keys(data.savedSearches || {}).length;
+  note(`Backup saved (${n} saved listing${n === 1 ? "" : "s"}, ${ns} search${ns === 1 ? "" : "es"}). Keys aren't included.`);
+});
+document.getElementById("restore").addEventListener("click", () => document.getElementById("restoreFile").click());
+document.getElementById("restoreFile").addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    return note("That file isn't a Second Look backup.");
+  }
+  if (data?.app !== "second-look") return note("That file isn't a Second Look backup.");
+  const here = await chrome.storage.local.get(BACKUP_SETS);
+  const out = {};
+  for (const k of BACKUP_SETS) {
+    if (!data[k] || typeof data[k] !== "object") continue;
+    if (k === "usage") {
+      // Spending per day: keep whichever record of a day is larger, so nothing is counted twice.
+      const days = { ...(here.usage?.days || {}) };
+      for (const [d, v] of Object.entries(data.usage.days || {})) if (!days[d] || v.usd > days[d].usd) days[d] = v;
+      out.usage = { days };
+    } else if (k === "listingMemory") {
+      const m = { ...(here.listingMemory || {}) };
+      for (const [key, r] of Object.entries(data.listingMemory)) if (!m[key] || (r?.a || 0) > (m[key].a || 0)) m[key] = r;
+      out.listingMemory = m;
+    } else out[k] = { ...data[k], ...(here[k] || {}) }; // what's here wins where both have it
+  }
+  const settings = Object.fromEntries(Object.entries(data.settings || {}).filter(([f]) => FIELDS.includes(f) && !SECRET.includes(f)));
+  await chrome.storage.local.set({ ...out, ...settings });
+  await load();
+  showMemory();
+  showSpend();
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  note(`Restored from ${file.name}: ${plural(Object.keys(data.saved || {}).length, "saved listing")}, ${plural(Object.keys(data.savedSearches || {}).length, "search")}, and settings.`.replace("searchs", "searches"));
+});

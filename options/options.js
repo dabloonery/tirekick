@@ -89,7 +89,7 @@ async function showSpend() {
   const parts = rows.map(([id, v]) => `${NAMES[id] || id} ${usd(v.usd)} (${v.calls} calls, ~${usd(v.usd / v.calls)} each)`);
   const rest = m - rows.reduce((sum, [, v]) => sum + v.usd, 0); // recorded before the per-model split
   if (rest >= 0.005) parts.push(`not split by model ${usd(rest)}`);
-  document.getElementById("spendModels").textContent = parts.length ? "This month: " + parts.join(" \u00b7 ") : "Nothing spent on Claude this month.";
+  document.getElementById("spendModels").textContent = parts.length ? "This month: " + parts.join(" \u00b7 ") : "Nothing spent on paid AI this month.";
 }
 document.getElementById("resetSpend").addEventListener("click", async () => {
   if (!confirm("Reset the spending counter? This only clears Second Look's own estimate, not anything at Anthropic.")) return;

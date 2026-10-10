@@ -230,6 +230,7 @@
   // them entirely. Every listing card is a link to /marketplace/item/<id>; we read
   // the visible text lines inside that link instead.
 
+  const FB_LABELS = /^(just listed|sponsored|price dropped|partner listing|new listing|shipping available|ships to you|free shipping|pending|sold)$/i;
   SL.extractFacebook = (root = document) => {
     const links = root.querySelectorAll('a[href*="/marketplace/item/"]');
     const out = [];
@@ -250,7 +251,8 @@
       }
       if (!lines.length) return;
       const priceLine = lines.find((l) => /\$\s?[\d,]|^free$/i.test(l)) || "";
-      const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l));
+      // Facebook's own labels on the photo are lines too; they're never the title.
+      const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l) && !FB_LABELS.test(l));
       const title = squash(rest[0] || "", 160);
       if (!title) return;
 
@@ -267,6 +269,7 @@
           el: a,
           ...SL.cardFacts(SL.spacedText(a), title),
           titleCode: SL.titleCode(title),
+          ...(lines.some((l) => /^just listed$/i.test(l)) && { justListed: true }),
         })
       );
     });
@@ -375,16 +378,21 @@
 
   // ---------- pick the adapter for this page ----------
 
+  // Every eBay page and every Marketplace page get the tab; what the panel can do depends on the page.
   SL.currentSite = () => {
-    if (location.hostname === "www.ebay.com" && (location.pathname === "/" || /^\/(sch|itm|b)\//.test(location.pathname))) return "ebay";
+    if (location.hostname === "www.ebay.com") return "ebay";
     if (location.hostname === "www.facebook.com" && location.pathname.startsWith("/marketplace")) return "facebook";
     return null;
   };
 
-  // "results" = a search results page, "item" = one listing, null = not ours.
+  // "results" = search results or a category, "item" = one listing, "home" = eBay's front page,
+  // "other" = any other eBay page (the panel still has Saved), null = not ours.
   SL.pageType = () => {
     const site = SL.currentSite();
-    if (site === "ebay") return location.pathname === "/" ? "home" : location.pathname.startsWith("/itm/") ? "item" : "results";
+    if (site === "ebay") {
+      const path = location.pathname;
+      return path === "/" ? "home" : path.startsWith("/itm/") ? "item" : /^\/(sch|b)\//.test(path) ? "results" : "other";
+    }
     if (site === "facebook") return location.pathname.startsWith("/marketplace/item/") ? "item" : "results";
     return null;
   };

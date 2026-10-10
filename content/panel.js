@@ -803,11 +803,11 @@
       .second-look-sticker .sl-acts button, .second-look-sticker .sl-acts a { all:unset; cursor:pointer; color:var(--sl-ink); font-weight:600; font-size:12px;
         text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
       .second-look-sticker .sl-acts :is(button, a):hover { text-decoration-color:currentColor; }
-      .second-look-sticker .sl-pop { display:none; position:absolute; top:100%; left:0; margin-top:8px; width:264px; padding:12px 14px;
+      .second-look-sticker .sl-pop { display:none; position:absolute; top:100%; left:0; margin-top:32px; /* below the chip row (Save, Sold, Not interested) */ width:264px; padding:12px 14px;
         background:var(--sl-paper); color:var(--sl-ink); border-radius:10px; box-shadow:0 0 0 1px var(--sl-rule), 0 16px 36px -10px rgba(28,27,25,.45);
         font:400 12px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:normal; text-transform:none; cursor:auto; }
       .second-look-sticker:hover .sl-pop { display:block; }
-      .second-look-sticker.has-chip .sl-pop { margin-top:30px; }
+      .second-look-sticker .sl-pop::before { content:""; position:absolute; left:0; right:0; top:-9px; height:9px; } /* bridges the gap under the chips, so the card stays while you move to it */
       .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font:600 15px/1.25 "SL Fraunces","Iowan Old Style",Georgia,serif; }
       .second-look-sticker .sl-pop b span { color:var(--c); }
       .second-look-sticker .sl-flags { margin-top:6px; color:var(--sl-muted); }
@@ -1414,7 +1414,7 @@
     const line = (text) => (text ? h("div", { class: "sl-flags" }, text) : null);
     return h(
       "div",
-      { class: `second-look-sticker${under.length ? " has-chip" : ""}`, "data-v": item.verdict },
+      { class: "second-look-sticker", "data-v": item.verdict },
       h("div", { class: "sl-score" }, String(item.score)),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
       h("div", { class: "sl-under" }, under.slice(0, 3), hoverChips(key, { ...item, ...f })),
@@ -1436,13 +1436,12 @@
         item.fault && !/^none$/i.test(item.fault) ? line(`Likely fault: ${item.fault}${item.difficulty ? ` (difficulty ${item.difficulty}/5)` : ""}`) : null,
         item.photoAdjust ? line(`Photo check ${signed(item.photoAdjust)}: ${(item.photos || []).flatMap((p) => p.why).join("; ") || "see panel"}`) : null,
         item.flags?.length ? line(item.flags.join(" · ")) : null,
+        item.imageUrl &&
         h(
           "div",
           { class: "sl-acts" },
-          h("button", { onclick: own(() => toggleSave(key)) }, saved[key] ? "\u2605 Saved" : "\u2606 Save"),
-          h("button", { onclick: own(() => setInterested(key, false)) }, "Not interested"),
-          h("a", { href: soldLink(item.title), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation(), title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
-          item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "Find photo") : null
+          // Save, Sold and Not interested sit just above as chips; this adds what they don't.
+          item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation(), title: "Reverse image search: is this photo used elsewhere?" }, "Find this photo elsewhere \u2197") : null
         )
       )
     );

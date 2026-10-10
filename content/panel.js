@@ -79,12 +79,12 @@
   // take clicks itself: only the tab and the open panel do (see .tab / .open .panel below).
   host.style.cssText = "position:fixed;right:0;bottom:20px;z-index:2147483646;pointer-events:none;";
   const root = host.attachShadow({ mode: "open" });
-  // The mark: a loupe with a vermilion dot. Retro swaps in a pixel-drawn version of the same thing.
-  const MARK = `<svg class="m-vec" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M14.8 14.8 20.5 20.5"/><circle class="dot" cx="10" cy="10" r="2" stroke="none"/></svg><svg class="m-px" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 0h4v1H2zM1 1h1v1H1zM6 1h1v1H6zM0 2h1v4H0zM7 2h1v4H7zM1 6h1v1H1zM6 6h1v1H6zM2 7h4v1H2zM7 7h1v1H7zM8 7h1v2H8zM9 9h1v1H9zM9 8h1v1H9zM10 9h1v2h-1zM11 10h1v2h-1z"/><path class="dot" d="M3 3h2v2H3z"/></svg>`;
+  // The mark: a loupe with a vermilion dot.
+  const MARK = `<svg class="m-vec" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M14.8 14.8 20.5 20.5"/><circle class="dot" cx="10" cy="10" r="2" stroke="none"/></svg>`;
 
-  // Colour, type and shape for both looks. Shared by the panel and the photo-check card.
+  // Colour, type and shape. Shared by the panel and the photo-check card.
   const THEME_CSS = `
-    /* ---------- tokens: classic (paper and ink) ---------- */
+    /* ---------- tokens: paper and ink ---------- */
     .wrap {
       --w: min(380px, calc(100vw - 32px)); --gap: 16px;
       --paper:#FBFAF7; --paper-2:#F2EFE9; --ink:#1C1B19; --on-ink:#FBFAF7; --muted:#6B675F; --rule:#E3DED5; --accent:#C8461F;
@@ -96,31 +96,12 @@
       font:13px/1.5 var(--ui); color:var(--ink); -webkit-font-smoothing:antialiased;
     }
     @media (prefers-color-scheme: dark) {
-      .wrap:not([data-theme="retro"]) {
+      .wrap {
         --paper:#1D1C1A; --paper-2:#272522; --ink:#EEEAE2; --on-ink:#1D1C1A; --muted:#A39E94; --rule:#37342F; --accent:#E2673C;
         --v-great:#62B788; --v-good:#A3BE62; --v-fair:#DDA552; --v-pass:#A39E94; --v-suspicious:#EF7A6E;
         --shadow:0 0 0 1px rgba(255,255,255,.03), 0 18px 44px -12px rgba(0,0,0,.7);
       }
     }
-    /* ---------- tokens: retro (pocket LCD) ---------- */
-    .wrap[data-theme="retro"] {
-      --paper:#CDD6A5; --paper-2:#BDC894; --ink:#1F3A1F; --on-ink:#CDD6A5; --muted:#41613A; --rule:#1F3A1F; --accent:#8E1D50;
-      --v-great:#1F3A1F; --v-good:#3E6A2B; --v-fair:#6E5E0E; --v-pass:#5E6A4E; --v-suspicious:#8E1D50;
-      --r:3px; --r-sm:2px; --bw:2px; --press:3px 3px 0 var(--muted);
-      --shadow:6px 6px 0 rgba(31,58,31,.9);
-      --ui:"SL Mono", "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
-      --display:"SL Mono", ui-monospace, monospace; /* numbers and small labels: the pixel font blurs 5/8 and C/O when small */
-      --pixel:"SL Pixel", "SL Mono", ui-monospace, monospace; /* wordmark and tab only */
-      font-size:12px;
-    }
-    @media (prefers-color-scheme: dark) {
-      .wrap[data-theme="retro"] {
-        --paper:#132613; --paper-2:#1A321A; --ink:#A9C84B; --on-ink:#132613; --muted:#7F9C3B; --rule:#A9C84B; --accent:#E36FA4;
-        --v-great:#BCDA5C; --v-good:#93B347; --v-fair:#DCC45C; --v-pass:#7F9C3B; --v-suspicious:#E36FA4;
-        --press:3px 3px 0 #050D05; --shadow:6px 6px 0 #050D05;
-      }
-    }
-
 `;
 
   root.innerHTML = `<style>
@@ -154,7 +135,6 @@
     .mark { flex:none; width:22px; height:22px; display:grid; color:var(--ink); }
     .mark svg { width:100%; height:100%; }
     .mark .dot { fill:var(--accent); }
-    .m-px { display:none; }
     .grow { flex:1; min-width:0; }
     .wordmark { font:600 19px/1.1 var(--display); letter-spacing:-.01em; }
     .wordmark em { font-style:italic; font-weight:400; }
@@ -233,8 +213,6 @@
     .sd-models div { display:flex; justify-content:space-between; gap:8px; }
     .sd-models div span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
     .spend-detail .hint a { color:var(--ink); }
-    [data-theme="retro"] .model { border-radius:0; background-color:var(--paper-2); }
-    [data-theme="retro"] .spend b, [data-theme="retro"] .sd-grid b { font-family:var(--ui); }
 
     /* first run, list bar */
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:12.5px; }
@@ -257,7 +235,6 @@
     .qt { border:var(--bw) solid var(--rule); background:none; color:var(--muted); font:600 11.5px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
     .qt:hover { color:var(--ink); border-color:var(--muted); }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
-    [data-theme="retro"] .qt { border-radius:0; text-transform:uppercase; letter-spacing:.06em; }
     .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 11.5px/1 var(--ui); letter-spacing:normal; text-transform:none; }
     .qf-deal input { width:62px; }
     .qf-deal:has(input:not(:placeholder-shown)) input { border-color:var(--accent); }
@@ -273,8 +250,9 @@
     .pi-reset:hover { text-decoration-color:currentColor; }
     .pageinfo .chips { margin-top:8px; }
     .pageinfo .pi-acts { margin-top:8px; color:var(--muted); font-weight:500; }
+    .pi-acts a, .pi-acts button { color:var(--ink) !important; font-weight:600 !important; }
     .pi-search { margin-top:8px; }
-    .pi-search:empty { display:none; }
+    .pi-search:not(:has(> :not([hidden]))) { display:none; }
     .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:12.5px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
     .pi-line b { color:var(--ink); font-weight:600; }
@@ -283,8 +261,6 @@
     .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
     .seg button { border:0; background:none; color:var(--muted); font:600 11.5px/1 var(--ui); padding:5px 10px; border-radius:calc(var(--r-sm) - 2px); cursor:pointer; }
     .seg button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
-    [data-theme="retro"] .seg { padding:0; gap:0; }
-    [data-theme="retro"] .seg button { border-radius:0; text-transform:uppercase; letter-spacing:.06em; }
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .fchip { font-size:11px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
@@ -293,7 +269,8 @@
     .fchip.k-deal { background:var(--accent); color:#fff; }
     .ptag.deal { color:var(--accent); }
     .count.deal { background:var(--accent); color:#fff; }
-    [data-theme="retro"] .fchip { border-radius:0; }
+    .count.pop { animation:pop .5s cubic-bezier(.3,1.6,.5,1); }
+    @keyframes pop { 0% { transform:scale(.6); } 60% { transform:scale(1.25); } 100% { transform:none; } }
 
     /* sold prices */
     .market { font-size:12px; }
@@ -396,39 +373,8 @@
 
     button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 
-    /* ---------- retro: same layout, pocket-LCD finish ---------- */
-    [data-theme="retro"] .m-vec { display:none; }
-    [data-theme="retro"] .m-px { display:block; }
-    [data-theme="retro"] .panel, [data-theme="retro"] .tab { border-color:var(--ink); }
-    [data-theme="retro"] .head { background:var(--ink); color:var(--on-ink); border-bottom:0; }
-    [data-theme="retro"] .head .mark, [data-theme="retro"] .icon-btn { color:var(--on-ink); }
-    [data-theme="retro"] .head small { color:var(--on-ink); opacity:.75; }
-    [data-theme="retro"] .icon-btn:hover { background:none; opacity:.7; }
-    [data-theme="retro"] .wordmark { font:600 18px/1 var(--pixel); letter-spacing:.06em; text-transform:uppercase; }
-    [data-theme="retro"] .wordmark em { font-style:normal; font-weight:600; }
-    [data-theme="retro"] .tab .tab-label { font:600 14px/1 var(--pixel); letter-spacing:.1em; text-transform:uppercase; }
-    [data-theme="retro"] .count { border-radius:var(--r-sm); }
-    [data-theme="retro"] .lens { padding:0; gap:0; }
-    [data-theme="retro"] .lens button { border-radius:0; font:600 12px/1 var(--display); text-transform:uppercase; letter-spacing:.08em; padding:9px 0; }
-    [data-theme="retro"] .lens button + button { border-left:var(--bw) solid var(--rule); }
-    [data-theme="retro"] .scan, [data-theme="retro"] .ghost { font:600 12.5px/1 var(--display); letter-spacing:.1em; text-transform:uppercase; }
-    [data-theme="retro"] .ghost { box-shadow:var(--press); }
-    [data-theme="retro"] .scan:active:not(:disabled), [data-theme="retro"] .ghost:active:not(:disabled) { transform:translate(3px,3px); box-shadow:none; }
-    [data-theme="retro"] input { background:var(--paper-2); }
-    [data-theme="retro"] .market:not(:empty), [data-theme="retro"] .offer { background:var(--paper-2); border:var(--bw) solid var(--ink); }
-    [data-theme="retro"] .mval { font-size:20px; }
-    [data-theme="retro"] .row { border-top-style:dashed; }
-    [data-theme="retro"] .tag { border-radius:var(--r-sm); border:var(--bw) solid var(--c);
-      background:linear-gradient(to top, color-mix(in srgb, var(--c) 22%, transparent) calc(var(--p) * 1%), transparent 0); }
-    [data-theme="retro"] .tag::before { display:none; }
-    [data-theme="retro"] .tag span { font-size:16px; }
-    [data-theme="retro"] .flag, [data-theme="retro"] .chip { border-radius:0; border-color:var(--muted); }
-    [data-theme="retro"] .idea .q { font:600 13px/1.35 var(--display); }
-    [data-theme="retro"] .fold > summary { font:600 12px/1 var(--display); letter-spacing:.1em; text-transform:uppercase; }
-    [data-theme="retro"] .busy .status:not(.err):not(:empty)::before { content:"\\25AE"; width:auto; height:auto; border:0; margin-right:6px; vertical-align:0; animation:blink 1s steps(1) infinite; }
-    @keyframes blink { 50% { opacity:0; } }
 
-    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .idea, .busy .status::before { transition:none !important; animation:none !important; } }
+    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .idea, .count, .busy .status::before { transition:none !important; animation:none !important; } }
   </style>
   <div class="wrap">
    <div class="drawer">
@@ -464,7 +410,7 @@
         <div class="freeprices" hidden><button data-act="prices">Just compare sold prices</button> <span>free, no AI</span></div>
         <div class="market"></div>
         <div class="status" role="status"></div>
-        <div class="pageinfo" hidden><span class="pi-line"></span><span class="pi-sep" hidden> \u00b7 </span><button class="pi-reset" data-act="reset" hidden>Start over</button><div class="actions pi-search"></div></div>
+        <div class="pageinfo" hidden><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
       </div>
       <div class="listbar" hidden>
         <div class="qf" role="search" aria-label="Filter this search">
@@ -591,50 +537,25 @@
   // Restore last time's state, unless a click got in first (the toolbar icon injects and toggles at once).
   chrome.storage.local.get({ panelOpen: false }).then(({ panelOpen }) => touched || showOpen(!!panelOpen));
 
-  // ---------- look: classic or retro ----------
-  // Fonts ship inside the extension and are added with the FontFace API from bytes the background
+  // ---------- fonts ----------
+  // The serif ships inside the extension and is added with the FontFace API from bytes the background
   // hands over: no web-accessible files (pages can't spot the extension) and no site font rules apply.
-  const FONTS = {
-    classic: [
-      ["SL Fraunces", "fraunces-400.woff2", { weight: "400" }],
-      ["SL Fraunces", "fraunces-400-italic.woff2", { weight: "400", style: "italic" }],
-      ["SL Fraunces", "fraunces-600.woff2", { weight: "600" }],
-    ],
-    retro: [
-      ["SL Pixel", "pixelify-400.woff2", { weight: "400" }],
-      ["SL Pixel", "pixelify-600.woff2", { weight: "600" }],
-      ["SL Mono", "plex-mono-400.woff2", { weight: "400" }],
-      ["SL Mono", "plex-mono-600.woff2", { weight: "600" }],
-    ],
-  };
-  const fontsLoaded = new Set();
-  const loadFonts = async (look) => {
-    // Classic numerals appear on retro stickers' fallbacks too, so classic always loads.
-    for (const set of new Set(["classic", look])) {
-      if (fontsLoaded.has(set) || !FONTS[set]) continue;
-      fontsLoaded.add(set);
-      for (const [family, file, desc] of FONTS[set]) {
-        try {
-          const b64 = await send("getFont", { file });
-          const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-          document.fonts.add(await new FontFace(family, bytes.buffer, desc).load());
-        } catch (e) {
-          console.warn("[Second Look] font", file, e.message);
-        }
+  const FONTS = [
+    ["SL Fraunces", "fraunces-400.woff2", { weight: "400" }],
+    ["SL Fraunces", "fraunces-400-italic.woff2", { weight: "400", style: "italic" }],
+    ["SL Fraunces", "fraunces-600.woff2", { weight: "600" }],
+  ];
+  (async () => {
+    for (const [family, file, desc] of FONTS) {
+      try {
+        const b64 = await send("getFont", { file });
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        document.fonts.add(await new FontFace(family, bytes.buffer, desc).load());
+      } catch (e) {
+        console.warn("[Second Look] font", file, e.message);
       }
     }
-  };
-
-  let theme = "classic";
-  const setTheme = (next) => {
-    theme = next === "retro" ? "retro" : "classic";
-    wrap.dataset.theme = theme;
-    loadFonts(theme);
-    scored.forEach((it) => stick(it)); // re-dress any stickers already on the page
-  };
-  chrome.storage.onChanged.addListener((changes) => {
-    if (changes.theme && alive()) setTheme(changes.theme.newValue);
-  });
+  })();
 
   // ---------- footer: model switch and spending ----------
   // Spending is estimated from token counts at list prices (a regular API key can't read the real
@@ -796,11 +717,10 @@
   wantEl.addEventListener("change", () => alive() && chrome.storage.local.set({ want: wantEl.value.trim() }).catch(() => {}));
   // The scan button says when your edits mean a rescan (refreshPending is defined further down).
   for (const el of [wantEl, queryEl]) el.addEventListener("input", () => refreshPending());
-  chrome.storage.local.get({ lens: "use", want: "", theme: "classic" }).then((v) => {
+  chrome.storage.local.get({ lens: "use", want: "" }).then((v) => {
     lens = LENS[v.lens] ? v.lens : "use";
     if (!wantEl.value) wantEl.value = v.want;
     showLens();
-    setTheme(v.theme);
   });
   showLens();
 
@@ -837,9 +757,8 @@
 
   // ---------- stickers on the listing cards ----------
 
-  // The sticker lives in the page, so its CSS is injected into the page once.
   // Stickers live in the page, so their CSS goes into the page once. They read as a small paper tag
-  // (or an LCD tag in retro) whatever the site's own colours are.
+  // whatever the site's own colours are.
   const ensureStickerStyles = () => {
     if (document.getElementById("second-look-styles")) return;
     const st = document.createElement("style");
@@ -872,10 +791,6 @@
       .second-look-marks button, .second-look-sticker .sl-under button { cursor:pointer; border:0; }
       .sl-x { display:none !important; }
       [data-second-look-key]:hover .sl-x, .sl-x:focus-visible { display:inline-flex !important; }
-      .sl-retro .sl-chip, .second-look-marks.sl-retro .sl-chip { border-radius:1px; font-family:"SL Mono",ui-monospace,monospace; background:#1F3A1F; color:#CDD6A5; }
-      .sl-retro .sl-chip.k-new { background:#8E1D50; } .sl-retro .sl-chip.k-good { background:#3E6A2B; } .sl-retro .sl-chip.k-warn { background:#8E1D50; }
-      .sl-retro .sl-chip.k-plain { background:#CDD6A5; color:#1F3A1F; box-shadow:inset 0 0 0 1px #1F3A1F; }
-      .sl-retro .sl-chip.k-deal { background:#8E1D50; color:#CDD6A5; box-shadow:0 0 0 2px #CDD6A5; }
       /* listings you've hidden, filtered out, or (by choice) skipped */
       html:not([data-sl-showhidden]) [data-sl-hide] { display:none !important; }
       html[data-sl-showhidden] [data-sl-hide] { opacity:.45; }
@@ -896,14 +811,6 @@
       .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font:600 15px/1.25 "SL Fraunces","Iowan Old Style",Georgia,serif; }
       .second-look-sticker .sl-pop b span { color:var(--c); }
       .second-look-sticker .sl-flags { margin-top:6px; color:var(--sl-muted); }
-      .second-look-sticker.sl-retro { --sl-paper:#CDD6A5; --sl-ink:#1F3A1F; --sl-muted:#41613A; --sl-rule:#1F3A1F;
-        --v-great:#1F3A1F; --v-good:#3E6A2B; --v-fair:#6E5E0E; --v-pass:#5E6A4E; --v-suspicious:#8E1D50;
-        border-radius:2px; box-shadow:0 0 0 2px var(--sl-ink), 4px 4px 0 2px var(--sl-ink); font:500 11px/1.2 "SL Mono",ui-monospace,Menlo,monospace; }
-      .second-look-sticker.sl-retro .sl-score { border-radius:1px; color:var(--sl-paper); font:600 16px/1 "SL Mono",ui-monospace,monospace; }
-      .second-look-sticker.sl-retro .sl-verdict { font:600 11.5px/1 "SL Mono",ui-monospace,monospace; letter-spacing:.08em; text-transform:uppercase; }
-      .second-look-sticker.sl-retro .sl-chip { border-radius:1px; }
-      .second-look-sticker.sl-retro .sl-pop { border-radius:2px; box-shadow:0 0 0 2px var(--sl-ink), 5px 5px 0 2px var(--sl-ink); font:400 11.5px/1.55 "SL Mono",ui-monospace,monospace; }
-      .second-look-sticker.sl-retro .sl-pop b { font:600 12px/1.3 "SL Mono",ui-monospace,monospace; letter-spacing:.08em; text-transform:uppercase; }
       .second-look-flash { outline:2px solid #C8461F !important; outline-offset:4px; animation:sl-flash 2s ease-out both; }
       @keyframes sl-flash { 0%, 60% { outline-color:#C8461F; } 100% { outline-color:transparent; } }`;
     document.head.append(st);
@@ -1164,7 +1071,7 @@
     const chips = chipEls(f);
     if (showHidden && f.hidden) chips.push(h("button", { class: "sl-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
     else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Sold / Not interested appear when you hover the card
-    host.append(h("div", { class: `second-look-marks${theme === "retro" ? " sl-retro" : ""}` }, chips));
+    host.append(h("div", { class: `second-look-marks` }, chips));
   };
   const stick = (item) => decorate(keyOf(item.url), item.el);
   // "✕ Not interested", shown on any card while you hover it.
@@ -1507,7 +1414,7 @@
     const line = (text) => (text ? h("div", { class: "sl-flags" }, text) : null);
     return h(
       "div",
-      { class: `second-look-sticker${theme === "retro" ? " sl-retro" : ""}${under.length ? " has-chip" : ""}`, "data-v": item.verdict },
+      { class: `second-look-sticker${under.length ? " has-chip" : ""}`, "data-v": item.verdict },
       h("div", { class: "sl-score" }, String(item.score)),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
       h("div", { class: "sl-under" }, under.slice(0, 3), hoverChips(key, { ...item, ...f })),
@@ -1951,6 +1858,7 @@
     return keys;
   };
 
+  let lastDeals = 0;
   const refreshPending = () => {
     updateFold();
     freeRow.hidden = scanning || SL.pageType() !== "results" || !queryEl.value.trim() || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
@@ -1964,14 +1872,20 @@
     countEl.classList.toggle("new", !deals && n > 0);
     countEl.title = deals ? `${deals} at your price` : n ? `${n} not scanned yet` : "";
     if (deals) {
+      // A new listing at your price: the badge pops once.
+      if (deals > lastDeals) {
+        countEl.classList.remove("pop");
+        void countEl.offsetWidth;
+        countEl.classList.add("pop");
+      }
       countEl.textContent = `\u2605${deals}`;
       countEl.hidden = false;
     } else if (n) {
       countEl.textContent = `+${n}`;
       countEl.hidden = false;
     } else setCount(scored.size);
+    lastDeals = deals;
     resetBtn.hidden = !seen.size;
-    $(".pi-sep").hidden = !seen.size;
   };
 
   // One line about the page: what's new, cheaper, flagged, hidden. Plus the skipped-listings control.
@@ -2000,13 +1914,15 @@
     listBar.hidden = !facts.size;
     // Search tools: keep this search, or run it on the other site.
     const q = pageSearch();
+    // One row of page actions: keep this search, run it on the other site, start the scores over.
     piSearch.replaceChildren(
       ...(q
         ? [
             h("button", { onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "\u2605 Saved search" : "\u2606 Save search"),
             h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, SL.currentSite() === "ebay" ? "Try on Marketplace \u2197" : "Try on eBay \u2197"),
           ]
-        : [])
+        : []),
+      resetBtn
     );
     root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
     pageInfo.hidden = false;
@@ -2576,10 +2492,8 @@
         ${THEME_CSS}
         .wrap { box-sizing:border-box; width:340px; display:grid; grid-template-columns:60px 1fr auto; gap:12px; padding:12px;
           background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
-        [data-theme="retro"].wrap { border-color:var(--ink); }
         img { width:60px; height:60px; object-fit:cover; border-radius:var(--r-sm); background:var(--paper-2); }
         b { display:block; margin-bottom:3px; font:600 14px/1.2 var(--display); }
-        [data-theme="retro"] b { font-size:12.5px; text-transform:uppercase; letter-spacing:.1em; }
         .err { color:var(--v-suspicious); }
         button { width:26px; height:26px; display:grid; place-items:center; background:none; border:0; border-radius:var(--r-sm); color:var(--muted); cursor:pointer; align-self:start; font:16px/1 var(--ui); }
         button:hover { color:var(--ink); background:var(--paper-2); }
@@ -2588,7 +2502,6 @@
     }
     const host = toastRoot.host;
     if (!host.isConnected) document.documentElement.append(host);
-    toastRoot.querySelector(".wrap").dataset.theme = theme;
     toastRoot.querySelector("img").src = imageUrl;
     const txt = toastRoot.querySelector(".txt");
     return (text, isErr = false) => {

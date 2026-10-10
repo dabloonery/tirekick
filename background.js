@@ -19,7 +19,6 @@ const DEFAULTS = {
   lens: "use", // "use" (buy to use), "fix" (fix-up project) or "flip" (resell)
   feePct: 13.6, // eBay fees as % of the sale, for flip margins
   interests: "Electronics, older and retro tech, video games and consoles, anything with an active homebrew scene.",
-  theme: "classic", // "classic" (paper and ink) or "retro" (pocket LCD)
   // Filters and seller rules: plain checks, no AI. Hidden listings are never sent to the model.
   hideWords: "replica, reproduction, repro, box only, empty box, manual only, case only, photo only, picture only",
   needWords: "",
@@ -601,7 +600,7 @@ async function fetchSoldHtml({ url }) {
 // Page scripts get the bundled fonts as bytes and add them with the FontFace API. Nothing is
 // exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
 // and a site's font rules can't block them.
-const FONT_FILES = /^(fraunces-400|fraunces-400-italic|fraunces-600|pixelify-400|pixelify-600|plex-mono-400|plex-mono-600)\.woff2$/;
+const FONT_FILES = /^(fraunces-400|fraunces-400-italic|fraunces-600)\.woff2$/;
 const fontCache = new Map();
 async function getFont({ file }) {
   if (!FONT_FILES.test(file || "")) throw new Error("Unknown font.");
@@ -657,6 +656,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
   const current = await chrome.storage.local.get(null);
   await chrome.storage.local.set({ ...DEFAULTS, ...current });
+  await chrome.storage.local.remove("theme"); // the retro look is gone; one look now
   await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({

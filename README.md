@@ -13,7 +13,9 @@ background.
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens.
-2. Paste a Claude API key (from console.anthropic.com). Settings save as you go.
+2. Paste a Claude API key (from console.anthropic.com). Settings save as you go, the key is checked
+   the moment you paste it, and a banner at the top says whether you're ready (or the one thing missing),
+   with links to try it on eBay or Marketplace. **Show** reveals a key to check for typos.
 3. Search eBay or Facebook Marketplace. A slim **Second Look** tab sits on the right edge of every
    eBay and Marketplace page; the free marks on the cards work with the panel closed. Click the tab
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.

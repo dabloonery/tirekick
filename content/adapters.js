@@ -217,6 +217,8 @@
           raw: squash(text),
           el: card,
           ...SL.cardFacts(SL.spacedText(card), title),
+          // Titles only on eBay: card text has too many numbers to trust a phone check there.
+          ...(SL.offSite(title) && { offSite: SL.offSite(title) }),
         })
       );
     }

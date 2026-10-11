@@ -792,6 +792,8 @@
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
     setupCard.hidden = !missing;
+    // No model yet: that is the one thing to do first, so it sits above the welcome card.
+    if (missing) setupCard.parentElement.insertBefore(setupCard, welcome);
     if (missing) {
       $(".setup-title").textContent = missing[0];
       $(".setup-text").textContent = missing[1];

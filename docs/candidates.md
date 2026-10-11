@@ -129,4 +129,4 @@ Found and fixed:
 3. Photo checks fetched any address a page supplied; now https images (and data:image) only, no localhost/private hosts.
 4. Settings: two groups of number fields had a label with nothing to label; now named groups.
 
-Left alone / ideas: first run with no key stacks the welcome and the setup card so Scan sits below the fold; cards' off-site-contact check only runs on Marketplace and listing pages; API keys sit in storage.local, which content scripts can technically read (they never ask for it).
+Also done in 0.26.1: the "add a key" card now sits above the welcome card; eBay result titles get the off-site-contact check (titles only). Still open: API keys sit in storage.local, which content scripts can technically read (they never ask for it).

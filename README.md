@@ -52,7 +52,7 @@ S1337". Second Look watches for it:
   last in every sort, never a deal at your price. A scan spells it out for the model, which marks
   it Suspicious unless the code is the item's real model number (Pentax K1000, PS Vita PCH1001);
   then the chip and the greying go away.
-- **Contact off the site**: on a listing, a disguised web address ("www . jmyzl . com", "remove the
+- **Contact off the site**: in a title or on a listing, a disguised web address ("www . jmyzl . com", "remove the
   spaces"), an oddly written phone number ("505_507__6507"), "text me a screenshot", WhatsApp or
   Telegram shows a "Likely scam" note, and the analysis is Suspicious whatever the model thought.
   A plain phone number ("call or text") is only a hint.

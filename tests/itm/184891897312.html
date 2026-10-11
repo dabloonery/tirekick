@@ -1,0 +1,28 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Pentax K1000 | eBay (test fixture)</title><meta property="og:image" content="https://i.ebayimg.com/images/g/x/s-l500.jpg"></head>
+<body>
+<!-- Structure copied from a real eBay listing page (2026-10-11), text shortened. -->
+<h1 class="x-item-title__mainTitle"><span class="ux-textspans ux-textspans--BOLD">Pentax K1000 35mm SLR Film Camera w 50mm PK Mount</span></h1>
+<div class="x-price-primary"><span class="ux-textspans">US $294.90</span></div>
+<div class="x-item-condition-text"><div class="ux-icon-text"><span class="ux-icon-text__text"><span aria-hidden="true"><span class="ux-textspans">Excellent - Refurbished</span></span><span class="clipped">Excellent - Refurbished</span></span><button class="ux-action">More information - About this item condition<svg></svg></button></div></div>
+<div class="ux-labels-values--shipping"><span class="ux-textspans">Shipping:</span><span class="ux-textspans">Free 2-4 day delivery</span><span class="ux-textspans">Get it between Thu, Oct 15 and Sat, Oct 17</span></div>
+<div class="x-sellercard-atf"><span>camerastore</span> <span>99.7% positive feedback</span></div>
+<script>
+  window.chrome = { runtime: { id: "test", lastError: null, onMessage: { addListener() {} }, sendMessage: (m, cb) => cb({ ok: true, data: "" }) },
+    storage: { local: { get: async () => ({}), set: async () => {}, onChanged: { addListener() {} } } } };
+</script>
+<script src="/content/adapters.js"></script>
+<script>
+  const it = SecondLook.extractItem(); const out = [];
+  const check = (n, ok, why = "") => out.push(`${ok ? "PASS" : "FAIL"} ${n}${ok ? "" : ": " + why}`);
+  check("eBay listing: price read", it.price === 294.9, `price was ${it.price}`);
+  check("eBay listing: 'Free 2-4 day delivery' is free shipping", it.shipping === 0, `shipping was ${it.shipping}`);
+  check("eBay listing: condition is one clean label", it.condition === "Excellent - Refurbished", `condition was "${it.condition}"`);
+  check("eBay listing: seller rating read", it.sellerPct === 99.7, `sellerPct was ${it.sellerPct}`);
+  const au = SecondLook.cardFacts("US $9.99 0 bids Ends in 6d 20h Sunday, 12:46 PM", "Pentax K1000");
+  check("auction listing page: 'Ends in 6d 20h' is read", au.auction && au.timeLeft === "6d 20h" && au.hoursLeft === 164, JSON.stringify(au));
+  const card = SecondLook.cardFacts("$9.99 0 bids 6d 20h left", "Pentax K1000");
+  check("auction card: '6d 20h left' still read", card.auction && card.timeLeft === "6d 20h", JSON.stringify(card));
+  document.body.insertAdjacentHTML("beforeend", `<pre id="result">${out.join("\n")}</pre>`);
+</script>
+</body></html>

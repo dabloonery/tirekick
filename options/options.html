@@ -6,20 +6,18 @@
 <title>Second Look settings</title>
 <link rel="icon" href="../icons/icon32.png">
 <style>
-  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-400.woff2") format("woff2"); font-weight:400; }
-  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-400-italic.woff2") format("woff2"); font-weight:400; font-style:italic; }
-  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-600.woff2") format("woff2"); font-weight:600; }
 
   :root {
-    --paper:#FBFAF7; --paper-2:#F2EFE9; --ink:#1C1B19; --on-ink:#FBFAF7; --muted:#6B675F; --rule:#E3DED5; --accent:#C8461F;
-    --r:12px; --r-sm:8px; --bw:1px; --press:none;
-    --ui:system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
-    --display:"SL Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-    color-scheme:light dark;
+    --r:6px; --r-sm:4px; --bw:1px; --press:none;
+    --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
+    --display:var(--ui);
+    color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C;
   }
-  @media (prefers-color-scheme: dark) {
-    :root { --paper:#1D1C1A; --paper-2:#272522; --ink:#EEEAE2; --on-ink:#1D1C1A; --muted:#A39E94; --rule:#37342F; --accent:#E2673C; }
+  @media (prefers-color-scheme: light) {
+    :root { color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A; --accent:#C8461F; }
   }
+  :root[data-theme="dark"] { color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C; }
+  :root[data-theme="light"] { color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A; --accent:#C8461F; }
 
   * { box-sizing:border-box; }
   body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 var(--ui); -webkit-font-smoothing:antialiased; }
@@ -37,8 +35,9 @@
   .field { display:grid; gap:6px; margin-bottom:18px; }
   label { font-weight:600; }
   .hint { color:var(--muted); font-size:13px; font-weight:400; }
+  .modelpick + input { margin-top:8px; }
   input[type=text], input[type=number], input[type=password], select, textarea {
-    width:100%; padding:9px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; font-size:14px; }
+    width:100%; padding:9px 12px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; font-size:14px; }
   :is(input, select, textarea):focus { outline:none; border-color:var(--ink); }
   textarea { resize:vertical; }
   code { font:13px ui-monospace, Menlo, Consolas, monospace; background:var(--paper-2); padding:1px 5px; border-radius:4px; }
@@ -121,13 +120,8 @@
       </div>
       <div class="field">
         <label for="anthropicModel">Claude model</label>
-        <input id="anthropicModel" type="text" list="claudeModels" autocomplete="off">
-        <datalist id="claudeModels">
-          <option value="claude-opus-5-5">Opus 5.5: best</option>
-          <option value="claude-sonnet-5-5">Sonnet 5.5: half the price</option>
-          <option value="claude-haiku-4-5">Haiku 4.5: a quarter of the price</option>
-        </datalist>
-        <span class="hint">Pick from the list or type any Claude model ID. Also used for photo checks. You can switch any time from the menu at the bottom of the panel.</span>
+        <input id="anthropicModel" type="text" autocomplete="off">
+        <span class="hint">Pick a model, or choose Another model to type any Claude model ID. Also used for photo checks. You can switch any time from the menu at the bottom of the panel.</span>
       </div>
     </div>
     <div id="oaiBox">
@@ -156,13 +150,12 @@
       </div>
       <div class="field">
         <label for="oaiModel">Model</label>
-        <input id="oaiModel" type="text" list="oaiModels" autocomplete="off" placeholder="Test connection lists what's available">
-        <datalist id="oaiModels"></datalist>
-        <span class="hint">Pick one from the list after Test connection, or type its ID. Small, cheap models are fine for scoring; bigger ones judge repairs and scams better.</span>
+        <input id="oaiModel" type="text" autocomplete="off" placeholder="Test connection lists what's available">
+        <span class="hint">Press Test connection to list what this service offers, then pick one (or type its ID). Small, cheap models are fine for scoring; bigger ones judge repairs and scams better.</span>
       </div>
       <div class="field">
         <label for="oaiVisionModel">Photo model</label>
-        <input id="oaiVisionModel" type="text" list="oaiModels" autocomplete="off" placeholder="Blank: the model above">
+        <input id="oaiVisionModel" type="text" autocomplete="off" placeholder="Blank: the model above">
         <span class="hint">Only used for photo checks; it has to accept images.</span>
       </div>
       <div class="field">
@@ -179,7 +172,7 @@
       <div class="field">
         <label for="textModel">Ranking model</label>
         <input id="textModel" type="text">
-        <span class="hint">Reads the listing text and scores it. Must be installed with <code>ollama pull</code>.</span>
+        <span class="hint">Reads the listing text and scores it. Test connection lists what is installed; add more with <code>ollama pull</code>.</span>
       </div>
       <div class="field">
         <label for="visionModel">Photo model</label>
@@ -254,6 +247,11 @@
     <div class="field check">
       <input id="useSoldComps" type="checkbox">
       <label for="useSoldComps">Compare prices with recent eBay sales<span class="hint">One or two eBay sold-listings searches per new search (working, and for parts in Fix &amp; flip), remembered for 6 hours.</span></label>
+    </div>
+    <div class="field">
+      <label for="theme">Theme</label>
+      <select id="theme"><option value="match">Match my browser</option><option value="dark">Dark</option><option value="light">Light</option></select>
+      <span class="hint">Match follows your browser, and is dark if it does not say. The marks on eBay and Marketplace cards follow the page itself.</span>
     </div>
     <div class="field check">
       <input id="showTab" type="checkbox">

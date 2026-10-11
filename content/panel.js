@@ -8,6 +8,8 @@
   window.__secondLookPanel = true;
 
   // Verdict colours come from the theme (--v-great etc.), keyed by data-v.
+  // A word always sits beside the score: the verdict colours are too close in lightness to tell apart on their own.
+  const SHORT = { great: "Great", good: "Good", fair: "Fair", pass: "Skip", suspicious: "Scam" };
   const VERDICT = {
     great: { label: "Great deal" },
     good: { label: "Worth a look" },
@@ -72,6 +74,9 @@
     return el;
   };
 
+  const tagEl = (verdict, score) =>
+    h("div", { class: "tag", "data-v": verdict, role: "img", "aria-label": `Score ${score}, ${SHORT[verdict] || verdict}` }, h("span", {}, String(score)), h("i", {}, SHORT[verdict] || ""));
+
   // ---------- panel shell (shadow DOM keeps site CSS out) ----------
 
   const host = h("div", { id: "second-look-host" });
@@ -82,26 +87,29 @@
   // The mark: a loupe with a vermilion dot.
   const MARK = `<svg class="m-vec" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M14.8 14.8 20.5 20.5"/><circle class="dot" cx="10" cy="10" r="2" stroke="none"/></svg>`;
 
+  // The two palettes. Contrast was measured: every text pair is 4.6:1 or better, control borders (--line) 3:1 or better.
+  // --on-v and --on-accent are the text colours that sit on a verdict or accent fill.
+  const THEME_DARK = `color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176;
+      --accent:#E2673C; --on-accent:#161513; --v-great:#5FD08B; --v-good:#B5D36A; --v-fair:#E0B050; --v-pass:#A9A59B; --v-suspicious:#FF8A80; --on-v:#161513;
+      --shadow:0 0 0 1px rgba(255,255,255,.04), 0 18px 44px -12px rgba(0,0,0,.75);`;
+  const THEME_LIGHT = `color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A;
+      --accent:#C8461F; --on-accent:#fff; --v-great:#0A6B35; --v-good:#4A6500; --v-fair:#85540A; --v-pass:#5C5850; --v-suspicious:#B00020; --on-v:#fff;
+      --shadow:0 1px 2px rgba(28,27,25,.06), 0 18px 44px -14px rgba(28,27,25,.32);`;
   // Colour, type and shape. Shared by the panel and the photo-check card.
   const THEME_CSS = `
-    /* ---------- tokens: paper and ink ---------- */
+    /* ---------- tokens: dark first; the light set is used when the browser asks for it or Setup says so ---------- */
     .wrap {
       --w: min(380px, calc(100vw - 32px)); --gap: 16px;
-      --paper:#FBFAF7; --paper-2:#F2EFE9; --ink:#1C1B19; --on-ink:#FBFAF7; --muted:#6B675F; --rule:#E3DED5; --accent:#C8461F;
-      --v-great:#2F7D4F; --v-good:#5E7D2A; --v-fair:#A86A12; --v-pass:#8A857C; --v-suspicious:#B3261E;
-      --r:14px; --r-sm:8px; --bw:1px; --press:none;
-      --shadow:0 1px 2px rgba(28,27,25,.06), 0 18px 44px -14px rgba(28,27,25,.32);
-      --ui:system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
-      --display:"SL Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-      font:13px/1.5 var(--ui); color:var(--ink); -webkit-font-smoothing:antialiased;
+      --r:6px; --r-sm:4px; --bw:1px; --press:none;
+      --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
+      --display:var(--ui);
+      --mono:"Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font:14px/1.5 var(--ui); color:var(--ink); -webkit-font-smoothing:antialiased;
+      ${THEME_DARK}
     }
-    @media (prefers-color-scheme: dark) {
-      .wrap {
-        --paper:#1D1C1A; --paper-2:#272522; --ink:#EEEAE2; --on-ink:#1D1C1A; --muted:#A39E94; --rule:#37342F; --accent:#E2673C;
-        --v-great:#62B788; --v-good:#A3BE62; --v-fair:#DDA552; --v-pass:#A39E94; --v-suspicious:#EF7A6E;
-        --shadow:0 0 0 1px rgba(255,255,255,.03), 0 18px 44px -12px rgba(0,0,0,.7);
-      }
-    }
+    @media (prefers-color-scheme: light) { .wrap { ${THEME_LIGHT} } }
+    .wrap[data-theme="dark"] { ${THEME_DARK} }
+    .wrap[data-theme="light"] { ${THEME_LIGHT} }
 `;
 
   root.innerHTML = `<style>
@@ -122,10 +130,10 @@
     .tab:hover { width:40px; }
     .open .tab { width:0; padding:0; border:0; opacity:0; pointer-events:none; box-shadow:none; overflow:hidden; }
     .tab .mark { width:18px; height:18px; }
-    .tab .tab-label { writing-mode:vertical-rl; font:500 14px/1 var(--display); letter-spacing:.01em; }
+    .tab .tab-label { writing-mode:vertical-rl; font:500 14px/1 var(--ui); letter-spacing:.01em; }
     .count { position:absolute; top:-9px; left:-9px; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--ink); color:var(--on-ink);
       font:600 11px/20px var(--ui); font-style:normal; text-align:center; font-variant-numeric:tabular-nums; }
-    .count.new { background:var(--accent); color:#fff; }
+    .count.new { background:var(--accent); color:var(--on-accent); }
     .open .count { display:none; }
 
     /* ---------- panel ---------- */
@@ -152,8 +160,8 @@
     .mark svg { width:100%; height:100%; }
     .mark .dot { fill:var(--accent); }
     .grow { flex:1; min-width:0; }
-    .wordmark { font:600 19px/1.1 var(--display); letter-spacing:-.01em; }
-    .wordmark em { font-style:italic; font-weight:400; }
+    .wordmark { font:700 16px/1.1 var(--ui); letter-spacing:0; }
+    .wordmark em { font-style:normal; font-weight:400; }
     .head small { display:block; color:var(--muted); font-size:11.5px; margin-top:2px; }
     .icon-btn { flex:none; width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); cursor:pointer; }
     .icon-btn svg { width:16px; height:16px; }
@@ -161,16 +169,16 @@
 
     .body { flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--rule) transparent; }
     .controls { padding:14px 16px 12px; display:grid; grid-template-columns:minmax(0, 1fr); gap:12px; }
-    label { display:block; margin-bottom:6px; color:var(--muted); font:600 10.5px/1 var(--ui); letter-spacing:.08em; text-transform:uppercase; }
-    input { width:100%; padding:9px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; transition:border-color .15s; }
+    label { display:block; margin-bottom:6px; color:var(--muted); font:700 11px/1 var(--ui); letter-spacing:.08em; text-transform:uppercase; }
+    input { width:100%; padding:9px 11px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; transition:border-color .15s; }
     input::placeholder { color:var(--muted); opacity:.7; }
     input:focus { outline:none; border-color:var(--ink); }
 
-    .lens { display:grid; grid-template-columns:repeat(2,1fr); gap:2px; padding:2px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
+    .lens { display:grid; grid-template-columns:repeat(2,1fr); gap:2px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
     .lens button { border:0; border-radius:calc(var(--r-sm) - 2px); background:none; color:var(--muted); font:600 12.5px/1 var(--ui); padding:8px 0; cursor:pointer; transition:background .15s, color .15s; }
     .lens button:hover { color:var(--ink); }
     .lens button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
-    .hint { color:var(--muted); font-size:12px; }
+    .hint { color:var(--muted); font-size:13px; }
     .lens-hint { margin-top:6px; }
     .lens-label { margin-bottom:6px; }
     .inputs { display:grid; gap:12px; }
@@ -193,13 +201,13 @@
     .freeprices button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .freeprices button:hover { text-decoration-color:currentColor; }
     .freeprices button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    .status { color:var(--muted); font-size:12px; }
+    .status { color:var(--muted); font-size:13px; }
     .statusrow { display:flex; align-items:flex-start; gap:10px; }
     .statusrow .status { flex:1; min-width:0; }
     .statusrow:not(:has(.status:not(:empty), .stopbtn:not([hidden]))) { display:none; }
     .stopbtn { flex:none; margin-left:auto; border:var(--bw) solid var(--v-suspicious); background:none; color:var(--v-suspicious); border-radius:999px; padding:3px 12px;
       font:600 12px/1.3 var(--ui); cursor:pointer; }
-    .stopbtn:hover:not(:disabled) { background:var(--v-suspicious); color:#fff; }
+    .stopbtn:hover:not(:disabled) { background:var(--v-suspicious); color:var(--on-v); }
     .stopbtn:disabled { opacity:.6; cursor:progress; }
     .status:empty { display:none; }
     .status.err { color:var(--v-suspicious); border-left:2px solid currentColor; padding-left:10px; }
@@ -218,13 +226,13 @@
     .foot-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px 8px 14px; }
     .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
     .model-pick { margin:0; display:block; min-width:0; text-transform:none; letter-spacing:normal; }
-    .model { max-width:210px; appearance:none; -webkit-appearance:none; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); background:var(--paper);
+    .model { max-width:210px; appearance:none; -webkit-appearance:none; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper);
       color:var(--ink); font:600 12px/1 var(--ui); padding:6px 24px 6px 9px; cursor:pointer; text-overflow:ellipsis;
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size:4px 4px; background-repeat:no-repeat; }
     .model:focus { outline:none; border-color:var(--ink); }
     .spend { all:unset; cursor:pointer; color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }
-    .spend b { color:var(--ink); font:600 14px/1 var(--display); font-variant-numeric:lining-nums tabular-nums; }
+    .spend b { color:var(--ink); font:600 14px/1 var(--mono); font-variant-numeric:lining-nums tabular-nums; }
     .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
     .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
     .budget { height:3px; background:var(--rule); }
@@ -233,7 +241,7 @@
     .spend-detail { padding:12px 14px 4px; font-size:12px; display:grid; gap:8px; border-bottom:var(--bw) solid var(--rule); max-height:40vh; overflow:auto; }
     .sd-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
     .sd-grid span { display:block; color:var(--muted); font-size:11px; }
-    .sd-grid b { font:600 17px/1.2 var(--display); font-variant-numeric:lining-nums; }
+    .sd-grid b { font:600 17px/1.2 var(--mono); font-variant-numeric:lining-nums; }
     .sd-models { display:grid; gap:3px; }
     .sd-models div { display:flex; justify-content:space-between; gap:8px; }
     .sd-models div span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
@@ -241,7 +249,7 @@
 
     /* first-run walkthrough */
     .welcome { display:grid; gap:8px; padding:12px 14px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:12.5px; }
-    .welcome b { font:600 15px/1.2 var(--display); }
+    .welcome b { font:600 15px/1.2 var(--ui); }
     .welcome ol { margin:0; padding:0; list-style:none; display:grid; gap:4px; counter-reset:step; }
     .welcome li { counter-increment:step; position:relative; padding-left:26px; line-height:1.45; }
     .welcome li::before { content:counter(step); position:absolute; left:0; top:1px; width:18px; height:18px; display:grid; place-items:center; border-radius:50%; background:var(--ink); color:var(--paper); font:600 11px/1 var(--ui); }
@@ -261,15 +269,17 @@
       background-position:calc(100% - 6px) 55%, calc(100% - 2px) 55%; background-size:4px 4px; background-repeat:no-repeat; }
     .sort:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .skipwrap { display:flex; align-items:center; gap:6px; }
-    .qf { flex:1 1 100%; display:grid; gap:6px; margin-bottom:4px; }
+    .qf { flex:1 1 100%; order:5; display:grid; gap:6px; margin-bottom:4px; }
+    .qf[hidden] { display:none; }
     .qf-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
     .qf input { padding:6px 9px; font-size:12px; }
     .qf-wordwrap { position:relative; flex:1 1 140px; display:flex; }
     .qf-words { flex:1; width:auto; padding-right:26px !important; }
     .qf-price { display:flex; align-items:center; gap:3px; color:var(--muted); }
     .qf-price input { width:58px; }
-    .qt { border:var(--bw) solid var(--rule); background:none; color:var(--muted); font:600 11.5px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
+    .qt { border:var(--bw) solid var(--line); background:none; color:var(--muted); font:600 11.5px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
     .qt:hover { color:var(--ink); border-color:var(--muted); }
+    .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
     .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 11.5px/1 var(--ui); letter-spacing:normal; text-transform:none; }
     .qf-deal input { width:62px; }
@@ -281,7 +291,7 @@
     .skipwrap .seg button { padding:4px 8px; }
 
     /* what's on this page */
-    .pageinfo { font-size:12px; color:var(--muted); }
+    .pageinfo { font-size:13px; color:var(--muted); }
     .pi-reset { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-reset:hover { text-decoration-color:currentColor; }
     .pageinfo .chips { margin-top:8px; }
@@ -291,20 +301,21 @@
     .pi-search:not(:has(> :not([hidden]))) { display:none; }
     .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:12.5px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
+    .pi-head { margin-bottom:2px; color:var(--ink); font:700 20px/1.3 var(--ui); }
+    .pi-head .mono { font-family:var(--mono); }
     .pi-line b { color:var(--ink); font-weight:600; }
     .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
-    .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
+    .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
     .seg button { border:0; background:none; color:var(--muted); font:600 11.5px/1 var(--ui); padding:5px 10px; border-radius:calc(var(--r-sm) - 2px); cursor:pointer; }
     .seg button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .fchip { font-size:11px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
-    .fchip.k-new { background:var(--accent); color:#fff; } .fchip.k-good { background:var(--v-great); color:#fff; } .fchip.k-warn { background:var(--v-suspicious); color:#fff; }
+    .fchip.k-new { background:var(--accent); color:var(--on-accent); } .fchip.k-good { background:var(--v-great); color:var(--on-v); } .fchip.k-warn { background:var(--v-suspicious); color:var(--on-v); }
     .fchip.k-plain { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--rule); }
-    .fchip.k-deal { background:var(--accent); color:#fff; }
-    .ptag.deal { color:var(--accent); }
-    .count.deal { background:var(--accent); color:#fff; }
+    .fchip.k-deal { background:var(--accent); color:var(--on-accent); }
+    .count.deal { background:var(--accent); color:var(--on-accent); }
     .count.pop { animation:pop .5s cubic-bezier(.3,1.6,.5,1); }
     @keyframes pop { 0% { transform:scale(.6); } 60% { transform:scale(1.25); } 100% { transform:none; } }
 
@@ -315,7 +326,7 @@
     .mnote a { color:var(--ink); font-weight:600; text-underline-offset:3px; }
     .mgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); gap:12px; }
     .mlabel { color:var(--muted); font-size:11px; }
-    .mval { display:block; font:600 22px/1.15 var(--display); font-variant-numeric:lining-nums; margin:2px 0 1px; }
+    .mval { display:block; font:600 22px/1.15 var(--mono); font-variant-numeric:lining-nums; margin:2px 0 1px; }
     .msub { color:var(--muted); font-size:11px; }
     .comps { margin-top:8px; }
     .comps summary { cursor:pointer; color:var(--ink); font-weight:600; font-size:12px; list-style:none; }
@@ -326,32 +337,32 @@
     .comps ul { list-style:none; margin:0; padding:0; }
     .comps li a { display:flex; gap:10px; padding:3px 0; color:var(--ink); text-decoration:none; }
     .comps li a:hover .ct { text-decoration:underline; }
-    .comps .cp { flex:none; width:44px; font-weight:600; font-variant-numeric:tabular-nums; }
+    .comps .cp { flex:none; width:44px; font:600 12px/1.5 var(--mono); font-variant-numeric:tabular-nums; }
     .comps .ct { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
 
     /* results */
     .list, .itemout { padding:0 16px 12px; }
     .list:empty, .itemout:empty { display:none; }
-    .row { display:grid; grid-template-columns:44px 1fr; gap:12px; padding:14px 0; border-top:var(--bw) solid var(--rule); animation:fade .25s ease both; }
+    .row { display:grid; grid-template-columns:46px minmax(0,1fr) auto; gap:12px; padding:12px 0; border-top:var(--bw) solid var(--rule); animation:fade .25s ease both; }
     .row.still { animation:none; }
     .itemout > .row:first-child { border-top:0; }
     @keyframes fade { from { opacity:0; } to { opacity:1; } }
-    .tag { --p:50; --c:var(--v-fair); width:44px; height:44px; border-radius:50%; position:relative; display:grid; place-items:center;
-      background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--rule) 0); }
-    .tag::before { content:""; position:absolute; inset:2px; border-radius:50%; background:var(--paper); }
-    .ptag { width:44px; padding-top:1px; font:600 15px/1.2 var(--display); font-variant-numeric:lining-nums tabular-nums; text-align:center; color:var(--ink); overflow-wrap:anywhere; }
-    .row.plain { padding:11px 0; }
+    .tag { --c:var(--v-fair); width:46px; height:46px; border:1.5px solid var(--c); border-radius:var(--r-sm); display:grid; place-content:center; text-align:center; line-height:1; }
+    .tag span { font:700 18px/1 var(--mono); color:var(--c); font-variant-numeric:tabular-nums; }
+    .tag i { display:block; margin-top:3px; font:700 9px/1 var(--ui); font-style:normal; letter-spacing:.06em; text-transform:uppercase; color:var(--c); }
+    .row.plain { padding:12px 0; grid-template-columns:minmax(0,1fr) auto; }
+    .pr { text-align:right; font:700 15px/1.35 var(--mono); font-variant-numeric:tabular-nums; }
+    .pr.deal { color:var(--accent); }
     .scamline { color:var(--v-suspicious); font-weight:600; }
     .wrap[data-skipmode="dim"] .row.skip, .wrap[data-skipmode="dim"] .row:has(> .tag[data-v="pass"]), .wrap[data-skipmode="dim"] .row:has(> .tag[data-v="suspicious"]) { opacity:.55; }
     .wrap[data-skipmode="dim"] .row.skip:hover, .wrap[data-skipmode="dim"] .row:hover { opacity:1; }
     .row.plain .actions { margin-top:6px; gap:6px 14px; }
-    .tag span { position:relative; font:600 17px/1 var(--display); color:var(--c); font-variant-numeric:lining-nums tabular-nums; }
     [data-v="great"] { --c:var(--v-great); } [data-v="good"] { --c:var(--v-good); } [data-v="fair"] { --c:var(--v-fair); }
     [data-v="pass"] { --c:var(--v-pass); } [data-v="suspicious"] { --c:var(--v-suspicious); }
-    .title { display:block; background:none; border:0; padding:0; color:var(--ink); font:600 13.5px/1.35 var(--ui); text-align:left; cursor:pointer; }
+    .title { display:block; background:none; border:0; padding:0; color:var(--ink); font:600 15px/1.35 var(--ui); text-align:left; cursor:pointer; }
     button.title:hover { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
     .verdict { color:var(--c); font-weight:600; }
-    .meta { color:var(--muted); font-size:12px; margin-top:3px; }
+    .meta { color:var(--muted); font-size:13px; margin-top:3px; }
     .lensinfo { margin-top:4px; font-size:12px; font-weight:600; }
     .lensinfo.neg { color:var(--v-suspicious); }
     .reason { margin-top:6px; }
@@ -378,7 +389,7 @@
     .srow a:hover { text-decoration:underline; text-underline-offset:3px; }
     .srow .meta { margin-top:1px; }
     .srow .down { color:var(--v-great); font-weight:600; }
-    .unhide { flex:none; border:var(--bw) solid var(--rule); background:none; color:var(--ink); border-radius:999px; padding:2px 10px; font:600 11.5px/1.4 var(--ui); cursor:pointer; }
+    .unhide { flex:none; border:var(--bw) solid var(--line); background:none; color:var(--ink); border-radius:999px; padding:2px 10px; font:600 11.5px/1.4 var(--ui); cursor:pointer; }
     .unhide:hover { border-color:var(--ink); }
     .sv-acts { margin:4px 0 10px; }
     .view-saved .sub { margin-top:10px; }
@@ -388,7 +399,7 @@
     .idea { display:block; padding:10px 0; border-top:1px solid var(--rule); color:var(--ink); text-decoration:none; animation:fade .25s ease both; }
     .idea:hover .q { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
     .kind { color:var(--muted); font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
-    .idea .q { font:500 15px/1.3 var(--display); margin-top:2px; word-break:break-word; }
+    .idea .q { font:500 15px/1.3 var(--ui); margin-top:2px; word-break:break-word; }
     .idea .why { color:var(--muted); font-size:12px; margin-top:2px; }
     .idea .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .chip { font-size:11px; padding:1px 7px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
@@ -402,10 +413,11 @@
     .offer { margin-top:12px; padding:11px 12px; background:var(--paper-2); border-radius:var(--r-sm); font-size:12.5px; }
     .offer-acts { margin-top:8px; }
     .msg-preview { margin-top:8px; color:var(--muted); font-style:italic; }
-    .offer b { font:600 19px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
+    .offer b { font:600 19px/1 var(--mono); font-variant-numeric:lining-nums; margin:0 2px; }
     .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }
     .adjust.up { color:var(--v-great); }
 
+    .panel:focus { outline:none; } /* focus lands on the panel itself when it opens; the controls inside show their own ring */
     button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 
 
@@ -417,7 +429,7 @@
       <span class="mark">${MARK}</span>
       <span class="tab-label">Second Look</span><i class="count" hidden></i>
     </button>
-    <div class="panel">
+    <div class="panel" role="complementary" aria-label="Second Look" tabindex="-1">
       <div class="head">
         <span class="mark">${MARK}</span>
         <div class="grow"><div class="wordmark">Second <em>Look</em></div><small>for careful buyers</small></div>
@@ -464,11 +476,12 @@
         <div class="freeprices" hidden><button data-act="prices">Just compare sold prices</button> <span>free, no AI</span></div>
         <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are cancelled">Stop</button></div>
-        <div class="pageinfo" hidden><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
+        <div class="pageinfo" hidden><div class="pi-head" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
         <div class="ideas-inline" hidden><div class="status ideas-status" role="status"></div><div class="ideas-list"></div></div>
       </div>
       <div class="listbar" hidden>
-        <div class="qf" role="search" aria-label="Filter this search">
+        <button class="qt qf-toggle" aria-expanded="false" aria-controls="qf-box" title="Filter by words and price, hide listings you've seen, set your deal price">Filter</button>
+        <div class="qf" id="qf-box" role="search" aria-label="Filter this search" hidden>
           <div class="qf-row">
             <span class="qf-wordwrap"><input class="qf-words" placeholder="Filter: dmg -case -game" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
             <span class="qf-price"><input class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
@@ -503,6 +516,17 @@
 
   const $ = (sel) => root.querySelector(sel);
   const wrap = $(".wrap");
+  // Theme: Setup's Match (the default) follows the browser, falling back to dark; Dark and Light force one.
+  let themePref = "";
+  const applyTheme = (t) => {
+    themePref = t === "dark" || t === "light" ? t : "";
+    if (themePref) wrap.dataset.theme = themePref;
+    else delete wrap.dataset.theme;
+    const card = toastRoot?.querySelector(".wrap");
+    if (card) themePref ? (card.dataset.theme = themePref) : delete card.dataset.theme;
+  };
+  chrome.storage.local.get("theme").then(({ theme }) => applyTheme(theme)).catch(() => {});
+  chrome.storage.onChanged.addListener((changes) => changes.theme && applyTheme(changes.theme.newValue));
   const panel = $(".panel");
   const countEl = $(".count");
   const statusEl = $(".status");
@@ -525,6 +549,7 @@
   const itemEl = $(".itemout");
   const pageInfo = $(".pageinfo");
   const piLine = $(".pi-line");
+  const piHead = $(".pi-head");
   const piSearch = $(".pi-search");
   const listBar = $(".listbar");
   const sortSel = $(".sort");
@@ -605,34 +630,39 @@
     wrap.classList.toggle("open", open);
     $('[data-act="tab"]').setAttribute("aria-label", open ? "Tuck Second Look away" : "Open Second Look");
   };
+  // Keyboard users: opening puts focus in the panel and closing puts it back on the tab, so it is
+  // never left on a control that just disappeared. Only when focus was in the panel does closing move it.
   const setOpen = (open) => {
     touched = true;
+    const inside = !!root.activeElement?.closest(".panel");
     showOpen(open);
+    if (open) $(".panel").focus({ preventScroll: true });
+    else if (inside) $('[data-act="tab"]').focus({ preventScroll: true });
   };
   const toggleOpen = () => setOpen(!wrap.classList.contains("open"));
+
+  // Tabs and Use/Fix & flip/Skipped-style radios: arrow keys (and Home/End) move and choose; only the
+  // chosen one is in the Tab order, as the ARIA patterns say. attr is the state attribute the code already sets.
+  const rovingGroup = (group, attr) => {
+    const items = [...group.querySelectorAll(`[role="${attr === "aria-selected" ? "tab" : "radio"}"]`)];
+    const sync = () => items.forEach((b) => (b.tabIndex = b.getAttribute(attr) === "true" ? 0 : -1));
+    new MutationObserver(sync).observe(group, { attributes: true, attributeFilter: [attr], subtree: true });
+    sync();
+    group.addEventListener("keydown", (e) => {
+      const i = items.indexOf(e.target);
+      const to = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
+      if (i < 0 || to == null) return;
+      e.preventDefault();
+      const next = items[(to + items.length) % items.length];
+      next.click();
+      next.focus();
+    });
+  };
+  root.querySelectorAll('[role="tablist"]').forEach((g) => rovingGroup(g, "aria-selected"));
+  root.querySelectorAll('[role="radiogroup"]').forEach((g) => rovingGroup(g, "aria-checked"));
   $('[data-act="tab"]').addEventListener("click", toggleOpen);
   $('[data-act="toggle"]').addEventListener("click", () => setOpen(false));
   // Every page starts with just the tab: the cards' marks and free checks run without the panel open.
-
-  // ---------- fonts ----------
-  // The serif ships inside the extension and is added with the FontFace API from bytes the background
-  // hands over: no web-accessible files (pages can't spot the extension) and no site font rules apply.
-  const FONTS = [
-    ["SL Fraunces", "fraunces-400.woff2", { weight: "400" }],
-    ["SL Fraunces", "fraunces-400-italic.woff2", { weight: "400", style: "italic" }],
-    ["SL Fraunces", "fraunces-600.woff2", { weight: "600" }],
-  ];
-  (async () => {
-    for (const [family, file, desc] of FONTS) {
-      try {
-        const b64 = await send("getFont", { file });
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        document.fonts.add(await new FontFace(family, bytes.buffer, desc).load());
-      } catch (e) {
-        console.warn("[Second Look] font", file, e.message);
-      }
-    }
-  })();
 
   // ---------- footer: model switch and spending ----------
   // Spending is estimated from token counts at list prices (a regular API key can't read the real
@@ -894,25 +924,54 @@
 
   // Stickers live in the page, so their CSS goes into the page once. They read as a small paper tag
   // whatever the site's own colours are.
+  // The marks sit on the site's page, so they take its brightness: its real background (so a site's dark mode or
+  // a dark-mode extension counts), else the browser's setting, else dark.
+  const pageIsDark = () => {
+    const lum = (c) => {
+      const m = c.match(/rgba?\(([^)]+)\)/);
+      if (!m) return null;
+      const [r, g, b, a = 1] = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number);
+      if (a < 0.5) return null;
+      const f = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    for (const el of [document.body, document.documentElement]) {
+      const l = el && lum(getComputedStyle(el).backgroundColor);
+      if (l != null) return l < 0.2;
+    }
+    return !matchMedia("(prefers-color-scheme: light)").matches;
+  };
+  const syncPageTheme = () => {
+    const t = pageIsDark() ? "dark" : "light";
+    if (document.documentElement.dataset.slTheme !== t) document.documentElement.dataset.slTheme = t;
+  };
   const ensureStickerStyles = () => {
+    syncPageTheme();
     if (document.getElementById("second-look-styles")) return;
     const st = document.createElement("style");
     st.id = "second-look-styles";
+    // The marks wear the page's own brightness (see syncPageTheme): dark tokens on a dark page, light on a light one.
+    const DK = "--sl-paper:#161513; --sl-ink:#ECE9E2; --sl-muted:#A9A59B; --sl-rule:rgba(255,255,255,.14); --sl-line:#858176; --sl-accent:#E2673C; --sl-on-accent:#161513; --sl-on-v:#161513; --sl-shadow:0 6px 18px -6px rgba(0,0,0,.7); --v-great:#5FD08B; --v-good:#B5D36A; --v-fair:#E0B050; --v-pass:#A9A59B; --v-suspicious:#FF8A80;";
+    const LT = "--sl-paper:#FBFAF6; --sl-ink:#1B1A17; --sl-muted:#5C5850; --sl-rule:rgba(28,27,25,.14); --sl-line:#77736A; --sl-accent:#C8461F; --sl-on-accent:#fff; --sl-on-v:#fff; --sl-shadow:0 6px 18px -6px rgba(28,27,25,.38); --v-great:#0A6B35; --v-good:#4A6500; --v-fair:#85540A; --v-pass:#5C5850; --v-suspicious:#B00020;";
     st.textContent = `
-      .second-look-sticker { --sl-paper:#FBFAF7; --sl-ink:#1C1B19; --sl-muted:#6B675F; --sl-rule:rgba(28,27,25,.14);
-        --v-great:#2F7D4F; --v-good:#5E7D2A; --v-fair:#A86A12; --v-pass:#8A857C; --v-suspicious:#B3261E; --c:var(--v-fair);
+      html[data-sl-theme="dark"] :is(.second-look-sticker, .second-look-marks) { ${DK} }
+      html:not([data-sl-theme="dark"]) :is(.second-look-sticker, .second-look-marks) { ${LT} }
+      .second-look-sticker { --c:var(--v-fair);
         position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--sl-fit, calc(100% - 20px));
-        background:var(--sl-paper); color:var(--sl-ink); border-radius:10px; box-shadow:0 0 0 1px var(--sl-rule), 0 6px 18px -6px rgba(28,27,25,.38);
-        font:500 12px/1.2 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; text-align:left; letter-spacing:normal; cursor:help;
+        background:var(--sl-paper); color:var(--sl-ink); border-radius:4px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
+        font:500 12px/1.2 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; text-align:left; letter-spacing:normal; cursor:help;
         animation:sl-in .2s ease-out both; }
+      @media (prefers-reduced-motion: reduce) { .second-look-sticker { animation:none; } }
       @keyframes sl-in { from { opacity:0; } to { opacity:1; } }
       .second-look-sticker[data-v="great"] { --c:var(--v-great); } .second-look-sticker[data-v="good"] { --c:var(--v-good); }
       .second-look-sticker[data-v="pass"] { --c:var(--v-pass); } .second-look-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
-      .second-look-sticker .sl-score { flex:none; width:36px; height:36px; border-radius:7px; background:var(--c); color:#fff; display:grid; place-items:center;
-        font:600 18px/1 "SL Fraunces","Iowan Old Style",Georgia,serif; font-variant-numeric:lining-nums tabular-nums; }
+      .second-look-sticker .sl-score { flex:none; width:44px; height:44px; box-sizing:border-box; border:1.5px solid var(--c); border-radius:4px; color:var(--c);
+        display:grid; place-content:center; text-align:center; line-height:1; }
+      .second-look-sticker .sl-score b { display:block; font:700 18px/1 "Atkinson Hyperlegible Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums; }
+      .second-look-sticker .sl-score i { display:block; margin-top:3px; font-weight:700; font-size:9px; line-height:1; font-family:inherit; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
       .second-look-sticker .sl-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
-      .second-look-sticker .sl-verdict { font-weight:650; font-size:13px; white-space:nowrap; }
-      .second-look-sticker .sl-sub { font-size:11px; color:var(--sl-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .second-look-sticker .sl-verdict { font-weight:700; font-size:14px; white-space:nowrap; }
+      .second-look-sticker .sl-sub { font-size:12px; color:var(--sl-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       /* small chips: under a sticker, or on their own on a card that hasn't been scored */
       .second-look-sticker .sl-below { position:absolute; left:4px; top:100%; padding-top:5px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
       /* Marketplace: top-right, and never into the top-left corner where Facebook puts "Just listed" */
@@ -921,17 +980,19 @@
       .second-look-sticker.sl-right .sl-below { left:auto; right:4px; align-items:flex-end; }
       .second-look-sticker.sl-right .sl-under { justify-content:flex-end; }
       .second-look-sticker .sl-under { display:flex; flex-wrap:wrap; gap:4px; width:max-content; max-width:var(--sl-fit, 320px); }
-      .sl-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:999px; background:#1C1B19; color:#FBFAF7;
-        font:600 10.5px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:nowrap; letter-spacing:normal; text-transform:none; }
+      .sl-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:4px; background:var(--sl-ink); color:var(--sl-paper);
+        font:600 11.5px/1.35 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:nowrap; letter-spacing:normal; text-transform:none; }
       .sl-chip svg { width:11px; height:11px; }
-      .sl-chip.k-new { background:#C8461F; } .sl-chip.k-good { background:#2F7D4F; } .sl-chip.k-warn { background:#B3261E; }
-      .sl-chip.k-plain { background:#FBFAF7; color:#1C1B19; box-shadow:inset 0 0 0 1px rgba(28,27,25,.25); }
-      .sl-chip.k-deal { background:#C8461F; color:#fff; font-size:11.5px; padding:3px 9px; box-shadow:0 0 0 2px #FBFAF7; }
+      .sl-chip.k-new { background:var(--sl-accent); color:var(--sl-on-accent); } .sl-chip.k-good { background:var(--v-great); color:var(--sl-on-v); } .sl-chip.k-warn { background:var(--v-suspicious); color:var(--sl-on-v); }
+      .sl-chip.k-plain { background:var(--sl-paper); color:var(--sl-ink); box-shadow:inset 0 0 0 1px var(--sl-line); }
+      .sl-chip.k-deal { background:var(--sl-accent); color:var(--sl-on-accent); font-size:12px; padding:3px 9px; box-shadow:0 0 0 2px var(--sl-paper); }
       .second-look-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:var(--sl-fit, calc(100% - 20px));
-        filter:drop-shadow(0 2px 6px rgba(28,27,25,.3)); pointer-events:auto; }
+        filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); pointer-events:auto; }
       .second-look-marks button, .second-look-sticker .sl-under button { cursor:pointer; border:0; }
-      .sl-x { display:none !important; }
-      [data-second-look-key]:hover .sl-x, .sl-x:focus-visible { display:inline-flex !important; }
+      /* Hover-only actions stay in the DOM (clipped, not display:none) so the keyboard can reach them; they show on hover or focus. */
+      .sl-x { position:absolute !important; width:1px !important; height:1px !important; margin:-1px !important; padding:0 !important; overflow:hidden !important; clip-path:inset(50%) !important; }
+      [data-second-look-key]:hover .sl-x, .second-look-marks:focus-within .sl-x, .second-look-sticker:focus-within .sl-x, .sl-x:focus-visible
+        { position:static !important; width:auto !important; height:auto !important; margin:0 !important; padding:2px 7px !important; overflow:visible !important; clip-path:none !important; }
       /* listings you've hidden, filtered out, or (by choice) skipped */
       html:not([data-sl-showhidden]) [data-sl-hide] { display:none !important; }
       html[data-sl-showhidden] [data-sl-hide] { opacity:.45; }
@@ -941,14 +1002,15 @@
       /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering */
       [data-sl-cell]:has(.second-look-sticker:hover, .second-look-marks:hover) { position:relative; z-index:2147483000 !important; }
       .second-look-sticker .sl-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--sl-rule); }
-      .second-look-sticker .sl-acts button, .second-look-sticker .sl-acts a { all:unset; cursor:pointer; color:var(--sl-ink); font-weight:600; font-size:12px;
+      .second-look-sticker .sl-acts button, .second-look-sticker .sl-acts a { all:unset; cursor:pointer; color:var(--sl-ink); font-weight:600; font-size:13px;
         text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
       .second-look-sticker .sl-acts :is(button, a):hover { text-decoration-color:currentColor; }
       .second-look-sticker .sl-pop { display:none; width:264px; max-width:min(264px, 80vw); padding:12px 14px;
-        background:var(--sl-paper); color:var(--sl-ink); border-radius:10px; box-shadow:0 0 0 1px var(--sl-rule), 0 16px 36px -10px rgba(28,27,25,.45);
-        font:400 12px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:normal; text-transform:none; cursor:auto; }
-      .second-look-sticker:hover .sl-pop { display:block; }
-      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font:600 15px/1.25 "SL Fraunces","Iowan Old Style",Georgia,serif; }
+        background:var(--sl-paper); color:var(--sl-ink); border-radius:4px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
+        font:400 13px/1.5 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:normal; text-transform:none; cursor:auto; }
+      .second-look-sticker:hover .sl-pop, .second-look-sticker:focus-within .sl-pop { display:block; }
+      .second-look-sticker:focus-visible { outline:2px solid var(--sl-ink); outline-offset:3px; }
+      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font-weight:700; font-size:15px; line-height:1.3; }
       .second-look-sticker .sl-pop b span { color:var(--c); }
       .second-look-sticker .sl-flags { margin-top:6px; color:var(--sl-muted); }
       .second-look-flash { outline:2px solid #C8461F !important; outline-offset:4px; animation:sl-flash 2s ease-out both; }
@@ -1116,7 +1178,7 @@
   };
   const normTitle = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const shortDate = (ts) => new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed"];
+  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed", "wasPrice"];
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(SL.bigImage(img))}`;
 
   // A likely scam without asking a model: a reposted listing, a code on the end of the title (until a
@@ -1134,6 +1196,7 @@
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
+    else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${Math.round(f.vsSold * 100)}% of sold`]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
@@ -1188,7 +1251,17 @@
   };
 
   // Dress one card: a sticker if it's been scored, otherwise just its chips; hidden if you said so.
+  // Redrawing a card's marks replaces their elements; if the keyboard was on one of them (pressing Save
+  // turns it into "Saved"), put focus back on the same place in the new marks instead of losing it.
   const decorate = (key, linkEl) => {
+    const marks = linkEl?.isConnected ? cellOf(linkEl).querySelector(".second-look-sticker, .second-look-marks") : null;
+    const at = marks && marks.contains(document.activeElement) ? [...marks.querySelectorAll("button")].indexOf(document.activeElement) : null;
+    redecorate(key, linkEl);
+    if (at == null) return;
+    const now = cellOf(linkEl).querySelector(".second-look-sticker, .second-look-marks");
+    (now?.querySelectorAll("button")[at] || now)?.focus({ preventScroll: true });
+  };
+  const redecorate = (key, linkEl) => {
     if (!linkEl?.isConnected) return;
     ensureStickerStyles();
     const host = stickerHost(linkEl);
@@ -1618,8 +1691,8 @@
     const line = (text) => (text ? h("div", { class: "sl-flags" }, text) : null);
     return h(
       "div",
-      { class: "second-look-sticker", "data-v": item.verdict },
-      h("div", { class: "sl-score" }, String(item.score)),
+      { class: "second-look-sticker", "data-v": item.verdict, tabindex: "0", role: "group", "aria-label": `Second Look: score ${item.score}, ${v.label}. Tab to the reasons and actions.` },
+      h("div", { class: "sl-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || "")),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
       // Below the tag, in one column: the chip row, then (on hover) the card with the reasons. However
       // many rows the chips wrap to, the card sits under them.
@@ -1727,7 +1800,6 @@
             h(
               "div",
               { class: `row plain${still ? " still" : ""}${likelyScam(f) ? " skip" : ""}`, style: `--i:${Math.min(i, 8)}` },
-              h("div", { class: f.deal ? "ptag deal" : "ptag" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
               h(
                 "div",
                 {},
@@ -1750,7 +1822,8 @@
                   saveBtn,
                   hideBtn
                 )
-              )
+              ),
+              h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`)
             )
           );
           return;
@@ -1769,12 +1842,12 @@
           h(
             "div",
             { class: still ? "row still" : "row", style: `--i:${Math.min(i, 8)}` },
-            h("div", { class: "tag", "data-v": it.verdict, style: `--p:${it.score}`, "aria-label": `Score ${it.score}` }, h("span", {}, String(it.score))),
+            tagEl(it.verdict, it.score),
             h(
               "div",
               {},
               h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
-              h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""} \u00b7 ${priceStr(it)}${it.related === false ? "" : vsMarket}`),
+              h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""}${it.auction || it.shipping > 0 ? ` \u00b7 ${priceStr(it)}` : ""}${it.related === false ? "" : vsMarket}`),
               (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` \u00b7 ${it.fault}` : "")) : null,
               h("div", { class: "reason" }, it.reason || ""),
               // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
@@ -1789,7 +1862,8 @@
                 hideBtn
               ),
               box
-            )
+            ),
+            h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`)
           )
         );
       });
@@ -2136,7 +2210,14 @@
     const warnN = n((f) => f.sellerWarn || f.dup);
     const hidN = n((f) => f.hidden);
     const filN = n((f) => f.filtered && !f.hidden);
+    // After a scan, say what it found in plain words.
+    const scored = pageItems().filter((it) => it.score != null && !isHidden(it));
+    const worthN = scored.filter((it) => (it.verdict === "great" || it.verdict === "good") && !likelyScam(facts.get(keyOf(it.url)))).length;
+    piHead.hidden = !scored.length;
+    piHead.textContent = !scored.length ? "" : worthN ? `${worthN} worth a look` : "Nothing here is a bargain";
+    const scamN = n((f) => likelyScam(f) && !f.hidden);
     const bits = [`<b>${all.length}</b> listings`];
+    if (scamN) bits.push(`<b>${scamN}</b> look like scams`);
     const dealN = dealCount();
     if (dealN) bits.push(`<b>${dealN}</b> at your price`);
     if (newN) bits.push(`<b>${newN}</b> new to you`);
@@ -2202,13 +2283,31 @@
     bt.dataset.mode = mode;
     qf.classList.toggle("on", quickActive());
     $(".qf-clear").hidden = !quickActive();
+    syncFilterToggle();
   };
+  // The filter fields sit behind a "Filter" button so the sticky bar leaves room for the results; a
+  // search that already has a filter or a deal price opens them, and the button counts what is set.
+  let qfOpen = false;
+  const qfToggle = $(".qf-toggle");
+  const syncFilterToggle = () => {
+    qf.hidden = !qfOpen;
+    qfToggle.setAttribute("aria-expanded", String(qfOpen));
+    const n = [quick.words.trim(), quick.min, quick.max, quick.fresh, quick.broken, quick.deal].filter(Boolean).length;
+    qfToggle.textContent = n ? `Filter \u00b7 ${n}` : "Filter";
+    qfToggle.classList.toggle("on", n > 0);
+  };
+  qfToggle.addEventListener("click", () => {
+    qfOpen = !qfOpen;
+    syncFilterToggle();
+    if (qfOpen) qfWords.focus();
+  });
   onLensShown = () => showQuick();
   const loadQuick = async () => {
     const { quickFilters = {} } = await chrome.storage.local.get("quickFilters");
     const stored = quickFilters[quickKey()] || {};
     quick = { ...NO_QUICK, ...stored, ...(stored.projects && !stored.broken && { broken: "only" }) }; // older "Projects only"
     delete quick.projects;
+    qfOpen = quickActive() || !!quick.deal;
     showQuick(true);
   };
   let quickTimer = 0;
@@ -2468,9 +2567,18 @@
       scanBtn.disabled = false;
       refreshPending();
       renderPageInfo(); // the skipped-listings control appears once something is scored
+      requestAnimationFrame(showResults);
     }
   };
 
+  // When a scan finishes, bring the results up under the status line: on a short window the controls
+  // above would otherwise leave no result in view. Never scrolls back up if you were already further down.
+  const showResults = () => {
+    if (view !== "page" || listBar.hidden) return;
+    const body = $(".body");
+    const top = body.scrollTop + $(".statusrow").getBoundingClientRect().top - body.getBoundingClientRect().top;
+    if (body.scrollTop < top) body.scrollTop = top;
+  };
   scanBtn.addEventListener("click", scan);
 
   // The sold-price half of a scan on its own: one eBay lookup, every card gets "% of sold", no model.
@@ -2613,7 +2721,7 @@
       h(
         "div",
         { class: "row" },
-        h("div", { class: "tag", "data-v": r.verdict, style: `--p:${score}`, "aria-label": `Score ${score}` }, h("span", {}, String(score))),
+        tagEl(r.verdict, score),
         h(
           "div",
           {},
@@ -2800,7 +2908,7 @@
         .err { color:var(--v-suspicious); }
         button { width:26px; height:26px; display:grid; place-items:center; background:none; border:0; border-radius:var(--r-sm); color:var(--muted); cursor:pointer; align-self:start; font:16px/1 var(--ui); }
         button:hover { color:var(--ink); background:var(--paper-2); }
-      </style><div class="wrap"><img alt=""><div><b>Photo check</b><span class="txt"></span></div><button aria-label="Close">\u00d7</button></div>`;
+      </style><div class="wrap"${themePref ? ` data-theme="${themePref}"` : ""}><img alt=""><div><b>Photo check</b><span class="txt"></span></div><button aria-label="Close">\u00d7</button></div>`;
       toastRoot.querySelector("button").addEventListener("click", () => host.remove());
     }
     const host = toastRoot.host;
@@ -2983,6 +3091,7 @@
     if (!alive()) return teardown();
     sync();
     if (document.hidden) return;
+    syncPageTheme();
     reapplyFacebook();
     if (!scanning) pagePass(); // cheap when nothing changed: compares the listing links only
     if (++ticks % 2 === 0) refreshPending();

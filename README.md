@@ -28,7 +28,7 @@ The panel has two views: **This page** (everything below) and **Saved** (your sa
 searches, and everything you've hidden), which works on any eBay or Marketplace page.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Market price,
-Skip, Suspicious) and one line on the price. Hover it for the reasons. Scroll for more and the
+Skip, Suspicious) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
 button becomes "Scan N new listings"; only the new ones are scored.
 
 ## Scams
@@ -74,6 +74,7 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Second Look".
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
+- **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved, Use / Fix & flip and Show / Dim / Hide.
 - **Esc** tucks the panel away; the sliders icon opens settings. On a page Second Look doesn't
   work on, the toolbar icon shows a "?" for a moment instead of opening.
 
@@ -123,7 +124,7 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **Scam marks**: reposts under new codes, codes in titles, contact off the site (see Scams).
 - **% of sold**: once sold prices are known for the search, every card says how its price
   (with shipping) compares, in green when it's 70% or less. Lots and auctions are left out.
-- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper.
+- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" straight away.
 - **New to you** on a search you've looked at before (not on feeds, and not when most of the
   page is new anyway).
 - **Auctions ending soon**: "Ends in 45m · no bids" in the last three hours.
@@ -132,7 +133,7 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
   ✕ **Not interested**.
 
-**Filtering a search** (the bar above the list; each search remembers its own):
+**Filtering a search** (the **Filter** button above the list opens the fields, and says how many are set; a search that has a filter or a deal price opens them by itself; each search remembers its own):
 
 - **Words**, like an eBay search: `dmg -case -game` keeps listings with "dmg" and drops any with
   "case" or "game"; `1000/2000` is either; `"must go"` is a phrase. They match the title and the
@@ -201,7 +202,7 @@ Settings → Model → "Other AI services" works with anything that speaks the O
 | **LM Studio** | On your own computer, free and private: load a model and start its server |
 | Anything else | Enter its /v1 address; Test connection asks your permission to reach it |
 
-Pick the service, paste the key, press **Test connection** (it lists the models), and pick one. A
+Pick the service, paste the key, press **Test connection** (it lists the models into the Model menu, and remembers them), and pick one. Every model field is a menu (Claude's three models, what Test connection found, your installed Ollama models) with **Another model…** for typing an ID. A
 separate photo model is optional (it has to accept images). For spending on services other than
 Claude and OpenRouter, enter their prices per million tokens. If a model can't do structured
 output, Second Look falls back to plain JSON, so most chat models work; small ones judge less well.
@@ -213,9 +214,14 @@ which is at console.anthropic.com.
 
 ## Look
 
-Paper and ink, with colour only where it means something; it follows your system's light/dark
-setting. The serif ships in `fonts/` (SIL Open Font License, see `fonts/LICENSE.md`) and loads
-from inside the extension. Colours and type live in `THEME_CSS` near the top of `content/panel.js`.
+Plain and built to be read: dark first, a hairline and a word beside every colour, numbers in a
+monospaced face so prices line up. **Settings → On the page → Theme**: *Match my browser* (the
+default; dark if the browser doesn't say), *Dark* or *Light*. The panel follows that; the marks on
+eBay and Marketplace cards follow the page itself (its real background, so a site's dark mode or a
+dark-mode extension counts). Text is Atkinson Hyperlegible if you have it installed, otherwise your
+system font. Palettes and type live in `THEME_DARK`, `THEME_LIGHT` and `THEME_CSS` near the top of
+`content/panel.js`, and the card marks' own tokens in `ensureStickerStyles`. Text contrast is 4.6:1
+or better in both themes, and control borders 3:1 or better.
 
 ## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
 
@@ -283,8 +289,12 @@ refresh the tab. The version number there tells you which copy is running.
 | `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
 | `background.js` | Talks to Claude, other AI services or Ollama (retries, timeouts, Stop, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
 | `options/` | Settings page |
-| `fonts/`, `icons/` | The bundled serif (OFL) and the toolbar icon |
+| `icons/` | The toolbar icon |
 
 The ranking prompt (`RANK_BASE`, `SCAM_RULE` and `LENS_RULES` in `background.js`) is the part most worth tuning.
 Keep it to pages you're looking at, one scan when you press the button: automated, unattended
 collection is what Meta's and eBay's terms prohibit and what gets accounts flagged.
+
+## Tests
+
+`tests/run.sh` loads the panel on an eBay-shaped page in headless Chrome (needs `google-chrome-stable` and `python3`) and prints PASS/FAIL for the keyboard and focus behaviour. The extension APIs are stubbed; it does not exercise the models or real sites.

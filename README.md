@@ -31,6 +31,14 @@ Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a loo
 Skip, Suspicious) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
 button becomes "Scan N new listings"; only the new ones are scored.
 
+**Scores stay with the listing.** Every score (a scan, an analysis, a photo check) is saved in this
+browser under the listing, for 60 days. Open the same search in a new tab, the same listing in another
+search, or reload, and the tags are already there, with "Scored Oct 11 with Opus 5.5" in the hover card
+and no model call. A listing's own page shows what an earlier scan said about it, and Analyze there
+updates its card in every search. A saved score only comes back while the price is the one it was judged
+at and the lens (Use / Fix & flip) matches; changing what you want offers **Rescan with your changes**,
+and **Start over** clears the page without bringing them back until you leave it.
+
 ## Scams
 
 The most common Marketplace scam is one fake listing posted many times, each copy with a random
@@ -296,5 +304,7 @@ Keep it to pages you're looking at, one scan when you press the button: automate
 collection is what Meta's and eBay's terms prohibit and what gets accounts flagged.
 
 ## Tests
+
+`tests/e2e/run.sh` (needs `deno` and `openssl` as well) loads the real unpacked extension in headless Chrome against a mock Claude API and checks that scores persist across tabs, searches, the listing page and reloads.
 
 `tests/run.sh` loads the panel on an eBay-shaped page in headless Chrome (needs `google-chrome-stable` and `python3`) and prints PASS/FAIL for the keyboard and focus behaviour. The extension APIs are stubbed; it does not exercise the models or real sites.

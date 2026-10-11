@@ -1572,6 +1572,11 @@
         facts.set(key, f);
       }
       await notePrices(items);
+      if (!scansCache) await loadScans().catch(() => {});
+      if (restoreScans(items)) {
+        setCount(scored.size);
+        scanInputs ??= inputsNow(); // changing wants or the comparison now offers a rescan, as after a scan
+      }
       // "New to you" only helps on a search you come back to, and only when it picks out a few:
       // on a feed, or when most of the page is new anyway, every card would wear it.
       const all = [...facts.values()];
@@ -1708,6 +1713,7 @@
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,
         item.reason || "",
+        item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}.`) : null,
         f.auction ? line(`Auction: ${f.bids || 0} bid${f.bids === 1 ? "" : "s"}${f.timeLeft ? `, ${f.timeLeft} left` : ""}. The price is only the current bid.${item.bidCap > 0 ? ` Worth bidding up to about ${dollars(item.bidCap)}${item.lens === "project" ? " to break even" : ""}.` : ""}`) : null,
         item.browse && item.sold ? line(`eBay sold \u201c${item.query}\u201d: median ${dollars(item.sold.median)}, middle half ${dollars(item.sold.p25)}\u2013${dollars(item.sold.p75)} (${item.sold.n} sales).`) : null,
         item.browse && !item.sold && item.est ? line(`Typical used price est. ${dollars(item.est.lo)}\u2013${dollars(item.est.hi)}: the model's estimate, not sales data.${item.query ? " Check sold prices in the panel for real numbers." : ""}`) : null,
@@ -1917,6 +1923,7 @@
       }
       it.sold = { median: m.median, n: m.n, p25: m.p25, p75: m.p75 };
       useReference(it, m.median, false);
+      rememberScan(it);
       stick(it);
       render();
       setStatus(`eBay sold \u201c${it.query}\u201d: median $${m.median} from ${m.n} sales.`);
@@ -1933,6 +1940,7 @@
     setBusy(true);
     try {
       applyPhotos(it, [await sendAI("checkPhoto", { imageUrl: SL.bigImage(it.imageUrl), title: it.title })]);
+      rememberScan(it);
       stick(it);
       render(); // the score may have changed, so the order may too
     } catch (e) {
@@ -2103,6 +2111,73 @@
     return (x >>> 0).toString(36);
   };
   const scoreKey = (ctx, it) => `${ctx}|${keyOf(it.url)}|${it.total ?? it.priceText}`;
+
+  // ---------- scores kept with the listing ----------
+  // Every score (a scan, an analysis, a photo check) is saved under the listing's key, per lens, so it
+  // is still there after a reload, in another tab, and on the listing's own page. A saved score is
+  // only brought back while the price is the one it was judged at.
+  const SCAN_DAYS = 60;
+  const SCAN_MAX = 3000;
+  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "baseScore", "baseVerdict", "photoAdjust", "photos"];
+  const priceOf = (it) => it.total ?? it.price ?? null;
+  const modelNow = () => (cfg.provider === "ollama" ? cfg.textModel : cfg.provider === "openai" ? cfg.oaiModel : cfg.anthropicModel) || "";
+  let scansCache = null; // key -> { lens -> snapshot }, as last read from storage
+  const pendingScans = new Map();
+  let scanSaveTimer = 0;
+  const rememberScan = (it, kind = "scan", summary) => {
+    if (!alive() || it.score == null) return;
+    const key = keyOf(it.url);
+    const snap = { kind, at: Date.now(), m: modelNow(), p: priceOf(it), t: (it.title || "").slice(0, 120) };
+    for (const f of SNAP) if (it[f] !== undefined) snap[f] = it[f];
+    snap.lens ||= lens;
+    if (summary) snap.reason = summary;
+    it.scannedAt = snap.at;
+    it.scannedWith = snap.m;
+    pendingScans.set(`${key}|${snap.lens}`, [key, snap]);
+    clearTimeout(scanSaveTimer);
+    scanSaveTimer = setTimeout(flushScans, 400); // soon: opening the listing right after a scan must find it
+  };
+  const flushScans = async () => {
+    if (!pendingScans.size || !alive()) return;
+    const batch = [...pendingScans.values()];
+    pendingScans.clear();
+    // Several tabs may write at once, so merge into what's stored.
+    const { scans = {} } = await chrome.storage.local.get("scans");
+    for (const [key, snap] of batch) (scans[key] ||= {})[snap.lens] = snap;
+    const cutoff = Date.now() - SCAN_DAYS * 864e5;
+    const newest = (r) => Math.max(0, ...Object.values(r).map((s) => s.at || 0));
+    const kept = Object.entries(scans).filter(([, r]) => newest(r) > cutoff).sort((a, b) => newest(a[1]) - newest(b[1])).slice(-SCAN_MAX);
+    scansCache = Object.fromEntries(kept);
+    await chrome.storage.local.set({ scans: scansCache }).catch(() => {});
+  };
+  window.addEventListener("pagehide", () => flushScans());
+  const loadScans = async () => (scansCache = (await chrome.storage.local.get("scans")).scans || {});
+  const storedScan = (key, forLens = lens) => scansCache?.[key]?.[forLens] || null;
+  // Bring back what an earlier scan or analysis (here or in another tab) said about listings on this page.
+  let restoreOff = false; // Start over, or a rescan with new wants, must not bring the old scores straight back
+  const restoreScans = (items) => {
+    if (!scansCache || restoreOff) return 0;
+    let n = 0;
+    for (const it of items) {
+      const key = keyOf(it.url);
+      if (scored.has(key) || seen.has(key)) continue;
+      const s = storedScan(key);
+      if (!s || s.p !== priceOf(it)) continue;
+      Object.assign(it, Object.fromEntries(SNAP.filter((f) => s[f] !== undefined).map((f) => [f, s[f]])), { scannedAt: s.at, scannedWith: s.m, restored: true });
+      scored.set(key, it);
+      seen.add(key);
+      const f = facts.get(key);
+      if (f?.titleCode) f.codeOk = it.verdict !== "suspicious";
+      n++;
+    }
+    return n;
+  };
+  chrome.storage.onChanged.addListener((changes) => {
+    if (!alive() || !changes.scans) return;
+    scansCache = changes.scans.newValue || {};
+    if (SL.pageType() === "item") renderItemInfo();
+  });
+  loadScans().catch(() => {});
 
   // Point a listing's comparisons at a reference price: the model's estimate (browsing) or a real
   // sold median. Recomputes % of price, flip margin and the auction bid cap; no model call.
@@ -2430,6 +2505,7 @@
       const settings = await send("getSettings");
       editingInputs = false;
       if (inputsChanged()) {
+        restoreOff = true;
         clearStickers();
         listEl.replaceChildren();
         redecorateAll(); // the non-AI marks stay
@@ -2481,6 +2557,7 @@
         const hit = scoreCache[scoreKey(ctx, it)];
         if (hit && Date.now() - hit.at < SCORE_TTL_MS) {
           applyResult(it, hit.r, forLens);
+          rememberScan(it);
           session.set(keyOf(it.url), it); // before stick(): decorate() looks the listing up here
           if (scored === session) stick(it);
           fromMemory++;
@@ -2519,6 +2596,7 @@
             const it = byId.get(r.id);
             if (!it) continue;
             applyResult(it, r, forLens);
+            rememberScan(it);
             fresh[scoreKey(ctx, it)] = { at: Date.now(), r };
             session.set(keyOf(it.url), it);
           }
@@ -2528,6 +2606,7 @@
           const it = byId.get(r.id);
           if (!it) continue;
           applyResult(it, r, forLens);
+          rememberScan(it);
           fresh[scoreKey(ctx, it)] = { at: Date.now(), r };
           scored.set(keyOf(it.url), it);
           stick(it);
@@ -2607,6 +2686,7 @@
     // Keep what's being cleared for a moment: scores cost money, so Start over can be undone.
     const before = { scored, seen, scanInputs, market: [...marketEl.childNodes] };
     scanInputs = null;
+    restoreOff = true;
     clearStickers();
     redecorateAll(); // the non-AI marks stay
     marketEl.textContent = "";
@@ -2686,7 +2766,13 @@
         ? `Price history: ${f.history.map(([p, t]) => `${dollars(p)} (${shortDate(t)})`).join(" \u2192 ")} \u2192 ${dollars(f.price)} now.`
         : "";
     const sv = saved[f.key];
+    // What an earlier scan or analysis (in a search, another tab, or here) made of this listing.
+    const past = storedScan(f.key, lens);
+    const pastLine = past && !itemEl.childElementCount
+      ? h("div", {}, h("b", {}, `${past.score} \u00b7 ${VERDICT[past.verdict]?.label || past.verdict}`), ` on ${shortDate(past.at)}${past.m ? ` with ${nameOf(past.m)}` : ""}${past.p != null && f.price != null && past.p !== priceOf(f) ? ` (the price was ${dollars(past.p)} then)` : ""}${past.reason ? `: ${past.reason}` : "."}`)
+      : "";
     piLine.replaceChildren(
+      pastLine,
       scam ? h("div", { class: "scamnote" }, h("b", {}, "Likely scam. "), scam) : "",
       when || f.drop ? h("div", {}, `${when || "Seen before"}${f.drop ? `; it was ${dollars(f.drop.from)} then` : ""}.`) : "",
       history ? h("div", {}, history) : "",
@@ -2812,6 +2898,19 @@
     itemEl.replaceChildren(...parts);
   };
 
+  // An analysis is kept like a scan score, so the listing's card in any search shows it too.
+  const saveAnalysis = (listing, r) =>
+    rememberScan(
+      {
+        url: listing.url, title: listing.title, total: listing.total, price: listing.price, lens: listing.lens || lens, auction: listing.auction, lot: listing.lot,
+        score: clamp100(r.score | 0), verdict: VERDICT[r.verdict] ? r.verdict : "fair", related: true, flags: (r.flags || []).slice(0, 4), reason: r.summary || "",
+        fault: r.repair?.faults?.[0] || "", difficulty: r.repair?.difficulty || 0, partsCost: r.repair?.partsCost || 0,
+        margin: listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (r.repair?.partsCost || 0) : null, bidCap: listing.bidCap, vsWorking: listing.vsWorking,
+        baseScore: r.baseScore ?? clamp100(r.score | 0), baseVerdict: r.baseVerdict ?? r.verdict, photoAdjust: r.photoAdjust, photos: r.photos,
+      },
+      "analysis"
+    );
+
   const checkPhotos = async (listing, r, market, box, btn) => {
     btn.disabled = true;
     box.replaceChildren();
@@ -2833,6 +2932,7 @@
     setBusy(false);
     if (photos.length) {
       applyPhotos(r, photos);
+      saveAnalysis(listing, r);
       renderItem(listing, r, market); // redraw with the adjusted score
     } else btn.disabled = false;
   };
@@ -2872,6 +2972,7 @@
       Object.assign(listing, { lens: forLens, partsCost: r.repair?.partsCost || 0 });
       listing.bidCap = listing.auction ? bidCapFor(listing) : null;
       if (epoch !== pageEpoch) return; // you've moved on to another listing
+      saveAnalysis(listing, r);
       renderItem(listing, r, market);
       setCount(1);
       analyzeBtn.textContent = "Analyze again";
@@ -2932,6 +3033,7 @@
       const hit = [...scored.values()].find((it) => it.imageUrl && SL.bigImage(it.imageUrl) === big);
       if (hit) {
         applyPhotos(hit, [p]);
+        rememberScan(hit);
         stick(hit);
         render();
       }
@@ -3063,6 +3165,7 @@
       lastMarket = null;
       cacheTried = false;
       scanInputs = null;
+      restoreOff = false;
       editingInputs = false;
       freeRow.hidden = true;
       analyzeBtn.textContent = "Analyze this listing";

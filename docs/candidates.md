@@ -116,3 +116,17 @@ Known minor: the toolbar "?" badge on unsupported pages is cleared by a 5 s `set
 # Settings: model menus (0.25.0)
 
 Every model field on the settings page is now a menu instead of a bare text box: Claude model (the three models), the other-service Model and Photo model (what Test connection found, remembered between visits; the photo menu starts on "Same as the model above"), and Ollama's ranking and photo models (what Test connection found installed). "Another model…" reveals the text box for any ID, which stays the one place the value is saved. Checked the rest of the page for similar cases: provider, service and theme were already menus; the remaining boxes take free numbers or words. `tests/run.sh` now also loads the real settings page with stubbed extension APIs: 45 checks, 0 failing (a first run caught the menu not matching the saved model on load; fixed).
+
+# Audit and improvement round (0.26.0, branch claude/second-look-audit-improve)
+
+Method: read all of background.js, content/*.js and options/*; then loaded the **real unpacked extension** in headless Chrome 153 (CDP `Extensions.loadUnpacked`), served eBay-shaped pages as www.ebay.com over local https, and pointed `anthropicUrl` at a mock Claude API. Not covered: live eBay/Facebook, a real Claude key, a screen reader.
+
+Works as intended (observed): content script registers, tab and marks draw before any scan, scan sends one request and tags 6 of 6, hover card via keyboard focus, Analyze on a listing page, toolbar-icon path with the tab turned off, first-run welcome, spend line, Test suite 45/45.
+
+Found and fixed:
+1. **Theme choice wiped on every update/reload** (`onInstalled` removed `theme`, left over from the retired retro themes). Now only invalid old values are removed.
+2. **Scores lived only in the page's memory** (plus a 24 h cache keyed on exact lens/wants/query/model). Now saved per listing and lens, restored in other tabs, other searches and after reload, and shown on the listing page; analyses and photo checks included. Verified by `tests/e2e/scores-persist.ts`; a rescan after changing wants re-judges (found and fixed during that test).
+3. Photo checks fetched any address a page supplied; now https images (and data:image) only, no localhost/private hosts.
+4. Settings: two groups of number fields had a label with nothing to label; now named groups.
+
+Left alone / ideas: first run with no key stacks the welcome and the setup card so Scan sits below the fold; cards' off-site-contact check only runs on Marketplace and listing pages; API keys sit in storage.local, which content scripts can technically read (they never ask for it).

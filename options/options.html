@@ -159,8 +159,8 @@
         <span class="hint">Only used for photo checks; it has to accept images.</span>
       </div>
       <div class="field">
-        <label>Price, for the spending counter</label>
-        <div class="pair"><span>$</span><input id="oaiPriceIn" type="number" min="0" step="0.01"> <span>per million in,</span> <span>$</span><input id="oaiPriceOut" type="number" min="0" step="0.01"> <span>per million out</span></div>
+        <label id="priceLabel">Price, for the spending counter</label>
+        <div class="pair" role="group" aria-labelledby="priceLabel"><span>$</span><input id="oaiPriceIn" type="number" min="0" step="0.01"> <span>per million in,</span> <span>$</span><input id="oaiPriceOut" type="number" min="0" step="0.01"> <span>per million out</span></div>
         <span class="hint">From the service's pricing page. Leave at 0 and spending isn't counted (OpenRouter reports its own costs, so it's counted anyway).</span>
       </div>
     </div>
@@ -228,8 +228,8 @@
       <span class="hint">Every entry must appear in the title. Leave blank to show everything.</span>
     </div>
     <div class="field">
-      <label>Warn about sellers with fewer than</label>
-      <div class="pair"><input id="minSellerRatings" type="number" min="0" max="100000"> <span>ratings, or under</span> <input id="minSellerPct" type="number" min="0" max="100" step="0.1"> <span>% positive</span></div>
+      <label id="sellerLabel">Warn about sellers with fewer than</label>
+      <div class="pair" role="group" aria-labelledby="sellerLabel"><input id="minSellerRatings" type="number" min="0" max="100000"> <span>ratings, or under</span> <input id="minSellerPct" type="number" min="0" max="100" step="0.1"> <span>% positive</span></div>
       <span class="hint">eBay only (Marketplace cards don't show ratings).</span>
     </div>
     <div class="field check">

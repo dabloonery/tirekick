@@ -662,6 +662,14 @@ function photoAdjust(p) {
 
 async function checkPhoto({ imageUrl, title, signal }) {
   const { visionModel, provider, oaiVisionModel } = await getSettings();
+  // Photos come from listing pages; fetch only ordinary https image addresses, never local or private ones.
+  let host = "";
+  try {
+    const u = new URL(imageUrl);
+    if (u.protocol === "https:") host = u.hostname;
+    else if (u.protocol === "data:" && /^data:image\//.test(imageUrl)) host = "data";
+  } catch {}
+  if (!host || host === "localhost" || /^(\d+\.){3}\d+$|^\[|\.local$|\.internal$/.test(host)) throw new Error("That photo address can't be checked.");
   const imgRes = await fetchWithTimeout(imageUrl, { signal }, 30 * 1000, "The photo took too long to load.");
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
   const buf = await imgRes.arrayBuffer();
@@ -814,7 +822,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
   const current = await chrome.storage.local.get(null);
   await chrome.storage.local.set({ ...DEFAULTS, ...current });
-  await chrome.storage.local.remove("theme"); // the retro look is gone; one look now
+  if (!["match", "dark", "light"].includes(current.theme)) await chrome.storage.local.remove("theme"); // the old retro themes are gone; keep a real choice
   await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({

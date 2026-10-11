@@ -56,7 +56,7 @@
     const t = text.replace(/\u00a0/g, " ");
     const paid = t.match(/\+\s?\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:delivery|shipping|postage)/i);
     if (paid) return parseFloat(paid[1].replace(/,/g, ""));
-    if (/free\s+(?:\w+\s+){0,2}(?:delivery|shipping)/i.test(t)) return 0;
+    if (/free\s+(?:[\w-]+\s+){0,2}(?:delivery|shipping)/i.test(t)) return 0; // "Free 2-4 day delivery"
     return null;
   };
   const withTotal = (it) => ({ ...it, total: it.price == null ? null : Math.round((it.price + (it.shipping || 0)) * 100) / 100 });
@@ -96,7 +96,7 @@
     const t = (text || "").replace(/\u00a0/g, " ");
     const f = {};
     const bids = t.match(/\b(\d+)\s+bids?\b/i);
-    const left = t.match(/\b(\d+[dhms](?:\s*\d+[hms]){0,2})\s+left\b/i) || t.match(/time left[:\s]+(\d+[dhms](?:\s*\d+[hms]){0,2})/i);
+    const left = t.match(/\b(\d+[dhms](?:\s*\d+[hms]){0,2})\s+left\b/i) || t.match(/time left[:\s]+(\d+[dhms](?:\s*\d+[hms]){0,2})/i) || t.match(/\bends?\s+in\s+(\d+[dhms](?:\s*\d+[hms]){0,2})/i); // cards say "6d left", listing pages "Ends in 6d 20h"
     if (bids || (left && /bid/i.test(t))) {
       f.auction = true;
       f.bids = bids ? +bids[1] : 0;
@@ -255,6 +255,9 @@
       const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l) && !FB_LABELS.test(l));
       const title = squash(rest[0] || "", 160);
       if (!title) return;
+      // A marked-down listing shows the new price first and the old one struck through after it ("$165" "$180").
+      const now = SL.parsePrice(priceLine);
+      const was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (/^\$\s?[\d,]/.test(l) ? SL.parsePrice(l) : null)).find((n) => n != null);
 
       out.push(
         withTotal({
@@ -269,6 +272,7 @@
           el: a,
           ...SL.cardFacts(SL.spacedText(a), title),
           titleCode: SL.titleCode(title),
+          ...(was != null && now != null && was > now && { wasPrice: was }),
           ...(lines.some((l) => /^just listed$/i.test(l)) && { justListed: true }),
         })
       );
@@ -322,7 +326,8 @@
         priceText,
         price: SL.parsePrice(priceText),
         shipping: SL.parseShipping(shippingText),
-        condition: squash(firstText(document, [".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
+        // the label sits in .ux-textspans (the text beside it repeats it for screen readers and adds a "More information" button)
+        condition: squash(firstText(document, [".x-item-condition-text .ux-textspans", ".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
         seller,
         shippingText,
         details: squash(firstText(document, [".x-about-this-item", '[data-testid="x-about-this-item"]']) || meta("og:description"), 1200),
@@ -333,7 +338,8 @@
     // Facebook Marketplace: class names are useless, so lean on visible text + metadata.
     // A listing opened from the feed is an overlay (a dialog) over the feed, with the feed still in
     // [role=main] and the page's og: tags still the feed's; opened directly, it's the main area.
-    const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1")).at(-1);
+    // Only a dialog you can see: Facebook keeps hidden ones (a "Notifications" flyout) in the page.
+    const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length).at(-1);
     const main = dialog || document.querySelector('[role="main"]') || document.body;
     const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
     const priceText = priceNode ? priceNode.textContent.trim() : "";

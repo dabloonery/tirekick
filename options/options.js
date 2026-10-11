@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab"];
+  "hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab", "theme"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "hideWords", "needWords"];
 
@@ -39,6 +39,69 @@ const note = (text) => {
   noteTimer = setTimeout(() => msg.classList.remove("show"), 2200);
 };
 
+// Model fields: a menu to pick from, plus "Another model…" to type an ID. The text box next to it stays the one
+// place the value lives (saving, the panel's own menu and Test connection all keep using it).
+const OTHER = "\u0000other";
+const CLAUDE_MODELS = [
+  ["claude-opus-5-5", "Opus 5.5: best"],
+  ["claude-sonnet-5-5", "Sonnet 5.5: half the price"],
+  ["claude-haiku-4-5", "Haiku 4.5: a quarter of the price"],
+];
+const pickers = {};
+function modelPicker(id, { blank = "" } = {}) {
+  const input = document.getElementById(id);
+  const label = document.querySelector(`label[for="${id}"]`);
+  const select = Object.assign(document.createElement("select"), { id: `${id}Pick`, className: "modelpick" });
+  input.before(select);
+  if (label) {
+    label.htmlFor = select.id;
+    input.setAttribute("aria-label", `${label.textContent} (type an ID)`);
+  }
+  let items = []; // [value, text]
+  const sync = () => {
+    const v = input.value.trim();
+    const known = items.some(([val]) => val === v);
+    select.hidden = !items.length;
+    select.value = known ? v : OTHER;
+    input.hidden = !!items.length && known;
+  };
+  const setItems = (list) => {
+    items = [...(blank ? [["", blank]] : []), ...list.map((x) => (Array.isArray(x) ? x : [x, x]))];
+    select.replaceChildren(...items.map(([val, text]) => Object.assign(document.createElement("option"), { value: val, textContent: text })), Object.assign(document.createElement("option"), { value: OTHER, textContent: "Another model\u2026" }));
+    sync();
+  };
+  select.addEventListener("change", () => {
+    if (select.value === OTHER) {
+      input.hidden = false;
+      input.focus();
+      return;
+    }
+    input.value = select.value;
+    input.dispatchEvent(new Event("change", { bubbles: true })); // saves it like typing would
+    sync();
+  });
+  input.addEventListener("change", sync);
+  pickers[id] = { sync, setItems };
+}
+modelPicker("anthropicModel");
+modelPicker("oaiModel");
+modelPicker("oaiVisionModel", { blank: "Same as the model above" });
+modelPicker("textModel");
+modelPicker("visionModel");
+pickers.anthropicModel.setItems(CLAUDE_MODELS);
+// Lists found by Test connection are remembered, so the menus are there next time without testing again.
+const showLists = async () => {
+  const { oaiModelList = [], ollamaModelList = [] } = await chrome.storage.local.get(["oaiModelList", "ollamaModelList"]);
+  pickers.oaiModel.setItems(oaiModelList);
+  pickers.oaiVisionModel.setItems(oaiModelList.length ? oaiModelList : []);
+  pickers.textModel.setItems(ollamaModelList);
+  pickers.visionModel.setItems(ollamaModelList);
+};
+
+// Match (the default) follows the browser and is dark if it doesn't say; Dark and Light force one.
+const applyTheme = (v) => (v === "dark" || v === "light" ? (document.documentElement.dataset.theme = v) : delete document.documentElement.dataset.theme);
+document.getElementById("theme").addEventListener("change", (e) => applyTheme(e.target.value));
+
 async function load() {
   // Settings with defaults filled in come from the background script (it leaves out the key).
   const res = await chrome.runtime.sendMessage({ type: "getSettings" }).catch(() => null);
@@ -48,6 +111,9 @@ async function load() {
     if (el.type === "checkbox") el.checked = !!s[f];
     else el.value = s[f] ?? "";
   }
+  applyTheme(s.theme);
+  await showLists();
+  for (const p of Object.values(pickers)) p.sync(); // the saved values are in the boxes now
   showProvider();
 }
 
@@ -104,6 +170,7 @@ chrome.storage.onChanged.addListener((c) => {
   for (const f of ["provider", "anthropicModel", "oaiModel", "textModel"]) {
     const el = document.getElementById(f);
     if (c[f] && document.activeElement !== el) el.value = c[f].newValue ?? el.value;
+    pickers[f]?.sync();
   }
   if (c.provider) showProvider();
 });
@@ -148,7 +215,8 @@ document.getElementById("oaiPreset").addEventListener("change", async (e) => {
     url.value = preset.url;
     await saveField("oaiUrl");
   }
-  document.getElementById("oaiModels").replaceChildren();
+  await chrome.storage.local.remove("oaiModelList");
+  await showLists();
 });
 
 // Each field saves when you leave it (or tick it): no Save button to forget.
@@ -256,13 +324,14 @@ async function testOpenAI() {
     if (!res.ok) throw new Error(`The service answered ${res.status}.`);
     const body = await res.json();
     const ids = (body.data || body.models || []).map((m) => (m.id || m.name || "").replace(/^models\//, "")).filter(Boolean).sort();
-    document.getElementById("oaiModels").replaceChildren(...ids.slice(0, 500).map((id) => Object.assign(document.createElement("option"), { value: id })));
+    await chrome.storage.local.set({ oaiModelList: ids.slice(0, 500) });
+    await showLists();
     const model = document.getElementById("oaiModel").value.trim();
     testMsg.textContent = !ids.length
       ? "Connected."
       : model && !ids.includes(model)
-        ? `Connected, but there's no model called "${model}" here. ${ids.length} models are listed in the Model box.`
-        : `Connected. ${ids.length} model${ids.length === 1 ? "" : "s"} available${model ? `; ${model} is one of them` : ": click the Model box to pick one"}.`;
+        ? `Connected, but there's no model called "${model}" here. ${ids.length} models are in the Model menu.`
+        : `Connected. ${ids.length} model${ids.length === 1 ? "" : "s"} available${model ? `; ${model} is one of them` : "; pick one in the Model menu"}.`;
   } catch (e) {
     testMsg.textContent = /Failed to fetch/.test(e.message) ? `Can't reach ${url}.${/localhost|127\.0\.0\.1/.test(url) ? " Is the server running?" : ""}` : e.message;
   }
@@ -279,6 +348,8 @@ document.getElementById("test").addEventListener("click", async () => {
     if (!res.ok) throw new Error(`Ollama answered ${res.status}.`);
     const { models = [] } = await res.json();
     const names = models.map((m) => m.name);
+    await chrome.storage.local.set({ ollamaModelList: names });
+    await showLists();
     const want = [document.getElementById("textModel").value.trim(), document.getElementById("visionModel").value.trim()];
     const missing = want.filter((w) => w && !names.some((n) => n === w || n === `${w}:latest`));
     testMsg.textContent = missing.length

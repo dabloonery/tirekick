@@ -7,6 +7,7 @@
 // Content scripts send messages; this file answers them.
 
 const DEFAULTS = {
+  theme: "match", // match the browser (dark if it does not say), or "dark" / "light"
   provider: "anthropic", // "anthropic" (Claude API), "openai" (any OpenAI-compatible service) or "ollama" (local)
   anthropicKey: "",
   anthropicModel: "claude-opus-5-5",
@@ -745,16 +746,6 @@ async function fetchSoldHtml({ url }) {
 // Page scripts get the bundled fonts as bytes and add them with the FontFace API. Nothing is
 // exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
 // and a site's font rules can't block them.
-const FONT_FILES = /^(fraunces-400|fraunces-400-italic|fraunces-600)\.woff2$/;
-const fontCache = new Map();
-async function getFont({ file }) {
-  if (!FONT_FILES.test(file || "")) throw new Error("Unknown font.");
-  if (!fontCache.has(file)) {
-    const res = await fetch(chrome.runtime.getURL(`fonts/${file}`));
-    fontCache.set(file, bufferToBase64(await res.arrayBuffer()));
-  }
-  return fontCache.get(file);
-}
 
 // Page scripts get the settings without the API key: they never need it.
 async function getPageSettings() {
@@ -790,7 +781,7 @@ async function abort({ ids }) {
   return true;
 }
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getFont, openOptions, openTabs, abort, getSettings: getPageSettings };
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, openOptions, openTabs, abort, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -802,10 +793,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     inflight.set(id, ac);
     payload.signal = ac.signal;
   }
-  handler(payload)
-    .then((data) => sendResponse({ ok: true, data }))
-    .catch((err) => sendResponse({ ok: false, error: err.message || String(err) }))
-    .finally(() => id && inflight.delete(id));
+  (async () => {
+    try {
+      sendResponse({ ok: true, data: await handler(payload) });
+    } catch (err) {
+      sendResponse({ ok: false, error: err.message || String(err) });
+    } finally {
+      if (id) inflight.delete(id);
+    }
+  })();
   return true; // keep the channel open for the async reply
 });
 

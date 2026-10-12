@@ -201,7 +201,7 @@
     .freeprices button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .freeprices button:hover { text-decoration-color:currentColor; }
     .freeprices button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    .status { color:var(--muted); font-size:13px; }
+    .status { color:var(--muted); font-size:13px; white-space:pre-line; }
     .statusrow { display:flex; align-items:flex-start; gap:10px; }
     .statusrow .status { flex:1; min-width:0; }
     .statusrow:not(:has(.status:not(:empty), .stopbtn:not([hidden]))) { display:none; }
@@ -1953,6 +1953,32 @@
     }
   };
 
+
+  // ---------- "Check this page": what the page reader can see, for when a site changes its layout ----------
+  // Counts only, plus a few public listing titles; nothing is sent anywhere, the report is copied on request.
+  const checkPage = async () => {
+    const type = SL.pageType();
+    const items = type === "results" ? SL.extract() : [];
+    const n = (fn) => items.filter(fn).length;
+    const { soldCooldownUntil = 0, soldLog = [], soldCache = {} } = await chrome.storage.local.get(["soldCooldownUntil", "soldLog", "soldCache"]);
+    const lines = [
+      `Second Look ${chrome.runtime.getManifest().version} on ${SL.currentSite()} (${type}), ${location.origin}${location.pathname}`,
+      type === "results" && `Cards on the page: ${SL.currentSite() === "facebook" ? document.querySelectorAll(ITEM_LINK).length : document.querySelectorAll(SL.EBAY_CARDS).length}; read as listings: ${items.length}`,
+      type === "results" && items.length && `With a title ${n((i) => i.title)}, price ${n((i) => i.price != null)}, photo ${n((i) => i.imageUrl)}, shipping known ${n((i) => i.shipping != null)}, seller rating ${n((i) => i.sellerPct != null)}`,
+      type === "results" && items.length && `First titles: ${items.slice(0, 3).map((i) => `\u201c${i.title.slice(0, 40)}\u201d`).join(", ")}`,
+      type === "item" && (() => { const l = SL.extractItem(); return `Listing read: title ${l.title ? "yes" : "NO"}, price ${l.price != null ? "yes" : "NO"}, photos ${l.imageUrls?.length || 0}, seller ${l.seller ? "yes" : "no"}`; })(),
+      `Sold prices: ${Date.now() < soldCooldownUntil ? `paused ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min (eBay asked for a browser check)` : "not paused"}; ${soldLog.filter((t) => Date.now() - t < 36e5).length} of ${PER_HOUR} lookups used this hour; ${Object.keys(soldCache).length} searches remembered`,
+      `Scores kept: ${Object.keys(scansCache || {}).length} listings`,
+    ].filter(Boolean);
+    const text = lines.join("\n");
+    let copied = "";
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = " Copied, so you can paste it into a bug report.";
+    } catch {}
+    setStatus(`${text}${copied}`);
+  };
+
   // ---------- scan ----------
 
   let scanning = false;
@@ -2530,7 +2556,8 @@
           scored.size || leftOut
             ? `Nothing new to score${leftOut ? ` (${leftOut} hidden by you or your filters)` : ""}. Scroll down to load more listings.`
             : "No listings found on this page. Scroll so results load, or the site layout may have changed (README: When it breaks).",
-          !scored.size
+          !scored.size,
+          !scored.size && !leftOut ? { label: "Check this page", fn: checkPage } : null
         );
         return;
       }
@@ -2952,7 +2979,7 @@
       const settings = await send("getSettings");
       const listing = SL.extractItem();
       if (!listing.title) {
-        setStatus("Couldn't read this listing. Let it finish loading and try again, or the layout may have changed (README: When it breaks).", true);
+        setStatus("Couldn't read this listing. Let it finish loading and try again, or the layout may have changed (README: When it breaks).", true, { label: "Check this page", fn: checkPage });
         return;
       }
       if (!queryEl.value.trim()) queryEl.value = SL.titleToQuery(listing.title);

@@ -270,7 +270,7 @@ async function showStatus() {
   let ready = false, title, text;
   if (provider === "anthropic") {
     ready = !!s.anthropicKey;
-    const m = s.anthropicModel || "claude-opus-5-5";
+    const m = s.anthropicModel || "claude-sonnet-5-5";
     title = ready ? `Ready: ${NAMES[m] || m}` : "One step left: add a Claude API key";
     text = ready ? "Open an eBay or Marketplace search and press Scan, or just look at the free marks on the cards." : "Paste it below and it is checked right away. Prefer not to use Claude? Pick another AI service or Ollama under Model; the free marks and sold-price tools work without any model.";
   } else if (provider === "openai") {
@@ -293,7 +293,7 @@ chrome.storage.onChanged.addListener(() => showStatus());
 // Claude: checks the key and that the model name exists, without spending anything.
 async function testClaude() {
   const key = document.getElementById("anthropicKey").value.trim();
-  const model = document.getElementById("anthropicModel").value.trim() || "claude-opus-5-5";
+  const model = document.getElementById("anthropicModel").value.trim() || "claude-sonnet-5-5";
   if (!key) return (testMsg.textContent = "Paste an API key first.");
   testMsg.textContent = "Testing…";
   try {

@@ -10,7 +10,7 @@ const DEFAULTS = {
   theme: "match", // match the browser (dark if it does not say), or "dark" / "light"
   provider: "anthropic", // "anthropic" (Claude API), "openai" (any OpenAI-compatible service) or "ollama" (local)
   anthropicKey: "",
-  anthropicModel: "claude-opus-5-5",
+  anthropicModel: "claude-sonnet-5-5", // Scoring is a simple task; Opus stays a menu choice for when you want it
   anthropicUrl: "https://api.anthropic.com", // only changed for testing
   // Any service that speaks the OpenAI chat API: OpenAI, Gemini, OpenRouter, DeepSeek, Mistral, xAI, LM Studio...
   oaiPreset: "openrouter",
@@ -120,7 +120,8 @@ async function anthropicMessage({ system, content, schema, maxTokens = 16000, si
   // Server-side fallback (re-run on another model if a safety classifier declines) is for the 5-series.
   const isFiveSeries = /^claude-(opus-5|sonnet-5-5|fable-5|mythos-5)/.test(anthropicModel);
   if (isFiveSeries) body.fallbacks = "default";
-  if (system) body.system = system;
+  // The instructions repeat in every batch of a scan: let the API reuse them (cheaper reads, where the model caches).
+  if (system) body.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
   if (schema) body.output_config.format = { type: "json_schema", schema };
 
   const headers = {
@@ -273,7 +274,8 @@ let spendQueue = Promise.resolve(); // parallel batches finish together; add the
 function addSpend(model, usage, usd) {
   const price = PRICES.find(([re]) => re.test(model));
   if (usd == null && (!price || !usage)) return Promise.resolve(0);
-  const cost = usd ?? ((usage.input_tokens || 0) * price[1] + (usage.output_tokens || 0) * price[2]) / 1e6;
+  // Cache writes cost 1.25x the input price, cache reads 0.1x.
+  const cost = usd ?? ((usage.input_tokens || 0) * price[1] + (usage.cache_creation_input_tokens || 0) * price[1] * 1.25 + (usage.cache_read_input_tokens || 0) * price[1] * 0.1 + (usage.output_tokens || 0) * price[2]) / 1e6;
   spendQueue = spendQueue
     .then(async () => {
       const day = today();

@@ -95,7 +95,7 @@
               ? h("div", { class: `hm-alert${a.isNew ? " new" : ""}` }, h("span", { class: "hm-tag" }, a.isNew ? "New" : "Cheaper"), h("div", { class: "t" }, link(itemHref(a.key), D.saved[a.key]?.t || itemHref(a.key)), h("small", {}, h("span", { class: "down" }, `↓ ${money(a.from - a.now)}`), ` since you saved it: ${money(a.from)} → ${money(a.now)}`)))
               : h("div", { class: `hm-alert${a.isNew ? " new" : ""}` }, h("span", { class: "hm-tag" }, a.isNew ? "New" : "At your price"), h("div", { class: "t" }, link(searchUrl(D.savedSearches[a.key] || {}), `“${a.title}”`), h("small", {}, `${plural(a.n, "listing")} at your ${money(a.deal)} when you last looked, ${ago(a.when)}`)))
           )
-        : [h("div", { class: "hm-empty" }, "Nothing yet. When a saved listing gets cheaper, or a saved search has listings at your price, it shows up here and as a number on the toolbar icon. This only updates when those listings are on your screen: nothing checks in the background.")];
+        : [h("div", { class: "hm-empty" }, "Nothing yet. Saved listings that get cheaper, and saved searches with listings at your price, show up here and on the toolbar icon (checked when they're on your screen, never in the background).")];
       return h("section", { class: "hm-sec" }, h("h3", {}, "Worth another look"), h("div", { class: "hm-alerts" }, rows));
     }
 

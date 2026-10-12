@@ -93,3 +93,40 @@ Re-measured with `tests/e2e/audit.ts` (same states, dark and light). The headles
 - `tests/e2e/ux.ts` checks these interactions (11 checks).
 
 Still open: **7** (Side Panel prototype). Rows reserve the space of their hidden links, so the list keeps its rhythm when you point at a row; the cost is a quiet gap under each row.
+
+# Audit 2: after porting the 0.23 branch back (0.33.1)
+
+Same method as above (`tests/e2e/audit.ts`, 15 states in dark and light, now including Reseller mode and the Home tab), plus a functionality pass: the whole test suite, error capture on every page and the background worker, and a read-through of the ported code for real-use problems the tests don't reach.
+
+## Measured
+| Measure | 0.28.1 | 0.29.0 | 0.33.1 |
+|---|---|---|---|
+| Panel controls under 24px (all panel views) | 30 in the results view alone | 0 | **0** (Home included) |
+| Text contrast failures (panel, cards, settings) | 0 | 0 | **0** |
+| Panel text under 12px | 12 nodes | tag word only | **tag word on page stickers only** |
+| Settings controls under 24px | 11 | 5 | 5, all exempt: links inside sentences, and 18px checkboxes whose labels are clickable |
+
+The first capture after the port found one real problem, fixed before release: Home's 30-day spend chart had 30 tab stops, each 8px wide. It is now one labelled image (the numbers are in its Table view), with the per-day figures on hover.
+
+## Fixed from this review
+- With no model set up, the mode hint ("Find a good one to keep…") is hidden: it describes scoring that can't run yet, under a welcome card that already explains the modes.
+- Home's empty "Worth another look" message is one sentence instead of five lines.
+- Per-call cost reads "under $0.01 each" (it said "~<$0.01 each"), in the spend popover and in settings.
+- Settings call the fee "Selling fees", like the panel's Reseller box, and the last "Fix & flip" wording is gone.
+- The readiness banner names both models: "Ready: Sonnet 5.5, scans with Haiku 5.5".
+- Home's chart had its top axis label crowding the heading, and the spending line showed model IDs ("claude-sonnet-5-5"); both fixed.
+- The toolbar icon with new alerts opened Home every time, so with Home on screen the icon could no longer close the panel; a second click now tucks it away.
+
+## Functionality
+- **Tests:** 136 checks pass, 0 fail: fixture pages (keyboard and focus, settings, adapters), 27 unit tests, the saved eBay and Marketplace pages (17), the branch's behaviours on the real extension (`features.ts`), interaction checks (`ux.ts`), scores kept across tabs, and Marketplace.
+- **No errors logged** by any page, the settings page or the background worker over the whole `features.ts` run, including deliberately refused sold-price lookups.
+- Verified on the real extension: scans go to Haiku 5.5 with effort and without fallbacks, analysis to the main model with its fallback; a cut-off reply is counted in spend; the budget stops paid AI; each mode keeps its own settings and the old single settings migrate; switching mode keeps marks and hidden listings; Home's alerts, numbers per mode, toolbar number and openHome; restored backups rebuild bad links, drop junk and keep settings within limits; an Ollama address you haven't allowed is never contacted; a refused lookup from Facebook pauses only that route; defaults are not copied into storage.
+
+## Not verified
+Real eBay and Facebook pages (all pages here are fixtures; Facebook's is synthetic, and the grid-gap fix was checked against a page nested the way Facebook nests its cards, not Facebook itself), a screen reader, forced colours, 200% zoom, touch, the GitHub workflow (runs on the first push), and anyone using it but me.
+
+## Open design questions
+- The Buyer / Reseller bar costs about 50px on every view. A single-line control without the subtitles would halve it; the subtitles are what tell a first-time user what the modes mean.
+- "Find better searches for this" is a full-width button (the branch made it one so it would be found); with Scan above it, a search page opens with two stacked buttons.
+- Rows keep the space of their hidden links (a quiet 28px under each row) so nothing moves when you point at one.
+- Item **7**, the Chrome Side Panel instead of the drawer, still needs a prototype.

@@ -138,7 +138,8 @@ async function showSpend() {
     })
   );
   const rows = Object.entries(models).sort((a, b) => b[1].usd - a[1].usd);
-  const parts = rows.map(([id, v]) => `${NAMES[id] || id} ${usd(v.usd)} (${v.calls} calls, ~${usd(v.usd / v.calls)} each)`);
+  const each = (n) => (n < 0.01 ? "under $0.01 each" : `about $${n.toFixed(2)} each`);
+  const parts = rows.map(([id, v]) => `${NAMES[id] || id} ${usd(v.usd)} (${v.calls} call${v.calls === 1 ? "" : "s"}, ${each(v.usd / v.calls)})`);
   const rest = m - rows.reduce((sum, [, v]) => sum + v.usd, 0); // recorded before the per-model split
   if (rest >= 0.005) parts.push(`not split by model ${usd(rest)}`);
   document.getElementById("spendModels").textContent = parts.length ? "This month: " + parts.join(" \u00b7 ") : "Nothing spent on paid AI this month.";
@@ -245,14 +246,15 @@ for (const b of document.querySelectorAll("[data-reveal]")) {
 
 // The banner at the top: is the model ready to run, and if not, what's the one thing missing?
 async function showStatus() {
-  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "oaiKey", "oaiModel", "oaiUrl", "textModel"]);
+  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel"]);
   const provider = s.provider || "anthropic";
   const card = document.getElementById("statusCard");
   let ready = false, title, text;
   if (provider === "anthropic") {
     ready = !!s.anthropicKey;
     const m = s.anthropicModel || "claude-sonnet-5-5";
-    title = ready ? `Ready: ${NAMES[m] || m}` : "One step left: add a Claude API key";
+    const scanM = s.anthropicScanModel === undefined ? "claude-haiku-5-5" : s.anthropicScanModel || m;
+    title = ready ? `Ready: ${NAMES[m] || m}${scanM !== m ? `, scans with ${NAMES[scanM] || scanM}` : ""}` : "One step left: add a Claude API key";
     text = ready ? "Open an eBay or Marketplace search and press Scan, or just look at the free marks on the cards." : "Paste it below and it is checked right away. Prefer not to use Claude? Pick another AI service or Ollama under Model; the free marks and sold-price tools work without any model.";
   } else if (provider === "openai") {
     const keyless = /localhost|127\.0\.0\.1/.test(s.oaiUrl || "");

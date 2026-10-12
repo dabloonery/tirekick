@@ -11,13 +11,13 @@
     --r:6px; --r-sm:4px; --bw:1px; --press:none;
     --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
     --display:var(--ui);
-    color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C;
+    color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C; --danger:#FF8A80;
   }
   @media (prefers-color-scheme: light) {
-    :root { color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A; --accent:#C8461F; }
+    :root { color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A; --accent:#C8461F; --danger:#B00020; }
   }
-  :root[data-theme="dark"] { color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C; }
-  :root[data-theme="light"] { color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A; --accent:#C8461F; }
+  :root[data-theme="dark"] { color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C; --danger:#FF8A80; }
+  :root[data-theme="light"] { color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A; --accent:#C8461F; --danger:#B00020; }
 
   * { box-sizing:border-box; }
   body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 var(--ui); -webkit-font-smoothing:antialiased; }
@@ -31,9 +31,9 @@
   p.lede { color:var(--muted); margin:0 0 8px; }
 
   section { padding:24px 0 6px; border-top:var(--bw) solid var(--rule); margin-top:22px; }
-  h2 { margin:0 0 14px; font:600 11px/1 var(--ui); letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  h2 { margin:0 0 10px; font:600 18px/1.3 var(--ui); color:var(--ink); }
   .field { display:grid; gap:6px; margin-bottom:18px; }
-  label { font-weight:600; }
+  label { font:600 14px/1.4 var(--ui); }
   .hint { color:var(--muted); font-size:13px; font-weight:400; }
   .modelpick + input { margin-top:8px; }
   input[type=text], input[type=number], input[type=password], select, textarea {
@@ -47,12 +47,16 @@
 
   .spendgrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:10px; }
   .spendgrid span { display:block; color:var(--muted); font-size:13px; }
-  .spendgrid b { font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; }
+  .spendgrid b { font:600 22px/1.2 var(--display); font-variant-numeric:lining-nums; }
   .hint a { color:var(--ink); }
   .pair { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .pair input { width:110px !important; }
   .row-btns { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
-  button.small { font-size:13px; padding:8px 12px; background:none; color:var(--ink); }
+  /* Buttons, three tiers: filled = the one action to take; outlined = other actions; red outline = clears something. */
+  button { background:none; color:var(--ink); }
+  button.primary, a.btn.primary { background:var(--ink); color:var(--on-ink); }
+  button.danger { color:var(--danger); border-color:var(--danger); }
+  button.small { font-size:13px; padding:8px 12px; }
 
   /* "Saved" and other notes: a small card at the bottom that fades out */
   #msg { position:fixed; left:50%; bottom:24px; transform:translate(-50%, 8px); max-width:min(560px, calc(100vw - 32px)); padding:10px 16px; border-radius:var(--r-sm);
@@ -61,14 +65,14 @@
   .row-btns { align-items:center; }
   button { font:600 14px/1 var(--ui); padding:11px 16px; border-radius:var(--r-sm); border:var(--bw) solid var(--ink); cursor:pointer; box-shadow:var(--press); }
   button:active { transform:translate(1px,1px); }
-  #testMsg { font-size:13.5px; }
+  #testMsg { font-size:14px; }
 
   /* Readiness banner and jump links */
   .status-card { display:flex; gap:14px; align-items:flex-start; padding:14px 16px; margin:18px 0 6px; border:var(--bw) solid var(--rule); border-radius:var(--r); background:var(--paper-2); }
   .status-card .dot { flex:none; width:12px; height:12px; margin-top:6px; border-radius:50%; background:var(--accent); }
   .status-card.ready .dot { background:#2E7D4F; }
-  .status-card b { display:block; font:600 17px/1.3 var(--display); }
-  .status-card p { margin:2px 0 10px; color:var(--muted); font-size:13.5px; }
+  .status-card b { display:block; font:600 18px/1.3 var(--display); }
+  .status-card p { margin:2px 0 10px; color:var(--muted); font-size:14px; }
   .status-card .row-btns { margin-top:0; }
   .status-card a.btn { display:inline-block; font:600 13px/1 var(--ui); padding:8px 12px; border-radius:var(--r-sm); border:var(--bw) solid var(--ink); color:var(--ink); text-decoration:none; }
   .status-card a.btn.primary { background:var(--ink); color:var(--on-ink); }
@@ -185,7 +189,7 @@
       <input id="batchSize" type="number" min="1" max="30">
       <span class="hint">Lower this if the model skips listings. Raise it if scans feel slow.</span>
     </div>
-    <div class="field"><div class="row-btns"><button type="button" class="small" id="test">Test connection</button><span id="testMsg" class="hint" role="status"></span></div></div>
+    <div class="field"><div class="row-btns"><button type="button" class="small primary" id="test">Test connection</button><span id="testMsg" class="hint" role="status"></span></div></div>
   </section>
 
   <section id="sec-spending">
@@ -197,7 +201,7 @@
       <input id="monthlyBudget" type="number" min="0" step="1" placeholder="0 = no budget">
       <span class="hint">When this month's estimated spend reaches it, paid AI stops until next month (or until you raise it). 0 means no budget. The panel's footer shows how much is used.</span>
     </div>
-    <p class="hint">Claude is estimated from token counts at list price (a regular API key can't read your real balance, which is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>); OpenRouter reports its own costs; other services count at the prices you enter above. <button type="button" class="small" id="resetSpend">Reset the counter</button></p>
+    <p class="hint">Claude is estimated from token counts at list price (a regular API key can't read your real balance, which is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>); OpenRouter reports its own costs; other services count at the prices you enter above. <button type="button" class="small danger" id="resetSpend">Reset the counter</button></p>
   </section>
 
   <section id="sec-judging">
@@ -238,7 +242,7 @@
     </div>
     <div class="field">
       <span class="hint" id="memoryInfo"></span>
-      <div class="row-btns"><button type="button" class="small" id="clearHidden">Unhide everything</button><button type="button" class="small" id="clearMemory">Forget seen listings</button></div>
+      <div class="row-btns"><button type="button" class="small" id="clearHidden">Unhide everything</button><button type="button" class="small danger" id="clearMemory">Forget seen listings</button></div>
     </div>
   </section>
 

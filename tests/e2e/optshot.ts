@@ -1,0 +1,12 @@
+import { start, EXT, sleep } from "./lib.ts";
+const { open, c } = await start();
+const o = await open(`chrome-extension://${EXT}/options/options.html`);
+await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-x'})`);
+await o.ev(`location.reload()`); await sleep(1500);
+await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: Deno.args[0] || "dark" }] }, o.sessionId);
+await o.shot("opt_a.png", { x: 300, y: 0, width: 800, height: 900 });
+await o.ev(`document.getElementById('sec-spending').scrollIntoView()`); await sleep(300);
+await o.shot("opt_b.png");
+await o.ev(`document.getElementById('sec-filters').scrollIntoView()`); await sleep(300);
+await o.shot("opt_c.png");
+c.close();

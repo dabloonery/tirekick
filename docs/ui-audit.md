@@ -50,3 +50,35 @@ The foundations are good: one typeface, one restrained palette, semantic colour,
 
 ## Suggested order
 (2) fixed height, (1) single onboarding card, (5) row actions on hover, (4) hit areas, (8) type sizes, (6) error visibility, then (10)–(14). Items 1–6 change layout and should be done with before/after screenshots from `tests/e2e/audit.ts`; (7) needs a prototype before committing.
+
+## Done in 0.29.0
+Re-measured with `tests/e2e/audit.ts` (same states, dark and light). The headless browser now reports a mouse (`--blink-settings` in `tests/e2e/run.sh`), as desktop Chrome does, so hover-only UI is captured as people see it; `lib.ts` captures beyond the viewport, so the full settings page shows.
+
+| Measure | 0.28.1 | 0.29.0 |
+|---|---|---|
+| Panel controls under 24px (scanned view) | 30 | **0** (0 in every panel view) |
+| Panel text under 12px (scanned view) | 12 nodes (11px, 10px) | only the tag word on page stickers |
+| Text contrast failures | 0 | 0 |
+| First run: cards before the inputs | 2 (key + welcome) | 1 |
+| Spend detail height | ~190px, pushes results up | ~110px popover over the footer |
+| Toolbar above the results | Filter · Sort · Skipped (3 styles, 2 lines) | Filter · Sort (1 line) |
+
+- **1** One welcome card: with no model, "Add a key" is step 1 with **Open settings** as its one button; the later steps are muted; Use / Fix & flip, What I want and Scan wait for a model (Compare prices and free sold prices stay).
+- **2** Fixed panel height `min(760px, 100vh - 48px)`; only the body scrolls.
+- **3** Spend detail is a popover (Esc or a click elsewhere closes it) with one line pointing to settings, where the pricing note already was. *Not done:* Filter does not collapse by itself after use.
+- **4** 24px hit areas via padding and negative margin; nothing looks bigger. Settings: nav links, checkboxes 18px, disclosure headers.
+- **5** Row links run under the price (no more lone "Not interested" line) and show on hover or focus; a saved listing keeps "Saved". Touch screens always show them.
+- **6** After an error the message and the Scan/Analyze button are both scrolled into view; other scans leave 8px above the status.
+- **8, 9** 11px text raised to 12px; uppercase tracked labels are now sentence case 12px semibold muted.
+- **10** Panel tags show the number only; the coloured verdict word is beside it. Page stickers keep the word (it can be hidden on narrow cards).
+- **11** Skipped became "Skips and scams" inside Filter.
+- **12** Saved, Searches and Hidden rows each end in one quiet text action: Remove, Remove, Unhide.
+- **13** Listing view: Save / Not interested / Sold sit under the verdict; Analyze again becomes secondary and carries what the last one cost; no empty gaps.
+- **14** Dim fades the card's content but not its tag or chips (the fade goes on the largest parts that hold no tag, so it never stacks).
+- **15** Decorative glyphs (☆ ★ ✦ ×) replaced with words; ↗ stays for links that open a new tab.
+- **16** Settings: Judging, Filters and marks and Backup fold behind disclosures with a one-line summary; jump links (and `#sec-…` addresses) open them.
+- **17** Inputs show one focus ring (outline over the border).
+- **18** The closed tab takes the page's colours (light on eBay's white pages).
+- **19** A scan shows a 2px accent progress line under the tabs.
+
+Still open: **7** (Side Panel prototype), **20** (three emphasis mechanisms), the Filter auto-collapse in **3**. Rows reserve the space of their hidden links, so the list keeps its rhythm when you point at a row; the cost is a quiet gap under each row.

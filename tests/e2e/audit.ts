@@ -50,6 +50,8 @@ for (const mode of ["dark", "light"]) {
   await panelShot(p, `${mode}_03_pre_scan`);
   report[mode + "_pre_scan"] = await R(p, `return (${METRICS})(r)`);
   await R(p, `r.querySelector('[data-act=scan]').click()`); await sleep(2600);
+  const rowAt = await R(p, `const b=r.querySelector('.list .row').getBoundingClientRect(); return [b.x+b.width/2, b.y+b.height/2]`);
+  await p.ev(`1`); await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: rowAt[0], y: rowAt[1] }, p.sessionId); await sleep(200);
   await panelShot(p, `${mode}_04_scanned`);
   report[mode + "_scanned"] = await R(p, `return (${METRICS})(r)`);
   await p.shot(`${OUT}/${mode}_05_cards.png`, { x: 0, y: 0, width: 980, height: 660 });
@@ -78,6 +80,7 @@ for (const mode of ["dark", "light"]) {
   report[mode + "_item"] = await R(it, `return (${METRICS})(r)`);
   // error state: bad key
   await setStore(`{anthropicKey:'bad'}`);
+  await o.ev(`chrome.storage.local.remove(['scoreCache','listingMemory','scans'])`); // otherwise remembered scores come back and nothing is sent
   const er = await open(`https://www.ebay.com/sch/i.html?_nkw=film+camera`); await scheme(er, mode); await sleep(1500);
   await R(er, `r.querySelector('[data-act=tab]').click()`); await sleep(400);
   await R(er, `r.querySelector('[data-act=scan]').click()`); await sleep(3500);

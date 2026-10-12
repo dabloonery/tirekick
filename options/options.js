@@ -415,3 +415,8 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
   note(`Restored from ${file.name}: ${plural(Object.keys(data.saved || {}).length, "saved listing")}, ${plural(Object.keys(data.savedSearches || {}).length, "search")}, and settings.`.replace("searchs", "searches"));
 });
+
+// Folded sections open when a jump link (or the address) points at them.
+const openSection = (hash) => document.querySelector(`${hash} details`)?.setAttribute("open", "");
+document.querySelectorAll("nav.jump a").forEach((a) => a.addEventListener("click", () => openSection(a.hash)));
+if (/^#sec-[\w-]+$/.test(location.hash)) openSection(location.hash);

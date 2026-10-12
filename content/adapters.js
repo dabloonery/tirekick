@@ -255,6 +255,10 @@
   // the visible text lines inside that link instead.
 
   const FB_LABELS = /^(just listed|sponsored|price dropped|partner listing|new listing|shipping available|ships to you|free shipping|pending|sold)$/i;
+  // A card that hasn't changed since it was last read (same link, same text) isn't read again: the feed is
+  // read whenever more listings load, and reading every card each time made long feeds stutter. The photo
+  // is looked up every time (Facebook swaps a placeholder for the real one without changing the text).
+  const fbRead = new WeakMap(); // link element -> { href, text, item }
   SL.extractFacebook = (root = document) => {
     const links = root.querySelectorAll('a[href*="/marketplace/item/"]');
     const out = [];
@@ -264,6 +268,12 @@
       const itemId = (href.match(/\/marketplace\/item\/(\d+)/) || [])[1];
       if (!itemId || seen.has(itemId)) return;
       seen.add(itemId);
+      const text = a.textContent;
+      const hit = fbRead.get(a);
+      if (hit && hit.href === href && hit.text === text) {
+        out.push({ ...hit.item, imageUrl: firstImage(a), el: a });
+        return;
+      }
 
       // innerText gives one line per text block, but only for cards being shown; a card we've hidden
       // (filtered, not interested) falls back to its text pieces, which split the same way here.
@@ -283,8 +293,7 @@
       const now = SL.parsePrice(priceLine);
       const was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (/^\$\s?[\d,]/.test(l) ? SL.parsePrice(l) : null)).find((n) => n != null);
 
-      out.push(
-        withTotal({
+      const item = withTotal({
           site: "facebook",
           title,
           priceText: priceLine,
@@ -298,8 +307,9 @@
           titleCode: SL.titleCode(title),
           ...(was != null && now != null && was > now && { wasPrice: was }),
           ...(lines.some((l) => /^just listed$/i.test(l)) && { justListed: true }),
-        })
-      );
+        });
+      fbRead.set(a, { href, text, item });
+      out.push(item);
     });
     return out;
   };

@@ -169,7 +169,7 @@
     }
 
     // ---------- load and draw ----------
-    async function refresh() {
+    let refresh = async function () {
       const d = await chrome.storage.local.get({
         provider: "anthropic", oaiModel: "", monthlyBudget: 0,
         saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false,
@@ -193,17 +193,45 @@
       await chrome.storage.local.set({ alertsAck });
     }
 
-    // Stay current while it's open (a scan or a save in another tab changes these), without marking anything new as seen.
+    // The number on the Home tab, from the three small records it depends on (not the whole of storage).
+    async function count() {
+      const d = await chrome.storage.local.get({ saved: {}, savedSearches: {}, alertsAck: {} });
+      onAlerts(alertsOf(d.saved, d.savedSearches, d.alertsAck).filter((a) => a.isNew).length);
+    }
+
+    // Stay current while it's on screen (a scan or a save in another tab changes these), without marking anything
+    // new as seen. Out of sight it only keeps the tab's number current and is drawn again when it's next shown:
+    // the listing memory changes every time a page loads more listings, and reading and drawing everything then
+    // made long Marketplace feeds lag.
+    let stale = true;
     let timer = 0;
+    let countTimer = 0;
     chrome.storage.onChanged.addListener((c) => {
       if (!chrome.runtime?.id) return;
+      if (c.saved || c.savedSearches || c.alertsAck) {
+        clearTimeout(countTimer);
+        countTimer = setTimeout(() => count().catch(() => {}), 300);
+      }
       if (c.alertsAck && Object.keys(c).length === 1) return;
       if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "monthlyBudget", "provider", "anthropicKey", "oaiModel"].some((k) => c[k])) return;
+      if (!isShown()) return void (stale = true);
       clearTimeout(timer);
       timer = setTimeout(() => refresh().then(seen).catch(() => {}), 400);
     });
+    const drawn = refresh;
+    refresh = async () => {
+      stale = false;
+      return drawn();
+    };
 
-    return { refresh, seen };
+    return {
+      refresh: () => refresh(),
+      seen,
+      count,
+      markStale: () => (stale = true),
+      // Shown again: draw it if anything changed while it was out of sight, then count what's been seen.
+      wake: () => (stale ? refresh() : Promise.resolve()).then(seen),
+    };
   }
 
   window.SLHome = { mount };

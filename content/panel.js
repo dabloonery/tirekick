@@ -476,6 +476,10 @@
     .list:empty, .itemout:empty { display:none; }
     .row { display:grid; grid-template-columns:46px minmax(0,1fr) auto; gap:12px; padding:12px 0; border-top:var(--bw) solid var(--rule); animation:fade .25s ease both; }
     .row.still { animation:none; }
+    /* Long lists (a Marketplace feed can give hundreds of rows): rows out of view aren't laid out or painted
+       until they scroll in, and only the first few fade in. */
+    .list > .row { content-visibility:auto; contain-intrinsic-size:auto 110px; }
+    .list > .row:nth-child(n+13) { animation:none; }
     .itemout > .row:first-child { border-top:0; }
     @keyframes fade { from { opacity:0; } to { opacity:1; } }
     .tag { --c:var(--v-fair); width:46px; height:46px; border:1.5px solid var(--c); border-radius:var(--r-sm); display:grid; place-content:center; text-align:center; line-height:1; }
@@ -779,6 +783,8 @@
     if (!fold) return;
     const q = queryEl.value.trim();
     const want = wantEl.value.trim();
+    if (inputsSum.dataset.shown === `${q}\n${want}`) return; // runs every two seconds: only redraw a change
+    inputsSum.dataset.shown = `${q}\n${want}`;
     $(".sum-text").replaceChildren(
       ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", " \u00b7 ", want ? ["wants ", h("b", {}, want)] : "no wants set"].flat()
     );
@@ -802,7 +808,8 @@
   let touched = false; // the user (or the toolbar icon) has opened/closed it on this page
   const showOpen = (open) => {
     wrap.classList.toggle("open", open);
-    if (open) setTimeout(() => home.seen(), 0); // Home counts as seen once it's on screen
+    if (open && listStale) render();
+    if (open && view === "home") setTimeout(() => home.wake().catch(() => {}), 0); // drawn if it changed out of sight; counts as seen once on screen
     $('[data-act="tab"]').setAttribute("aria-label", open ? "Tuck Second Look away" : "Open Second Look");
   };
   // Keyboard users: opening puts focus in the panel and closing puts it back on the tab, so it is
@@ -1359,10 +1366,14 @@
   const syncPageTheme = () => {
     const t = pageIsDark() ? "dark" : "light";
     if (document.documentElement.dataset.slTheme !== t) document.documentElement.dataset.slTheme = t;
-    wrap.dataset.pageTheme = t; // the closed tab takes the page's colours, like the marks on the cards
+    if (wrap.dataset.pageTheme !== t) wrap.dataset.pageTheme = t; // the closed tab takes the page's colours, like the marks on the cards
   };
   syncPageTheme();
+  let stylesIn = false;
   const ensureStickerStyles = () => {
+    // Checked once per batch of cards: cheap after the first time (the theme is kept current by the tick).
+    if (stylesIn && document.getElementById("second-look-styles")) return;
+    stylesIn = true;
     syncPageTheme();
     if (document.getElementById("second-look-styles")) return;
     const st = document.createElement("style");
@@ -1377,9 +1388,7 @@
         position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--sl-fit, calc(100% - 20px));
         background:var(--sl-paper); color:var(--sl-ink); border-radius:4px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
         font:400 12px/1.2 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; text-align:left; letter-spacing:normal; cursor:help;
-        animation:sl-in .2s ease-out both; }
-      @media (prefers-reduced-motion: reduce) { .second-look-sticker { animation:none; } }
-      @keyframes sl-in { from { opacity:0; } to { opacity:1; } }
+        } /* no fade-in: tags appear as cards load, and animating hundreds of them on a long feed cost frames */
       .second-look-sticker[data-v="great"] { --c:var(--v-great); } .second-look-sticker[data-v="good"] { --c:var(--v-good); }
       .second-look-sticker[data-v="pass"] { --c:var(--v-pass); } .second-look-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
       .second-look-sticker .sl-score { flex:none; width:44px; height:44px; box-sizing:border-box; border:1.5px solid var(--c); border-radius:4px; color:var(--c);
@@ -1421,13 +1430,13 @@
       html:not([data-sl-showhidden]) [data-sl-hide] { display:none !important; }
       html[data-sl-showhidden] [data-sl-hide] { opacity:.45; }
       /* Dim fades the card but not its tag or chips: a scam warning stays the most legible thing on it.
-         The fade goes on the biggest parts of the card that hold no tag, so it never stacks. */
-      html[data-sl-skip="dim"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]):not(:hover):has(.second-look-sticker, .second-look-marks) > :not(:has(.second-look-sticker, .second-look-marks)):not(.second-look-sticker, .second-look-marks),
-      html[data-sl-skip="dim"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]):not(:hover) :has(.second-look-sticker, .second-look-marks) > :not(:has(.second-look-sticker, .second-look-marks)):not(.second-look-sticker, .second-look-marks)
-        { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
+         The parts to fade are marked once per card (fadeParts): no :has() here, which on a page that changes
+         as constantly as Facebook's made the browser re-check every card on every change and froze it. */
+      html[data-sl-skip="dim"] [data-sl-faded] { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
+      html[data-sl-skip="dim"] [data-sl-v]:hover [data-sl-faded] { opacity:1; filter:none; }
       html[data-sl-skip="hide"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]) { display:none !important; }
-      /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering */
-      [data-sl-cell]:has(.second-look-sticker:hover, .second-look-marks:hover) { position:relative; z-index:2147483000 !important; }
+      /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering (set by fit()) */
+      [data-sl-lift] { position:relative; z-index:2147483000 !important; }
       .second-look-sticker .sl-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--sl-rule); }
       .second-look-sticker .sl-acts button, .second-look-sticker .sl-acts a { all:unset; cursor:pointer; color:var(--sl-ink); font-weight:600; font-size:13px;
         text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
@@ -1486,21 +1495,35 @@
       .catch(() => {});
   const prefsReady = loadPrefs();
 
-  // Several tabs may write at once, so merge into what's stored instead of overwriting it.
+  // Several tabs may write at once. Each tab keeps the memory in RAM and folds in what other tabs wrote
+  // from the change events (they carry the whole record anyway), so a save is one write: no read first,
+  // and pruning old entries only when it has grown past its cap. Saves wait for a quiet moment, and go
+  // straight out when you leave the page (clicking through to a listing would otherwise lose them).
+  // Reading, sorting and writing the whole memory on every pass made long feeds stutter.
   let memoryTimer = 0;
+  const saveMemoryNow = () => {
+    clearTimeout(memoryTimer);
+    if (!dirtyMemory.size || !alive()) return;
+    dirtyMemory.clear();
+    if (Object.keys(memory).length > MEMORY_MAX * 1.1) {
+      const cutoff = Date.now() - MEMORY_DAYS * 864e5;
+      memory = Object.fromEntries(Object.entries(memory).filter(([, r]) => r && r.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-MEMORY_MAX));
+    }
+    chrome.storage.local.set({ listingMemory: memory }).catch(() => {});
+  };
   const saveMemorySoon = () => {
     clearTimeout(memoryTimer);
-    memoryTimer = setTimeout(async () => {
-      if (!dirtyMemory.size || !alive()) return;
-      const { listingMemory = {} } = await chrome.storage.local.get("listingMemory");
-      for (const k of dirtyMemory) listingMemory[k] = memory[k];
-      dirtyMemory.clear();
-      const cutoff = Date.now() - MEMORY_DAYS * 864e5;
-      const kept = Object.entries(listingMemory).filter(([, r]) => r && r.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-MEMORY_MAX);
-      memory = Object.fromEntries(kept);
-      await chrome.storage.local.set({ listingMemory: memory });
-    }, 300); // soon: if you click through to a listing, a slower save would be lost
+    memoryTimer = setTimeout(() => (window.requestIdleCallback ? requestIdleCallback(saveMemoryNow, { timeout: 2000 }) : saveMemoryNow()), 1500);
   };
+  window.addEventListener("pagehide", saveMemoryNow);
+  document.addEventListener("visibilitychange", () => document.hidden && saveMemoryNow());
+  chrome.storage.onChanged.addListener((changes) => {
+    if (!changes.listingMemory || !alive()) return;
+    const next = changes.listingMemory.newValue;
+    if (!next) return void ((memory = {}), dirtyMemory.clear()); // "Forget seen listings" in settings: don't write it back
+    // Another tab's sightings: keep whichever record of a listing was seen last.
+    for (const [k, r] of Object.entries(next)) if (r && (!memory[k] || (r.a || 0) > (memory[k].a || 0)) && !dirtyMemory.has(k)) memory[k] = r;
+  });
 
   // Scam campaigns: one fake listing posted over and over, each copy with its own code on the end of
   // the title ("... Advance SP M2465", "... Advance SP K7731"). Two codes on one title, here or on any
@@ -1614,7 +1637,7 @@
       const r = node.getBoundingClientRect();
       if (getComputedStyle(node).display !== "inline" && r.width >= 100 && r.height >= 100) return node;
       const up = node.parentElement;
-      if (!up || [...up.querySelectorAll(ITEM_LINK)].some((a) => itemIdOf(a) !== itemIdOf(el))) break;
+      if (!up || hasOtherListing(up, itemIdOf(el))) break;
       node = up;
     }
     return el;
@@ -1623,13 +1646,19 @@
   // Facebook nests a card's link a dozen or more boxes deep, and a card can link to its listing more than
   // once, so climb until the parent holds a different listing (stopping short of that left empty grid slots).
   const itemIdOf = (a) => a.href.match(/\/marketplace\/item\/(\d+)/)?.[1] || a.href;
+  // Does this box hold a link to some other listing? One query that stops at the first one (listing every
+  // link at every level, for every card, grew with the square of the page and showed on long feeds).
+  const hasOtherListing = (box, id) =>
+    /^\d+$/.test(id)
+      ? !!box.querySelector(`${ITEM_LINK}:not([href*="/item/${id}/"]):not([href$="/item/${id}"]):not([href*="/item/${id}?"])`)
+      : [...box.querySelectorAll(ITEM_LINK)].some((a) => itemIdOf(a) !== id);
   const cellOf = (el) => {
     if (SL.currentSite() !== "facebook") return el;
     const id = itemIdOf(el.closest(ITEM_LINK) || el.querySelector(ITEM_LINK) || el);
     let node = el;
     for (let i = 0; i < 40; i++) {
       const up = node.parentElement;
-      if (!up || up === document.body || [...up.querySelectorAll(ITEM_LINK)].some((a) => itemIdOf(a) !== id)) break;
+      if (!up || up === document.body || hasOtherListing(up, id)) break;
       node = up;
     }
     return node;
@@ -1637,33 +1666,68 @@
 
   const undecorate = (host) => {
     if (host.dataset.secondLookPos) host.style.position = "";
-    for (const a of ["data-second-look", "data-second-look-key", "data-second-look-pos", "data-sl-hide", "data-sl-v", "data-sl-cell"]) host.removeAttribute(a);
+    for (const a of ["data-second-look", "data-second-look-key", "data-second-look-pos", "data-sl-hide", "data-sl-v", "data-sl-cell", "data-sl-sig", "data-sl-has"]) host.removeAttribute(a);
     host.querySelectorAll(":scope > .second-look-sticker, :scope > .second-look-marks").forEach((n) => n.remove());
     const cell = host.closest("[data-sl-hide], [data-sl-v], [data-sl-cell]");
-    for (const a of ["data-sl-hide", "data-sl-v", "data-sl-cell"]) cell?.removeAttribute(a);
+    for (const a of ["data-sl-hide", "data-sl-v", "data-sl-cell", "data-sl-lift"]) cell?.removeAttribute(a);
+    cell?.querySelectorAll("[data-sl-faded]").forEach((n) => n.removeAttribute("data-sl-faded"));
   };
 
   // Dress one card: a sticker if it's been scored, otherwise just its chips; hidden if you said so.
   // Redrawing a card's marks replaces their elements; if the keyboard was on one of them (pressing Save
   // turns it into "Saved"), put focus back on the same place in the new marks instead of losing it.
-  const decorate = (key, linkEl) => {
-    const marks = linkEl?.isConnected ? cellOf(linkEl).querySelector(".second-look-sticker, .second-look-marks") : null;
+  const decorate = (key, linkEl, m) => {
+    if (!linkEl?.isConnected) return;
+    m ||= measure(linkEl);
+    const marks = m.cell.querySelector(".second-look-sticker, .second-look-marks");
     const at = marks && marks.contains(document.activeElement) ? [...marks.querySelectorAll("button")].indexOf(document.activeElement) : null;
-    redecorate(key, linkEl);
+    redecorate(key, linkEl, m);
     if (at == null) return;
-    const now = cellOf(linkEl).querySelector(".second-look-sticker, .second-look-marks");
+    const now = m.cell.querySelector(".second-look-sticker, .second-look-marks");
     (now?.querySelectorAll("button")[at] || now)?.focus({ preventScroll: true });
   };
-  const redecorate = (key, linkEl) => {
+  // Everything a card's dressing needs to read from the page, read in one go. Reading a size right after
+  // writing the last card's tag makes the browser lay out the whole page again, so a batch of cards is
+  // measured first and dressed after (decorateAll).
+  const measure = (linkEl) => {
+    const host = stickerHost(linkEl);
+    const img = SL.currentSite() === "ebay" ? host.querySelector("img") : null;
+    return { host, cell: cellOf(linkEl), isStatic: getComputedStyle(host).position === "static", imgW: img ? img.getBoundingClientRect().width : 0, hostW: host.getBoundingClientRect().width };
+  };
+  // What a card's dressing depends on, as a string: when it hasn't changed, the card is left as it is.
+  const sigOf = (key) => JSON.stringify([facts.get(key) || {}, scored.get(key), !!saved[key], showHidden, prefs.autoMarks, lens], (k, v) => (k === "el" ? undefined : v));
+  const isDressed = (key, el, base) => {
+    const tagged = el.closest("[data-second-look-key]");
+    return !!tagged && tagged.dataset.secondLookKey === key && !!tagged.dataset.slSig?.startsWith(base) && (tagged.dataset.slHas !== "1" || !!tagged.querySelector(":scope > .second-look-sticker, :scope > .second-look-marks"));
+  };
+  const decorateAll = (pairs) => {
+    ensureStickerStyles();
+    // Cards already dressed for what they show are skipped before anything is measured: the page pass
+    // runs whenever more listings load, and measuring hundreds of unchanged cards each time showed.
+    const live = [];
+    for (const [key, el] of pairs) {
+      if (!el?.isConnected) continue;
+      const base = sigOf(key);
+      if (!isDressed(key, el, base)) live.push([key, el, base]);
+    }
+    const ms = live.map(([, el]) => measure(el));
+    live.forEach(([key, el, base], i) => decorate(key, el, { ...ms[i], base }));
+  };
+  const redecorate = (key, linkEl, m = measure(linkEl)) => {
     if (!linkEl?.isConnected) return;
     ensureStickerStyles();
-    const host = stickerHost(linkEl);
-    const cell = cellOf(linkEl);
+    const { host, cell } = m;
     const f = facts.get(key) || {};
     const it = scored.get(key);
+    // Nothing it shows has changed (the page pass runs whenever more listings load): leave the card alone.
+    // Rebuilding every tag on every pass made long feeds lag.
+    const sig = `${m.base ?? sigOf(key)}|${m.hostW < 250}|${Math.round(m.imgW)}`;
+    if (host.dataset.slSig === sig && host.dataset.secondLookKey === key && cell.hasAttribute("data-sl-cell") && (host.dataset.slHas !== "1" || host.querySelector(":scope > .second-look-sticker, :scope > .second-look-marks"))) return;
+    host.dataset.slSig = sig;
+    host.dataset.slHas = ""; // set when a tag or chips go on below
     host.setAttribute("data-second-look-key", key);
     cell.setAttribute("data-sl-cell", "");
-    if (getComputedStyle(host).position === "static") {
+    if (m.isStatic && !host.dataset.secondLookPos) {
       host.style.position = "relative";
       host.setAttribute("data-second-look-pos", "1");
     }
@@ -1680,20 +1744,26 @@
     // On Marketplace, Facebook puts its own labels ("Just listed") at the photo's top-left, so ours
     // go top-right.
     const fit = (node) => {
-      const w = SL.currentSite() === "ebay" ? host.querySelector("img")?.getBoundingClientRect().width : 0;
-      if (w > 80 && w < host.getBoundingClientRect().width - 40) {
+      const w = m.imgW;
+      if (w > 80 && w < m.hostW - 40) {
         node.style.setProperty("--sl-fit", `${Math.round(w - 20)}px`);
         if (w - 20 < 150) node.classList.add("sl-compact"); // a small photo: the score alone fits, the rest is on hover
       }
       if (SL.currentSite() === "facebook") node.classList.add("sl-right");
       // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
-      if (SL.currentSite() === "facebook" && host.getBoundingClientRect().width < 250) node.classList.add("sl-compact");
+      if (SL.currentSite() === "facebook" && m.hostW < 250) node.classList.add("sl-compact");
+      if (SL.currentSite() === "facebook") {
+        node.addEventListener("pointerenter", () => cell.setAttribute("data-sl-lift", ""));
+        node.addEventListener("pointerleave", () => cell.removeAttribute("data-sl-lift"));
+      }
       return node;
     };
+    fadeParts(cell, host, it ? it.verdict === "pass" || it.verdict === "suspicious" : likelyScam(f));
     if (it) {
       it.el = linkEl;
       host.setAttribute("data-second-look", it.verdict);
       host.append(fit(stickerEl(it, f, key)));
+      host.dataset.slHas = "1";
       return;
     }
     host.removeAttribute("data-second-look");
@@ -1702,8 +1772,18 @@
     if (showHidden && f.hidden) chips.push(h("button", { class: "sl-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
     else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Sold / Not interested appear when you hover the card
     host.append(fit(h("div", { class: `second-look-marks` }, chips)));
+    host.dataset.slHas = "1";
   };
   const stick = (item) => decorate(keyOf(item.url), item.el);
+  // What fades when a card is dimmed: everything in it except our tag and chips. From the box that holds
+  // the tag up to the grid cell, each level's other children fade, and so does everything in that box
+  // but the tag, so nothing fades twice.
+  const fadeParts = (cell, host, dim) => {
+    cell.querySelectorAll("[data-sl-faded]").forEach((n) => n.removeAttribute("data-sl-faded"));
+    if (!dim) return;
+    for (const kid of host.children) if (!kid.matches(".second-look-sticker, .second-look-marks")) kid.setAttribute("data-sl-faded", "");
+    for (let n = host; n !== cell && n.parentElement; n = n.parentElement) for (const sib of n.parentElement.children) if (sib !== n) sib.setAttribute("data-sl-faded", "");
+  };
   // "✕ Not interested", shown on any card while you hover it.
   const hideChip = (key) => h("button", { class: "sl-chip k-plain sl-x", title: "Hide this listing everywhere (undo from the panel)", onclick: own(() => setInterested(key, false)) }, "Not interested");
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
@@ -1763,6 +1843,7 @@
     $(".view-page").hidden = v !== "page";
     $(".view-saved").hidden = v !== "saved";
     $(".view-home").hidden = v !== "home";
+    if (v === "page" && listStale) render();
     if (v === "home") home.refresh().then(() => home.seen()).catch(() => {});
     $(".body").scrollTop = 0;
     if (v === "saved") renderSaved();
@@ -1779,8 +1860,11 @@
       homeCount.hidden = !n;
     },
   });
-  home.refresh().catch(() => {});
-  onModeChanged = () => home.refresh().catch(() => {});
+  home.count().catch(() => {}); // just the tab's number; Home itself is drawn when it's shown
+  onModeChanged = () => {
+    home.markStale();
+    if (view === "home") home.wake().catch(() => {});
+  };
   document.addEventListener("visibilitychange", () => home.seen());
   // The toolbar icon (and its right-click menu) can bring up a particular tab.
   // From the toolbar icon (detail.toggle): with Home already on screen, the click tucks the panel away as usual.
@@ -1954,22 +2038,24 @@
 
   const reapplyFacebook = () => {
     if ((!scored.size && !facts.size) || SL.currentSite() !== "facebook") return;
+    const todo = [];
     document.querySelectorAll(ITEM_LINK).forEach((a) => {
       const key = keyOf(a.href);
       // Cheap check first (no layout reads): is this card still dressed for this listing?
       const tagged = a.closest("[data-second-look-key]");
       if (tagged?.dataset.secondLookKey === key && (tagged.querySelector(":scope > .second-look-sticker, :scope > .second-look-marks") || !scored.has(key))) return;
-      if (scored.has(key) || facts.has(key)) decorate(key, a);
+      if (scored.has(key) || facts.has(key)) todo.push([key, a]);
       else if (tagged && (tagged === a || tagged.querySelectorAll(ITEM_LINK).length === 1)) undecorate(tagged); // recycled for a listing we know nothing about
     });
+    decorateAll(todo);
   };
 
   const clearStickers = () => {
     scored = new Map();
     seen = new Set();
     document.querySelectorAll("[data-second-look-key]").forEach(undecorate);
-    document.querySelectorAll("[data-sl-hide], [data-sl-v], [data-sl-cell]").forEach((n) => {
-      for (const a of ["data-sl-hide", "data-sl-v", "data-sl-cell"]) n.removeAttribute(a);
+    document.querySelectorAll("[data-sl-hide], [data-sl-v], [data-sl-cell], [data-sl-faded], [data-sl-lift]").forEach((n) => {
+      for (const a of ["data-sl-hide", "data-sl-v", "data-sl-cell", "data-sl-faded", "data-sl-lift"]) n.removeAttribute(a);
     });
     document.querySelectorAll(".second-look-sticker, .second-look-marks").forEach((s) => s.remove());
   };
@@ -2040,7 +2126,7 @@
       const all = [...facts.values()];
       const showNew = !!(SL.facebookQuery() || SL.ebayQuery()) && all.filter((f) => f.fresh).length <= all.length * 0.4;
       all.forEach((f) => (f.isNew = showNew && !!f.fresh));
-      for (const it of items) decorate(keyOf(it.url), it.el);
+      decorateAll(items.map((it) => [keyOf(it.url), it.el]));
       await noteSearchVisit(all);
       renderPageInfo();
       render();
@@ -2111,10 +2197,7 @@
       f.hidden = !!notInterested[key];
     }
     // Find each card directly: a hidden card can't always be read again by the adapter.
-    for (const key of facts.keys()) {
-      const el = elFor(key);
-      if (el) decorate(key, el);
-    }
+    decorateAll([...facts.keys()].map((key) => [key, elFor(key)]));
     render();
     renderPageInfo();
   };
@@ -2240,7 +2323,13 @@
     },
   };
   const shownKeys = new Set(); // rows that already animated in; re-sorting shouldn't replay it
+  // The list is only drawn while you can see it: tucked away (or on Saved or Home) a redraw just marks it
+  // stale, and opening the panel draws it once. Drawing hundreds of rows into a hidden panel after every
+  // page pass made long Marketplace feeds lag.
+  let listStale = false;
   const render = () => {
+    if (!wrap.classList.contains("open") || view !== "page") return void (listStale = true);
+    listStale = false;
     listEl.replaceChildren();
     if (SL.pageType() !== "results") return;
     const by = SORTS[sortMode] || SORTS.score;
@@ -2638,22 +2727,26 @@
     it.scannedWith = snap.m;
     pendingScans.set(`${key}|${snap.lens}`, [key, snap]);
     clearTimeout(scanSaveTimer);
-    scanSaveTimer = setTimeout(flushScans, 400); // soon: opening the listing right after a scan must find it
+    scanSaveTimer = setTimeout(flushScans, 1000); // soon: opening the listing right after a scan must find it (leaving or hiding the tab saves at once)
   };
   const flushScans = async () => {
     if (!pendingScans.size || !alive()) return;
     const batch = [...pendingScans.values()];
     pendingScans.clear();
-    // Several tabs may write at once, so merge into what's stored.
-    const { scans = {} } = await chrome.storage.local.get("scans");
-    for (const [key, snap] of batch) (scans[key] ||= {})[snap.lens] = snap;
-    const cutoff = Date.now() - SCAN_DAYS * 864e5;
-    const newest = (r) => Math.max(0, ...Object.values(r).map((s) => s.at || 0));
-    const kept = Object.entries(scans).filter(([, r]) => newest(r) > cutoff).sort((a, b) => newest(a[1]) - newest(b[1])).slice(-SCAN_MAX);
-    scansCache = Object.fromEntries(kept);
+    // Several tabs may write at once: scansCache follows the other tabs' writes through the change events
+    // (below), so this merges into it without reading the whole store again, and prunes only past the cap.
+    const scans = (scansCache ||= (await chrome.storage.local.get("scans")).scans || {});
+    for (const [key, snap] of batch) (scans[key] = { ...(scans[key] || {}) })[snap.lens] = snap;
+    if (Object.keys(scans).length > SCAN_MAX * 1.1) {
+      const cutoff = Date.now() - SCAN_DAYS * 864e5;
+      const newest = (r) => Math.max(0, ...Object.values(r).map((s) => s.at || 0));
+      scansCache = Object.fromEntries(Object.entries(scans).filter(([, r]) => newest(r) > cutoff).sort((a, b) => newest(a[1]) - newest(b[1])).slice(-SCAN_MAX));
+    }
     await chrome.storage.local.set({ scans: scansCache }).catch(() => {});
   };
   window.addEventListener("pagehide", () => flushScans());
+  // Switching to a tab you just opened (a listing from the results, say) hides this one: save first.
+  document.addEventListener("visibilitychange", () => document.hidden && flushScans());
   const loadScans = async () => (scansCache = (await chrome.storage.local.get("scans")).scans || {});
   const storedScan = (key, forLens = lens) => scansCache?.[key]?.[forLens] || null;
   // Bring back what an earlier scan or analysis (here or in another tab) said about listings on this page.
@@ -2678,6 +2771,7 @@
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive() || !changes.scans) return;
     scansCache = changes.scans.newValue || {};
+    for (const [key, snap] of pendingScans.values()) (scansCache[key] = { ...(scansCache[key] || {}) })[snap.lens] = snap; // not saved yet here
     if (SL.pageType() === "item") renderItemInfo();
   });
   loadScans().catch(() => {});
@@ -2742,6 +2836,7 @@
   };
 
   let lastDeals = 0;
+  const setIf = (el, prop, value) => el[prop] !== value && (el[prop] = value);
   const refreshPending = () => {
     updateFold();
     showIdeasBtn();
@@ -2755,15 +2850,20 @@
     const toScore = [...facts.entries()].filter(([k, f]) => (changed || !seen.has(k)) && !f.hidden && !f.filtered && !f.campaign).length;
     const est = cfg.provider !== "ollama" && cfg.scanRate > 0 ? toScore * cfg.scanRate : 0;
     const label = changed ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : toScore ? `Scan ${toScore} listing${toScore > 1 ? "s" : ""}` : "Scan this page";
-    scanBtn.replaceChildren(label, est && (changed || n || !seen.size) ? h("span", { class: "cost" }, ` \u00b7 ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}`) : "");
+    // This runs every two seconds: only touch what changed (each change makes the browser restyle the panel).
+    const costText = est && (changed || n || !seen.size) ? ` \u00b7 ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}` : "";
+    if (scanBtn.dataset.shown !== label + costText) {
+      scanBtn.dataset.shown = label + costText;
+      scanBtn.replaceChildren(label, costText ? h("span", { class: "cost" }, costText) : "");
+    }
     // Nothing new to score: the button stays, but steps back so the results lead.
-    scanBtn.className = label === "Scan again" ? "ghost" : "scan";
-    scanBtn.title = est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "";
+    setIf(scanBtn, "className", label === "Scan again" ? "ghost" : "scan");
+    setIf(scanBtn, "title", est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "");
     // The tab's badge, most useful first: listings at your price, then new ones to scan, then scored.
     const deals = dealCount();
     countEl.classList.toggle("deal", deals > 0);
     countEl.classList.toggle("new", !deals && n > 0);
-    countEl.title = deals ? `${deals} at your price` : n ? `${n} not scanned yet` : "";
+    setIf(countEl, "title", deals ? `${deals} at your price` : n ? `${n} not scanned yet` : "");
     if (deals) {
       // A new listing at your price: the badge pops once.
       if (deals > lastDeals) {
@@ -2771,10 +2871,10 @@
         void countEl.offsetWidth;
         countEl.classList.add("pop");
       }
-      countEl.textContent = `\u2605${deals}`;
+      setIf(countEl, "textContent", `\u2605${deals}`);
       countEl.hidden = false;
     } else if (n) {
-      countEl.textContent = `+${n}`;
+      setIf(countEl, "textContent", `+${n}`);
       countEl.hidden = false;
     } else setCount(scored.size);
     lastDeals = deals;
@@ -3071,8 +3171,7 @@
         if (hit && Date.now() - hit.at < SCORE_TTL_MS) {
           applyResult(it, hit.r, forLens);
           rememberScan(it);
-          session.set(keyOf(it.url), it); // before stick(): decorate() looks the listing up here
-          if (scored === session) stick(it);
+          session.set(keyOf(it.url), it); // before decorating: decorate() looks the listing up here
           fromMemory++;
         }
       }
@@ -3083,10 +3182,12 @@
         if (it.score != null || !f?.campaign) continue;
         applyResult(it, scamVerdict(f.campaign), forLens);
         session.set(keyOf(it.url), it);
-        if (scored === session) stick(it);
         scams++;
       }
-      if ((fromMemory || scams) && scored === session) render();
+      if ((fromMemory || scams) && scored === session) {
+        decorateAll(items.filter((it) => it.score != null).map((it) => [keyOf(it.url), it.el]));
+        render();
+      }
       const toRank = items.filter((it) => it.score == null);
       let cost = 0;
 
@@ -3123,8 +3224,8 @@
           rememberScan(it);
           fresh[scoreKey(ctx, it)] = { at: Date.now(), r };
           scored.set(keyOf(it.url), it);
-          stick(it);
         }
+        decorateAll(res.items.map((r) => byId.get(r.id)).filter(Boolean).map((it) => [keyOf(it.url), it.el])); // measured together, then tagged
         done += batch.length;
         showProgress(done, items.length);
         render();
@@ -3664,8 +3765,8 @@
   const showIdeasBtn = () => {
     const type = SL.pageType();
     ideasBtn.hidden = !(type === "home" || (type === "results" && queryEl.value.trim()));
-    ideasBtn.textContent = type === "home" ? "Find searches for what I want" : "Find better searches for this";
-    ideasBtn.title = type === "home" ? "" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)";
+    setIf(ideasBtn, "textContent", type === "home" ? "Find searches for what I want" : "Find better searches for this");
+    setIf(ideasBtn, "title", type === "home" ? "" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)");
   };
   queryEl.addEventListener("input", showIdeasBtn);
   wantEl.addEventListener("keydown", (e) => e.key === "Enter" && SL.pageType() === "home" && getIdeas());
@@ -3749,7 +3850,7 @@
     if (!alive()) return teardown();
     sync();
     if (document.hidden) return;
-    syncPageTheme();
+    syncPageTheme(); // the page's own light or dark (cheap: it only writes when that changes)
     reapplyFacebook();
     if (!scanning) pagePass(); // cheap when nothing changed: compares the listing links only
     if (++ticks % 2 === 0) refreshPending();

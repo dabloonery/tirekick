@@ -9,10 +9,11 @@ export E2E_TMP="$(mktemp -d)"
 openssl req -x509 -newkey rsa:2048 -nodes -keyout "$E2E_TMP/key.pem" -out "$E2E_TMP/cert.pem" -days 2 -subj "/CN=www.ebay.com" -addext "subjectAltName=DNS:www.ebay.com,DNS:www.facebook.com" 2>/dev/null
 deno run -A server.ts >/dev/null 2>&1 &
 SRV=$!
-google-chrome-stable --headless=new --no-sandbox --disable-gpu --user-data-dir="$(mktemp -d)" --remote-debugging-port=9222 \
+PROFILE="$(mktemp -d)" # a fresh browser profile each run, removed at the end (they add up in /tmp)
+google-chrome-stable --headless=new --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --remote-debugging-port=9222 \
   --enable-unsafe-extension-debugging --ignore-certificate-errors --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --host-resolver-rules="MAP www.ebay.com 127.0.0.1:8443, MAP www.facebook.com 127.0.0.1:8443" about:blank >/dev/null 2>&1 &
 CH=$!
 sleep 3
 deno run -A load.ts >/dev/null 2>&1; sleep 2
 deno run -A "${1:-scores-persist.ts}"
-kill $CH $SRV 2>/dev/null; rm -rf "$E2E_TMP"
+kill $CH $SRV 2>/dev/null; wait $CH 2>/dev/null; sleep 1; rm -rf "$E2E_TMP" "$PROFILE" 2>/dev/null || { sleep 2; rm -rf "$PROFILE"; }

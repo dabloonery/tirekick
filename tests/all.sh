@@ -9,5 +9,8 @@ for t in adapters.ts features.ts ux.ts scores-persist.ts marketplace.ts; do
   out=$(e2e/run.sh "$t" 2>&1); echo "$out"
   echo "$out" | grep -qE '^FAIL|error: Uncaught' && exit 1
 done
+echo "== e2e/perf.ts (guard)"
+out=$(PERF_GUARD=1 PERF_MEMORY=5000 e2e/run.sh perf.ts 2>&1); echo "$out"
+echo "$out" | grep -qE '^FAIL|error: Uncaught' && exit 1
 rm -f e2e/*.png
 echo "all tests passed"

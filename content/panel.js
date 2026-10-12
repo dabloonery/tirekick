@@ -378,8 +378,9 @@
     .pr { text-align:right; font:700 15px/1.35 var(--mono); font-variant-numeric:tabular-nums; }
     .pr.deal { color:var(--accent); }
     .scamline { color:var(--v-suspicious); font-weight:600; }
-    .wrap[data-skipmode="dim"] .row.skip, .wrap[data-skipmode="dim"] .row:has(> .tag[data-v="pass"]), .wrap[data-skipmode="dim"] .row:has(> .tag[data-v="suspicious"]) { opacity:.55; }
-    .wrap[data-skipmode="dim"] .row.skip:hover, .wrap[data-skipmode="dim"] .row:hover { opacity:1; }
+    /* Dim, as on the page: the row's text fades, its tag and any "Likely scam" line stay at full strength */
+    .wrap[data-skipmode="dim"] :is(.row.skip, .row:has(> .tag[data-v="pass"]), .row:has(> .tag[data-v="suspicious"])):not(:hover, :focus-within) > :not(.tag, :has(.scamline)),
+    .wrap[data-skipmode="dim"] :is(.row.skip, .row:has(> .tag[data-v="pass"]), .row:has(> .tag[data-v="suspicious"])):not(:hover, :focus-within) > :has(.scamline) > :not(.scamline) { opacity:.5; transition:opacity .15s; }
     .row.plain .actions { margin-top:6px; gap:6px 14px; }
     [data-v="great"] { --c:var(--v-great); } [data-v="good"] { --c:var(--v-good); } [data-v="fair"] { --c:var(--v-fair); }
     [data-v="pass"] { --c:var(--v-pass); } [data-v="suspicious"] { --c:var(--v-suspicious); }
@@ -395,6 +396,9 @@
     .row .actions { margin-top:8px; }
     .row { row-gap:0; }
     .row > .row-acts, .row > .row-acts ~ div { grid-column:2 / -1; }
+    /* the links' line doubles as the row's bottom padding, so their reserved space reads as rhythm, not a gap */
+    .list .row:has(> .row-acts) { padding-bottom:6px; }
+    .list .row > .row-acts { margin-top:4px; }
     .row.plain > .row-acts, .row.plain > .row-acts ~ div { grid-column:1 / -1; }
     .row > .row-acts ~ div:empty { display:none; }
     /* With a mouse, a row's links appear when you point at it or Tab into it (like the marks on the cards);
@@ -746,6 +750,7 @@
     wrap.classList.toggle("no-model", !!modelMissing);
     setupCard.hidden = !modelMissing || inWelcome;
     $(".step-key").hidden = !inWelcome;
+    $(".welcome .tip").hidden = !modelMissing;
     if (!modelMissing) return;
     root.querySelectorAll(".setup-title").forEach((el) => (el.textContent = modelMissing[0]));
     root.querySelectorAll(".setup-text").forEach((el) => (el.textContent = modelMissing[1]));
@@ -1037,6 +1042,10 @@
       .second-look-sticker .sl-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
       .second-look-sticker .sl-verdict { font-weight:700; font-size:14px; white-space:nowrap; }
       .second-look-sticker.sl-compact .sl-verdict { display:none; }
+      /* The verdict is written beside the score, so the box needn't say it again and can cover less of the photo.
+         On a narrow card the verdict hides, and the short word comes back under the score. */
+      .second-look-sticker:not(.sl-compact) .sl-score { width:36px; height:36px; }
+      .second-look-sticker:not(.sl-compact) .sl-score i { display:none; }
       .second-look-sticker.sl-compact .sl-text:not(:has(.sl-sub)) { display:none; }
       .second-look-sticker.sl-compact { padding-right:4px; }
       .second-look-sticker .sl-sub { font-size:12px; color:var(--sl-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1380,14 +1389,14 @@
   };
   const stick = (item) => decorate(keyOf(item.url), item.el);
   // "✕ Not interested", shown on any card while you hover it.
-  const hideChip = (key) => h("button", { class: "sl-chip k-plain sl-x", title: "Hide this listing everywhere (undo from the panel)", onclick: own(() => setInterested(key, false)) }, "\u2715 Not interested");
+  const hideChip = (key) => h("button", { class: "sl-chip k-plain sl-x", title: "Hide this listing everywhere (undo from the panel)", onclick: own(() => setInterested(key, false)) }, "Not interested");
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => SL.soldUrl(SL.titleToQuery(title), SL.SOLD_CONDITION.used);
   // What every card offers on hover. A saved listing keeps its star showing.
   const hoverChips = (key, f) => [
     saved[key]
-      ? h("button", { class: "sl-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "\u2605 Saved")
-      : h("button", { class: "sl-chip k-plain sl-x", title: "Keep it under Saved in the panel", onclick: own(() => toggleSave(key)) }, "\u2606 Save"),
+      ? h("button", { class: "sl-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
+      : h("button", { class: "sl-chip k-plain sl-x", title: "Keep it under Saved in the panel", onclick: own(() => toggleSave(key)) }, "Save"),
     f.title ? h("button", { class: "sl-chip k-plain sl-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ];
@@ -2352,6 +2361,8 @@
     const est = cfg.provider !== "ollama" && cfg.scanRate > 0 ? toScore * cfg.scanRate : 0;
     const label = changed ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : toScore ? `Scan ${toScore} listing${toScore > 1 ? "s" : ""}` : "Scan this page";
     scanBtn.replaceChildren(label, est && (changed || n || !seen.size) ? h("span", { class: "cost" }, ` \u00b7 ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}`) : "");
+    // Nothing new to score: the button stays, but steps back so the results lead.
+    scanBtn.className = label === "Scan again" ? "ghost" : "scan";
     scanBtn.title = est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "";
     // The tab's badge, most useful first: listings at your price, then new ones to scan, then scored.
     const deals = dealCount();
@@ -2476,13 +2487,22 @@
     syncFilterToggle();
     if (qfOpen) qfWords.focus();
   });
+  // Done filtering: Enter in a field, or Esc, folds the box away (the button keeps the count); Esc doesn't close the panel.
+  qf.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" && !(e.key === "Enter" && e.target.matches("input"))) return;
+    e.preventDefault();
+    e.stopPropagation();
+    qfOpen = false;
+    syncFilterToggle();
+    qfToggle.focus();
+  });
   onLensShown = () => showQuick();
   const loadQuick = async () => {
     const { quickFilters = {} } = await chrome.storage.local.get("quickFilters");
     const stored = quickFilters[quickKey()] || {};
     quick = { ...NO_QUICK, ...stored, ...(stored.projects && !stored.broken && { broken: "only" }) }; // older "Projects only"
     delete quick.projects;
-    qfOpen = quickActive() || !!quick.deal;
+    qfOpen = false;
     showQuick(true);
   };
   let quickTimer = 0;

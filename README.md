@@ -21,7 +21,9 @@ background.
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
 
 The first time, the panel opens by itself with a three-step welcome (choose Use or Fix & flip, say
-what you want, press Scan); each step is a link that jumps to the right box. **Got it** closes it for
+what you want, press Scan); each step is a link that jumps to the right box. With no model set up
+yet, adding a key is step one, with **Open settings** as the one button, and the controls that need a
+model wait until it's done (comparing sold prices works without one). **Got it** closes it for
 good, and the **?** button in the panel header brings it back.
 
 The panel has two views: **This page** (everything below) and **Saved** (your saved listings and
@@ -57,7 +59,8 @@ S1337". Second Look watches for it:
   Telegram shows a "Likely scam" note, and the analysis is Suspicious whatever the model thought.
   A plain phone number ("call or text") is only a hint.
 
-Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide above the results).
+Suspicious listings are greyed out along with skipped ones (Skips and scams: Show / Dim / Hide, under **Filter**). Dimming fades the card but not its tag or chips, so a
+scam warning stays readable.
 
 ## Everyday use
 
@@ -70,19 +73,22 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
   price, auctions ending soonest, biggest margin, or new and cheaper first.
-- **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide in the
-  bar above the results.
+- **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide under
+  **Filter** (Skips and scams).
+- **A row's links** (Open, Sold, Save, Not interested) appear when you point at it or Tab into it,
+  so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
-  now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Undo.
+  now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Unhide.
 - **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
   seller (copyable), a suggested offer with a ready-to-send message, and a photo check.
-- **✦ Ideas** (next to Save search) suggests other ways to search for what's on the page: the
+- **Ideas** (next to Save search) suggests other ways to search for what's on the page: the
   misspellings sellers make, other model names, tighter or looser words. Click one to run it,
-  ☆ to save it, hover for why. On eBay's front page, "Find searches for what I want" does the same
+  Save to keep it, hover for why. On eBay's front page, "Find searches for what I want" does the same
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Second Look".
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved, Use / Fix & flip and Show / Dim / Hide.
+- **The footer** shows this month's spend; click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
 - **Esc** tucks the panel away; the sliders icon opens settings. On a page Second Look doesn't
   work on, the toolbar icon shows a "?" for a moment instead of opening.
 

@@ -128,6 +128,9 @@
       background:var(--paper); color:var(--ink); border:var(--bw) solid var(--rule); border-right:0; border-radius:var(--r) 0 0 var(--r);
       box-shadow:var(--shadow); cursor:pointer; pointer-events:auto; transition:width .18s ease; }
     .tab:hover { width:40px; }
+    /* Closed, the tab is part of the page: a light page gets a light tab whatever the panel's theme */
+    .wrap[data-page-theme="light"] .tab { ${THEME_LIGHT} background:var(--paper); color:var(--ink); border-color:var(--line); }
+    .wrap[data-page-theme="dark"] .tab { ${THEME_DARK} background:var(--paper); color:var(--ink); border-color:var(--line); }
     .open .tab { width:0; padding:0; border:0; opacity:0; pointer-events:none; box-shadow:none; overflow:hidden; }
     .tab .mark { width:18px; height:18px; }
     .tab .tab-label { writing-mode:vertical-rl; font:600 14px/1 var(--ui); letter-spacing:.01em; }
@@ -137,7 +140,8 @@
     .open .count { display:none; }
 
     /* ---------- panel ---------- */
-    .panel { width:var(--w); max-height:calc(100vh - 48px); display:flex; flex-direction:column; overflow:hidden; margin-right:var(--gap);
+    /* one height for every view, so switching This page / Saved / a listing doesn't move the panel; only the body scrolls */
+    .panel { width:var(--w); height:min(760px, calc(100vh - 48px)); display:flex; flex-direction:column; overflow:hidden; margin-right:var(--gap);
       background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
     .head { display:flex; align-items:center; gap:10px; padding:14px 12px 8px 16px; }
     .nav { display:flex; padding:0 16px; border-bottom:var(--bw) solid var(--rule); }
@@ -146,6 +150,9 @@
     .nav button[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--ink); }
     .nav .cnt { margin-left:5px; font-weight:400; color:var(--muted); }
     .nav .cnt:empty { display:none; }
+    /* how far a scan has got, as a hairline under the tabs (the status says it in words) */
+    .progress { height:2px; margin-top:-2px; position:relative; z-index:3; }
+    .progress i { display:block; height:100%; width:0; background:var(--accent); transition:width .3s ease; }
     .view-saved { padding:12px 16px 16px; display:grid; gap:4px; }
     .other-note { display:none; }
     .wrap[data-page="other"] .other-note { display:block; }
@@ -169,10 +176,10 @@
 
     .body { flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--rule) transparent; }
     .controls { padding:14px 16px 12px; display:grid; grid-template-columns:minmax(0, 1fr); gap:12px; }
-    label { display:block; margin-bottom:6px; color:var(--muted); font:700 11px/1 var(--ui); letter-spacing:.08em; text-transform:uppercase; }
+    label { display:block; margin-bottom:6px; color:var(--muted); font:600 12px/1.2 var(--ui); }
     input { width:100%; padding:9px 11px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; transition:border-color .15s; }
     input::placeholder { color:var(--muted); opacity:.7; }
-    input:focus { outline:none; border-color:var(--ink); }
+    input:focus { outline:2px solid var(--ink); outline-offset:-1px; }
 
     .lens { display:grid; grid-template-columns:repeat(2,1fr); gap:2px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
     .lens button { border:0; border-radius:calc(var(--r-sm) - 2px); background:none; color:var(--muted); font:600 13px/1 var(--ui); padding:8px 0; cursor:pointer; transition:background .15s, color .15s; }
@@ -186,7 +193,7 @@
     .inputs-sum { display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:8px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:12px; color:var(--muted); }
     .inputs-sum b { color:var(--ink); font-weight:600; }
     .inputs-sum .sum-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .inputs-sum button { all:unset; flex:none; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .inputs-sum button { all:unset; flex:none; padding:3px 4px; margin:-3px -4px; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .inputs-sum button:hover { text-decoration-color:currentColor; }
     .inputs-sum button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .browse-note { margin-top:6px; }
@@ -195,17 +202,17 @@
     .scan { background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
       box-shadow:var(--press); cursor:pointer; transition:opacity .15s, transform .08s, box-shadow .08s; }
     .scan:hover:not(:disabled) { opacity:.88; }
-    .scan .cost { font-weight:400; opacity:.75; }
+    .scan .cost, .ghost .cost { font-weight:400; opacity:.75; }
     .scan:disabled { opacity:.55; cursor:progress; }
     .freeprices { margin-top:-4px; text-align:center; color:var(--muted); font-size:12px; }
-    .freeprices button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .freeprices button { all:unset; padding:3px 0; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .freeprices button:hover { text-decoration-color:currentColor; }
     .freeprices button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .status { color:var(--muted); font-size:13px; white-space:pre-line; }
     .statusrow { display:flex; align-items:flex-start; gap:10px; }
     .statusrow .status { flex:1; min-width:0; }
     .statusrow:not(:has(.status:not(:empty), .stopbtn:not([hidden]))) { display:none; }
-    .stopbtn { flex:none; margin-left:auto; border:var(--bw) solid var(--v-suspicious); background:none; color:var(--v-suspicious); border-radius:999px; padding:3px 12px;
+    .stopbtn { flex:none; margin-left:auto; border:var(--bw) solid var(--v-suspicious); background:none; color:var(--v-suspicious); border-radius:999px; padding:4px 12px;
       font:600 12px/1.3 var(--ui); cursor:pointer; }
     .stopbtn:hover:not(:disabled) { background:var(--v-suspicious); color:var(--on-v); }
     .stopbtn:disabled { opacity:.6; cursor:progress; }
@@ -217,12 +224,12 @@
     .actions { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12px; font-weight:600; }
     .actions > * { white-space:nowrap; }
     .controls > .actions:not(:has(:not([hidden]))) { display:none; }
-    .actions a, .actions button { color:var(--ink); background:none; border:0; padding:0; font:inherit; cursor:pointer;
+    .actions a, .actions button { color:var(--ink); background:none; border:0; padding:3px 0; margin:-3px 0; font:inherit; line-height:18px; cursor:pointer;
       text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; text-decoration-thickness:1px; }
     .actions a:hover, .actions button:hover:not(:disabled) { text-decoration-color:currentColor; }
 
     /* footer: model switch and what it's costing */
-    .foot { flex:none; border-top:var(--bw) solid var(--rule); background:var(--paper); }
+    .foot { position:relative; flex:none; border-top:var(--bw) solid var(--rule); background:var(--paper); }
     .foot-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px 8px 14px; }
     .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
     .model-pick { margin:0; display:block; min-width:0; text-transform:none; letter-spacing:normal; }
@@ -231,21 +238,24 @@
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size:4px 4px; background-repeat:no-repeat; }
     .model:focus { outline:none; border-color:var(--ink); }
-    .spend { all:unset; cursor:pointer; color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .spend { all:unset; padding:4px 0; cursor:pointer; color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }
     .spend b { color:var(--ink); font:600 14px/1 var(--mono); font-variant-numeric:lining-nums tabular-nums; }
     .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
     .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
     .budget { height:3px; background:var(--rule); }
     .budget i { display:block; height:100%; width:0; background:var(--ink); transition:width .3s; }
     .budget.warn i { background:var(--v-fair); } .budget.over i { background:var(--v-suspicious); }
-    .spend-detail { padding:12px 14px 4px; font-size:12px; display:grid; gap:8px; border-bottom:var(--bw) solid var(--rule); max-height:40vh; overflow:auto; }
+    .spend-detail { position:absolute; left:8px; right:8px; bottom:calc(100% + 6px); padding:12px 14px 10px; font-size:12px; display:grid; gap:8px; max-height:40vh; overflow:auto;
+      background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
     .sd-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
-    .sd-grid span { display:block; color:var(--muted); font-size:11px; }
+    .sd-grid span { display:block; color:var(--muted); font-size:12px; }
     .sd-grid b { font:600 18px/1.2 var(--mono); font-variant-numeric:lining-nums; }
     .sd-models { display:grid; gap:3px; }
     .sd-models div { display:flex; justify-content:space-between; gap:8px; }
     .sd-models div span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
-    .spend-detail .hint a { color:var(--ink); }
+    .sd-note button { all:unset; padding:3px 0; cursor:pointer; color:var(--ink); text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; }
+    .sd-note button:hover { text-decoration-color:currentColor; }
+    .sd-note button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 
     /* first-run walkthrough */
     .welcome { display:grid; gap:8px; padding:12px 14px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:13px; }
@@ -257,6 +267,16 @@
     .welcome li button:hover { text-decoration-color:var(--ink); }
     .welcome .tip { color:var(--muted); }
     .welcome .go { justify-self:start; }
+    /* No model yet: the key is step 1 and the only call to action; the steps after it are plain text until it's done */
+    .welcome .step-key { display:grid; gap:4px; }
+    .welcome .step-key b { font:600 13px/1.45 var(--ui); }
+    .welcome .step-key .setup-text { color:var(--muted); }
+    .welcome li .setup-go { justify-self:start; margin-top:6px; padding:9px 14px; background:var(--ink); color:var(--on-ink); font:600 13px/1 var(--ui); text-decoration:none; cursor:pointer; pointer-events:auto; }
+    .welcome:has(.step-key:not([hidden])) li:not(.step-key) { color:var(--muted); }
+    .welcome:has(.step-key:not([hidden])) li:not(.step-key)::before { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--line); }
+    .welcome:has(.step-key:not([hidden])) li:not(.step-key) button { color:inherit; text-decoration:none; cursor:default; pointer-events:none; }
+    /* Model-only controls wait until there is a model: Compare prices against and free sold prices still work */
+    .no-model .lenswrap, .no-model .want-field, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
 
     /* first run, list bar */
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:13px; }
@@ -264,11 +284,11 @@
       border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:12px; color:var(--muted); }
     .listbar + .list > .row:first-child { border-top:0; }
     .sortpick { display:flex; align-items:center; gap:6px; margin:0; font:inherit; letter-spacing:normal; text-transform:none; color:var(--muted); }
-    .sort { field-sizing:content; max-width:190px; appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 12px/1 var(--ui); padding:4px 14px 4px 0; cursor:pointer;
+    .sort { field-sizing:content; max-width:190px; appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 12px/1 var(--ui); padding:6px 14px 6px 0; cursor:pointer;
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 6px) 55%, calc(100% - 2px) 55%; background-size:4px 4px; background-repeat:no-repeat; }
     .sort:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    .skipwrap { display:flex; align-items:center; gap:6px; }
+    .skipwrap { display:flex; align-items:center; gap:8px; }
     .qf { flex:1 1 100%; order:5; display:grid; gap:6px; margin-bottom:4px; }
     .qf[hidden] { display:none; }
     .qf-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
@@ -284,15 +304,15 @@
     .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 12px/1 var(--ui); letter-spacing:normal; text-transform:none; }
     .qf-deal input { width:62px; }
     .qf-deal:has(input:not(:placeholder-shown)) input { border-color:var(--accent); }
-    .qf-clear { position:absolute; right:3px; top:50%; transform:translateY(-50%); width:22px; height:22px; display:grid; place-items:center; border:0; border-radius:var(--r-sm);
+    .qf-clear { position:absolute; right:2px; top:50%; transform:translateY(-50%); width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:var(--r-sm);
       background:none; color:var(--muted); font:16px/1 var(--ui); cursor:pointer; }
     .qf-clear:hover { background:var(--paper-2); color:var(--ink); }
     .qf.on .qf-words, .qf.on .qf-price input:not(:placeholder-shown) { border-color:var(--ink); }
-    .skipwrap .seg button { padding:4px 8px; }
+    .skipwrap .seg button { padding:6px 8px; }
 
     /* what's on this page */
     .pageinfo { font-size:13px; color:var(--muted); }
-    .pi-reset { all:unset; cursor:pointer; color:var(--muted); font-weight:400; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .pi-reset { all:unset; padding:3px 0; cursor:pointer; color:var(--muted); font-weight:400; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .actions .pi-reset { color:var(--muted); font-weight:400; }
     .pi-reset:hover, .actions .pi-reset:hover { color:var(--ink); text-decoration-color:currentColor; }
     .pageinfo .chips { margin-top:8px; }
@@ -308,11 +328,11 @@
     .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
     .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
-    .seg button { border:0; background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:5px 10px; border-radius:calc(var(--r-sm) - 2px); cursor:pointer; }
+    .seg button { border:0; background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:6px 10px; border-radius:calc(var(--r-sm) - 2px); cursor:pointer; }
     .seg button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-    .fchip { font-size:11px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
+    .fchip { font-size:12px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
     .fchip.k-new { background:var(--accent); color:var(--on-accent); } .fchip.k-good { background:var(--v-great); color:var(--on-v); } .fchip.k-warn { background:var(--v-suspicious); color:var(--on-v); }
     .fchip.k-plain { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--rule); }
     .fchip.k-deal { background:var(--accent); color:var(--on-accent); }
@@ -322,19 +342,20 @@
 
     /* sold prices */
     .market { font-size:12px; }
+    .market:empty { display:none; }
     .market:not(:empty) { background:var(--paper-2); padding:11px 12px; border-radius:var(--r-sm); }
     .market:has(> .mnote:only-child) { padding:7px 10px; color:var(--muted); font-size:12px; }
     .mnote a { color:var(--ink); font-weight:600; text-underline-offset:3px; }
     .mgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); gap:12px; }
-    .mlabel { color:var(--muted); font-size:11px; }
+    .mlabel { color:var(--muted); font-size:12px; }
     .mval { display:block; font:600 22px/1.15 var(--mono); font-variant-numeric:lining-nums; margin:2px 0 1px; }
-    .msub { color:var(--muted); font-size:11px; }
+    .msub { color:var(--muted); font-size:12px; }
     .comps { margin-top:8px; }
     .comps summary { cursor:pointer; color:var(--ink); font-weight:600; font-size:12px; list-style:none; }
     .comps summary::-webkit-details-marker { display:none; }
     .comps summary::before { content:"+ "; color:var(--muted); }
     .comps[open] summary::before { content:"\\2212  "; }
-    .comps b { display:block; margin:8px 0 2px; color:var(--muted); font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+    .comps b { display:block; margin:8px 0 2px; color:var(--muted); font-size:12px; font-weight:600; }
     .comps ul { list-style:none; margin:0; padding:0; }
     .comps li a { display:flex; gap:10px; padding:3px 0; color:var(--ink); text-decoration:none; }
     .comps li a:hover .ct { text-decoration:underline; }
@@ -351,6 +372,8 @@
     .tag { --c:var(--v-fair); width:46px; height:46px; border:1.5px solid var(--c); border-radius:var(--r-sm); display:grid; place-content:center; text-align:center; line-height:1; }
     .tag span { font:700 18px/1 var(--mono); color:var(--c); font-variant-numeric:tabular-nums; }
     .tag i { display:block; margin-top:3px; font:700 10px/1 var(--ui); font-style:normal; letter-spacing:.06em; text-transform:uppercase; color:var(--c); }
+    .list .tag, .itemout .tag { height:34px; }
+    .list .tag i, .itemout .tag i { display:none; }
     .row.plain { padding:12px 0; grid-template-columns:minmax(0,1fr) auto; }
     .pr { text-align:right; font:700 15px/1.35 var(--mono); font-variant-numeric:tabular-nums; }
     .pr.deal { color:var(--accent); }
@@ -360,7 +383,7 @@
     .row.plain .actions { margin-top:6px; gap:6px 14px; }
     [data-v="great"] { --c:var(--v-great); } [data-v="good"] { --c:var(--v-good); } [data-v="fair"] { --c:var(--v-fair); }
     [data-v="pass"] { --c:var(--v-pass); } [data-v="suspicious"] { --c:var(--v-suspicious); }
-    .title { display:block; background:none; border:0; padding:0; color:var(--ink); font:600 15px/1.35 var(--ui); text-align:left; cursor:pointer; }
+    .title { display:block; background:none; border:0; padding:2px 0; margin:-2px 0; color:var(--ink); font:600 15px/1.35 var(--ui); text-align:left; cursor:pointer; }
     button.title:hover { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
     .verdict { color:var(--c); font-weight:600; }
     .meta { color:var(--muted); font-size:13px; margin-top:3px; }
@@ -368,8 +391,18 @@
     .lensinfo.neg { color:var(--v-suspicious); }
     .reason { margin-top:6px; font-size:13px; }
     .flags { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
-    .flag { font-size:11px; padding:1px 8px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
+    .flag { font-size:12px; padding:1px 8px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
     .row .actions { margin-top:8px; }
+    .row { row-gap:0; }
+    .row > .row-acts, .row > .row-acts ~ div { grid-column:2 / -1; }
+    .row.plain > .row-acts, .row.plain > .row-acts ~ div { grid-column:1 / -1; }
+    .row > .row-acts ~ div:empty { display:none; }
+    /* With a mouse, a row's links appear when you point at it or Tab into it (like the marks on the cards);
+       the space stays, so nothing moves. A saved listing keeps its star. Touch screens always show them. */
+    @media (hover:hover) {
+      .list .row:not(:hover):not(:focus-within) .row-acts > :not(.on) { visibility:hidden; }
+      .row-acts > .on { order:-1; } /* so a lone "Saved" sits at the start, not in a gap */
+    }
     /* in the list, actions stay quiet so titles and prices lead */
     .list .actions a, .list .actions button { color:var(--muted); font-weight:400; text-decoration-color:var(--line); }
     .list .actions a:hover, .list .actions button:hover:not(:disabled) { color:var(--ink); text-decoration-color:currentColor; }
@@ -382,28 +415,31 @@
     .ghost:hover:not(:disabled) { background:var(--ink); color:var(--on-ink); }
     .ghost:disabled { opacity:.55; cursor:progress; }
     .ideas-list:empty { display:none; }
-    .saved-body .sub { display:block; margin:4px 0 0; color:var(--muted); font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+    .saved-body .sub { display:block; margin:4px 0 0; color:var(--muted); font-size:12px; font-weight:600; }
     .srow { display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--rule); }
     .sub + .srow { border-top:0; }
     .srow > div { flex:1; min-width:0; }
-    .srow a { color:var(--ink); font-weight:600; text-decoration:none; overflow-wrap:anywhere; }
+    .srow a { padding:3px 0; color:var(--ink); font-weight:600; text-decoration:none; overflow-wrap:anywhere; }
     .srow a:hover { text-decoration:underline; text-underline-offset:3px; }
     .srow .meta { margin-top:1px; }
     .srow .down { color:var(--v-great); font-weight:600; }
-    .unhide { flex:none; border:var(--bw) solid var(--line); background:none; color:var(--ink); border-radius:999px; padding:2px 10px; font:600 12px/1.4 var(--ui); cursor:pointer; }
-    .unhide:hover { border-color:var(--ink); }
     .sv-acts { margin:4px 0 10px; }
     .view-saved .sub { margin-top:10px; }
     .view-saved .sub:first-of-type { margin-top:0; }
     .sx { flex:none; width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); font:16px/1 var(--ui); cursor:pointer; }
     .sx:hover { background:var(--paper-2); color:var(--ink); }
+    /* one quiet text action at the end of every Saved row: Remove, or Unhide */
+    .srow-act { flex:none; padding:3px 0; border:0; background:none; color:var(--muted); font:400 12px/18px var(--ui); cursor:pointer;
+      text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; }
+    .srow-act:hover { color:var(--ink); text-decoration-color:currentColor; }
+    .actions button.on, .srow-act.on { color:var(--ink) !important; font-weight:600 !important; text-decoration:none; }
     .idea { display:block; padding:10px 0; border-top:1px solid var(--rule); color:var(--ink); text-decoration:none; animation:fade .25s ease both; }
     .idea:hover .q { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
-    .kind { color:var(--muted); font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+    .kind { color:var(--muted); font-size:12px; font-weight:600; }
     .idea .q { font:600 15px/1.3 var(--ui); margin-top:2px; word-break:break-word; }
     .idea .why { color:var(--muted); font-size:12px; margin-top:2px; }
     .idea .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-    .chip { font-size:11px; padding:1px 7px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
+    .chip { font-size:12px; padding:1px 7px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
 
     /* one listing */
     .sect { margin-top:12px; padding-top:12px; border-top:var(--bw) solid var(--rule); font-size:13px; }
@@ -420,9 +456,10 @@
 
     .panel:focus { outline:none; } /* focus lands on the panel itself when it opens; the controls inside show their own ring */
     button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    input:focus-visible { outline-offset:-1px; }
 
 
-    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .idea, .count, .busy .status::before { transition:none !important; animation:none !important; } }
+    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .idea, .count, .progress i, .busy .status::before { transition:none !important; animation:none !important; } }
   </style>
   <div class="wrap">
    <div class="drawer">
@@ -442,6 +479,7 @@
         <button role="tab" data-view="page" aria-selected="true">This page</button>
         <button role="tab" data-view="saved" aria-selected="false">Saved<span class="cnt"></span></button>
       </div>
+      <div class="progress" hidden aria-hidden="true"><i></i></div>
       <div class="body">
       <div class="view view-page">
       <div class="controls">
@@ -449,6 +487,8 @@
         <div class="welcome" hidden>
           <b>Welcome to Second Look</b>
           <ol>
+            <li class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
+              <button class="scan setup-go" data-act="open-settings">Open settings</button></li>
             <li><button data-step="lens">Choose what you're buying for</button>: Use, or Fix &amp; flip.</li>
             <li><button data-step="want">Say what you want</button>, like "working, with charger". Optional.</li>
             <li><button data-step="scan">Press Scan</button> and every listing gets a score and a reason.</li>
@@ -456,6 +496,8 @@
           <div class="tip">No key yet? The free marks still work: hover a card for scam checks, <i>Save</i> and <i>Sold</i> prices.</div>
           <button class="ghost go" data-act="intro-done">Got it</button>
         </div>
+        <div class="setup" hidden><b class="setup-title">Add a Claude API key to start.</b> <span class="setup-text">It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings.</span>
+          <button class="scan" data-act="open-settings">Open settings</button></div>
         <div class="lenswrap">
           <label class="lens-label" id="lens-label">Buying to</label>
           <div class="lens" role="radiogroup" aria-labelledby="lens-label">
@@ -464,13 +506,11 @@
           <div class="hint lens-hint"></div>
         </div>
         <div class="inputs">
-        <div><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
+        <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
-        <div class="setup" hidden><b class="setup-title">Add a Claude API key to start.</b> <span class="setup-text">It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings.</span>
-          <button class="ghost" data-act="open-settings">Open settings</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
         <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
@@ -492,11 +532,11 @@
             <button class="qt qt-broken" aria-pressed="false"></button>
             <label class="qf-deal" title="Your price for this search">Deal at \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
           </div>
+          <div class="qf-row skipwrap" title="Listings judged Skip or Suspicious, and likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
         </div>
         <label class="sortpick">Sort <select class="sort">
           <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest under sold price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest margin</option><option value="new">new or cheaper first</option>
         </select></label>
-        <div class="skipwrap" title="Listings judged Skip or Suspicious"><span>Skipped</span><div class="seg" role="radiogroup" aria-label="Skipped and suspicious listings"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
       </div>
       <div class="list"></div>
       <div class="itemout"></div>
@@ -624,6 +664,12 @@
   });
 
   const setStatus = (...a) => setStatusNow(...a);
+  // The hairline under the tabs; showProgress(null) takes it away.
+  const progressEl = $(".progress");
+  const showProgress = (done, total) => {
+    progressEl.hidden = done == null || !total;
+    if (!progressEl.hidden) progressEl.firstChild.style.width = `${Math.max(4, (done / total) * 100)}%`;
+  };
 
   // Open/closed: the tab is always there; the panel slides out when you pull the tab.
   let touched = false; // the user (or the toolbar icon) has opened/closed it on this page
@@ -691,9 +737,25 @@
   };
   const openSettings = () => send("openOptions").catch(() => {});
   $('[data-act="settings"]').addEventListener("click", openSettings);
-  $('[data-act="open-settings"]').addEventListener("click", openSettings);
+  root.querySelectorAll('[data-act="open-settings"]').forEach((b) => b.addEventListener("click", openSettings));
+  // What's missing before the model can run ([title, text]), or null. With the welcome open it is the
+  // welcome's first step, so first run is one card; otherwise it is a card of its own.
+  let modelMissing = null;
+  const placeSetup = () => {
+    const inWelcome = !!modelMissing && !$(".welcome").hidden;
+    wrap.classList.toggle("no-model", !!modelMissing);
+    setupCard.hidden = !modelMissing || inWelcome;
+    $(".step-key").hidden = !inWelcome;
+    if (!modelMissing) return;
+    root.querySelectorAll(".setup-title").forEach((el) => (el.textContent = modelMissing[0]));
+    root.querySelectorAll(".setup-text").forEach((el) => (el.textContent = modelMissing[1]));
+  };
   root.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && wrap.classList.contains("open")) setOpen(false);
+    if (e.key !== "Escape" || !wrap.classList.contains("open")) return;
+    if (!spendDetail.hidden) {
+      showSpend(false);
+      spendBtn.focus();
+    } else setOpen(false);
   });
 
   modelSel.addEventListener("change", async () => {
@@ -760,22 +822,24 @@
             rest >= 0.005 ? h("div", {}, h("span", {}, "Not split by model"), h("span", {}, usd(rest))) : null
           )
         : h("div", { class: "hint" }, "Nothing spent on paid AI this month."),
+      // One line here; how it is counted, the budget and the reset are in settings.
       h(
         "div",
-        { class: "hint" },
-        budget
-          ? `Budget: $${budget} a month, ${Math.round(share * 100)}% used. Paid AI stops when it's reached. `
-          : "No monthly budget set; you can set one in settings. ",
-        "Claude is estimated from token counts at list price (your real balance is at ",
-        h("a", { href: "https://console.anthropic.com/settings/billing", target: "_blank", rel: "noopener" }, "console.anthropic.com"),
-        "); OpenRouter reports its own costs; other services count at the prices you entered in settings."
+        { class: "hint sd-note" },
+        budget ? `${Math.round(share * 100)}% of your $${budget} budget. ` : "Estimates, no budget set. ",
+        h("button", { onclick: openSettings }, "Budget and how it's counted")
       )
     );
   };
-  spendBtn.addEventListener("click", () => {
-    spendDetail.hidden = !spendDetail.hidden;
-    spendBtn.setAttribute("aria-expanded", String(!spendDetail.hidden));
+  const showSpend = (show) => {
+    spendDetail.hidden = !show;
+    spendBtn.setAttribute("aria-expanded", String(show));
     renderSpend(lastUsage);
+  };
+  spendBtn.addEventListener("click", () => showSpend(spendDetail.hidden));
+  // It's a popover: a click anywhere else in the panel, or Esc, closes it.
+  root.addEventListener("click", (e) => {
+    if (!spendDetail.hidden && !e.composedPath().some((n) => n === spendDetail || n === spendBtn)) showSpend(false);
   });
   const loadFooter = async () => {
     try {
@@ -792,13 +856,8 @@
         : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
-    setupCard.hidden = !missing;
-    // No model yet: that is the one thing to do first, so it sits above the welcome card.
-    if (missing) setupCard.parentElement.insertBefore(setupCard, welcome);
-    if (missing) {
-      $(".setup-title").textContent = missing[0];
-      $(".setup-text").textContent = missing[1];
-    }
+    modelMissing = missing;
+    placeSetup();
     renderSpend((await chrome.storage.local.get("usage")).usage);
   };
   loadFooter();
@@ -814,6 +873,7 @@
   const welcome = $(".welcome");
   const showIntro = (show) => {
     welcome.hidden = !show;
+    placeSetup();
     if (show) setView("page");
   };
   $('[data-act="intro-done"]').addEventListener("click", () => {
@@ -947,7 +1007,9 @@
   const syncPageTheme = () => {
     const t = pageIsDark() ? "dark" : "light";
     if (document.documentElement.dataset.slTheme !== t) document.documentElement.dataset.slTheme = t;
+    wrap.dataset.pageTheme = t; // the closed tab takes the page's colours, like the marks on the cards
   };
+  syncPageTheme();
   const ensureStickerStyles = () => {
     syncPageTheme();
     if (document.getElementById("second-look-styles")) return;
@@ -1002,8 +1064,11 @@
       /* listings you've hidden, filtered out, or (by choice) skipped */
       html:not([data-sl-showhidden]) [data-sl-hide] { display:none !important; }
       html[data-sl-showhidden] [data-sl-hide] { opacity:.45; }
-      html[data-sl-skip="dim"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]) { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
-      html[data-sl-skip="dim"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]):hover { opacity:1; filter:none; }
+      /* Dim fades the card but not its tag or chips: a scam warning stays the most legible thing on it.
+         The fade goes on the biggest parts of the card that hold no tag, so it never stacks. */
+      html[data-sl-skip="dim"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]):not(:hover):has(.second-look-sticker, .second-look-marks) > :not(:has(.second-look-sticker, .second-look-marks)):not(.second-look-sticker, .second-look-marks),
+      html[data-sl-skip="dim"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]):not(:hover) :has(.second-look-sticker, .second-look-marks) > :not(:has(.second-look-sticker, .second-look-marks)):not(.second-look-sticker, .second-look-marks)
+        { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
       html[data-sl-skip="hide"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]) { display:none !important; }
       /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering */
       [data-sl-cell]:has(.second-look-sticker:hover, .second-look-marks:hover) { position:relative; z-index:2147483000 !important; }
@@ -1412,7 +1477,7 @@
     $(".saved-body").replaceChildren(
       ...[
             !items.length && !searches.length
-              ? h("div", { class: "hint" }, "Hover any card and press \u2606 Save to keep it here, or save a search from the actions under the Scan button. Both sites, kept in this browser. Prices update whenever the listing is on your screen again.")
+              ? h("div", { class: "hint" }, "Hover any card and press Save to keep it here, or save a search from the actions under the Scan button. Both sites, kept in this browser. Prices update whenever the listing is on your screen again.")
               : null,
             items.length ? h("b", { class: "sub" }, `Listings \u00b7 ${items.length}`) : null,
             ...items.map(([k, r]) =>
@@ -1420,7 +1485,7 @@
                 "div",
                 { class: "srow" },
                 h("div", {}, h("a", { href: r.u, target: "_blank", rel: "noopener" }, r.t || r.u), h("div", { class: "meta" }, priceLine(k, r))),
-                h("button", { class: "sx", title: "Remove from Saved", "aria-label": "Remove from Saved", onclick: () => removeStored("saved", k) }, "\u00d7")
+                h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove")
               )
             ),
             items.length ? h("div", { class: "actions sv-acts" }, copy) : null,
@@ -1438,7 +1503,7 @@
                     r.deal ? h("span", { class: r.deals ? "down" : "" }, ` \u00b7 ${r.deals || "none"} at your $${r.deal}`) : "",
                   ])
                 ),
-                h("button", { class: "sx", title: "Remove this search", "aria-label": "Remove this search", onclick: () => removeStored("savedSearches", k) }, "\u00d7")
+                h("button", { class: "srow-act", title: "Remove this search", onclick: () => removeStored("savedSearches", k) }, "Remove")
               )
             ),
             searches.length > 1
@@ -1461,7 +1526,7 @@
                 "div",
                 { class: "srow" },
                 h("div", {}, h("a", { href: itemUrl(k), target: "_blank", rel: "noopener" }, r.t || itemUrl(k)), h("div", { class: "meta" }, `${siteName(k)} \u00b7 hidden ${shortDate(r.a)}`)),
-                h("button", { class: "unhide", title: "Show this listing again", onclick: () => setInterested(k, true) }, "Undo")
+                h("button", { class: "srow-act", title: "Show this listing again", onclick: () => setInterested(k, true) }, "Unhide")
               )
             ),
             hidden.length > 40 ? h("div", { class: "hint" }, `and ${hidden.length - 40} older`) : null,
@@ -1804,7 +1869,7 @@
         const known = chipsFor(f)
           .filter(([, t]) => !/^Auction|^Lot of|% of sold$/.test(t))
           .map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
-        const saveBtn = h("button", { onclick: () => toggleSave(key) }, saved[key] ? "\u2605 Saved" : "\u2606 Save");
+        const saveBtn = h("button", { class: saved[key] ? "on" : null, onclick: () => toggleSave(key) }, saved[key] ? "Saved" : "Save");
         const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
         // Not scored (yet): the price is the headline, with what's known for free.
         if (it.score == null) {
@@ -1827,17 +1892,17 @@
                   const line = `${bits}${vs}${each}`.replace(/^ \u00b7 /, "");
                   return line ? h("div", { class: "meta" }, line) : null;
                 })(),
-                known.length ? h("div", { class: "flags" }, known) : null,
-                h(
-                  "div",
-                  { class: "actions" },
-                  h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
-                  h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
-                  saveBtn,
-                  hideBtn
-                )
+                known.length ? h("div", { class: "flags" }, known) : null
               ),
-              h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`)
+              h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
+              h(
+                "div",
+                { class: "actions row-acts" },
+                h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
+                h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
+                saveBtn,
+                hideBtn
+              )
             )
           );
           return;
@@ -1865,19 +1930,20 @@
               (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` \u00b7 ${it.fault}` : "")) : null,
               h("div", { class: "reason" }, it.reason || ""),
               // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
-              known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null,
-              h(
-                "div",
-                { class: "actions" },
-                h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
-                it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
-                it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Ask the model to look at the photo (changes the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
-                saveBtn,
-                hideBtn
-              ),
-              box
+              known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null
             ),
-            h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`)
+            h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
+            // Actions and photo notes run under the price too, so the four links fit on one line.
+            h(
+              "div",
+              { class: "actions row-acts" },
+              h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
+              it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
+              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Ask the model to look at the photo (changes the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
+              saveBtn,
+              hideBtn
+            ),
+            box
           )
         );
       });
@@ -2346,9 +2412,9 @@
     piSearch.replaceChildren(
       ...(q
         ? [
-            h("button", { onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "\u2605 Saved search" : "\u2606 Save search"),
+            h("button", { class: savedSearches[searchKey(q)] ? "on" : null, onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "Saved search" : "Save search"),
             h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, SL.currentSite() === "ebay" ? "Try on Marketplace \u2197" : "Try on eBay \u2197"),
-            h("button", { onclick: getIdeas, title: "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)" }, "\u2726 Ideas"),
+            h("button", { onclick: getIdeas, title: "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)" }, "Ideas"),
           ]
         : []),
       resetBtn
@@ -2618,6 +2684,7 @@
       // Online services handle a few requests at once; a model on your own computer is fastest one at a time.
       const parallel = settings.provider === "ollama" || (settings.provider === "openai" && /localhost|127\.0\.0\.1/.test(settings.oaiUrl)) ? 1 : 3;
       let done = fromMemory + scams;
+      showProgress(done, items.length);
       setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${model}…`);
       const errors = await runBatches(batches, parallel, async (batch) => {
         const payload = batch.map(({ el, ...rest }) => rest); // DOM nodes can't be sent
@@ -2647,6 +2714,7 @@
           stick(it);
         }
         done += batch.length;
+        showProgress(done, items.length);
         render();
         if (done < items.length) setStatus(`Ranked ${done} of ${items.length} listings with ${model}…`);
       });
@@ -2677,6 +2745,7 @@
       else setStatus(e.message, true);
     } finally {
       scanning = false;
+      showProgress(null);
       setBusy(false);
       scanBtn.disabled = false;
       refreshPending();
@@ -2687,10 +2756,20 @@
 
   // When a scan finishes, bring the results up under the status line: on a short window the controls
   // above would otherwise leave no result in view. Never scrolls back up if you were already further down.
+  // After an error it does the opposite: the message and the button to try again both come into view.
   const showResults = () => {
-    if (view !== "page" || listBar.hidden) return;
+    if (view !== "page") return;
     const body = $(".body");
-    const top = body.scrollTop + $(".statusrow").getBoundingClientRect().top - body.getBoundingClientRect().top;
+    const at = (el) => body.scrollTop + el.getBoundingClientRect().top - body.getBoundingClientRect().top;
+    const row = $(".statusrow");
+    if (statusEl.classList.contains("err")) {
+      const btn = scanBtn.hidden ? analyzeBtn : scanBtn;
+      const end = at(row) + row.offsetHeight + 12;
+      body.scrollTop = btn.hidden || end - (at(btn) - 12) > body.clientHeight ? end - body.clientHeight : at(btn) - 12;
+      return;
+    }
+    if (listBar.hidden) return;
+    const top = at(row) - 8;
     if (body.scrollTop < top) body.scrollTop = top;
   };
   scanBtn.addEventListener("click", scan);
@@ -2806,6 +2885,16 @@
     const pastLine = past && !itemEl.childElementCount
       ? h("div", {}, h("b", {}, `${past.score} \u00b7 ${VERDICT[past.verdict]?.label || past.verdict}`), ` on ${shortDate(past.at)}${past.m ? ` with ${nameOf(past.m)}` : ""}${past.p != null && f.price != null && past.p !== priceOf(f) ? ` (the price was ${dollars(past.p)} then)` : ""}${past.reason ? `: ${past.reason}` : "."}`)
       : "";
+    const acts = h(
+      "div",
+      { class: "actions pi-acts" },
+      f.hidden ? h("span", {}, "Marked not interested") : null,
+      h("button", { class: sv ? "on" : null, onclick: () => toggleSave(f.key) }, sv ? "Saved" : "Save"),
+      h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested"),
+      h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197")
+    );
+    const slot = itemEl.querySelector(".item-acts");
+    slot?.replaceChildren(acts);
     piLine.replaceChildren(
       pastLine,
       scam ? h("div", { class: "scamnote" }, h("b", {}, "Likely scam. "), scam) : "",
@@ -2813,18 +2902,12 @@
       history ? h("div", {}, history) : "",
       sv?.p0 != null && f.price != null && f.price !== sv.p0 ? h("div", {}, `Saved on ${shortDate(sv.a0)} at ${dollars(sv.p0)}.`) : "",
       chips.length ? h("div", { class: "chips" }, chips) : "",
-      h(
-        "div",
-        { class: "actions pi-acts" },
-        f.hidden ? h("span", {}, "Marked not interested") : null,
-        h("button", { onclick: () => toggleSave(f.key) }, sv ? "\u2605 Saved" : "\u2606 Save"),
-        h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested"),
-        h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197")
-      )
+      slot ? "" : acts
     );
     piSearch.replaceChildren();
     listBar.hidden = true;
-    pageInfo.hidden = false;
+    // With the actions under the result, there may be nothing left to say here: no empty gap.
+    pageInfo.hidden = !piLine.textContent.trim() && !piLine.querySelector("button, a");
   };
 
   const renderItem = (listing, r, market) => {
@@ -2850,7 +2933,8 @@
           h("div", { class: "meta" }, `${priceStr(listing)}${vs}`),
           h("div", { class: "reason" }, r.summary || ""),
           r.photoAdjust ? h("div", { class: r.photoAdjust < 0 ? "adjust" : "adjust up" }, `Photo check ${signed(r.photoAdjust)} (was ${r.baseScore})`) : null,
-          r.flags?.length ? h("div", { class: "flags" }, r.flags.slice(0, 5).map((f) => h("span", { class: "flag" }, f))) : null
+          r.flags?.length ? h("div", { class: "flags" }, r.flags.slice(0, 5).map((f) => h("span", { class: "flag" }, f))) : null,
+          h("div", { class: "item-acts" }) // Save / Not interested / Sold, filled by renderItemInfo
         )
       ),
     ];
@@ -2931,6 +3015,7 @@
       parts.push(h("div", { class: "sect" }, h("div", { class: "actions" }, btn, lensLink), photoBox));
     }
     itemEl.replaceChildren(...parts);
+    renderItemInfo();
   };
 
   // An analysis is kept like a scan score, so the listing's card in any search shows it too.
@@ -3010,9 +3095,10 @@
       saveAnalysis(listing, r);
       renderItem(listing, r, market);
       setCount(1);
-      analyzeBtn.textContent = "Analyze again";
+      analyzeBtn.className = "ghost";
+      analyzeBtn.replaceChildren("Analyze again", settings.provider === "anthropic" && r.cost ? h("span", { class: "cost" }, ` \u00b7 last one ${fmtCost(r.cost)}`) : "");
       editingInputs = false;
-      setStatus(settings.provider === "anthropic" && r.cost ? `Cost ${fmtCost(r.cost)}.` : "");
+      setStatus("");
     } catch (e) {
       if (isStop(e)) setStatus("Stopped. Nothing was analyzed.");
       else setStatus(e.message, true);
@@ -3094,8 +3180,9 @@
     savedSearches = await writeStored("savedSearches", (st) => {
       st[k] ||= { site: SL.currentSite(), q: idea.query, url: SL.searchUrl(idea), a0: Date.now(), v: 0, n: 0, fresh: 0 };
     });
-    btn.textContent = "\u2605";
-    btn.title = "Saved under Saved";
+    btn.textContent = "Saved";
+    btn.classList.add("on");
+    btn.title = "Kept under Saved";
     renderSaved();
   };
   const getIdeas = async () => {
@@ -3125,7 +3212,7 @@
       if (!ideas.length) throw new Error("No ideas this time. Try describing what you want.");
       ideas.slice(0, 6).forEach((idea) => {
         const extra = [idea.maxPrice > 0 && `up to $${idea.maxPrice}`, idea.newest && "newest first"].filter(Boolean).join(", ");
-        const star = h("button", { class: "sx", title: "Save this search", "aria-label": "Save this search" }, "\u2606");
+        const star = h("button", { class: "srow-act", title: "Keep this search under Saved" }, "Save");
         star.addEventListener("click", () => saveIdea(idea, star));
         // A real link: click to search here, ctrl/middle-click for a new tab. Why it's suggested is on hover.
         ideasList.append(
@@ -3139,8 +3226,8 @@
         );
       });
       ideasStatus.textContent = want
-        ? `Searches for what you want (\u201c${want.length > 50 ? want.slice(0, 47) + "\u2026" : want}\u201d). Hover one for why; \u2606 saves it.`
-        : `Other ways to search, from the ${titles.length || "current"} results here. Hover one for why; \u2606 saves it.`;
+        ? `Searches for what you want (\u201c${want.length > 50 ? want.slice(0, 47) + "\u2026" : want}\u201d). Hover one for why; Save keeps it.`
+        : `Other ways to search, from the ${titles.length || "current"} results here. Hover one for why; Save keeps it.`;
     } catch (e) {
       ideasStatus.classList.toggle("err", !isStop(e));
       ideasStatus.textContent = isStop(e) ? "Stopped." : e.message;
@@ -3204,6 +3291,7 @@
       editingInputs = false;
       freeRow.hidden = true;
       analyzeBtn.textContent = "Analyze this listing";
+      analyzeBtn.className = "scan";
       clearStickers();
       facts = new Map();
       passKeys = new Set();

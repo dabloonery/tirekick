@@ -1,20 +1,40 @@
 // Second Look — background service worker.
 // Everything that talks to the outside world lives here:
-//   1. your local Ollama server (text ranking + optional photo check)
+//   1. the model: the Claude API, or your local Ollama server (ranking, analysis, ideas, photo checks)
 //   2. listing photos (fetched and base64-encoded for the vision model)
-//   3. eBay sold listings (used as a market-price reference)
+//   3. eBay sold listings when you're on Facebook (through an open eBay tab when there is one;
+//      on eBay the page fetches them itself)
 // Content scripts send messages; this file answers them.
 
 const DEFAULTS = {
-  provider: "anthropic", // "anthropic" (Claude API) or "ollama" (local)
+  theme: "match", // match the browser (dark if it does not say), or "dark" / "light"
+  provider: "anthropic", // "anthropic" (Claude API), "openai" (any OpenAI-compatible service) or "ollama" (local)
   anthropicKey: "",
-  anthropicModel: "claude-opus-5-5",
+  anthropicModel: "claude-sonnet-5-5", // Scoring is a simple task; Opus stays a menu choice for when you want it
   anthropicUrl: "https://api.anthropic.com", // only changed for testing
+  // Any service that speaks the OpenAI chat API: OpenAI, Gemini, OpenRouter, DeepSeek, Mistral, xAI, LM Studio...
+  oaiPreset: "openrouter",
+  oaiUrl: "https://openrouter.ai/api/v1",
+  oaiKey: "",
+  oaiModel: "",
+  oaiVisionModel: "", // blank = the same model
+  oaiPriceIn: 0, // $ per million tokens, for spend tracking where the service doesn't report cost (0 = not tracked)
+  oaiPriceOut: 0,
   ollamaUrl: "http://localhost:11434",
   textModel: "qwen3:4b",
   visionModel: "moondream",
   batchSize: 10,
   useSoldComps: true,
+  lens: "use", // "use" (buy to use it yourself) or "project" (fix & flip)
+  feePct: 13.6, // eBay fees as % of the sale, for flip margins
+  interests: "Electronics, older and retro tech, video games and consoles, anything with an active homebrew scene.",
+  // Filters and seller rules: plain checks, no AI. Hidden listings are never sent to the model.
+  hideWords: "replica, reproduction, repro, box only, empty box, manual only, case only, photo only, picture only",
+  needWords: "",
+  minSellerRatings: 10,
+  minSellerPct: 97,
+  autoMarks: true, // chips on cards before any scan: new to you, price drops, warnings
+  monthlyBudget: 0, // dollars; 0 = no budget. Claude calls stop once this month's estimated spend reaches it
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
 };
 
@@ -23,9 +43,25 @@ async function getSettings() {
   return { ...DEFAULTS, ...stored };
 }
 
+// fetch with a deadline, so a hung server shows an error instead of spinning forever. opts.signal
+// is the Stop button (see "Stopping" below).
+const STOPPED = "Stopped.";
+async function fetchWithTimeout(url, opts, ms, slowMsg) {
+  const stop = opts.signal;
+  try {
+    return await fetch(url, { ...opts, signal: stop ? AbortSignal.any([AbortSignal.timeout(ms), stop]) : AbortSignal.timeout(ms) });
+  } catch (e) {
+    if (stop?.aborted) throw new Error(STOPPED);
+    if (e.name === "TimeoutError") throw new Error(slowMsg);
+    throw e;
+  }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 // ---------- Ollama ----------
 
-async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
+async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
   const { ollamaUrl } = await getSettings();
   const body = {
     model,
@@ -41,12 +77,14 @@ async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
 
   let res;
   try {
-    res = await fetch(`${ollamaUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    res = await fetchWithTimeout(
+      `${ollamaUrl}/api/chat`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal },
+      5 * 60 * 1000,
+      `Ollama took over 5 minutes on "${model}". Lower "Listings per request" or try a smaller model.`
+    );
   } catch (e) {
+    if (/Ollama took/.test(e.message) || e.message === STOPPED) throw e;
     throw new Error(`Can't reach Ollama at ${ollamaUrl}. Is it running? (systemctl status ollama)`);
   }
   if (res.status === 403) {
@@ -63,25 +101,27 @@ async function ollamaChat({ model, messages, format, numCtx = 8192 }) {
 
 // ---------- Claude API ----------
 // Plain fetch (the extension has no build step, so no SDK import). Notes for Opus 5.5:
-// thinking is always on and effort defaults to medium, so we set effort low for this
-// simple ranking task; temperature and forced tool_choice are not accepted.
+// thinking is always on and effort defaults to medium, so we set effort low for these
+// simple tasks; temperature and forced tool_choice are not accepted. Thinking tokens count
+// toward max_tokens, so leave generous room (it's a ceiling, not a charge).
 
-async function anthropicMessage({ system, content, schema, maxTokens = 4096 }) {
-  const { anthropicKey, anthropicModel, anthropicUrl } = await getSettings();
+async function anthropicMessage({ system, content, schema, maxTokens = 16000, signal }) {
+  const { anthropicKey, anthropicModel, anthropicUrl, monthlyBudget } = await getSettings();
   if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
+  await checkBudget(monthlyBudget);
   const body = {
     model: anthropicModel,
     max_tokens: maxTokens,
     messages: [{ role: "user", content }],
     output_config: {},
   };
-  // Effort and server-side fallback exist only on the 5-series models; Haiku 4.5 rejects them.
-  const isFiveSeries = /^claude-(opus|sonnet|fable|mythos)-5/.test(anthropicModel);
-  if (isFiveSeries) {
-    body.output_config.effort = "low";
-    body.fallbacks = "default"; // fallback if a safety classifier declines the request
-  }
-  if (system) body.system = system;
+  // Effort works on Opus 4.5+, Sonnet 4.6+ and every 5-series model; Haiku 4.5, Sonnet 4.5 and older reject it.
+  if (!/haiku|sonnet-4-5|claude-3/.test(anthropicModel)) body.output_config.effort = "low";
+  // Server-side fallback (re-run on another model if a safety classifier declines) is for the 5-series.
+  const isFiveSeries = /^claude-(opus-5|sonnet-5-5|fable-5|mythos-5)/.test(anthropicModel);
+  if (isFiveSeries) body.fallbacks = "default";
+  // The instructions repeat in every batch of a scan: let the API reuse them (cheaper reads, where the model caches).
+  if (system) body.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
   if (schema) body.output_config.format = { type: "json_schema", schema };
 
   const headers = {
@@ -92,116 +132,371 @@ async function anthropicMessage({ system, content, schema, maxTokens = 4096 }) {
   };
   if (isFiveSeries) headers["anthropic-beta"] = "server-side-fallback-2026-07-01";
 
+  // Rate limits (429), overload (529) and server errors are worth two quiet retries.
   let res;
-  try {
-    res = await fetch(`${anthropicUrl}/v1/messages`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
-  } catch (e) {
-    throw new Error("Can't reach the Claude API. Check your internet connection.");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      res = await fetchWithTimeout(
+        `${anthropicUrl}/v1/messages`,
+        { method: "POST", headers, body: JSON.stringify(body), signal },
+        3 * 60 * 1000,
+        "The Claude API took over 3 minutes. Try again, or lower \"Listings per request\"."
+      );
+    } catch (e) {
+      if (/took over/.test(e.message) || e.message === STOPPED) throw e;
+      throw new Error("Can't reach the Claude API. Check your internet connection.");
+    }
+    const retryable = res.status === 429 || res.status >= 500;
+    if (!retryable || attempt >= 2 || signal?.aborted) break;
+    const after = Number(res.headers.get("retry-after"));
+    await sleep(Math.min(20, after > 0 ? after : 2 * 2 ** attempt) * 1000);
   }
   if (res.status === 401) throw new Error("The Claude API key was rejected. Check it in the extension options.");
   if (res.status === 429) throw new Error("Claude API rate limit hit. Wait a moment and scan again.");
+  if (res.status === 529) throw new Error("The Claude API is overloaded right now. Try again in a minute.");
   if (!res.ok) {
     const text = await res.text();
+    if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognise the model "${anthropicModel}". Check it in the extension options.`);
     throw new Error(`Claude API error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
   if (data.stop_reason === "refusal") throw new Error("Claude declined this request.");
-  return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+  if (data.stop_reason === "max_tokens") throw new Error("Claude's answer was cut off. Lower \"Listings per request\" in settings and try again.");
+  const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+  return { text, cost: await addSpend(data.model || anthropicModel, data.usage) };
 }
 
-const RANK_SCHEMA = {
-  type: "object",
-  properties: {
-    items: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          id: { type: "integer" },
-          related: { type: "boolean" },
-          score: { type: "integer" },
-          verdict: { type: "string", enum: ["great", "good", "fair", "pass", "suspicious"] },
-          flags: { type: "array", items: { type: "string" } },
-          reason: { type: "string" },
-        },
-        required: ["id", "related", "score", "verdict", "flags", "reason"],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ["items"],
-  additionalProperties: false,
+// Paid services stop once this month's estimated spend reaches the budget.
+async function checkBudget(monthlyBudget) {
+  if (!(monthlyBudget > 0)) return;
+  const spent = monthSpent((await chrome.storage.local.get("usage")).usage);
+  if (spent >= monthlyBudget) {
+    throw new Error(`This month's budget of $${monthlyBudget} is used up (about $${spent.toFixed(2)} spent). Raise it in settings, or switch to Ollama in the panel's model menu.`);
+  }
+}
+
+// ---------- Other AI services (the OpenAI chat API) ----------
+// One code path for every service that speaks it. Structured output first (a JSON schema); if a
+// service or model doesn't take that, plain JSON mode with the schema in the instructions; then
+// no format at all (the reply is still read as JSON).
+const OAI_NAMES = [
+  [/openai\.com/, "OpenAI"], [/googleapis\.com/, "Gemini"], [/openrouter\.ai/, "OpenRouter"],
+  [/deepseek\.com/, "DeepSeek"], [/mistral\.ai/, "Mistral"], [/x\.ai/, "xAI"], [/localhost:1234|127\.0\.0\.1:1234/, "LM Studio"],
+];
+const oaiName = (url) => OAI_NAMES.find(([re]) => re.test(url))?.[1] || new URL(url).host;
+
+async function openaiChat({ messages, schema, model, signal }) {
+  const { oaiUrl, oaiKey, oaiModel, oaiPriceIn, oaiPriceOut, monthlyBudget } = await getSettings();
+  model ||= oaiModel;
+  const name = oaiName(oaiUrl);
+  if (!model) throw new Error(`Pick a model for ${name} in settings (Test connection lists them).`);
+  const origin = new URL(oaiUrl).origin;
+  if (!(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) {
+    throw new Error(`Second Look isn't allowed to reach ${origin} yet. In settings, press Test connection to allow it.`);
+  }
+  await checkBudget(monthlyBudget);
+  const headers = { "Content-Type": "application/json" };
+  if (oaiKey) headers.Authorization = `Bearer ${oaiKey}`;
+  const openrouter = /openrouter\.ai/.test(oaiUrl);
+  if (openrouter) headers["X-Title"] = "Second Look";
+  const formats = schema
+    ? [{ type: "json_schema", json_schema: { name: "answer", strict: true, schema } }, { type: "json_object" }, null]
+    : [null];
+  let res, text;
+  for (const [i, format] of formats.entries()) {
+    const sys = format?.type === "json_schema" || !schema ? messages : withSchemaNote(messages, schema);
+    const body = { model, messages: sys };
+    if (format) body.response_format = format;
+    if (openrouter) body.usage = { include: true }; // OpenRouter then reports the exact cost
+    for (let attempt = 0; ; attempt++) {
+      try {
+        res = await fetchWithTimeout(`${oaiUrl.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers, body: JSON.stringify(body), signal }, 3 * 60 * 1000, `${name} took over 3 minutes. Try again, or lower "Listings per request".`);
+      } catch (e) {
+        if (/took over/.test(e.message) || e.message === STOPPED) throw e;
+        throw new Error(name === "LM Studio" ? "Can't reach LM Studio. Is its server running (Developer tab)?" : `Can't reach ${name}. Check your internet connection.`);
+      }
+      if (!(res.status === 429 || res.status >= 500) || attempt >= 2 || signal?.aborted) break;
+      await sleep(Math.min(20, Number(res.headers.get("retry-after")) || 2 * 2 ** attempt) * 1000);
+    }
+    if (res.ok) break;
+    text = await res.text();
+    // This service or model doesn't take that output format: try the next, plainer one.
+    if (res.status === 400 && i < formats.length - 1 && /response_format|json_schema|json_object|structured|schema|not supported/i.test(text)) continue;
+    break;
+  }
+  if (res.status === 401 || res.status === 403) throw new Error(`${name} rejected the key. Check it in settings.`);
+  if (res.status === 429) throw new Error(`${name} rate limit hit. Wait a moment and try again.`);
+  if (res.status === 402) throw new Error(`${name} says the account is out of credit.`);
+  if (!res.ok) {
+    text ??= await res.text();
+    if (res.status === 404 && /model/i.test(text)) throw new Error(`${name} doesn't recognise the model "${model}". Pick one in settings (Test connection lists them).`);
+    throw new Error(`${name} error ${res.status}: ${text.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  const choice = data.choices?.[0];
+  if (choice?.message?.refusal) throw new Error(`${name} declined this request.`);
+  if (choice?.finish_reason === "length") throw new Error(`${name}'s answer was cut off. Lower "Listings per request" in settings and try again.`);
+  const content = choice?.message?.content;
+  const out = Array.isArray(content) ? content.map((c) => c.text || "").join("") : content || "";
+  // Cost: OpenRouter says exactly; otherwise your prices per million tokens, if you entered them.
+  const u = data.usage || {};
+  const usd = typeof u.cost === "number" ? u.cost : oaiPriceIn > 0 || oaiPriceOut > 0 ? ((u.prompt_tokens || 0) * oaiPriceIn + (u.completion_tokens || 0) * oaiPriceOut) / 1e6 : 0;
+  return { text: out, cost: usd > 0 ? await addSpend(data.model || model, null, usd) : 0 };
+}
+// Plain JSON mode doesn't carry the schema, so it goes into the instructions.
+function withSchemaNote(messages, schema) {
+  const note = `Reply with only a JSON object matching this JSON schema, nothing else:\n${JSON.stringify(schema)}`;
+  const [first, ...rest] = messages;
+  return first.role === "system" ? [{ ...first, content: `${first.content}\n\n${note}` }, ...rest] : [{ role: "system", content: note }, ...messages];
+}
+
+// ---------- What it costs ----------
+// List prices per million tokens (input, output). Thinking is billed as output and is
+// included in output_tokens. Approximate: a server-side fallback may bill a different model.
+const PRICES = [
+  [/opus-5-5/, 4, 20],
+  [/fable|mythos/, 10, 50],
+  [/opus-(5|4)/, 5, 25],
+  [/sonnet-5/, 2, 10],
+  [/sonnet-4/, 3, 15],
+  [/haiku-4/, 1, 5],
+];
+
+// Usage per local day and model: { days: { "2026-10-08": { usd, calls, models: { id: { usd, calls } } } } }.
+// Estimates from token counts at list price: a regular API key can't read the real balance.
+const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in your time zone
+function monthSpent(usage, month = today().slice(0, 7)) {
+  return Object.entries(usage?.days || {}).reduce((sum, [d, v]) => (d.startsWith(month) ? sum + v.usd : sum), 0);
+}
+
+let spendQueue = Promise.resolve(); // parallel batches finish together; add their costs one at a time
+// usd: the cost when the service reported it (or it was worked out elsewhere); otherwise from Claude's list prices.
+function addSpend(model, usage, usd) {
+  const price = PRICES.find(([re]) => re.test(model));
+  if (usd == null && (!price || !usage)) return Promise.resolve(0);
+  // Cache writes cost 1.25x the input price, cache reads 0.1x.
+  const cost = usd ?? ((usage.input_tokens || 0) * price[1] + (usage.cache_creation_input_tokens || 0) * price[1] * 1.25 + (usage.cache_read_input_tokens || 0) * price[1] * 0.1 + (usage.output_tokens || 0) * price[2]) / 1e6;
+  spendQueue = spendQueue
+    .then(async () => {
+      const day = today();
+      const { usage: u = { days: {} }, spend } = await chrome.storage.local.get(["usage", "spend"]);
+      // Carry over the older month-only total the first time.
+      if (spend && !Object.keys(u.days).length && spend.month === day.slice(0, 7)) u.days[day] = { usd: spend.usd, calls: 0, models: {} };
+      const d = (u.days[day] ||= { usd: 0, calls: 0, models: {} });
+      const m = (d.models[model] ||= { usd: 0, calls: 0 });
+      d.usd += cost;
+      d.calls += 1;
+      m.usd += cost;
+      m.calls += 1;
+      const keep = Object.keys(u.days).sort().slice(-400);
+      u.days = Object.fromEntries(keep.map((k) => [k, u.days[k]]));
+      await chrome.storage.local.set({ usage: u });
+      if (spend) await chrome.storage.local.remove("spend");
+    })
+    .catch(() => {});
+  return spendQueue.then(() => cost); // resolves once saved, so the totals the page reads are current
+}
+
+// ---------- Lenses ----------
+// The same listing is judged differently depending on what you want it for: to use yourself, or
+// as a fix & flip project. (Older versions had separate "fix" and "flip"; both mean "project" now.)
+const lensOf = (lens) => (lens === "fix" || lens === "flip" ? "project" : LENS_RULES[lens] ? lens : "use");
+
+const LENS_RULES = {
+  use: `Lens: buy to use. The buyer wants a working item for themselves.
+great = strong price for a working item; good = fair-to-good deal, worth a look; fair = market price, nothing special;
+pass = overpriced, or for parts / not working / untested "as is" (unless the buyer says they want that).`,
+  project: `Lens: fix & flip. The buyer repairs things and resells them. They LIKE broken, untested, "as is" and for-parts listings
+when the likely fault is common and fixable, and working items priced well under what they resell for.
+Score by the better of two angles:
+- a fix-up: cheap compared with the for-parts and working prices, a well-known easy fault, cheap parts that are easy to get;
+- a resale margin: "margin before repairs" (resale at the working median, minus fees, minus the buy price) minus likely parts, with low risk.
+great = cheap with an easy fix, or a big margin with low risk; good = a reasonable project or a solid margin; fair = thin margin, nothing special;
+pass = expensive for what it is, a hard fault, or no margin. Items that sell slowly, are fragile or heavy to ship, or have uncertain faults are riskier.
+In the reason, say which angle makes it worth it (the fix, the margin, or both).
+fault: the most likely problem in a few words ("none" if it works, "unknown" if you can't tell).
+difficulty: 1 = easy (cleaning, cable, battery, shell, drop-in part) to 5 = very hard (board rework, unobtainable parts); 0 = can't tell or it works.
+partsCost: rough whole-dollar cost of the parts, 0 if none or unknown.`,
 };
+
+// Rules of thumb for the buyer's hobby categories. Only applied where they fit the listing.
+const FIX_KNOWLEDGE = `Repair and homebrew knowledge (use only where it fits the listing; never stretch it):
+- Usually easy: dirty cartridge slots and contacts (e.g. NES 72-pin connector), dead save or clock batteries, leaking electrolytic capacitors in older handhelds, computers and power supplies (recap; check for corrosion), worn optical-drive lasers (replace, or fit an optical drive emulator), analog-stick drift, broken shells, hinges and screens on handhelds (replacement parts are common), missing power supplies or cables ("untested, no charger" is often fine), blown fuses.
+- Hard or risky: board-level faults on modern consoles (HDMI ports and charge chips need microsoldering), Xbox 360 red ring, PS3 yellow light, liquid damage, battery-leak corrosion spread across traces, activation- or account-locked devices. A console banned from online play still runs offline homebrew.
+- Homebrew: an active scene adds value and usefulness (e.g. Wii, PS2, PSP, PS Vita, 3DS/DS, original Xbox, GameCube, Dreamcast, some Switch units). Whether a unit can run it can depend on firmware version, model or serial number; say "depends on firmware/serial" unless the listing states it.`;
+
+const lensSystem = (base, lens, interests) =>
+  [base, LENS_RULES[lensOf(lens)], interests && `Buyer's interests: ${interests}`, lensOf(lens) === "project" && FIX_KNOWLEDGE]
+    .filter(Boolean)
+    .join("\n\n");
+
+const money = (n) => `$${Math.round(n)}`;
+
+function marketText(query, market) {
+  if (!market) return `No sold-price reference for "${query || "this search"}". Judge price only from obvious cues.`;
+  let t = `Sold-price reference for "${query}" (what buyers paid, incl. shipping): working/used median ${money(market.median)} (middle half ${money(market.p25)}-${money(market.p75)}, ${market.n} sales).`;
+  if (market.parts) t += ` For parts / not working: median ${money(market.parts.median)} (${market.parts.n} sales).`;
+  return t;
+}
+
+// ---------- Ranking ----------
+
+// Browsing with no search: no sold-price reference, so the model estimates a typical used price
+// from general knowledge (always shown as an estimate) and writes an eBay search for the exact
+// item, which the panel can use for a real sold-price check on request.
+const BROWSE_RULES = (context) => `No search term: the buyer is browsing ${context}. There is no sold-price reference.
+related: true only if the item fits the buyer's interests or wants (above); false otherwise. Without interests or wants, true for everything.
+A listing that is not related gets verdict pass unless it is an exceptional deal on what it is (then great, and say so).
+estLow / estHigh: the typical used selling price range in whole dollars for this kind of item in this condition, from your general knowledge.
+Use 0 and 0 when you can't tell (vague or generic title, unknown model). This is an estimate, not market data; judge the price against it and write "est." when you do.
+query: 2-6 words that would find sold listings of this exact item on eBay (brand, model, key variant), "" if the title is too vague.`;
+
+function rankSchema(lens, browse = false) {
+  const props = {
+    id: { type: "integer" },
+    related: { type: "boolean" },
+    score: { type: "integer" },
+    verdict: { type: "string", enum: ["great", "good", "fair", "pass", "suspicious"] },
+    flags: { type: "array", items: { type: "string" } },
+    reason: { type: "string" },
+  };
+  if (lens !== "use") Object.assign(props, { fault: { type: "string" }, difficulty: { type: "integer" }, partsCost: { type: "integer" } });
+  if (browse) Object.assign(props, { estLow: { type: "integer" }, estHigh: { type: "integer" }, query: { type: "string" } });
+  return {
+    type: "object",
+    properties: {
+      items: { type: "array", items: { type: "object", properties: props, required: Object.keys(props), additionalProperties: false } },
+    },
+    required: ["items"],
+    additionalProperties: false,
+  };
+}
+
+// Bulk-posted fake Marketplace listings: the most common scam the buyer sees, so it gets spelled out.
+const SCAM_RULE = `Facebook scam pattern: bulk-posted fake listings end the title with a short random code of capital letters and digits
+("Nintendo Game Boy Advance SP M2465", "Halo Special Edition Xbox S1337", "... U2X503"); there are many of them. When the listing
+says "title ends with the code", mark it suspicious with a score under 15 and the flag "scam code in title", unless the code is
+plausibly that exact item's real model or part number (Nikon D3100, Pentax K1000, PS Vita PCH1001). A price that looks too good
+makes it more certain, not less.`;
 
 // This prompt is the part most worth tuning yourself. Small local models
 // follow short, concrete rules better than long abstract ones.
-const RANK_SYSTEM = `You help a careful buyer skim second-hand listings.
-For each listing, give a 0-100 score for how worth it is to open and look closer, and one verdict:
-great = strong price for what it appears to be; good = fair-to-good deal, worth a look;
-fair = market price, nothing special; pass = overpriced, or for parts when not wanted;
-suspicious = likely scam, counterfeit, or misleading.
-Also set related: true if the listing is what the search is for, false if it is a different kind of item.
-A listing that does not match the search is NOT automatically a pass: if it is still a genuinely good deal on what it is
-(a bargain on something else), score and label it on its own merits and set related to false. Only mark an unrelated listing
-"pass" when it is also a poor deal. Price-versus-market numbers only apply to related listings; ignore them for unrelated ones.
-If there is no search term, set related to true.
-Red flags to check: price far below the market reference (bait or scam), "replica"/"inspired"/"style" wording,
-"for parts", "not working", "as is", vague or keyword-stuffed titles, shipping that makes the total expensive,
-seller with very low or no feedback, item that doesn't match the search.
+const RANK_BASE = `You help a buyer skim second-hand listings. For each listing give a 0-100 score and one verdict: great, good, fair, pass or suspicious.
+suspicious = likely scam, counterfeit, or misleading, whatever the lens.
+related: true if the listing is what the search (or the buyer's wants) is for, false if it is a different kind of item.
+An unrelated listing is not automatically a pass: if it is a genuinely good find on its own terms, score it on its merits and set related to false.
+Sold-price numbers only apply to related listings.
+If the buyer listed wants or must-haves, a listing that misses one scores lower and the reason says which.
+Red flags: price far below market with no explanation (bait), "replica"/"inspired"/"style" wording, box-only or photo-only listings,
+vague or keyword-stuffed titles, shipping that makes the total expensive, seller with very low or no feedback.
+Auctions: the price shown is only the current bid and will rise. Unless it ends within a few hours, don't rate it great or good on
+price alone; judge what it is and what it is likely to sell for, and say it's an auction in the reason. Lots: judge the price per item.
+SCAM_RULE
 Use only the text you are given. Never invent specs or seller details. If information is missing, say so.
-Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`;
+Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`.replace("SCAM_RULE", SCAM_RULE);
 
-// One call that works for either provider and returns the model's text.
-async function llmText({ system, userText, schema }) {
+// One call that works for either provider; returns { text, cost }.
+async function llmText({ system, userText, schema, signal }) {
   const { provider, textModel } = await getSettings();
-  if (provider === "anthropic") return anthropicMessage({ system, content: userText, schema });
-  return ollamaChat({
+  if (provider === "anthropic") return anthropicMessage({ system, content: userText, schema, signal });
+  if (provider === "openai") return openaiChat({ messages: [{ role: "system", content: system }, { role: "user", content: userText }], schema, signal });
+  const text = await ollamaChat({
     model: textModel,
     format: schema,
+    signal,
     messages: [
       { role: "system", content: system },
       { role: "user", content: userText },
     ],
   });
+  return { text, cost: 0 };
 }
 
 function parseModelJson(content) {
   try {
     return JSON.parse(content);
   } catch {
+    // Some models wrap the JSON in ```json fences or a sentence; take the outermost object.
+    const a = content.indexOf("{");
+    const b = content.lastIndexOf("}");
+    if (a >= 0 && b > a) {
+      try {
+        return JSON.parse(content.slice(a, b + 1));
+      } catch {}
+    }
     throw new Error("The model returned something unreadable. Try again, or lower \"Listings per request\" in settings.");
   }
 }
 
-async function rankBatch({ items, query, market }) {
-  const marketLine = market
-    ? `Market reference for "${query}": median recent eBay sold price ${market.currency}${market.median} (middle half ${market.currency}${market.p25}-${market.currency}${market.p75}, from ${market.n} sales).`
-    : `No market reference available for "${query || "this search"}". Judge price only from obvious cues.`;
+const priceLine = (it) => {
+  const ship = it.shipping == null ? " (shipping not shown)" : it.shipping > 0 ? ` (incl. $${it.shipping} shipping)` : " (free shipping)";
+  const parts = [it.total == null ? `price: ${it.priceText || "unknown"}` : `total: $${it.total}${ship}`];
+  if (it.auction) parts.push(`AUCTION: that is the current bid, ${it.bids || 0} bid${it.bids === 1 ? "" : "s"}${it.timeLeft ? `, ${it.timeLeft} left` : ""}`);
+  if (it.lot) parts.push(`lot of ${it.lot}${it.total != null ? ` (about $${Math.round(it.total / it.lot)} each)` : ""}`);
+  if (it.bestOffer) parts.push("accepts offers");
+  return parts.join(" | ");
+};
+
+// Scam signals read off the page, spelled out so the model can't miss them.
+const scamNotes = (it) =>
+  [it.titleCode && `title ends with the code "${it.titleCode}"`, it.offSite?.why?.length && `off-site contact: ${it.offSite.why.join("; ")}`].filter(Boolean);
+
+async function rankBatch({ items, query, market, lens = "use", want = "", browse = "", signal }) {
+  const { interests } = await getSettings();
   const listingText = items
     .map((it) => {
-      const ratio = it.priceVsMarket != null ? ` | price is ${Math.round(it.priceVsMarket * 100)}% of market median` : "";
-      return `id ${it.id} | ${it.site} | ${it.title} | price: ${it.priceText || "unknown"}${ratio}\n  card text: ${it.raw}`;
+      const notes = [];
+      if (it.vsWorking != null) notes.push(`${Math.round(it.vsWorking * 100)}% of working median`);
+      if (it.vsParts != null) notes.push(`${Math.round(it.vsParts * 100)}% of for-parts median`);
+      if (it.marginBeforeRepair != null) notes.push(`margin before repairs ${it.marginBeforeRepair < 0 ? "-" : ""}$${Math.abs(it.marginBeforeRepair)}`);
+      const extra = (it.raw || "").replace(it.title, "").trim(); // the title is already on the line
+      const scam = scamNotes(it);
+      return `id ${it.id} | ${it.site} | ${it.title} | ${priceLine(it)}${notes.length ? ` | ${notes.join(", ")}` : ""}${scam.length ? ` | SCAM SIGNAL: ${scam.join("; ")}` : ""}\n  card text: ${extra}`;
     })
     .join("\n");
 
-  const content = await llmText({
-    system: RANK_SYSTEM,
-    userText: `${marketLine}\n\nListings:\n${listingText}`,
-    schema: RANK_SCHEMA,
+  const { text, cost } = await llmText({
+    system: [lensSystem(RANK_BASE, lens, interests), browse && BROWSE_RULES(browse)].filter(Boolean).join("\n\n"),
+    userText: [!browse && marketText(query, market), want && `What the buyer wants: ${want}`, `Listings:\n${listingText}`].filter(Boolean).join("\n\n"),
+    schema: rankSchema(lens, !!browse),
+    signal,
   });
-  const parsed = parseModelJson(content);
-  return parsed.items || [];
+  if (cost > 0) await noteRankRate(items.length, cost);
+  return { items: parseModelJson(text).items || [], cost };
+}
+
+// ---------- What a scan will cost, before you press Scan ----------
+// What scoring has actually cost per listing with each model (recent scans weigh most); before
+// there's any history, a rough figure from list prices and typical token counts.
+const modelInUse = (s) => (s.provider === "anthropic" ? s.anthropicModel : s.provider === "openai" ? s.oaiModel : s.textModel);
+async function noteRankRate(n, cost) {
+  const model = modelInUse(await getSettings());
+  const { rankRate = {} } = await chrome.storage.local.get("rankRate");
+  const r = (rankRate[model] ||= { usd: 0, items: 0 });
+  r.usd += cost;
+  r.items += n;
+  if (r.items > 300) (r.usd /= 2), (r.items /= 2);
+  await chrome.storage.local.set({ rankRate });
+}
+async function perListingCost() {
+  const settings = await getSettings();
+  const { provider, anthropicModel, batchSize, oaiPriceIn, oaiPriceOut } = settings;
+  if (provider === "ollama") return 0;
+  const { rankRate = {} } = await chrome.storage.local.get("rankRate");
+  const r = rankRate[modelInUse(settings)];
+  if (r?.items >= 10) return r.usd / r.items;
+  // No history yet: Claude's list prices, or the prices you entered for another service.
+  const price = provider === "anthropic" ? PRICES.find(([re]) => re.test(anthropicModel)) : oaiPriceIn > 0 || oaiPriceOut > 0 ? [null, oaiPriceIn, oaiPriceOut] : null;
+  if (!price) return 0;
+  const b = Math.max(1, batchSize | 0);
+  // About 200 input tokens a listing plus ~1,600 of instructions per request; about 160 output a listing plus ~300 a request.
+  return ((200 + 1600 / b) * price[1] + (160 + 300 / b) * price[2]) / 1e6;
 }
 
 // ---------- One listing, in depth ----------
 
-const ITEM_SCHEMA = {
-  type: "object",
-  properties: {
+function itemSchema(lens) {
+  const props = {
     score: { type: "integer" },
     verdict: { type: "string", enum: ["great", "good", "fair", "pass", "suspicious"] },
     summary: { type: "string" },
@@ -209,40 +504,56 @@ const ITEM_SCHEMA = {
     questions: { type: "array", items: { type: "string" } },
     offerLow: { type: "integer" },
     offerHigh: { type: "integer" },
-  },
-  required: ["score", "verdict", "summary", "flags", "questions", "offerLow", "offerHigh"],
-  additionalProperties: false,
-};
+    homebrew: { type: "string" },
+  };
+  if (lens !== "use") {
+    const list = { type: "array", items: { type: "string" } };
+    props.repair = {
+      type: "object",
+      properties: { faults: list, parts: list, tools: list, difficulty: { type: "integer" }, partsCost: { type: "integer" }, notes: { type: "string" } },
+      required: ["faults", "parts", "tools", "difficulty", "partsCost", "notes"],
+      additionalProperties: false,
+    };
+  }
+  return { type: "object", properties: props, required: Object.keys(props), additionalProperties: false };
+}
 
-const ITEM_SYSTEM = `You help a careful buyer decide whether to buy one second-hand listing.
-Give a 0-100 score for how good a buy it looks, and one verdict:
-great = strong price for what it appears to be; good = fair-to-good deal; fair = market price, nothing special;
-pass = overpriced, wrong item, or not worth the risk; suspicious = likely scam, counterfeit, or misleading.
+const ITEM_BASE = `You help a buyer decide whether to buy one second-hand listing.
+Give a 0-100 score for how good a buy it is for this buyer's purpose, and one verdict: great, good, fair, pass or suspicious (likely scam, counterfeit, or misleading).
 summary: 2-3 plain sentences on what it is, whether the price is right, and the main risk.
 flags: up to 5 short red or green flags (1-4 words each), e.g. "price far below market", "no return policy", "clear photos".
-questions: 3-5 specific questions to ask the seller before buying, based on what is missing or unclear in the listing.
-offerLow / offerHigh: a sensible whole-dollar offer range if negotiation is possible; use 0 for both if the price is already fair or you cannot tell.
-Use only the information given. Never invent specs, history, or seller details. If something is missing, say so.`;
+questions: 3-5 specific questions to ask the seller before buying, based on what is missing or unclear. For a broken or untested item, ask what exactly happens when it is powered on and what has been tried.
+offerLow / offerHigh: a sensible whole-dollar offer range if negotiation is possible; 0 for both if the price is already fair or you cannot tell.
+For an auction, offerLow / offerHigh are a sensible maximum-bid range instead, and the summary says the current bid will rise.
+homebrew: one sentence on its homebrew or modding scene and any firmware/model caveat, or "" if it has none or it doesn't apply.
+repair (fix-up and flip lenses): likely faults (most likely first), parts and tools needed, difficulty 1-5 (0 = can't tell), rough partsCost in whole dollars, and notes on teardown risks.
+If the buyer listed wants or must-haves, say which ones the listing meets or misses.
+SCAM_RULE
+Moving the sale off the site is the other sure sign: a website (often written with spaces, "www . abc . com", "remove the spaces"),
+a phone number written oddly ("505_507__6507"), WhatsApp, Telegram, email, "text me a screenshot", gift cards, or payment before seeing
+the item. Any of those: suspicious, a score under 10, and the summary says plainly that it's the classic Marketplace scam.
+Use only the information given. Never invent specs, history, or seller details. If something is missing, say so.`.replace("SCAM_RULE", SCAM_RULE);
 
-async function analyzeListing({ listing, query, market }) {
-  const marketLine = market
-    ? `Market reference for "${query}": median recent eBay sold price $${market.median} (middle half $${market.p25}-$${market.p75}, from ${market.n} sales).`
-    : "No market reference available. Judge price only from obvious cues.";
+async function analyzeListing({ listing, query, market, lens = "use", want = "", signal }) {
+  const { interests } = await getSettings();
   const lines = [
     `site: ${listing.site}`,
     `title: ${listing.title}`,
-    `price: ${listing.priceText || "unknown"}`,
+    priceLine(listing),
     listing.condition && `condition: ${listing.condition}`,
     listing.seller && `seller: ${listing.seller}`,
-    listing.shipping && `shipping: ${listing.shipping}`,
+    listing.shippingText && `shipping: ${listing.shippingText}`,
+    listing.marginBeforeRepair != null && `margin before repairs: $${listing.marginBeforeRepair}`,
+    ...scamNotes(listing).map((n) => `SCAM SIGNAL: ${n}`),
     listing.details && `details: ${listing.details}`,
   ].filter(Boolean);
-  const content = await llmText({
-    system: ITEM_SYSTEM,
-    userText: `${marketLine}\n\nListing:\n${lines.join("\n")}`,
-    schema: ITEM_SCHEMA,
+  const { text, cost } = await llmText({
+    system: lensSystem(ITEM_BASE, lens, interests),
+    userText: [marketText(query, market), want && `What the buyer wants: ${want}`, `Listing:\n${lines.join("\n")}`].filter(Boolean).join("\n\n"),
+    schema: itemSchema(lens),
+    signal,
   });
-  return parseModelJson(content);
+  return { ...parseModelJson(text), cost };
 }
 
 // ---------- Search ideas ----------
@@ -279,16 +590,31 @@ Rules: if the buyer described what they want, most suggestions are kind idea. If
 (for example many "for parts" or "broken" listings means a narrow search that excludes them). On eBay you may use minus terms like -parts -repair and quoted phrases; on Facebook use plain words only, no operators.
 Never invent products, specs or prices. Do not repeat the current search. Keep queries short.`;
 
-async function suggestSearches({ site, query, intent, titles, market }) {
-  const lines = [
-    `site: ${site}`,
-    query && `current search: ${query}`,
-    intent && `what the buyer wants: ${intent}`,
-    market && `sold-price reference: median $${market.median}, middle half $${market.p25}-$${market.p75}`,
-    titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
-  ].filter(Boolean);
-  const content = await llmText({ system: IDEAS_SYSTEM, userText: lines.join("\n"), schema: IDEAS_SCHEMA });
-  return parseModelJson(content).suggestions || [];
+const IDEAS_LENS = {
+  use: "",
+  project: "The buyer fixes things up and resells them: include searches that surface broken, untested, \"as is\" and for-parts listings (on eBay, words like \"for parts\", \"untested\", \"not working\"), and underpriced ones (misspellings, vague titles, bundles and lots).",
+};
+
+// Two sources, never mixed: what the buyer typed, or (when that's blank) the results on screen.
+async function suggestSearches({ site, query, intent, titles, market, lens = "use", signal }) {
+  const lines = intent
+    ? [
+        `site: ${site}`,
+        IDEAS_LENS[lensOf(lens)],
+        `what the buyer wants: ${intent}`,
+        "Base every suggestion on what the buyer wants. Most should be kind idea, typo or alt.",
+        query && `(background only: the page they're on searched "${query}". Use it only if their wants don't name an item; don't refine it otherwise.)`,
+      ]
+    : [
+        `site: ${site}`,
+        IDEAS_LENS[lensOf(lens)],
+        query && `current search: ${query}`,
+        market && market.median != null && `sold-price reference: median $${market.median}, middle half $${market.p25}-$${market.p75}${market.parts ? `; for parts: median $${market.parts.median}` : ""}`,
+        titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
+      ];
+  lines.splice(0, lines.length, ...lines.filter(Boolean));
+  const { text } = await llmText({ system: IDEAS_SYSTEM, userText: lines.join("\n"), schema: IDEAS_SCHEMA, signal });
+  return parseModelJson(text).suggestions || [];
 }
 
 // ---------- Photos ----------
@@ -336,26 +662,47 @@ function photoAdjust(p) {
   return { adjust: Math.max(-40, Math.min(10, adjust)), why };
 }
 
-async function checkPhoto({ imageUrl, title }) {
-  const { visionModel, provider } = await getSettings();
-  const imgRes = await fetch(imageUrl);
+async function checkPhoto({ imageUrl, title, signal }) {
+  const { visionModel, provider, oaiVisionModel } = await getSettings();
+  // Photos come from listing pages; fetch only ordinary https image addresses, never local or private ones.
+  let host = "";
+  try {
+    const u = new URL(imageUrl);
+    if (u.protocol === "https:") host = u.hostname;
+    else if (u.protocol === "data:" && /^data:image\//.test(imageUrl)) host = "data";
+  } catch {}
+  if (!host || host === "localhost" || /^(\d+\.){3}\d+$|^\[|\.local$|\.internal$/.test(host)) throw new Error("That photo address can't be checked.");
+  const imgRes = await fetchWithTimeout(imageUrl, { signal }, 30 * 1000, "The photo took too long to load.");
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
-  const b64 = bufferToBase64(await imgRes.arrayBuffer());
+  const buf = await imgRes.arrayBuffer();
+  if (buf.byteLength > 3.5 * 1024 * 1024) throw new Error("That photo is too large to check (over 3.5 MB).");
+  const b64 = bufferToBase64(buf);
   const prompt = photoPrompt(title);
   let text;
   if (provider === "anthropic") {
     const type = (imgRes.headers.get("content-type") || "").split(";")[0];
     const media_type = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type) ? type : "image/jpeg";
-    text = await anthropicMessage({
-      maxTokens: 1024,
+    ({ text } = await anthropicMessage({
+      signal,
+      maxTokens: 4096,
       schema: PHOTO_SCHEMA,
       content: [
         { type: "image", source: { type: "base64", media_type, data: b64 } },
         { type: "text", text: prompt },
       ],
-    });
+    }));
+  } else if (provider === "openai") {
+    const type = (imgRes.headers.get("content-type") || "").split(";")[0];
+    const mime = /^image\//.test(type) ? type : "image/jpeg";
+    ({ text } = await openaiChat({
+      signal,
+      model: oaiVisionModel || undefined, // blank: the main model, which must then handle images
+      schema: PHOTO_SCHEMA,
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:${mime};base64,${b64}` } }] }],
+    }));
   } else {
     text = await ollamaChat({
+      signal,
       model: visionModel,
       numCtx: 4096,
       format: PHOTO_SCHEMA,
@@ -373,53 +720,98 @@ async function checkPhoto({ imageUrl, title }) {
 }
 
 // ---------- eBay sold comps ----------
-// Returns raw HTML; the content script parses it (service workers have no DOMParser).
+// Only used from Facebook pages (on eBay the page makes this request itself). Returns the raw
+// status and HTML: the content script parses it (service workers have no DOMParser) and owns
+// the caching and the back-off, so both paths behave the same.
 
-// Be gentle with eBay: remember answers for a while, and if eBay pushes back
-// (error status or a verification page), stop asking for an hour.
-const SOLD_CACHE = new Map(); // query -> { at, html }
-const SOLD_CACHE_MS = 15 * 60 * 1000;
-const SOLD_COOLDOWN_MS = 30 * 60 * 1000;
-
-async function fetchSoldHtml({ query }) {
-  const key = query.trim().toLowerCase();
-  const hit = SOLD_CACHE.get(key);
-  if (hit && Date.now() - hit.at < SOLD_CACHE_MS) return hit.html;
-
-  const { soldCooldownUntil = 0 } = await chrome.storage.local.get("soldCooldownUntil");
-  if (Date.now() < soldCooldownUntil) {
-    const mins = Math.ceil((soldCooldownUntil - Date.now()) / 60000);
-    throw new Error(`Price lookups are paused for ${mins} more minutes because eBay pushed back.`);
+async function fetchSoldHtml({ url }) {
+  const u = new URL(url);
+  if (u.origin !== "https://www.ebay.com" || u.pathname !== "/sch/i.html" || u.searchParams.get("LH_Sold") !== "1") {
+    throw new Error("Only eBay sold searches are fetched here.");
   }
-
-  const pause = async (why) => {
-    await chrome.storage.local.set({ soldCooldownUntil: Date.now() + SOLD_COOLDOWN_MS });
-    throw new Error(`${why} Paused price lookups for 30 minutes.`);
-  };
-
-  const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_ipg=60`;
-  // Sent with your eBay cookies so it looks like the one ordinary search it is.
-  const res = await fetch(url, { credentials: "include" });
-  if (res.status === 403 || res.status === 429 || res.status === 503) return pause(`eBay answered ${res.status}.`);
-  if (!res.ok) throw new Error(`eBay sold search failed (${res.status}).`);
-  const html = await res.text();
-  if (/captcha|pardon our interruption|verify yourself|security measure/i.test(html.slice(0, 20000)) && !/s-card|s-item/.test(html)) {
-    return pause("eBay showed a verification page.");
+  // Best: from an eBay tab you have open, exactly like eBay's own pages make requests (same site,
+  // same cookies, same browser headers). eBay is much less likely to ask for a browser check then.
+  const tabs = await chrome.tabs.query({ url: "https://www.ebay.com/*" }).catch(() => []);
+  for (const tab of tabs.filter((t) => !t.discarded && t.status === "complete")) {
+    try {
+      const [{ result } = {}] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        args: [url],
+        func: async (u) => {
+          const res = await fetch(u, { credentials: "include", signal: AbortSignal.timeout(30000) });
+          return { status: res.status, html: res.ok ? await res.text() : "" };
+        },
+      });
+      if (result) return result;
+    } catch {
+      // that tab couldn't do it (closed, navigating, a check page); try the next, then the fallback
+    }
   }
-  SOLD_CACHE.set(key, { at: Date.now(), html });
-  return html;
+  // Otherwise from here, still with your eBay cookies.
+  const res = await fetchWithTimeout(url, { credentials: "include" }, 30 * 1000, "eBay took too long to answer.");
+  return { status: res.status, html: res.ok ? await res.text() : "" };
 }
 
+// ---------- Fonts ----------
+// Page scripts get the bundled fonts as bytes and add them with the FontFace API. Nothing is
+// exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
+// and a site's font rules can't block them.
+
+// Page scripts get the settings without the API key: they never need it.
+async function getPageSettings() {
+  const { anthropicKey, oaiKey, ...rest } = await getSettings();
+  return { ...rest, hasKey: !!anthropicKey, hasOaiKey: !!oaiKey, oaiName: rest.oaiUrl ? oaiName(rest.oaiUrl) : "", scanRate: await perListingCost() };
+}
+
+const openOptions = async () => chrome.runtime.openOptionsPage();
+
+// Saved searches, opened in background tabs in one go (a page can only open one tab per click).
+// Only eBay and Marketplace addresses, and at most 12.
+async function openTabs({ urls }) {
+  const ok = (u) => {
+    try {
+      const { protocol, hostname, pathname } = new URL(u);
+      return protocol === "https:" && ((hostname === "www.ebay.com" && /^\/(sch|b)\//.test(pathname)) || (hostname === "www.facebook.com" && pathname.startsWith("/marketplace")));
+    } catch {
+      return false;
+    }
+  };
+  const list = (urls || []).filter(ok).slice(0, 12);
+  for (const url of list) await chrome.tabs.create({ url, active: false });
+  return list.length;
+}
 // ---------- Message router ----------
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, getSettings };
+// ---------- Stopping ----------
+// A request the page tags with a reqId can be cancelled: Stop sends those ids here and each one's
+// fetch is aborted. (A model may still bill for what it had already read.)
+const inflight = new Map(); // reqId -> AbortController
+async function abort({ ids }) {
+  for (const id of ids || []) inflight.get(id)?.abort();
+  return true;
+}
+
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, openOptions, openTabs, abort, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
   if (!handler) return false;
-  handler(msg.payload || {})
-    .then((data) => sendResponse({ ok: true, data }))
-    .catch((err) => sendResponse({ ok: false, error: err.message || String(err) }));
+  const payload = msg.payload || {};
+  const id = typeof payload.reqId === "string" ? payload.reqId : "";
+  if (id) {
+    const ac = new AbortController();
+    inflight.set(id, ac);
+    payload.signal = ac.signal;
+  }
+  (async () => {
+    try {
+      sendResponse({ ok: true, data: await handler(payload) });
+    } catch (err) {
+      sendResponse({ ok: false, error: err.message || String(err) });
+    } finally {
+      if (id) inflight.delete(id);
+    }
+  })();
   return true; // keep the channel open for the async reply
 });
 
@@ -428,10 +820,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 const MENU_ID = "second-look-photo";
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
   const current = await chrome.storage.local.get(null);
   await chrome.storage.local.set({ ...DEFAULTS, ...current });
-  await chrome.storage.local.remove("soldCooldownUntil"); // a fresh install/update starts with no pause
+  if (!["match", "dark", "light"].includes(current.theme)) await chrome.storage.local.remove("theme"); // the old retro themes are gone; keep a real choice
   await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -449,13 +842,20 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 const AUTO_ID = "second-look-auto";
 
-async function syncAutoScripts() {
+// Install and a settings change can both ask at once; run one at a time so they don't race.
+let syncing = Promise.resolve();
+function syncAutoScripts() {
+  syncing = syncing.catch(() => {}).then(doSyncAutoScripts);
+  return syncing;
+}
+
+async function doSyncAutoScripts() {
   const { showTab } = await getSettings();
   const def = {
     id: AUTO_ID,
-    matches: ["https://www.ebay.com/", "https://www.ebay.com/sch/*", "https://www.ebay.com/itm/*", "https://www.facebook.com/*"],
+    matches: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
     js: ["content/adapters.js", "content/panel.js"],
-    runAt: "document_idle",
+    runAt: "document_end", // the tab shows as soon as the page is parsed, not after every image loads
     persistAcrossSessions: true,
   };
   const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [AUTO_ID] });
@@ -483,12 +883,32 @@ async function ensureInjected(tabId) {
   return !!present;
 }
 
+// On a page Second Look doesn't work on, the icon says so for a few seconds instead of doing nothing.
+async function notHere(tabId) {
+  const title = "Second Look works on eBay searches, categories and listings, and on Facebook Marketplace.";
+  await chrome.action.setBadgeBackgroundColor({ tabId, color: "#6B675F" }).catch(() => {});
+  await chrome.action.setBadgeText({ tabId, text: "?" }).catch(() => {});
+  await chrome.action.setTitle({ tabId, title }).catch(() => {});
+  setTimeout(() => {
+    chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
+    chrome.action.setTitle({ tabId, title: chrome.runtime.getManifest().action.default_title }).catch(() => {});
+  }, 5000);
+}
+
 async function openPanel(tabId) {
   try {
     await ensureInjected(tabId);
-    await chrome.scripting.executeScript({ target: { tabId }, func: () => window.dispatchEvent(new CustomEvent("second-look-toggle")) });
-  } catch (e) {
-    console.warn("[Second Look] can't open on this page:", e.message); // not an eBay/Facebook page
+    const [{ result: ours } = {}] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.SecondLook?.pageType()) return false;
+        window.dispatchEvent(new CustomEvent("second-look-toggle"));
+        return true;
+      },
+    });
+    if (!ours) await notHere(tabId);
+  } catch {
+    await notHere(tabId); // a page the extension can't touch (not eBay or Facebook)
   }
 }
 

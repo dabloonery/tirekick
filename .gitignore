@@ -1,0 +1,2 @@
+tests/e2e/*.pem
+tests/e2e/ext_id.txt

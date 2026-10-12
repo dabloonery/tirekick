@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Second Look browser fixture</title>
+<style>
+ body{font:14px system-ui,sans-serif;margin:0;background:#fff;color:#222}
+ header{padding:14px 24px;border-bottom:1px solid #ddd;font-weight:700}
+ ul{list-style:none;margin:0;padding:20px 24px;display:grid;grid-template-columns:repeat(3,230px);gap:18px}
+ .s-card{position:relative;border:1px solid #e5e5e5;border-radius:8px;padding:10px}
+ .s-card img{width:100%;height:130px;object-fit:cover;background:#ddd;display:block}
+ .s-card__title{margin:8px 0 4px}.s-card__price{font-weight:700}
+</style></head><body>
+<header>eBay-shaped fixture (local, no network)</header>
+<ul>
+ <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 35mm SLR body, working, light seals new</div><div class="s-card__price">$85.00</div><a href="https://www.ebay.com/itm/1111111111">item</a></li>
+ <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 with 50mm f/2 lens and case</div><div class="s-card__price">$140.00</div><a href="https://www.ebay.com/itm/2222222222">item</a></li>
+ <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 for parts, shutter stuck</div><div class="s-card__price">$35.00</div><a href="https://www.ebay.com/itm/3333333333">item</a></li>
+ <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 camera PRISTINE contact me www . cam . com</div><div class="s-card__price">$20.00</div><a href="https://www.ebay.com/itm/4444444444">item</a></li>
+ <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 body only, untested</div><div class="s-card__price">$60.00</div><a href="https://www.ebay.com/itm/5555555555">item</a></li>
+ <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 + 28mm lens, tested, great</div><div class="s-card__price">$110.00</div><a href="https://www.ebay.com/itm/6666666666">item</a></li>
+</ul>
+<script>
+  window.__calls = [];
+  const store = { introDone: true };
+  const pick = (k) => (k == null ? { ...store } : typeof k === "string" ? { [k]: store[k] } :
+    Array.isArray(k) ? Object.fromEntries(k.map((x) => [x, store[x]])) : Object.fromEntries(Object.entries(k).map(([x, d]) => [x, store[x] ?? d])));
+  const verdicts = { 1: ["great", 88, "Under typical working prices, seller says light seals replaced."], 2: ["fair", 60, "Lens and case included; price is about market."],
+    3: ["pass", 30, "For parts; stuck shutter makes it a poor buy to use."], 4: ["suspicious", 5, "Price far too low and contact is off the site."],
+    5: ["pass", 38, "Untested body; risky for use."], 6: ["good", 76, "Tested with a lens at a fair price."] };
+  const replies = {
+    getSettings: () => ({ provider: "anthropic", anthropicModel: "claude-sonnet-5-5", hasKey: true, useSoldComps: false, scanRate: 0.004, textModel: "qwen3:4b", interests: "", ebayFee: 13 }),
+    getFont: () => "", openOptions: () => true, abort: () => true,
+    rankBatch: (p) => ({ cost: 0.02, items: p.items.map((it) => { const [v, s, reason] = verdicts[it.id] || ["fair", 50, "ok"];
+      return { id: it.id, related: true, score: s, verdict: v, flags: v === "suspicious" ? ["Contact off the site"] : [], reason }; }) }),
+  };
+  window.chrome = { runtime: { id: "test", lastError: null, onMessage: { addListener() {} },
+      sendMessage: (m, cb) => { window.__calls.push(m.type); setTimeout(() => { try { cb({ ok: true, data: (replies[m.type] || (() => null))(m.payload || {}) }); } catch (e) { cb({ ok: false, error: e.message }); } }, 150); } },
+    storage: { local: { get: async (k) => pick(k), set: async (o) => Object.assign(store, o) }, onChanged: { addListener() {} } } };
+</script>
+<script src="/content/adapters.js"></script>
+<script>
+  // This fixture lives on localhost, so tell the adapters it is an eBay results page.
+  SecondLook.currentSite = () => "ebay";
+  SecondLook.pageType = () => "results";
+</script>
+<script src="/content/panel.js"></script>
+</body></html>

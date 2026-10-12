@@ -1,6 +1,7 @@
 // Second Look — site adapters.
 // Each adapter turns a results page into a list of listings in one shared shape:
-//   { id, site, title, priceText, price, url, imageUrl, raw, el }
+//   { id, site, title, priceText, price, shipping, total, url, imageUrl, raw, el }
+// shipping is a number when the card says (0 = free), null when it doesn't; total = price + shipping.
 // Selectors are deliberately layered (newest layout first, then older ones,
 // then a generic fallback) because both sites change their markup without notice.
 // If a site stops working, this is the file to fix. See README "When it breaks".
@@ -28,47 +29,199 @@
     return "";
   };
 
+  // Lazy-loaded cards often carry a 1x1 placeholder in src and the real photo in a data- attribute.
+  const isPlaceholder = (u) => /^data:|\.gif(\?|$)/i.test(u);
   const firstImage = (root) => {
     const img = root.querySelector("img");
     if (!img) return "";
-    return img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("data-defer-load") || "";
+    const urls = [img.getAttribute("src"), img.getAttribute("data-src"), img.getAttribute("data-defer-load")].filter(Boolean);
+    return urls.find((u) => !isPlaceholder(u)) || urls[0] || "";
+  };
+
+  // One stable key per listing, used to remember what's been scored across re-scans and scrolling.
+  SL.keyOf = (url) => {
+    const ebay = url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/);
+    if (ebay) return `ebay:${ebay[1]}`;
+    const fb = url.match(/\/marketplace\/item\/(\d+)/);
+    if (fb) return `fb:${fb[1]}`;
+    return url.split("?")[0];
+  };
+
+  // eBay thumbnails on result cards are small (s-l140 to s-l500); a photo check needs the big one.
+  SL.bigImage = (u) => (/ebayimg\.com/.test(u || "") ? u.replace(/s-l\d+\./, "s-l1600.") : u || "");
+
+  // "+$12.35 delivery", "+$5 shipping estimate", "Free delivery", "Free International Shipping"
+  SL.parseShipping = (text) => {
+    if (!text) return null;
+    const t = text.replace(/\u00a0/g, " ");
+    const paid = t.match(/\+\s?\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:delivery|shipping|postage)/i);
+    if (paid) return parseFloat(paid[1].replace(/,/g, ""));
+    if (/free\s+(?:[\w-]+\s+){0,2}(?:delivery|shipping)/i.test(t)) return 0; // "Free 2-4 day delivery"
+    return null;
+  };
+  const withTotal = (it) => ({ ...it, total: it.price == null ? null : Math.round((it.price + (it.shipping || 0)) * 100) / 100 });
+
+  // ---------- facts read straight off a card (no AI) ----------
+  // Auctions: the price is only the current bid. "3 bids · 2d 4h left", "Time left 4h 12m".
+  const hoursLeft = (t) => {
+    let h = 0;
+    for (const [, n, u] of t.matchAll(/(\d+)\s*([dhms])/gi)) h += +n * { d: 24, h: 1, m: 1 / 60, s: 1 / 3600 }[u.toLowerCase()];
+    return Math.round(h * 10) / 10;
+  };
+  // "1.2K" -> 1200
+  const count = (n, k) => Math.round(parseFloat(n.replace(/,/g, "")) * (k ? { K: 1e3, M: 1e6 }[k.toUpperCase()] : 1));
+
+  // Lots and bundles, only when the title says so outright: "lot of 6", "bundle of 12", "10 pc lot".
+  SL.lotSize = (title) => {
+    const m =
+      title.match(/\b(?:lot|bundle|set|bulk lot)\s+of\s+(\d{1,3})\b/i) ||
+      title.match(/\b(\d{1,3})\s*-?\s*(?:pc|pcs|piece|pieces|game|games|item|items|cart|carts|disc|discs)\s+(?:lot|bundle)\b/i) ||
+      title.match(/\b(\d{1,3})\s*-?\s*lot\b/i) ||
+      title.match(/\blot\s*\((\d{1,3})\)/i);
+    const n = m ? +m[1] : 0;
+    return n >= 2 && n <= 200 ? n : 0;
+  };
+
+  // Every text piece with a space between, so neighbours like "3 bids" + "Ends in 2d" don't run
+  // together ("3 bidsEnds in 2d") the way textContent joins them.
+  SL.spacedText = (el) => {
+    if (!el) return "";
+    const out = [];
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) out.push(n.nodeValue);
+    return out.join(" ").replace(/\s+/g, " ");
+  };
+
+  SL.cardFacts = (text, title = "") => {
+    const t = (text || "").replace(/\u00a0/g, " ");
+    const f = {};
+    const bids = t.match(/\b(\d+)\s+bids?\b/i);
+    const left = t.match(/\b(\d+[dhms](?:\s*\d+[hms]){0,2})\s+left\b/i) || t.match(/time left[:\s]+(\d+[dhms](?:\s*\d+[hms]){0,2})/i) || t.match(/\bends?\s+in\s+(\d+[dhms](?:\s*\d+[hms]){0,2})/i); // cards say "6d left", listing pages "Ends in 6d 20h"
+    if (bids || (left && /bid/i.test(t))) {
+      f.auction = true;
+      f.bids = bids ? +bids[1] : 0;
+      if (left) {
+        f.timeLeft = left[1].replace(/\s+/g, " ");
+        f.hoursLeft = hoursLeft(left[1]);
+      }
+    }
+    if (/\bor best offer\b|\bobo\b|\bor best\b|make (?:me )?an offer|open to offers/i.test(t + " " + title) && !/best offer accepted/i.test(t)) f.bestOffer = true;
+    const lot = SL.lotSize(title);
+    if (lot) f.lot = lot;
+    // Seller rating: "99.5% positive (1.2K)" (2025 cards), "name (1,234) 99.5%" (older), or the listing page's seller card.
+    const a = t.match(/(\d{2,3}(?:\.\d+)?)%\s*positive(?:\s*feedback)?\s*\(([\d,.]+)\s*([KM])?\)/i);
+    const b = t.match(/\(([\d,.]+)\s*([KM])?\)\s*(\d{2,3}(?:\.\d+)?)%/);
+    const pct = t.match(/(\d{2,3}(?:\.\d+)?)%\s*positive/i);
+    if (a) Object.assign(f, { sellerPct: +a[1], sellerCount: count(a[2], a[3]) });
+    else if (b) Object.assign(f, { sellerPct: +b[3], sellerCount: count(b[1], b[2]) });
+    else if (pct) f.sellerPct = +pct[1];
+    const ratings = !a && !b && t.match(/\(([\d,.]+)\s*([KM])?\)\s*(?:feedback|ratings?)/i);
+    if (ratings) f.sellerCount = count(ratings[1], ratings[2]);
+    return f;
   };
 
   const squash = (s, max = 300) => (s || "").replace(/\s+/g, " ").trim().slice(0, max);
 
-  // ---------- eBay ----------
-  // 2025+ layout: li.s-card. Older layout: li.s-item. Both still appear in guides.
+  // ---------- scam patterns (Facebook) ----------
+  // Bulk-posted fake listings end their titles with a short random code ("Game Boy Advance SP M2465",
+  // "Halo Special Edition Xbox S1337", "... U2X503") so no two look identical. A real model number
+  // can look the same ("Pentax K1000"), so on its own a code is a hint for the model; the same title
+  // posted again with a different code is certain (see the page pass in panel.js).
+  const NOT_CODE =
+    /^(?:\d+(?:GB|TB|MB|MHZ|GHZ|HZ|MM|CM|IN|W|V|MAH|P|K|X|PCS?|FT|LBS?|OZ)|XBOX\d+|PS\d\w*|[23]DS\w*|N64\w*|NDS\w*|GBA\w*|SNES\w*|DSI\w*|RTX\d+|GTX\d+|RX\d+|GEN\d+|MK\d+|USB\w*|HDMI\w*|4K\w*|1080P?|720P?)$/;
+  SL.titleCode = (title) => {
+    const words = (title || "").trim().split(/\s+/);
+    if (words.length < 3) return "";
+    const last = words.at(-1).replace(/^[#([]+|[)\].,!]+$/g, "");
+    if (!/^[A-Z0-9]{4,8}$/.test(last) || !/[A-Z]/.test(last) || !/\d/.test(last) || NOT_CODE.test(last)) return "";
+    return last;
+  };
+  // The title without its code, for spotting the same listing posted again under another code.
+  SL.titleStem = (title, code) => (code ? title.trim().slice(0, -code.length) : title).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
-  SL.extractEbay = (root = document) => {
-    const cards = root.querySelectorAll("li.s-card, li.s-item");
+  // Moving the sale off the site is how these scams get paid. Returns { sure, why[] }: sure when
+  // the contact is disguised to slip past Facebook's filters ("www . jmyzl . com", "remove the
+  // spaces", "505_507__6507", "text me a screenshot"); a plain phone number or website is only a hint.
+  const DOT = String.raw`\s*(?:\.|\(dot\)|\[dot\]|\bdot\b)\s*`;
+  const TLD = "(?:com|net|org|shop|store|top|xyz|site|online|club|vip|cc|co|us|io|me)";
+  SL.offSite = (text) => {
+    const t = (text || "").replace(/\u00a0/g, " ");
+    const why = [];
+    let sure = false;
+    const site = t.match(new RegExp(String.raw`\b(?:w\s*w\s*w${DOT})?[a-z0-9-]{3,}${DOT}${TLD}\b`, "i"));
+    if (site) {
+      const hidden = /\s|dot/i.test(site[0].replace(/^w\s*w\s*w/i, "www"));
+      if (hidden) sure = true;
+      if (!/facebook|ebay/i.test(site[0])) why.push(`${hidden ? "disguised " : ""}web address “${site[0].trim()}”`);
+    }
+    if (/remove (?:the |all )?(?:spaces|dots|symbols|underscores)|without (?:the )?spaces|no spaces/i.test(t)) {
+      sure = true;
+      why.push("says to remove the spaces");
+    }
+    const phone = t.match(/(?<![\d$])\(?(\d{3})\)?([\s_.*\/-]{0,3})(\d{3})([\s_.*\/-]{0,3})(\d{4})(?!\d)/);
+    // Ten digits with nothing between them is more likely a serial or part number than a phone.
+    if (phone && (phone[2] + phone[4] || /^\(/.test(phone[0]))) {
+      const seps = phone[2] + phone[4];
+      const odd = /[_*\/]/.test(seps) || phone[2].length > 1 || phone[4].length > 1;
+      if (odd) sure = true;
+      why.push(odd ? `disguised phone number “${phone[0].trim()}”` : "phone number in the listing");
+    }
+    const apps = t.match(/\b(whats\s?app|telegram|signal app|wechat|kik|cash\s?app|zelle|venmo|gift ?cards?|e-?mail me|text me|screenshot)\b/gi);
+    if (apps) {
+      const list = [...new Set(apps.map((a) => a.toLowerCase().replace(/\s+/g, " ")))];
+      why.push(`mentions ${list.join(", ")}`);
+      if (list.some((a) => /screenshot|whats|telegram|gift/.test(a))) sure = true; // "call or text" alone is ordinary
+    }
+    return why.length ? { sure, why } : null;
+  };
+
+  // ---------- eBay ----------
+  // 2025+ layout: li.s-card. Older layout: li.s-item. Both still appear in guides. Category pages
+  // (/b/...) use their own cards, li.brwrvr__item-card with bsig__ parts.
+
+  // strict: stop at eBay's "Results matching fewer words" divider (used for the sold-price median,
+  // where those looser matches would skew the numbers).
+  SL.EBAY_CARDS = "li.s-card, li.s-item, li.brwrvr__item-card";
+  SL.extractEbay = (root = document, { strict = false } = {}) => {
+    const cards = root.querySelectorAll(`${SL.EBAY_CARDS}, li.srp-river-answer`);
     const out = [];
     const seen = new Set();
-    cards.forEach((card) => {
-      if (card.classList.contains("srp-river-answer")) return;
+    for (const card of cards) {
+      if (card.classList.contains("srp-river-answer")) {
+        if (strict && /fewer words/i.test(card.textContent)) break;
+        continue;
+      }
       const link = card.querySelector('a[href*="/itm/"]');
-      if (!link) return;
+      if (!link) continue;
       const url = link.href || link.getAttribute("href");
-      const itemId = (url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/) || [])[1] || url;
-      if (seen.has(itemId)) return;
-      seen.add(itemId);
+      const key = SL.keyOf(url);
+      if (seen.has(key)) continue;
+      seen.add(key);
 
-      let title = firstText(card, [".s-card__title", ".s-item__title", '[role="heading"]', "h3"]) || link.textContent;
+      let title = firstText(card, [".s-card__title", ".s-item__title", ".bsig__title__text", ".bsig__title", '[role="heading"]', "h3"]) || link.textContent;
       title = squash(title.replace(/^New Listing/i, "").replace(/Opens in a new window or tab$/i, ""), 160);
-      if (!title || /^shop on ebay$/i.test(title)) return;
+      if (!title || /^shop on ebay$/i.test(title)) continue;
 
-      const priceText = squash(firstText(card, [".s-card__price", ".s-item__price"]) || (card.textContent.match(/\$\s?[\d,]+(?:\.\d{2})?/) || [""])[0], 60);
+      const priceText = squash(firstText(card, [".s-card__price", ".s-item__price", ".bsig__price"]) || (card.textContent.match(/\$\s?[\d,]+(?:\.\d{2})?/) || [""])[0], 60);
 
-      out.push({
-        site: "ebay",
-        title,
-        priceText,
-        price: SL.parsePrice(priceText),
-        url,
-        imageUrl: firstImage(card),
-        raw: squash(card.innerText || card.textContent),
-        el: card,
-      });
-    });
+      const text = card.innerText || card.textContent;
+      out.push(
+        withTotal({
+          site: "ebay",
+          title,
+          priceText,
+          price: SL.parsePrice(priceText),
+          shipping: SL.parseShipping(text),
+          url,
+          imageUrl: firstImage(card),
+          raw: squash(text),
+          el: card,
+          ...SL.cardFacts(SL.spacedText(card), title),
+          // Titles only on eBay: card text has too many numbers to trust a phone check there.
+          ...(SL.offSite(title) && { offSite: SL.offSite(title) }),
+        })
+      );
+    }
     return out;
   };
 
@@ -79,6 +232,7 @@
   // them entirely. Every listing card is a link to /marketplace/item/<id>; we read
   // the visible text lines inside that link instead.
 
+  const FB_LABELS = /^(just listed|sponsored|price dropped|partner listing|new listing|shipping available|ships to you|free shipping|pending|sold)$/i;
   SL.extractFacebook = (root = document) => {
     const links = root.querySelectorAll('a[href*="/marketplace/item/"]');
     const out = [];
@@ -89,28 +243,60 @@
       if (!itemId || seen.has(itemId)) return;
       seen.add(itemId);
 
-      const lines = (a.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean);
+      // innerText gives one line per text block, but only for cards being shown; a card we've hidden
+      // (filtered, not interested) falls back to its text pieces, which split the same way here.
+      let lines = (a.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean);
+      if (lines.length < 2 && !a.getClientRects().length) {
+        const walk = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
+        lines = [];
+        for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest(".second-look-sticker, .second-look-marks")) lines.push(n.nodeValue.trim());
+      }
       if (!lines.length) return;
       const priceLine = lines.find((l) => /\$\s?[\d,]|^free$/i.test(l)) || "";
-      const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l));
+      // Facebook's own labels on the photo are lines too; they're never the title.
+      const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l) && !FB_LABELS.test(l));
       const title = squash(rest[0] || "", 160);
       if (!title) return;
+      // A marked-down listing shows the new price first and the old one struck through after it ("$165" "$180").
+      const now = SL.parsePrice(priceLine);
+      const was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (/^\$\s?[\d,]/.test(l) ? SL.parsePrice(l) : null)).find((n) => n != null);
 
-      out.push({
-        site: "facebook",
-        title,
-        priceText: priceLine,
-        price: /^free$/i.test(priceLine) ? 0 : SL.parsePrice(priceLine),
-        url: new URL(href, location.origin).href.split("?")[0],
-        imageUrl: firstImage(a),
-        raw: squash(lines.join(" | ")),
-        el: a,
-      });
+      out.push(
+        withTotal({
+          site: "facebook",
+          title,
+          priceText: priceLine,
+          price: /^free$/i.test(priceLine) ? 0 : SL.parsePrice(priceLine),
+          shipping: SL.parseShipping(lines.join(" ")), // usually null: most Marketplace sales are local pickup
+          url: new URL(href, location.origin).href.split("?")[0],
+          imageUrl: firstImage(a),
+          raw: squash(lines.join(" | ")),
+          el: a,
+          ...SL.cardFacts(SL.spacedText(a), title),
+          titleCode: SL.titleCode(title),
+          ...(was != null && now != null && was > now && { wasPrice: was }),
+          ...(lines.some((l) => /^just listed$/i.test(l)) && { justListed: true }),
+        })
+      );
     });
     return out;
   };
 
   SL.facebookQuery = () => new URLSearchParams(location.search).get("query") || "";
+
+  // With no search, what is this page? Marketplace addresses look like /marketplace/ (home feed),
+  // /marketplace/<city>/ or /marketplace/<city>/<category> (a category such as "videogames").
+  const NOT_CATEGORY = /^(search|item|you|inbox|notifications|create|selling|buying|saved|category)$/i;
+  SL.browseContext = () => {
+    if (SL.currentSite() !== "facebook") {
+      const cat = location.pathname.match(/^\/b\/([^/]+)/);
+      return cat ? `eBay category "${decodeURIComponent(cat[1]).replace(/-/g, " ")}" (no search)` : "eBay page with no search";
+    }
+    const parts = location.pathname.split("/").filter(Boolean).slice(1); // after "marketplace"
+    const cat = parts.find((p, i) => i > 0 && !NOT_CATEGORY.test(p) && !/^\d+$/.test(p)) || "";
+    const pretty = cat && cat.replace(/[-_]/g, " ").replace(/([a-z])(games|consoles|electronics)$/i, "$1 $2");
+    return pretty ? `Facebook Marketplace category "${pretty}" (no search)` : "Facebook Marketplace home feed: mixed items for sale near the buyer (no search)";
+  };
 
   // ---------- single listing pages ----------
   // Layered the same way: site-specific selectors first, then generic page metadata
@@ -118,8 +304,6 @@
 
   const meta = (prop) =>
     document.querySelector(`meta[property="${prop}"], meta[name="${prop}"]`)?.getAttribute("content")?.trim() || "";
-
-  const bigEbayImage = (u) => u.replace(/s-l\d+\./, "s-l1600.");
 
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];
 
@@ -131,61 +315,92 @@
       const imgs = [...document.querySelectorAll('.ux-image-carousel img, [data-testid="ux-image-carousel"] img')].map(
         (i) => i.getAttribute("src") || i.getAttribute("data-src") || ""
       );
-      return {
+      const shippingText = squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300);
+      const sellerEl = document.querySelector('.x-sellercard-atf, [data-testid="x-sellercard-atf"]');
+      const seller = squash(SL.spacedText(sellerEl), 300);
+      // Bids, time left and "or Best Offer" live in the buy box; fall back to the top of the page.
+      const boxEl = document.querySelector('.x-buybox, [data-testid="x-buybox"], .x-price-section');
+      const buyBox = boxEl ? SL.spacedText(boxEl) : SL.spacedText(document.querySelector("main, #mainContent") || document.body).slice(0, 4000);
+      return withTotal({
+        ...SL.cardFacts(`${buyBox} ${seller}`, title),
         site,
         title,
         priceText,
         price: SL.parsePrice(priceText),
-        condition: squash(firstText(document, [".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
-        seller: squash(firstText(document, [".x-sellercard-atf", '[data-testid="x-sellercard-atf"]']), 300),
-        shipping: squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300),
+        shipping: SL.parseShipping(shippingText),
+        // the label sits in .ux-textspans (the text beside it repeats it for screen readers and adds a "More information" button)
+        condition: squash(firstText(document, [".x-item-condition-text .ux-textspans", ".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
+        seller,
+        shippingText,
         details: squash(firstText(document, [".x-about-this-item", '[data-testid="x-about-this-item"]']) || meta("og:description"), 1200),
-        imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(bigEbayImage).slice(0, 4),
+        imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(SL.bigImage).slice(0, 4),
         url: location.href.split("?")[0],
-      };
+      });
     }
-    // Facebook Marketplace: class names are useless, so lean on metadata + visible text.
-    const main = document.querySelector('[role="main"]') || document.body;
+    // Facebook Marketplace: class names are useless, so lean on visible text + metadata.
+    // A listing opened from the feed is an overlay (a dialog) over the feed, with the feed still in
+    // [role=main] and the page's og: tags still the feed's; opened directly, it's the main area.
+    // Only a dialog you can see: Facebook keeps hidden ones (a "Notifications" flyout) in the page.
+    const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length).at(-1);
+    const main = dialog || document.querySelector('[role="main"]') || document.body;
     const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
     const priceText = priceNode ? priceNode.textContent.trim() : "";
     const imgs = [...main.querySelectorAll("img")]
       .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
       .map((i) => i.src);
-    return {
+    const title = squash(firstText(main, ["h1"]) || (dialog ? "" : meta("og:title")), 200);
+    const text = main.innerText || "";
+    return withTotal({
+      ...SL.cardFacts(text, title),
       site: "facebook",
-      title: squash(firstText(main, ["h1"]) || meta("og:title"), 200),
+      title,
       priceText,
       price: /^free$/i.test(priceText) ? 0 : SL.parsePrice(priceText),
+      shipping: null,
       condition: "",
       seller: "",
-      shipping: "",
-      details: squash(meta("og:description") || main.innerText, 2500),
-      imageUrls: uniq([meta("og:image"), ...imgs]).slice(0, 4),
+      shippingText: "",
+      details: squash(dialog ? text : meta("og:description") || text, 2500),
+      imageUrls: uniq([dialog ? "" : meta("og:image"), ...imgs]).slice(0, 4),
       url: location.href.split("?")[0],
-    };
+      titleCode: SL.titleCode(title),
+      offSite: SL.offSite(text),
+    });
   };
 
-  // A short search phrase for the sold-price comparison, taken from a listing title.
+  // A short search phrase for the sold-price comparison, taken from a listing title. Condition and
+  // fault words ("for parts", "untested", "blinking red light") would skew the sold search, so they go.
+  const NOISE =
+    /\b(for parts( or repair| only)?|not working|non[- ]?working|untested|tested|works?|working|broken|as[- ]is|read( description)?|please read|parts|repair|faulty|damaged|no power|powers on|blinking( red)?( light)?|red light|cracked|(great|good|nice) condition|great|good|nice|clean|excellent|mint|rare|vintage|lot|bundle|free shipping|fast shipping|l@@k|wow)\b/gi;
+  // On Facebook a trailing code ("... U2X503") would only make the sold search come back empty.
   SL.titleToQuery = (title) =>
     (title || "")
+      .slice(0, SL.currentSite() === "facebook" && SL.titleCode(title) ? -SL.titleCode(title).length : undefined)
+      .replace(NOISE, " ")
       .replace(/[^\p{L}\p{N}\s.-]/gu, " ")
       .split(/\s+/)
-      .filter(Boolean)
+      .map((w) => w.replace(/^[-.]+|[-.]+$/g, "")) // keep "PSP-3001", drop a lone "-" (eBay reads it as "exclude")
+      .filter((w) => w && !/^w$/i.test(w))
       .slice(0, 6)
       .join(" ");
 
   // ---------- pick the adapter for this page ----------
 
+  // Every eBay page and every Marketplace page get the tab; what the panel can do depends on the page.
   SL.currentSite = () => {
-    if (location.hostname === "www.ebay.com" && (location.pathname === "/" || /^\/(sch|itm)\//.test(location.pathname))) return "ebay";
+    if (location.hostname === "www.ebay.com") return "ebay";
     if (location.hostname === "www.facebook.com" && location.pathname.startsWith("/marketplace")) return "facebook";
     return null;
   };
 
-  // "results" = a search results page, "item" = one listing, null = not ours.
+  // "results" = search results or a category, "item" = one listing, "home" = eBay's front page,
+  // "other" = any other eBay page (the panel still has Saved), null = not ours.
   SL.pageType = () => {
     const site = SL.currentSite();
-    if (site === "ebay") return location.pathname === "/" ? "home" : location.pathname.startsWith("/itm/") ? "item" : "results";
+    if (site === "ebay") {
+      const path = location.pathname;
+      return path === "/" ? "home" : path.startsWith("/itm/") ? "item" : /^\/(sch|b)\//.test(path) ? "results" : "other";
+    }
     if (site === "facebook") return location.pathname.startsWith("/marketplace/item/") ? "item" : "results";
     return null;
   };
@@ -233,20 +448,32 @@
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
   };
 
+  // eBay's condition filter: 3000 = used, 7000 = for parts or not working. "" = any condition.
+  SL.SOLD_CONDITION = { used: "3000", parts: "7000", any: "" };
+  SL.soldUrl = (query, condition = "") => {
+    const u = new URL("https://www.ebay.com/sch/i.html");
+    u.searchParams.set("_nkw", query);
+    u.searchParams.set("LH_Sold", "1");
+    u.searchParams.set("LH_Complete", "1");
+    u.searchParams.set("_ipg", "60");
+    if (condition) u.searchParams.set("LH_ItemCondition", condition);
+    return u.href;
+  };
+
+  // Median of what buyers paid (price + shipping when the card shows it), plus the few sales
+  // closest to the median so you can see what the number is made of.
   SL.summarizeSold = (html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    const prices = SL.extractEbay(doc)
-      .map((it) => it.price)
-      .filter((p) => p != null && p > 0)
-      .sort((a, b) => a - b);
-    if (prices.length < 5) return null; // too few sales to trust
+    const sales = SL.extractEbay(doc, { strict: true }).filter((it) => it.total != null && it.total > 0);
+    if (sales.length < 5) return null; // too few sales to trust
+    const totals = sales.map((it) => it.total).sort((a, b) => a - b);
     const r = (n) => Math.round(n);
-    return {
-      n: prices.length,
-      median: r(quantile(prices, 0.5)),
-      p25: r(quantile(prices, 0.25)),
-      p75: r(quantile(prices, 0.75)),
-      currency: "$",
-    };
+    const median = quantile(totals, 0.5);
+    const samples = [...sales]
+      .sort((a, b) => Math.abs(a.total - median) - Math.abs(b.total - median))
+      .slice(0, 5)
+      .sort((a, b) => a.total - b.total)
+      .map((it) => ({ title: it.title, total: it.total, url: it.url }));
+    return { n: totals.length, median: r(median), p25: r(quantile(totals, 0.25)), p75: r(quantile(totals, 0.75)), currency: "$", samples };
   };
 })();

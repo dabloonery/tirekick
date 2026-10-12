@@ -130,3 +130,27 @@ Real eBay and Facebook pages (all pages here are fixtures; Facebook's is synthet
 - "Find better searches for this" is a full-width button (the branch made it one so it would be found); with Scan above it, a search page opens with two stacked buttons.
 - Rows keep the space of their hidden links (a quiet 28px under each row) so nothing moves when you point at one.
 - Item **7**, the Chrome Side Panel instead of the drawer, still needs a prototype.
+
+# Performance on Marketplace (0.33.2)
+
+Reported as "so laggy" on Marketplace. Measured with `tests/e2e/perf.ts`: a Marketplace-sized page (240 cards nested fourteen boxes deep like Facebook's, more loading as you scroll, class names changing several times a second), scored, the panel tucked away, then ten seconds of scrolling. Main-thread time, with 5,000 listings already in the seen-listings memory:
+
+| | busy (of 10,000 ms) | style | layout | worst frame gap | cards loaded |
+|---|---|---|---|---|---|
+| the page alone | 350 ms | 25 ms | 24 ms | 17 ms | 408 |
+| 0.28.1 | 4,260 ms | 464 ms | 2,049 ms | 1,167 ms | 312 |
+| 0.33.1 | **61,875 ms** | **59,703 ms** | 667 ms | **61 seconds** | 264 |
+| 0.33.2 | **1,287 ms** | 144 ms | 150 ms | 217 ms | 408 |
+
+Opening the panel on that feed: 188 ms → 58 ms; re-sorting 143 ms → 87 ms.
+
+What it was, worst first:
+1. **The dimming rule** (0.29.0) used `:has()` to fade a skipped card without its tag. Facebook changes its markup constantly, and every change made the browser re-check that rule across the whole page: the page froze for a minute. The parts to fade are now marked once per card and the rule is a plain attribute; the hover lift that also used `:has()` is a pointer listener.
+2. **Every card was re-dressed on every pass.** The page pass (whenever more listings load) removed and rebuilt every tag. A card whose facts, score and settings haven't changed is now skipped before anything is measured.
+3. **Layout thrashing.** Each tag read its card's size right after the previous card's tag was written, so the browser laid out the page once per card. A batch is now measured first and written after.
+4. **The grid-cell search** listed every listing link at every level for every card (it grows with the square of the feed). One query that stops at the first other listing.
+5. **Hidden views drawn anyway.** The result list was redrawn after every pass with the panel tucked away, and Home re-read all of storage (the seen-listings memory included) and redrew itself on most storage changes. Both are drawn when shown; the Home tab's number comes from three small records.
+6. **Saving the memory and scores** read, sorted and rewrote the whole store each time. Each tab now keeps them current from the change events, writes once, prunes only past the cap, and saves when idle (and at once when you leave or switch tabs).
+7. **Smaller:** cards whose text hasn't changed aren't read again; the tag's fade-in is gone (hundreds of animations on a feed); the every-two-seconds panel refresh only writes what changed; the date formatter is made once; off-screen result rows aren't laid out (`content-visibility`) and only the first dozen fade in.
+
+`tests/all.sh` now ends with `perf.ts` as a guard: the run fails if the feed is busy more than 5 of 10 seconds or a frame waits over a second.

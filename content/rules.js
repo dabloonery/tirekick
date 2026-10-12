@@ -10,7 +10,8 @@
   R.RANK = { pass: 0, fair: 1, good: 2, great: 3 };
   R.signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "±0");
   R.dollars = (n) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
-  R.shortDate = (ts) => new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const SHORT_DATE = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }); // made once: it's slow to make
+  R.shortDate = (ts) => SHORT_DATE.format(new Date(ts));
   R.normTitle = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   R.hash = (str) => {
     let x = 5381;

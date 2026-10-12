@@ -31,6 +31,7 @@
 
   // Lazy-loaded cards often carry a 1x1 placeholder in src and the real photo in a data- attribute.
   const isPlaceholder = (u) => /^data:|\.gif(\?|$)/i.test(u);
+  SL.isPlaceholder = isPlaceholder;
   const firstImage = (root) => {
     const img = root.querySelector("img");
     if (!img) return "";
@@ -142,15 +143,29 @@
   // Moving the sale off the site is how these scams get paid. Returns { sure, why[] }: sure when
   // the contact is disguised to slip past Facebook's filters ("www . jmyzl . com", "remove the
   // spaces", "505_507__6507", "text me a screenshot"); a plain phone number or website is only a hint.
-  const DOT = String.raw`\s*(?:\.|\(dot\)|\[dot\]|\bdot\b)\s*`;
+  // Addresses written to slip past a filter. Ordinary sentences must not match: "Works perfectly. Me and
+  // my wife…" has the same shape as "name. me", so a gap after the dot alone only counts for endings no
+  // sentence starts with, in lower case, and "polka dot top" needs a real ending too.
   const TLD = "(?:com|net|org|shop|store|top|xyz|site|online|club|vip|cc|co|us|io|me)";
+  const REAL = "(?:com|net|org|shop|xyz|vip|cc|io)";
+  const LABEL = "[a-z0-9-]{3,}";
+  const WWW = String.raw`(?:w\s*w\s*w\s*(?:\.|\(dot\)|\[dot\]|\bdot\b)\s*)?`;
+  const SPACED = [
+    new RegExp(String.raw`\b${WWW}${LABEL}\s*(?:\(dot\)|\[dot\])\s*${TLD}\b`, "i"), // name [dot] shop
+    new RegExp(String.raw`\b${WWW}${LABEL}\s+\.\s*${REAL}\b`, "i"), // www . name . com
+    new RegExp(String.raw`\b${WWW}${LABEL}\s+dot\s+${REAL}\b`, "i"), // name dot com
+    new RegExp(String.raw`\b[a-zA-Z0-9-]{3,}\.\s+${REAL}\b`), // name. com (lower case ending)
+  ];
+  const PLAIN_SITE = new RegExp(String.raw`\b(?:www\.)?${LABEL}\.${TLD}\b`, "i");
   SL.offSite = (text) => {
     const t = (text || "").replace(/\u00a0/g, " ");
     const why = [];
     let sure = false;
-    const site = t.match(new RegExp(String.raw`\b(?:w\s*w\s*w${DOT})?[a-z0-9-]{3,}${DOT}${TLD}\b`, "i"));
+    let site = null;
+    for (const re of SPACED) if ((site = t.match(re))) break;
+    const hidden = !!site;
+    site ||= t.match(PLAIN_SITE);
     if (site) {
-      const hidden = /\s|dot/i.test(site[0].replace(/^w\s*w\s*w/i, "www"));
       if (hidden) sure = true;
       if (!/facebook|ebay/i.test(site[0])) why.push(`${hidden ? "disguised " : ""}web address “${site[0].trim()}”`);
     }
@@ -170,7 +185,11 @@
     if (apps) {
       const list = [...new Set(apps.map((a) => a.toLowerCase().replace(/\s+/g, " ")))];
       why.push(`mentions ${list.join(", ")}`);
-      if (list.some((a) => /screenshot|whats|telegram|gift/.test(a))) sure = true; // "call or text" alone is ordinary
+      // "call or text" alone is ordinary, and so is "screenshot of the battery health" or "comes with a $20 gift
+      // card": those only count when they ask you to send one, or ask to be paid with one.
+      const asksScreenshot = /(?:text|send|dm|message|e-?mail)[^.\n]{0,40}screenshot|screenshot[^.\n]{0,30}(?:to me|to this|back to)/i.test(t);
+      const giftPay = /(?:pay|payment|accept|take|only)[^.\n]{0,30}gift ?cards?|gift ?cards? (?:only|as payment|payment)/i.test(t);
+      if (list.some((a) => /whats|telegram/.test(a)) || asksScreenshot || giftPay) sure = true;
     }
     return why.length ? { sure, why } : null;
   };

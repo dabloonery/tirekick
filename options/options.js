@@ -45,7 +45,7 @@ const OTHER = "\u0000other";
 const CLAUDE_MODELS = [
   ["claude-opus-5-5", "Opus 5.5: best"],
   ["claude-sonnet-5-5", "Sonnet 5.5: half the price"],
-  ["claude-haiku-4-5", "Haiku 4.5: a quarter of the price"],
+  ["claude-haiku-5-5", "Haiku 5.5: about a fortieth of the price"],
 ];
 const pickers = {};
 function modelPicker(id, { blank = "" } = {}) {
@@ -118,7 +118,7 @@ async function load() {
 }
 
 // What the Claude API has cost (estimated), from the record the background keeps per day and model.
-const NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-4-5": "Haiku 4.5" };
+const NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-5-5": "Haiku 5.5", "claude-haiku-4-5": "Haiku 4.5" };
 const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
 async function showSpend() {
   const { usage } = await chrome.storage.local.get("usage");

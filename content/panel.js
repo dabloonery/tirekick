@@ -99,7 +99,7 @@
   const THEME_CSS = `
     /* ---------- tokens: dark first; the light set is used when the browser asks for it or Setup says so ---------- */
     .wrap {
-      --w: min(380px, calc(100vw - 32px)); --gap: 16px;
+      --w: min(380px, calc(100vw - 32px)); --gap: 16px; /* applyBox() sets --w from the chosen width */
       --r:6px; --r-sm:4px; --bw:1px; --press:none;
       --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
       --display:var(--ui);
@@ -143,7 +143,32 @@
     /* one height for every view, so switching This page / Saved / a listing doesn't move the panel; only the body scrolls */
     .panel { width:var(--w); height:min(760px, calc(100vh - 48px)); display:flex; flex-direction:column; overflow:hidden; margin-right:var(--gap);
       background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
-    .head { display:flex; align-items:center; gap:10px; padding:14px 12px 8px 16px; }
+    .head { display:flex; align-items:center; gap:10px; padding:14px 12px 8px 16px; cursor:grab; touch-action:none; }
+    .head button { cursor:pointer; }
+    .head:focus-visible { outline:2px solid var(--ink); outline-offset:-2px; border-radius:var(--r); }
+
+    /* ---------- where it sits: docked right (default) or left, in one of three widths ---------- */
+    .panel { position:relative; }
+    .noanim .drawer, .noanim .tab, .noanim .panel { transition:none !important; }
+    .dragging, .dragging * { cursor:grabbing !important; user-select:none; }
+    .dragging .panel { transition:none; }
+    /* the inner edge pulls to change the width; a hairline shows where to grab */
+    .rz { position:absolute; z-index:3; top:14px; bottom:14px; width:8px; cursor:ew-resize; touch-action:none; }
+    .rz-w { left:0; } .rz-e { right:0; }
+    .wrap:not([data-side="left"]) .rz-e, .wrap[data-side="left"] .rz-w { display:none; }
+    .rz::after { content:""; position:absolute; top:50%; left:3px; width:2px; height:32px; margin-top:-16px; border-radius:1px; background:var(--line); opacity:0; transition:opacity .15s; }
+    .rz:hover::after, .resizing .rz::after { opacity:1; }
+    .zones { position:fixed; inset:0; pointer-events:none; display:none; }
+    .moving .zones { display:block; }
+    .zone { position:fixed; top:8px; bottom:20px; width:calc(var(--w) + var(--gap)); max-width:calc(50vw - 8px); border:2px dashed var(--line); border-radius:var(--r); opacity:.7; transition:background .12s, border-color .12s, opacity .12s; }
+    .zone[data-side="right"] { right:calc(var(--gap) / 2); } .zone[data-side="left"] { left:calc(var(--gap) / 2); }
+    .zone.on { border-color:var(--ink); background:color-mix(in srgb, var(--paper) 40%, transparent); opacity:1; }
+    .wrap[data-side="left"] .drawer { flex-direction:row-reverse; transform:translateX(calc(-1 * (var(--w) + var(--gap)))); }
+    .wrap[data-side="left"].open .drawer { transform:none; }
+    .wrap[data-side="left"] .tab { border-right:var(--bw) solid var(--line); border-left:0; border-radius:0 var(--r) var(--r) 0; }
+    .wrap[data-side="left"] .panel { margin-right:0; margin-left:var(--gap); }
+    .wrap[data-side="left"] .count { left:auto; right:-9px; }
+    .wrap[data-side="left"] [data-act="toggle"] svg { transform:scaleX(-1); }
     .nav { display:flex; padding:0 16px; border-bottom:var(--bw) solid var(--rule); }
     .nav button { border:0; background:none; margin:0 18px -1px 0; padding:8px 0 9px; border-bottom:2px solid transparent; color:var(--muted); font:600 13px/1 var(--ui); cursor:pointer; }
     .nav button:hover { color:var(--ink); }
@@ -288,6 +313,23 @@
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 6px) 55%, calc(100% - 2px) 55%; background-size:4px 4px; background-repeat:no-repeat; }
     .sort:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    /* The Sort and model menus open in the panel's own colours. Where the menu itself can't be styled,
+       the options at least get the panel's paper and ink, so they never come out light-on-white. */
+    .sort option, .model option { background:var(--paper); color:var(--ink); }
+    @supports (appearance: base-select) {
+      .sort, .model, .sort::picker(select), .model::picker(select) { appearance:base-select; }
+      .sort::picker-icon, .model::picker-icon { display:none; } /* the panel draws its own chevron */
+      .sort:open, .model:open { outline:none; }
+      .sort::picker(select), .model::picker(select) { margin:4px 0; padding:4px; min-width:200px; border:var(--bw) solid var(--rule); border-radius:var(--r);
+        background:var(--paper); color:var(--ink); box-shadow:var(--shadow); }
+      .sort option, .model option { display:flex; align-items:center; gap:8px; min-height:30px; padding:6px 10px; border-radius:var(--r-sm);
+        font:400 13px/1.3 var(--ui); color:var(--ink); cursor:pointer; }
+      .sort option:hover, .model option:hover, .sort option:focus-visible, .model option:focus-visible { background:var(--paper-2); outline:none; }
+      .sort option:checked, .model option:checked { font-weight:600; }
+      .sort option::checkmark, .model option::checkmark { order:1; margin-left:auto; color:var(--muted); }
+      /* Sort sits at the right edge: its menu drops down, right-aligned to it, over the list it sorts */
+      .sort::picker(select) { position-area:block-end span-inline-start; position-try-order:normal; position-try-fallbacks:flip-block; }
+    }
     .skipwrap { display:flex; align-items:center; gap:8px; }
     .qf { flex:1 1 100%; order:5; display:grid; gap:6px; margin-bottom:4px; }
     .qf[hidden] { display:none; }
@@ -466,13 +508,15 @@
     @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .idea, .count, .progress i, .busy .status::before { transition:none !important; animation:none !important; } }
   </style>
   <div class="wrap">
+   <div class="zones" aria-hidden="true"><div class="zone" data-side="left"></div><div class="zone" data-side="right"></div></div>
    <div class="drawer">
     <button class="tab" data-act="tab" aria-label="Open Second Look" title="Second Look">
       <span class="mark">${MARK}</span>
       <span class="tab-label">Second Look</span><i class="count" hidden></i>
     </button>
     <div class="panel" role="complementary" aria-label="Second Look" tabindex="-1">
-      <div class="head">
+      <div class="rz rz-w" data-edge="w" aria-hidden="true" title="Drag to change the width"></div><div class="rz rz-e" data-edge="e" aria-hidden="true" title="Drag to change the width"></div>
+      <div class="head" tabindex="0" role="group" aria-label="Panel position: left and right arrow keys pick the side, up and down the width" title="Drag to the left or right edge to dock it there; double-click to put it back">
         <span class="mark">${MARK}</span>
         <div class="grow"><div class="wordmark">Second <em>Look</em></div><small>for careful buyers</small></div>
         <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
@@ -715,13 +759,154 @@
   $('[data-act="toggle"]').addEventListener("click", () => setOpen(false));
   // Every page starts with just the tab: the cards' marks and free checks run without the panel open.
 
+  // ---------- where the panel sits ----------
+  // A few set places, so it looks the same everywhere: docked to the right or the left edge, in one of three
+  // widths. Drag the header toward a side and let go (both sides show as you go) to dock there; drag the
+  // panel's inner edge and it settles on the nearest width. With the header focused, left and right pick
+  // the side and up and down the width. Double-click the header (or press Home) for the default. Each
+  // site remembers its own.
+  const SIZES = { s: 340, m: 380, l: 480 };
+  const SIZE_ORDER = ["s", "m", "l"];
+  const DEFAULT_BOX = { side: "right", size: "m" };
+  const EDGE = 16; // a narrow window gets the panel at whatever width fits
+  const vwNow = () => document.documentElement.clientWidth || innerWidth;
+  const between = (n, lo, hi) => Math.min(Math.max(n, lo), Math.max(lo, hi));
+  const nearestSize = (w) => SIZE_ORDER.reduce((best, k) => (Math.abs(SIZES[k] - w) < Math.abs(SIZES[best] - w) ? k : best), "m");
+  let box = { ...DEFAULT_BOX };
+  let liveWidth = 0; // while the edge is being dragged
+  let noAnimTimer = 0;
+  const applyBox = () => {
+    // The drawer slides on width and side changes: not here (the tab would fly in from the edge on every load).
+    wrap.classList.add("noanim");
+    clearTimeout(noAnimTimer);
+    noAnimTimer = setTimeout(() => wrap.classList.remove("noanim"), 60); // a timer, not frames: a background tab gets none
+    wrap.dataset.side = box.side;
+    host.style.right = box.side === "right" ? "0" : "auto";
+    host.style.left = box.side === "left" ? "0" : "auto";
+    wrap.style.setProperty("--w", `${Math.min(liveWidth || SIZES[box.size], vwNow() - 2 * EDGE)}px`);
+  };
+  // Slide the panel from where it was shown to where it now sits.
+  const slideFrom = (from) => {
+    const dx = from.left - panel.getBoundingClientRect().left;
+    if (!dx || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    panel.style.transition = "none";
+    panel.style.translate = `${dx}px 0`;
+    void panel.offsetWidth;
+    panel.style.transition = "translate .24s cubic-bezier(.2,.7,.2,1)";
+    panel.style.translate = "";
+    setTimeout(() => (panel.style.transition = ""), 300);
+  };
+  const boxSite = SL.currentSite();
+  let boxTimer = 0;
+  const saveBox = () => {
+    clearTimeout(boxTimer);
+    boxTimer = setTimeout(
+      () => alive() && writeStored("panelBox", (b) => (box.side !== DEFAULT_BOX.side || box.size !== DEFAULT_BOX.size ? (b[boxSite] = { ...box }) : delete b[boxSite])).catch(() => {}),
+      300
+    );
+  };
+  const setBox = (next) => {
+    const from = panel.getBoundingClientRect();
+    box = { ...box, ...next };
+    applyBox();
+    if (wrap.classList.contains("open")) slideFrom(from);
+    saveBox();
+  };
+  chrome.storage.local.get("panelBox").then((v) => {
+    const b = v.panelBox?.[boxSite] || {};
+    // A free width saved by 0.22 becomes the nearest of the three.
+    box = { side: b.side === "left" ? "left" : "right", size: SIZES[b.size] ? b.size : b.w > 0 ? nearestSize(b.w) : "m" };
+    applyBox();
+  }).catch(() => {});
+  applyBox();
+  addEventListener("resize", applyBox);
+  // One gesture at a time, followed even when the pointer leaves the window.
+  const track = (e, kind, { move, done }) => {
+    e.preventDefault();
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
+    wrap.classList.add("dragging", kind);
+    const onMove = (m) => (m.buttons ? move(m) : end()); // no button held: the release happened where we couldn't see it
+    const end = () => {
+      target.removeEventListener("pointermove", onMove);
+      target.removeEventListener("pointerup", end);
+      target.removeEventListener("pointercancel", end);
+      target.removeEventListener("lostpointercapture", end);
+      wrap.classList.remove("dragging", kind);
+      done();
+    };
+    target.addEventListener("pointermove", onMove);
+    target.addEventListener("pointerup", end);
+    target.addEventListener("pointercancel", end);
+    target.addEventListener("lostpointercapture", end);
+  };
+  const sideAt = (x) => (x < vwNow() / 2 ? "left" : "right");
+  const zones = [...root.querySelectorAll(".zone")];
+  const head = $(".head");
+  head.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || e.target.closest("button")) return;
+    const startX = e.clientX;
+    let target = box.side;
+    let moved = false;
+    track(e, "moving", {
+      move: (m) => {
+        moved ||= Math.abs(m.clientX - startX) > 3;
+        panel.style.transition = "none";
+        panel.style.translate = `${m.clientX - startX}px 0`;
+        target = sideAt(m.clientX);
+        zones.forEach((z) => z.classList.toggle("on", z.dataset.side === target));
+      },
+      done: () => {
+        zones.forEach((z) => z.classList.remove("on"));
+        const from = panel.getBoundingClientRect(); // where it was let go
+        panel.style.translate = "";
+        panel.style.transition = "";
+        if (!moved) return;
+        box = { ...box, side: target };
+        applyBox();
+        slideFrom(from);
+        saveBox();
+      },
+    });
+  });
+  head.addEventListener("dblclick", (e) => !e.target.closest("button") && setBox(DEFAULT_BOX));
+  head.addEventListener("keydown", (e) => {
+    if (e.target !== head) return; // the header's own buttons keep their keys
+    const i = SIZE_ORDER.indexOf(box.size);
+    const next = { ArrowLeft: { side: "left" }, ArrowRight: { side: "right" }, ArrowUp: { size: SIZE_ORDER[Math.min(i + 1, 2)] }, ArrowDown: { size: SIZE_ORDER[Math.max(i - 1, 0)] }, Home: DEFAULT_BOX }[e.key];
+    if (!next) return;
+    e.preventDefault();
+    setBox(next);
+  });
+  root.querySelectorAll(".rz").forEach((el) =>
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      const startX = e.clientX;
+      const startW = panel.offsetWidth;
+      const sign = box.side === "right" ? -1 : 1; // the inner edge: pulling it toward the page's middle widens the panel
+      track(e, "resizing", {
+        move: (m) => {
+          liveWidth = between(startW + sign * (m.clientX - startX), 300, Math.min(560, vwNow() - 2 * EDGE));
+          applyBox();
+        },
+        done: () => {
+          const w = liveWidth || startW;
+          liveWidth = 0;
+          box = { ...box, size: nearestSize(w) };
+          applyBox();
+          saveBox();
+        },
+      });
+    })
+  );
+
   // ---------- footer: model switch and spending ----------
   // Spending is estimated from token counts at list prices (a regular API key can't read the real
   // balance). The background records it per day and model; the footer reads that record.
   const MODELS = [
     ["anthropic", "claude-opus-5-5", "Opus 5.5 \u00b7 best"],
     ["anthropic", "claude-sonnet-5-5", "Sonnet 5.5 \u00b7 \u00bd price"],
-    ["anthropic", "claude-haiku-4-5", "Haiku 4.5 \u00b7 \u00bc price"],
+    ["anthropic", "claude-haiku-5-5", "Haiku 5.5 \u00b7 cheapest"],
   ];
   const modelSel = $(".model");
   const spendBtn = $(".spend");
@@ -755,8 +940,23 @@
     root.querySelectorAll(".setup-title").forEach((el) => (el.textContent = modelMissing[0]));
     root.querySelectorAll(".setup-text").forEach((el) => (el.textContent = modelMissing[1]));
   };
+  const isOpenMenu = (n) => {
+    try {
+      return n instanceof HTMLSelectElement && n.matches(":open");
+    } catch {
+      return false; // a browser without :open has a native menu, which keeps its Esc to itself
+    }
+  };
+  // From the page too: Esc anywhere tucks it away, except while typing in the site's own boxes.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || e.defaultPrevented || !wrap.classList.contains("open")) return;
+    if (e.composedPath().includes(host)) return; // inside the panel: the handler below decides
+    if (e.target.closest?.("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return;
+    setOpen(false);
+  });
   root.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !wrap.classList.contains("open")) return;
+    if (e.composedPath().some(isOpenMenu)) return; // Esc closes the Sort or model menu, not the panel
     if (!spendDetail.hidden) {
       showSpend(false);
       spendBtn.focus();
@@ -843,9 +1043,12 @@
   };
   spendBtn.addEventListener("click", () => showSpend(spendDetail.hidden));
   // It's a popover: a click anywhere else in the panel, or Esc, closes it.
-  root.addEventListener("click", (e) => {
+  // Clicks on the page itself count too: they never reach the panel's root.
+  const offSpend = (e) => {
     if (!spendDetail.hidden && !e.composedPath().some((n) => n === spendDetail || n === spendBtn)) showSpend(false);
-  });
+  };
+  root.addEventListener("click", offSpend);
+  document.addEventListener("pointerdown", offSpend, true);
   const loadFooter = async () => {
     try {
       cfg = await send("getSettings");
@@ -1309,16 +1512,24 @@
       const r = node.getBoundingClientRect();
       if (getComputedStyle(node).display !== "inline" && r.width >= 100 && r.height >= 100) return node;
       const up = node.parentElement;
-      if (!up || up.querySelectorAll(ITEM_LINK).length > 1) break;
+      if (!up || [...up.querySelectorAll(ITEM_LINK)].some((a) => itemIdOf(a) !== itemIdOf(el))) break;
       node = up;
     }
     return el;
   };
   // What gets hidden or dimmed: the whole grid cell, so Facebook doesn't leave blank holes.
+  // Facebook nests a card's link a dozen or more boxes deep, and a card can link to its listing more than
+  // once, so climb until the parent holds a different listing (stopping short of that left empty grid slots).
+  const itemIdOf = (a) => a.href.match(/\/marketplace\/item\/(\d+)/)?.[1] || a.href;
   const cellOf = (el) => {
     if (SL.currentSite() !== "facebook") return el;
+    const id = itemIdOf(el.closest(ITEM_LINK) || el.querySelector(ITEM_LINK) || el);
     let node = el;
-    for (let i = 0; i < 10 && node.parentElement && node.parentElement.querySelectorAll(ITEM_LINK).length === 1; i++) node = node.parentElement;
+    for (let i = 0; i < 40; i++) {
+      const up = node.parentElement;
+      if (!up || up === document.body || [...up.querySelectorAll(ITEM_LINK)].some((a) => itemIdOf(a) !== id)) break;
+      node = up;
+    }
     return node;
   };
 
@@ -1452,6 +1663,18 @@
   // The Saved view: listings with the price you saved them at and the latest you've seen, searches
   // with when you last looked, and what you've hidden (each one can come back). Built when shown.
   const itemUrl = (k) => (k.startsWith("fb:") ? `https://www.facebook.com/marketplace/item/${k.slice(3)}/` : `https://www.ebay.com/itm/${k.slice(5)}`);
+  // Where a saved listing or search leads. Stored addresses are checked first (a restored backup can hold
+  // anything): only eBay and Facebook over https; anything else is rebuilt from the key or the search words.
+  const safeUrl = (u, fallback) => {
+    try {
+      const x = new URL(u);
+      return x.protocol === "https:" && /^(?:www\.)?(?:ebay\.com|facebook\.com)$/.test(x.hostname) ? x.href : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const savedSearchUrl = (r) =>
+    safeUrl(r.url, r.site === "facebook" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(r.q || "")}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(r.q || "")}`);
   const renderSaved = () => {
     const items = Object.entries(saved).sort((a, b) => b[1].a0 - a[1].a0);
     const searches = Object.entries(savedSearches).sort((a, b) => b[1].v - a[1].v);
@@ -1493,7 +1716,7 @@
               h(
                 "div",
                 { class: "srow" },
-                h("div", {}, h("a", { href: r.u, target: "_blank", rel: "noopener" }, r.t || r.u), h("div", { class: "meta" }, priceLine(k, r))),
+                h("div", {}, h("a", { href: safeUrl(r.u, itemUrl(k)), target: "_blank", rel: "noopener" }, r.t || safeUrl(r.u, itemUrl(k))), h("div", { class: "meta" }, priceLine(k, r))),
                 h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove")
               )
             ),
@@ -1506,7 +1729,7 @@
                 h(
                   "div",
                   {},
-                  h("a", { href: r.url, title: "Run this search again" }, `\u201c${r.q}\u201d`),
+                  h("a", { href: savedSearchUrl(r), title: "Run this search again" }, `\u201c${r.q}\u201d`),
                   h("div", { class: "meta" }, [
                     `${r.site === "ebay" ? "eBay" : "Marketplace"} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`,
                     r.deal ? h("span", { class: r.deals ? "down" : "" }, ` \u00b7 ${r.deals || "none"} at your $${r.deal}`) : "",
@@ -1521,7 +1744,7 @@
                   { class: "actions sv-acts" },
                   h("button", {
                     onclick: async () => {
-                      const n = await send("openTabs", { urls: searches.map(([, r]) => r.url) }).catch(() => 0);
+                      const n = await send("openTabs", { urls: searches.map(([, r]) => savedSearchUrl(r)) }).catch(() => 0);
                       sayHere(n ? `Opened ${n} saved search${n === 1 ? "" : "es"} in background tabs. What's new in each says New to you.` : "Couldn't open the saved searches.", !n);
                     },
                     title: "Each saved search in its own background tab; what's new will say New to you",
@@ -1618,7 +1841,7 @@
       for (const it of items) {
         const t = normTitle(it.title);
         if (t.split(" ").length >= 4) groups.set(`t:${t}`, [...(groups.get(`t:${t}`) || []), it]);
-        if (it.imageUrl && !/^data:/.test(it.imageUrl)) groups.set(`i:${it.imageUrl}`, [...(groups.get(`i:${it.imageUrl}`) || []), it]);
+        if (it.imageUrl && !SL.isPlaceholder(it.imageUrl)) groups.set(`i:${it.imageUrl}`, [...(groups.get(`i:${it.imageUrl}`) || []), it]);
       }
       const dup = new Map();
       for (const list of groups.values()) if (list.length > 1) list.forEach((it) => dup.set(it, Math.max(dup.get(it) || 0, list.length)));
@@ -1645,6 +1868,7 @@
           text: (it.raw || "").replace(it.title, "").slice(0, 300),
           hidden: !!notInterested[key],
         });
+        if (prev?.codeOk != null) f.codeOk = prev.codeOk; // a scan judged this code a real model number: keep that
         f.vsSold = vsSoldOf(f);
         f.known = prev ? prev.known : !!sighting.known;
         f.project = clueOf(PROJECT, `${it.title} ${f.text}`);
@@ -1746,7 +1970,7 @@
   // "Not interested": hidden on every page from now on (undo from the panel or settings).
   const setInterested = async (key, interested) => {
     const { notInterested: stored = {} } = await chrome.storage.local.get("notInterested");
-    const f = facts.get(key) || scored.get(key) || {};
+    const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     if (interested) delete stored[key];
     else stored[key] = { t: f.title || "", a: Date.now() };
     const kept = Object.entries(stored).sort((a, b) => a[1].a - b[1].a).slice(-3000);
@@ -2164,13 +2388,23 @@
     const epoch = pageEpoch;
     setStatus(`Checking recent eBay sales for "${query}"…`);
     let market = null;
+    let partsNote = "";
     try {
       // One lookup for working (used) prices; a second for for-parts in Fix & flip, only when there's
       // something broken to compare (a listing page, or a results page with broken/untested listings).
       const used = await soldMarket(query, "used");
       const working = used && { ...used, condition: "used" };
       const needParts = forLens !== "use" && (SL.pageType() === "item" || [...facts.values()].some((f) => f.project));
-      const parts = needParts ? await soldMarket(query, "parts") : null;
+      let parts = null;
+      if (needParts) {
+        try {
+          parts = await soldMarket(query, "parts");
+        } catch (e) {
+          // The working price is already in hand: keep it, and say what went wrong with the other.
+          if (!working || isStop(e)) throw e;
+          partsNote = e.message;
+        }
+      }
       market = working || parts ? { ...(working || { median: null }), parts } : null;
     } catch (e) {
       console.warn("[Second Look] sold comps failed:", e);
@@ -2183,6 +2417,7 @@
     }
     if (epoch !== pageEpoch) return market; // the page changed meanwhile: the numbers still go to that scan, not on screen
     renderMarket(market);
+    if (partsNote) marketEl.append(h("div", { class: "mnote" }, `Sold-for-parts prices not checked: ${partsNote}`));
     lastMarket = market;
     return market;
   };
@@ -2846,11 +3081,18 @@
 
   // On a listing page: remember the visit, and say what's known before any model is asked.
   let itemFacts = null;
+  let itemTries = 0;
   const itemPass = async () => {
     if (SL.pageType() !== "item") return;
     await Promise.all([memoryReady, prefsReady]);
     const listing = SL.extractItem();
-    if (!listing.title || SL.pageType() !== "item") return;
+    if (SL.pageType() !== "item") return;
+    if (!listing.title) {
+      // Not rendered yet (Facebook can take a while): look again shortly, for up to about 15 seconds.
+      if (itemTries++ < 30) setTimeout(itemPass, 500);
+      return;
+    }
+    itemTries = 0;
     const key = keyOf(location.href);
     const before = memory[key];
     const { drop } = remember(key, listing.price, false, !!listing.auction);
@@ -3326,6 +3568,7 @@
       if (type === "results") quickReady = loadQuick();
       showBrowseNote();
       updateFold();
+      itemTries = 0;
       if (type === "item") setTimeout(itemPass, 1200); // let the listing finish rendering
     }
   };

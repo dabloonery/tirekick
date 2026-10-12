@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Second Look test fixture (eBay-shaped)</title></head>
+<body>
+<h1>Search results</h1>
+<ul>
+  <li class="s-card"><div class="s-card__title">Pentax K1000 body</div><div class="s-card__price">$80.00</div><a href="https://www.ebay.com/itm/1111111111">link</a></li>
+  <li class="s-card"><div class="s-card__title">Pentax K1000 lens kit</div><div class="s-card__price">$120.00</div><a href="https://www.ebay.com/itm/2222222222">link</a></li>
+</ul>
+<button id="before">before</button>
+<script>
+  // Minimal stand-in for the extension APIs; nothing leaves this page.
+  const store = { introDone: true }; // welcome card already seen, so the panel starts tucked away
+  const pick = (k) => (k == null ? { ...store } : typeof k === "string" ? { [k]: store[k] } :
+    Array.isArray(k) ? Object.fromEntries(k.map((x) => [x, store[x]])) : Object.fromEntries(Object.entries(k).map(([x, d]) => [x, store[x] ?? d])));
+  window.chrome = { runtime: { id: "test", lastError: null, onMessage: { addListener() {} }, sendMessage: (m, cb) => cb({ ok: true, data: m.type === "getSettings" ? {} : "" }) },
+    storage: { local: { get: async (k) => pick(k), set: async (o) => Object.assign(store, o) }, onChanged: { addListener() {} } } };
+</script>
+<script src="/content/adapters.js"></script>
+<script src="/content/panel.js"></script>
+<script src="/a11y.test.js"></script>
+</body></html>

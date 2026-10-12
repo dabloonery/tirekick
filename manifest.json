@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Second Look",
-  "version": "0.28.0",
+  "version": "0.28.1",
   "description": "Score tags, sold-price comparisons, scam checks and search tools for eBay and Facebook Marketplace, judged by Claude, other AI services or a local model.",
   "permissions": [
     "storage",

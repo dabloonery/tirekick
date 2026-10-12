@@ -974,6 +974,9 @@
       .second-look-sticker .sl-score i { display:block; margin-top:3px; font-weight:700; font-size:10px; line-height:1; font-family:inherit; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
       .second-look-sticker .sl-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
       .second-look-sticker .sl-verdict { font-weight:700; font-size:14px; white-space:nowrap; }
+      .second-look-sticker.sl-compact .sl-verdict { display:none; }
+      .second-look-sticker.sl-compact .sl-text:not(:has(.sl-sub)) { display:none; }
+      .second-look-sticker.sl-compact { padding-right:4px; }
       .second-look-sticker .sl-sub { font-size:12px; color:var(--sl-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       /* small chips: under a sticker, or on their own on a card that hasn't been scored */
       .second-look-sticker .sl-below { position:absolute; left:4px; top:100%; padding-top:5px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
@@ -1293,6 +1296,8 @@
       const w = SL.currentSite() === "ebay" ? host.querySelector("img")?.getBoundingClientRect().width : 0;
       if (w > 80 && w < host.getBoundingClientRect().width - 40) node.style.setProperty("--sl-fit", `${Math.round(w - 20)}px`);
       if (SL.currentSite() === "facebook") node.classList.add("sl-right");
+      // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
+      if (host.getBoundingClientRect().width < 250) node.classList.add("sl-compact");
       return node;
     };
     if (it) {

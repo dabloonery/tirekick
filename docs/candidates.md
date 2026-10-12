@@ -134,3 +134,6 @@ Also done in 0.26.1: the "add a key" card now sits above the welcome card; eBay 
 # 0.27.0: cheaper default scans, Check this page
 - New installs default to Sonnet 5.5; the system prompt carries `cache_control` and spend counts cache writes (1.25x) and reads (0.1x). Not measured: the real saving (needs a live key; Sonnet caches from 1,024 tokens, our instructions are roughly 1,600, so it should apply, Opus's larger minimum may not).
 - "Check this page" diagnostic on "No listings found" / unreadable listing. Verified by `tests/e2e/diagnostic.ts` on an empty page; not yet seen on a live site that changed layout.
+
+# 0.28.0: type, colour and button hierarchy
+Inventory found 16 font sizes (9 to 24, with 10.5/11.5/12.5/13.5 as near-duplicates), weights 400/500/600/700, and row actions that looked like plain muted text. Now: one size scale and weights 400/600/700 across panel, marks, toast and settings; three button tiers (settings: Test connection filled, clear-actions red outline; settings section headings 18/600 instead of 11px caps); in-list actions underlined; "Start over" quiet; reasons 13px under 15px titles; tag word and verdict line share vocabulary (Fair price, Scam?). Checked by eye in dark and light at 1x in headless Chrome; contrast values unchanged (colours were not changed except a `--danger` token reusing the existing red). Not user-tested.

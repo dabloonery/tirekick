@@ -135,7 +135,12 @@
       <div class="field">
         <label for="anthropicModel">Claude model</label>
         <input id="anthropicModel" type="text" autocomplete="off">
-        <span class="hint">Pick a model, or choose Another model to type any Claude model ID. Also used for photo checks. You can switch any time from the menu at the bottom of the panel.</span>
+        <span class="hint">Used to analyze a single listing, check photos and think up searches. Pick a model, or choose Another model to type any Claude model ID. You can switch any time from the menu at the bottom of the panel.</span>
+      </div>
+      <div class="field">
+        <label for="anthropicScanModel">Claude model for scans</label>
+        <input id="anthropicScanModel" type="text" autocomplete="off" placeholder="Empty: the same as the model above">
+        <span class="hint">A scan scores many listings at once, so a cheaper model keeps it affordable; the Scan button shows what it will cost. Pick a stronger one if its judgments look off, or choose the same as above.</span>
       </div>
     </div>
     <div id="oaiBox">
@@ -232,17 +237,12 @@
 
   <section id="sec-filters">
     <details>
-    <summary><h2>Filters and marks</h2><span class="hint">Words to hide, seller warnings, card marks</span></summary>
+    <summary><h2>Filters and marks</h2><span class="hint">Words to filter by, seller warnings, card marks</span></summary>
     <p class="hint">Plain checks that run on every results page before any AI: nothing here costs anything, and listings they hide are never sent to a model.</p>
     <div class="field">
-      <label for="hideWords">Always hide listings with these words</label>
-      <textarea id="hideWords" rows="2"></textarea>
-      <span class="hint">Comma-separated, matched as whole words in the title. Use <code>/</code> for either: <code>repro/reproduction</code>.</span>
-    </div>
-    <div class="field">
-      <label for="needWords">Only show listings that mention</label>
-      <input id="needWords" type="text" placeholder="e.g. tested/working">
-      <span class="hint">Every entry must appear in the title. Leave blank to show everything.</span>
+      <label for="filterWords">Always filter by these words</label>
+      <textarea id="filterWords" rows="3"></textarea>
+      <span class="hint">The same words as the Filter box above the results: <code>-word</code> hides listings with it, any other word must be in the title, <code>a/b</code> means either, and quotes keep a phrase together: <code>-repro/reproduction -"box only" tested/working</code>. Matched as whole words in the title.</span>
     </div>
     <div class="field">
       <label id="sellerLabel">Warn about sellers with fewer than</label>
@@ -286,6 +286,7 @@
   </section>
   <div id="msg" role="status" aria-live="polite"></div>
 </main>
+<script src="../lib/shared.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

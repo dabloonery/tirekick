@@ -4,7 +4,9 @@
 
 (() => {
   const SL = window.SecondLook;
-  if (!SL || window.__secondLookPanel) return;
+  const SLShared = window.SLShared;
+  const SLRules = window.SLRules;
+  if (!SL || !SLShared || !SLRules || window.__secondLookPanel) return;
   window.__secondLookPanel = true;
 
   // Verdict colours come from the theme (--v-great etc.), keyed by data-v.
@@ -19,18 +21,8 @@
   };
 
   // ---------- photo checks change the rating ----------
-  const clamp100 = (n) => Math.max(0, Math.min(100, n));
-  const RANK = { pass: 0, fair: 1, good: 2, great: 3 };
-  const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `\u2212${-n}` : "\u00b10");
-
-  // A photo can only pull a verdict down (or mark it suspicious), never talk it up.
-  const adjustedVerdict = (base, score, photos) => {
-    if (base === "suspicious") return base;
-    if (photos.some((p) => p.matchesTitle === "no")) return "suspicious";
-    const cap = score < 45 ? 0 : score < 60 ? 1 : score < 75 ? 2 : 3;
-    const rank = Math.min(RANK[base] ?? 1, cap);
-    return Object.keys(RANK).find((k) => RANK[k] === rank);
-  };
+  // The plain rules (photo verdicts, words, filters, scam signs, small formatters) live in content/rules.js.
+  const { clamp100, signed, adjustedVerdict, dollars, shortDate, normTitle, hash, likelyScam, PROJECT, MOTIVATED, clueOf } = SLRules;
 
   // obj is a scored listing (or the single-listing result): has score + verdict.
   const applyPhotos = (obj, photos) => {
@@ -661,6 +653,7 @@
   const sendAI = (type, payload) => {
     if (stopRequested) return Promise.reject(new Error("Stopped."));
     const reqId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    if (type === "checkPhoto") bump("photoChecks");
     live.add(reqId);
     return send(type, { ...payload, reqId }).finally(() => live.delete(reqId));
   };
@@ -908,20 +901,27 @@
     ["anthropic", "claude-sonnet-5-5", "Sonnet 5.5 \u00b7 \u00bd price"],
     ["anthropic", "claude-haiku-5-5", "Haiku 5.5 \u00b7 cheapest"],
   ];
+  // Still works if you picked it earlier (or typed it in settings), just not offered any more.
+  const OLDER = { "claude-haiku-4-5": "Haiku 4.5" };
   const modelSel = $(".model");
   const spendBtn = $(".spend");
   const spendDetail = $(".spend-detail");
   const budgetBar = $(".budget");
   let cfg = {};
-  const nameOf = (id) => (MODELS.find(([, m]) => m === id)?.[2].split(" \u00b7")[0]) || id;
+  const nameOf = (id) => (MODELS.find(([, m]) => m === id)?.[2].split(" \u00b7")[0]) || OLDER[id] || id;
 
   const renderModels = () => {
     const opts = [...MODELS];
-    if (cfg.anthropicModel && !opts.some(([, m]) => m === cfg.anthropicModel)) opts.push(["anthropic", cfg.anthropicModel, cfg.anthropicModel]);
+    if (cfg.anthropicModel && !opts.some(([, m]) => m === cfg.anthropicModel)) opts.push(["anthropic", cfg.anthropicModel, nameOf(cfg.anthropicModel)]);
     // Another AI service, once one is set up in settings.
     if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName} \u00b7 ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
     opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama \u00b7 ${cfg.textModel || "qwen3:4b"} \u00b7 free`]);
     modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}`, title: label }, label)));
+    // Scans use their own, cheaper model (Claude only): say so where the model is shown.
+    $(".model-pick").title =
+      cfg.provider === "anthropic" && cfg.scanModel && cfg.scanModel !== cfg.anthropicModel
+        ? `This model: analysis, photos and search ideas. Scans use ${nameOf(cfg.scanModel)} (change it in settings).`
+        : "Which model judges listings. Changes straight away.";
     modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : `anthropic|${cfg.anthropicModel}`;
   };
   const openSettings = () => send("openOptions").catch(() => {});
@@ -972,7 +972,9 @@
         : provider === "openai"
           ? `Using ${model} on ${cfg.oaiName} from now on.`
           : cfg.hasKey
-            ? `Using ${nameOf(model)} from now on. Scores already made by another model stay until you scan again.`
+            ? cfg.anthropicScanModel && cfg.anthropicScanModel !== model
+              ? `Using ${nameOf(model)} to analyze listings, check photos and suggest searches. Scans use ${nameOf(cfg.anthropicScanModel)} (change that in settings).`
+              : `Using ${nameOf(model)} from now on. Scores already made by another model stay until you scan again.`
             : "Add a Claude API key in the extension's settings to use Claude.",
       provider === "anthropic" && !cfg.hasKey
     );
@@ -1072,7 +1074,7 @@
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
     if (changes.usage) renderSpend(changes.usage.newValue);
-    if (["provider", "anthropicModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize"].some((k) => changes[k])) loadFooter().then(refreshPending);
+    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize"].some((k) => changes[k])) loadFooter().then(refreshPending);
   });
 
 
@@ -1159,7 +1161,6 @@
   });
   showLens();
 
-  const dollars = (n) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
   const money = (n) => `${n < 0 ? "\u2212" : ""}$${Math.abs(Math.round(n))}`;
   const fmtCost = (usd) => (usd < 0.01 ? "under $0.01" : `~$${usd.toFixed(2)}`);
   const DIFFICULTY = ["Repair: difficulty unclear", "Easy fix", "Fairly easy fix", "Moderate fix", "Hard fix", "Very hard fix"];
@@ -1318,7 +1319,7 @@
   // comparing totals would invent drops. Auctions aren't tracked for drops: their price only rises.
   let memory = {}; // key -> { p: last price seen, pa: since when, f: first seen, a: last seen, o: first opened, h: earlier [price, since] }
   let notInterested = {}; // key -> { t: title, a: when }
-  let prefs = { hideWords: "", needWords: "", minSellerRatings: 10, minSellerPct: 97, autoMarks: true };
+  let prefs = { filterWords: "", minSellerRatings: 10, minSellerPct: 97, autoMarks: true };
   let skipMode = "dim";
   let showHidden = false;
   let facts = new Map(); // key -> facts for this page view
@@ -1339,7 +1340,7 @@
   const loadPrefs = () =>
     send("getSettings")
       .then((s) => {
-        prefs = { hideWords: s.hideWords, needWords: s.needWords, minSellerRatings: +s.minSellerRatings || 0, minSellerPct: +s.minSellerPct || 0, autoMarks: s.autoMarks !== false };
+        prefs = { filterWords: s.filterWords, minSellerRatings: +s.minSellerRatings || 0, minSellerPct: +s.minSellerPct || 0, autoMarks: s.autoMarks !== false };
       })
       .catch(() => {});
   const prefsReady = loadPrefs();
@@ -1404,17 +1405,9 @@
     return out;
   };
 
-  const wordList = (s) => (s || "").split(/[,\n]/).map((w) => w.trim().toLowerCase()).filter(Boolean);
-  const reEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // "charger/adapter" = either word. Matches whole words, so "repro" doesn't catch "reproduced".
-  const hasWord = (text, w) => w.split("/").some((alt) => alt.trim() && new RegExp(`(^|[^a-z0-9])${reEscape(alt.trim())}($|[^a-z0-9])`, "i").test(text));
-  // Why a listing is filtered out ("" if it isn't): your settings' word lists, then this search's filter bar.
-  const filterReason = (f) => {
-    const title = f.title || "";
-    for (const w of wordList(prefs.hideWords)) if (hasWord(title, w)) return `“${w}”`;
-    for (const w of wordList(prefs.needWords)) if (!hasWord(title, w)) return `no “${w}”`;
-    return quickReason(f);
-  };
+  // Why a listing is filtered out ("" if it isn't): the words in your settings (matched against the title),
+  // then this search's filter bar.
+  const filterReason = (f) => SLRules.termsReason(f.title || "", prefs.filterWords) || quickReason(f);
 
   // ---------- the filter bar: per search, remembered, no AI ----------
   // Words work like an eBay search: "dmg -case -game" needs dmg and drops anything with case or game;
@@ -1426,47 +1419,15 @@
   const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", deal: 0 };
   let quick = { ...NO_QUICK };
   let quickReady = Promise.resolve(); // this search's saved filter, loaded on each page change
-  const quickTerms = (words) =>
-    [...(words || "").matchAll(/(-?)"([^"]+)"|(-?)(\S+)/g)]
-      .map((m) => ({ not: !!(m[1] || m[3]), w: (m[2] || m[4] || "").toLowerCase() }))
-      .filter((t) => t.w && t.w !== "-");
-  const quickReason = (f) => {
-    const text = `${f.title || ""} ${f.text || ""}`;
-    for (const t of quickTerms(quick.words)) {
-      if (t.not && hasWord(text, t.w)) return `“${t.w}”`;
-      if (!t.not && !hasWord(text, t.w)) return `no “${t.w}”`;
-    }
-    const p = f.total ?? f.price;
-    if (quick.min > 0 && p != null && p < quick.min) return `under $${quick.min}`;
-    if (quick.max > 0 && p != null && p > quick.max) return `over $${quick.max}`;
-    if (quick.fresh && f.known) return "seen before";
-    if (quick.broken === "only" && !f.project) return "not broken";
-    if (quick.broken === "hide" && f.project) return `\u201c${f.project}\u201d`;
-    return "";
-  };
+  const quickReason = (f) => SLRules.quickReason(f, quick);
   const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken);
-  const isDeal = (f) => quick.deal > 0 && f.total != null && f.total <= quick.deal && !likelyScam(f);
+  const isDeal = (f) => SLRules.isDeal(f, quick.deal);
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
-  // Words that say "fix-up project" (what a fixer hunts for, and Marketplace can't search for all at
-  // once) and words that say the seller wants it gone. Read from the title and card text.
-  const PROJECT =
-    /\b(for parts(?: or repair| only)?|parts only|parts or repair|not working|non[- ]?working|untested|as[- ]is|broken|no power|won'?t (?:turn|power) on|doesn'?t (?:work|turn on|power on)|needs (?:repair|work|fixing|a new \w+)|faulty|for repair|disc read error|no (?:display|video|sound|picture)|red ring|yellow light|cracked screen|water damage)\b/i;
-  const MOTIVATED = /\b(moving(?: sale)?|must go|need(?:s)? (?:it )?gone|estate sale|cleaning out|garage sale|downsizing|first come first served|priced to sell|quick sale)\b/i;
-  const clueOf = (re, text) => (text.match(re)?.[1] || "").toLowerCase().replace(/\s+/g, " ");
-  const sellerWarning = (f) => {
-    if (f.sellerCount != null && f.sellerCount < prefs.minSellerRatings) return f.sellerCount === 0 ? "New seller" : `Seller: ${f.sellerCount} ratings`;
-    if (f.sellerPct != null && f.sellerPct < prefs.minSellerPct) return `Seller ${f.sellerPct}% positive`;
-    return "";
-  };
-  const normTitle = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const shortDate = (ts) => new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const sellerWarning = (f) => SLRules.sellerWarning(f, prefs);
   const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed", "wasPrice"];
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(SL.bigImage(img))}`;
 
-  // A likely scam without asking a model: a reposted listing, a code on the end of the title (until a
-  // scan says it's the real model number), or a disguised way to get in touch off the site.
-  const likelyScam = (f) => !!(f && (f.campaign || (f.titleCode && !f.codeOk) || f.offSite?.sure));
 
   // The chips a card wears: most useful first, three at most.
   const chipsFor = (f = {}) => {
@@ -1579,7 +1540,10 @@
     // go top-right.
     const fit = (node) => {
       const w = SL.currentSite() === "ebay" ? host.querySelector("img")?.getBoundingClientRect().width : 0;
-      if (w > 80 && w < host.getBoundingClientRect().width - 40) node.style.setProperty("--sl-fit", `${Math.round(w - 20)}px`);
+      if (w > 80 && w < host.getBoundingClientRect().width - 40) {
+        node.style.setProperty("--sl-fit", `${Math.round(w - 20)}px`);
+        if (w - 20 < 150) node.classList.add("sl-compact"); // a small photo: the score alone fits, the rest is on hover
+      }
       if (SL.currentSite() === "facebook") node.classList.add("sl-right");
       // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
       if (SL.currentSite() === "facebook" && host.getBoundingClientRect().width < 250) node.classList.add("sl-compact");
@@ -1620,9 +1584,17 @@
     await chrome.storage.local.set({ [name]: stored });
     return stored;
   };
+  // Plain counters of what you use, kept only in this browser (Home shows them; nothing is sent anywhere).
+  // One at a time, so two close together don't overwrite each other.
+  let bumpQueue = Promise.resolve();
+  const bump = (name) => {
+    if (!alive()) return;
+    bumpQueue = bumpQueue.then(() => writeStored("stats", (s) => ((s[name] = (s[name] || 0) + 1), (s.since ||= Date.now())))).catch(() => {});
+  };
   const toggleSave = async (key) => {
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     const was = !!saved[key];
+    if (!was) bump("saves");
     saved = await writeStored("saved", (s) => {
       if (was) delete s[key];
       else s[key] = { t: f.title || "", u: f.url || location.href.split("?")[0], img: f.imageUrl || "", p0: f.price ?? null, a0: Date.now(), p: f.price ?? null, a: Date.now() };
@@ -1969,6 +1941,7 @@
 
   // "Not interested": hidden on every page from now on (undo from the panel or settings).
   const setInterested = async (key, interested) => {
+    if (!interested) bump("hides");
     const { notInterested: stored = {} } = await chrome.storage.local.get("notInterested");
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     if (interested) delete stored[key];
@@ -2449,11 +2422,6 @@
   // ---------- remembered scores ----------
   // A listing judged under the same lens, wants, search and prices isn't sent to the model again for a day.
   const SCORE_TTL_MS = 24 * 60 * 60 * 1000;
-  const hash = (str) => {
-    let x = 5381;
-    for (let i = 0; i < str.length; i++) x = ((x << 5) + x + str.charCodeAt(i)) | 0;
-    return (x >>> 0).toString(36);
-  };
   const scoreKey = (ctx, it) => `${ctx}|${keyOf(it.url)}|${it.total ?? it.priceText}`;
 
   // ---------- scores kept with the listing ----------
@@ -2464,14 +2432,15 @@
   const SCAN_MAX = 3000;
   const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "baseScore", "baseVerdict", "photoAdjust", "photos"];
   const priceOf = (it) => it.total ?? it.price ?? null;
-  const modelNow = () => (cfg.provider === "ollama" ? cfg.textModel : cfg.provider === "openai" ? cfg.oaiModel : cfg.anthropicModel) || "";
+  // Which model made a score: a scan's is the scan model, an analysis's the main one.
+  const modelNow = (kind = "scan") => (kind === "scan" ? cfg.scanModel : cfg.provider === "ollama" ? cfg.textModel : cfg.provider === "openai" ? cfg.oaiModel : cfg.anthropicModel) || "";
   let scansCache = null; // key -> { lens -> snapshot }, as last read from storage
   const pendingScans = new Map();
   let scanSaveTimer = 0;
   const rememberScan = (it, kind = "scan", summary) => {
     if (!alive() || it.score == null) return;
     const key = keyOf(it.url);
-    const snap = { kind, at: Date.now(), m: modelNow(), p: priceOf(it), t: (it.title || "").slice(0, 120) };
+    const snap = { kind, at: Date.now(), m: modelNow(kind), p: priceOf(it), t: (it.title || "").slice(0, 120) };
     for (const f of SNAP) if (it[f] !== undefined) snap[f] = it[f];
     snap.lens ||= lens;
     if (summary) snap.reason = summary;
@@ -2816,7 +2785,7 @@
   // Settings changed in another tab or the options page: filters and seller rules apply straight away.
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
-    if (["hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks"].some((k) => changes[k])) loadPrefs().then(redecorateAll);
+    if (["filterWords", "minSellerRatings", "minSellerPct", "autoMarks"].some((k) => changes[k])) loadPrefs().then(redecorateAll);
     if (changes.notInterested && !changes.notInterested.newValue) {
       notInterested = {};
       redecorateAll();
@@ -2849,6 +2818,7 @@
       stopAll();
       while (scanning) await sleep(100);
     }
+    bump("scans");
     scanning = true;
     const epoch = (scanEpoch = pageEpoch);
     // Messages from this scan only while you're still on its page.
@@ -2904,7 +2874,7 @@
       items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
 
       // Anything already judged in this exact setting comes back from memory, free.
-      const model = settings.provider === "anthropic" ? settings.anthropicModel : settings.provider === "openai" ? settings.oaiModel : settings.textModel;
+      const model = settings.scanModel; // scans can use their own, cheaper model
       const ctx = hash([forLens, want, query, browse, model, market?.median, market?.parts?.median].join("|"));
       const { scoreCache = {} } = await chrome.storage.local.get("scoreCache");
       const fresh = {};
@@ -2940,7 +2910,7 @@
       const parallel = settings.provider === "ollama" || (settings.provider === "openai" && /localhost|127\.0\.0\.1/.test(settings.oaiUrl)) ? 1 : 3;
       let done = fromMemory + scams;
       showProgress(done, items.length);
-      setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${model}…`);
+      setStatus(`Ranking ${items.length} listing${items.length > 1 ? "s" : ""} with ${nameOf(model)}…`);
       const errors = await runBatches(batches, parallel, async (batch) => {
         const payload = batch.map(({ el, ...rest }) => rest); // DOM nodes can't be sent
         const res = await sendAI("rankBatch", { items: payload, query, market, lens: forLens, want, browse });
@@ -2971,7 +2941,7 @@
         done += batch.length;
         showProgress(done, items.length);
         render();
-        if (done < items.length) setStatus(`Ranked ${done} of ${items.length} listings with ${model}…`);
+        if (done < items.length) setStatus(`Ranked ${done} of ${items.length} listings with ${nameOf(model)}…`);
       });
 
       if (Object.keys(fresh).length) {
@@ -3033,6 +3003,7 @@
   const pricesOnly = async () => {
     const query = queryEl.value.trim();
     if (!query || scanning) return;
+    bump("soldLookups");
     freeRow.hidden = true;
     setBusy(true);
     try {
@@ -3322,6 +3293,7 @@
   const analyze = async () => {
     if (analyzing) return;
     analyzing = true;
+    bump("analyses");
     const epoch = pageEpoch;
     const setStatus = (...a) => epoch === pageEpoch && setStatusNow(...a);
     setBusy(true);
@@ -3448,6 +3420,7 @@
     renderSaved();
   };
   const getIdeas = async () => {
+    bump("ideas");
     ideasBtn.disabled = true;
     setBusy(true);
     ideasBox.hidden = false;

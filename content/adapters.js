@@ -52,13 +52,16 @@
   SL.bigImage = (u) => (/ebayimg\.com/.test(u || "") ? u.replace(/s-l\d+\./, "s-l1600.") : u || "");
 
   // "+$12.35 delivery", "+$5 shipping estimate", "Free delivery", "Free International Shipping"
-  SL.parseShipping = (text) => {
+  // loose: for a listing page's own shipping line, where the amount comes without a "+" ("US $8.50 Standard
+  // Shipping"). Not for cards, where a price sits right next to the words.
+  SL.parseShipping = (text, loose = false) => {
     if (!text) return null;
     const t = text.replace(/\u00a0/g, " ");
     const paid = t.match(/\+\s?\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:delivery|shipping|postage)/i);
     if (paid) return parseFloat(paid[1].replace(/,/g, ""));
     if (/free\s+(?:[\w-]+\s+){0,2}(?:delivery|shipping)/i.test(t)) return 0; // "Free 2-4 day delivery"
-    return null;
+    const bare = loose && t.match(/\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:[A-Za-z]+\s+){0,2}(?:delivery|shipping|postage)/i);
+    return bare ? parseFloat(bare[1].replace(/,/g, "")) : null;
   };
   const withTotal = (it) => ({ ...it, total: it.price == null ? null : Math.round((it.price + (it.shipping || 0)) * 100) / 100 });
 
@@ -346,7 +349,7 @@
         title,
         priceText,
         price: SL.parsePrice(priceText),
-        shipping: SL.parseShipping(shippingText),
+        shipping: SL.parseShipping(shippingText, true),
         // the label sits in .ux-textspans (the text beside it repeats it for screen readers and adds a "More information" button)
         condition: squash(firstText(document, [".x-item-condition-text .ux-textspans", ".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
         seller,

@@ -38,11 +38,11 @@
   .modelpick + input { margin-top:8px; }
   input[type=text], input[type=number], input[type=password], select, textarea {
     width:100%; padding:9px 12px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; font-size:14px; }
-  :is(input, select, textarea):focus { outline:none; border-color:var(--ink); }
+  :is(input:not([type=checkbox]), select, textarea):focus-visible { outline-offset:-1px; }
   textarea { resize:vertical; }
   code { font:13px ui-monospace, Menlo, Consolas, monospace; background:var(--paper-2); padding:1px 5px; border-radius:4px; }
   .check { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:start; }
-  .check input { margin:4px 0 0; accent-color:var(--ink); width:16px; height:16px; }
+  .check input { margin:2px 0 0; accent-color:var(--ink); width:18px; height:18px; }
   .check .hint { display:block; margin-top:2px; }
 
   .spendgrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:10px; }
@@ -77,12 +77,22 @@
   .status-card a.btn { display:inline-block; font:600 13px/1 var(--ui); padding:8px 12px; border-radius:var(--r-sm); border:var(--bw) solid var(--ink); color:var(--ink); text-decoration:none; }
   .status-card a.btn.primary { background:var(--ink); color:var(--on-ink); }
   nav.jump { display:flex; flex-wrap:wrap; gap:6px 14px; margin:14px 0 0; font-size:13px; }
-  nav.jump a { color:var(--muted); text-decoration:none; border-bottom:1px solid var(--rule); }
+  nav.jump a { display:inline-block; padding:2px 0 1px; color:var(--muted); text-decoration:none; border-bottom:1px solid var(--rule); }
   nav.jump a:hover { color:var(--ink); border-color:var(--ink); }
   .keyrow { display:flex; gap:8px; }
   .keyrow input { flex:1; }
   .keyrow button { flex:none; }
   section { scroll-margin-top:16px; }
+  /* Sections you set once fold away; the jump links open them */
+  summary { display:flex; align-items:baseline; gap:12px; padding:2px 0; list-style:none; cursor:pointer; }
+  summary::-webkit-details-marker { display:none; }
+  summary h2 { margin:0; }
+  summary .hint { flex:1; min-width:0; }
+  summary::after { content:"+"; flex:none; color:var(--muted); font:400 20px/1 var(--ui); }
+  details[open] > summary { margin-bottom:12px; }
+  details[open] > summary::after { content:"\2212"; }
+  details[open] > summary .hint { visibility:hidden; }
+  summary:hover h2 { text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:4px; }
   [hidden] { display:none !important; }
   :focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 </style>
@@ -125,7 +135,12 @@
       <div class="field">
         <label for="anthropicModel">Claude model</label>
         <input id="anthropicModel" type="text" autocomplete="off">
-        <span class="hint">Pick a model, or choose Another model to type any Claude model ID. Also used for photo checks. You can switch any time from the menu at the bottom of the panel.</span>
+        <span class="hint">Used to analyze a single listing, check photos and think up searches. Pick a model, or choose Another model to type any Claude model ID. You can switch any time from the menu at the bottom of the panel.</span>
+      </div>
+      <div class="field">
+        <label for="anthropicScanModel">Claude model for scans</label>
+        <input id="anthropicScanModel" type="text" autocomplete="off" placeholder="Empty: the same as the model above">
+        <span class="hint">A scan scores many listings at once, so a cheaper model keeps it affordable; the Scan button shows what it will cost. Pick a stronger one if its judgments look off, or choose the same as above.</span>
       </div>
     </div>
     <div id="oaiBox">
@@ -201,35 +216,33 @@
       <input id="monthlyBudget" type="number" min="0" step="1" placeholder="0 = no budget">
       <span class="hint">When this month's estimated spend reaches it, paid AI stops until next month (or until you raise it). 0 means no budget. The panel's footer shows how much is used.</span>
     </div>
-    <p class="hint">Claude is estimated from token counts at list price (a regular API key can't read your real balance, which is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>); OpenRouter reports its own costs; other services count at the prices you enter above. <button type="button" class="small danger" id="resetSpend">Reset the counter</button></p>
+    <p class="hint">Estimated from tokens at list price; your real Claude balance is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>. OpenRouter reports its own costs. <button type="button" class="small danger" id="resetSpend">Reset the counter</button></p>
   </section>
 
   <section id="sec-judging">
-    <h2>Judging</h2>
+    <details>
+    <summary><h2>Judging</h2><span class="hint">What you're into, selling fees</span></summary>
     <div class="field">
       <label for="interests">What you're into</label>
       <textarea id="interests" rows="2"></textarea>
       <span class="hint">Every judgement takes it into account. On a feed or category with no search, it decides what counts as your thing. Leave blank to judge everything the same.</span>
     </div>
     <div class="field">
-      <label for="feePct">eBay fees, for resale margins (% of the sale)</label>
+      <label for="feePct">Selling fees, for resale margins (% of the sale)</label>
       <input id="feePct" type="number" min="0" max="50" step="0.1">
       <span class="hint">Your final value fee for the category; check eBay's fee page. A $0.40 per-order fee is added on top.</span>
     </div>
+      </details>
   </section>
 
   <section id="sec-filters">
-    <h2>Filters and marks</h2>
+    <details>
+    <summary><h2>Filters and marks</h2><span class="hint">Words to filter by, seller warnings, card marks</span></summary>
     <p class="hint">Plain checks that run on every results page before any AI: nothing here costs anything, and listings they hide are never sent to a model.</p>
     <div class="field">
-      <label for="hideWords">Always hide listings with these words</label>
-      <textarea id="hideWords" rows="2"></textarea>
-      <span class="hint">Comma-separated, matched as whole words in the title. Use <code>/</code> for either: <code>repro/reproduction</code>.</span>
-    </div>
-    <div class="field">
-      <label for="needWords">Only show listings that mention</label>
-      <input id="needWords" type="text" placeholder="e.g. tested/working">
-      <span class="hint">Every entry must appear in the title. Leave blank to show everything.</span>
+      <label for="filterWords">Always filter by these words</label>
+      <textarea id="filterWords" rows="3"></textarea>
+      <span class="hint">The same words as the Filter box above the results: <code>-word</code> hides listings with it, any other word must be in the title, <code>a/b</code> means either, and quotes keep a phrase together: <code>-repro/reproduction -"box only" tested/working</code>. Matched as whole words in the title.</span>
     </div>
     <div class="field">
       <label id="sellerLabel">Warn about sellers with fewer than</label>
@@ -244,13 +257,14 @@
       <span class="hint" id="memoryInfo"></span>
       <div class="row-btns"><button type="button" class="small" id="clearHidden">Unhide everything</button><button type="button" class="small danger" id="clearMemory">Forget seen listings</button></div>
     </div>
+      </details>
   </section>
 
   <section id="sec-page">
     <h2>On the page</h2>
     <div class="field check">
       <input id="useSoldComps" type="checkbox">
-      <label for="useSoldComps">Compare prices with recent eBay sales<span class="hint">One or two eBay sold-listings searches per new search (working, and for parts in Fix &amp; flip), remembered for 6 hours.</span></label>
+      <label for="useSoldComps">Compare prices with recent eBay sales<span class="hint">One or two eBay sold-listings searches per new search (working, and for parts in Reseller mode), remembered for 6 hours.</span></label>
     </div>
     <div class="field">
       <label for="theme">Theme</label>
@@ -264,12 +278,15 @@
   </section>
 
   <section id="sec-backup">
-    <h2>Backup</h2>
+    <details>
+    <summary><h2>Backup</h2><span class="hint">Save or restore everything but your keys</span></summary>
     <p class="hint">Everything Second Look keeps lives only in this browser. A backup file holds your saved listings and searches, each search's filter and price, what you've hidden, what you've seen, spending and these settings, but never your API keys. Restoring adds to what's here and takes the backup's settings.</p>
     <div class="row-btns"><button type="button" class="small" id="backup">Save a backup</button><button type="button" class="small" id="restore">Restore from a backup…</button><input type="file" id="restoreFile" accept="application/json,.json" hidden></div>
+      </details>
   </section>
   <div id="msg" role="status" aria-live="polite"></div>
 </main>
+<script src="../lib/shared.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
-const FIELDS = ["provider", "anthropicKey", "anthropicModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "hideWords", "needWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab", "theme"];
+const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
+  "filterWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab", "theme"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
-const MAY_BE_EMPTY = ["anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "hideWords", "needWords"];
+const MAY_BE_EMPTY = ["anthropicScanModel", "anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "filterWords"];
 
 // Services that speak the OpenAI chat API. Picking one fills in its address.
 const PRESETS = {
@@ -36,7 +36,7 @@ const note = (text) => {
   msg.textContent = text;
   msg.classList.add("show");
   clearTimeout(noteTimer);
-  noteTimer = setTimeout(() => msg.classList.remove("show"), 2200);
+  noteTimer = setTimeout(() => msg.classList.remove("show"), Math.max(2200, text.length * 45)); // longer notes stay longer
 };
 
 // Model fields: a menu to pick from, plus "Another model…" to type an ID. The text box next to it stays the one
@@ -45,7 +45,7 @@ const OTHER = "\u0000other";
 const CLAUDE_MODELS = [
   ["claude-opus-5-5", "Opus 5.5: best"],
   ["claude-sonnet-5-5", "Sonnet 5.5: half the price"],
-  ["claude-haiku-4-5", "Haiku 4.5: a quarter of the price"],
+  ["claude-haiku-5-5", "Haiku 5.5: about a fortieth of the price"],
 ];
 const pickers = {};
 function modelPicker(id, { blank = "" } = {}) {
@@ -84,11 +84,13 @@ function modelPicker(id, { blank = "" } = {}) {
   pickers[id] = { sync, setItems };
 }
 modelPicker("anthropicModel");
+modelPicker("anthropicScanModel", { blank: "The same as the model above" });
 modelPicker("oaiModel");
 modelPicker("oaiVisionModel", { blank: "Same as the model above" });
 modelPicker("textModel");
 modelPicker("visionModel");
 pickers.anthropicModel.setItems(CLAUDE_MODELS);
+pickers.anthropicScanModel.setItems(CLAUDE_MODELS);
 // Lists found by Test connection are remembered, so the menus are there next time without testing again.
 const showLists = async () => {
   const { oaiModelList = [], ollamaModelList = [] } = await chrome.storage.local.get(["oaiModelList", "ollamaModelList"]);
@@ -118,27 +120,11 @@ async function load() {
 }
 
 // What the Claude API has cost (estimated), from the record the background keeps per day and model.
-const NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-4-5": "Haiku 4.5" };
+const NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-5-5": "Haiku 5.5", "claude-haiku-4-5": "Haiku 4.5" };
 const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
 async function showSpend() {
   const { usage } = await chrome.storage.local.get("usage");
-  const now = new Date();
-  const day = now.toLocaleDateString("en-CA");
-  const month = day.slice(0, 7);
-  const last = new Date(now.getFullYear(), now.getMonth() - 1, 15).toLocaleDateString("en-CA").slice(0, 7);
-  let t = 0, m = 0, l = 0;
-  const models = {};
-  for (const [d, v] of Object.entries(usage?.days || {})) {
-    if (d === day) t += v.usd;
-    if (d.startsWith(last)) l += v.usd;
-    if (!d.startsWith(month)) continue;
-    m += v.usd;
-    for (const [id, mv] of Object.entries(v.models || {})) {
-      models[id] ||= { usd: 0, calls: 0 };
-      models[id].usd += mv.usd;
-      models[id].calls += mv.calls;
-    }
-  }
+  const { today: t, month: m, last: l, models } = SLShared.usageSummary(usage);
   const grid = document.getElementById("spendGrid");
   grid.replaceChildren(
     ...[["Today", t], ["This month", m], ["Last month", l]].map(([label, v]) => {
@@ -152,7 +138,8 @@ async function showSpend() {
     })
   );
   const rows = Object.entries(models).sort((a, b) => b[1].usd - a[1].usd);
-  const parts = rows.map(([id, v]) => `${NAMES[id] || id} ${usd(v.usd)} (${v.calls} calls, ~${usd(v.usd / v.calls)} each)`);
+  const each = (n) => (n < 0.01 ? "under $0.01 each" : `about $${n.toFixed(2)} each`);
+  const parts = rows.map(([id, v]) => `${NAMES[id] || id} ${usd(v.usd)} (${v.calls} call${v.calls === 1 ? "" : "s"}, ${each(v.usd / v.calls)})`);
   const rest = m - rows.reduce((sum, [, v]) => sum + v.usd, 0); // recorded before the per-model split
   if (rest >= 0.005) parts.push(`not split by model ${usd(rest)}`);
   document.getElementById("spendModels").textContent = parts.length ? "This month: " + parts.join(" \u00b7 ") : "Nothing spent on paid AI this month.";
@@ -167,7 +154,7 @@ chrome.storage.onChanged.addListener((c) => {
   if (c.usage) showSpend();
   if (c.saved || c.savedSearches) showMemory();
   // The panel's model menu changes these too; keep this page in step (unless you're typing in one).
-  for (const f of ["provider", "anthropicModel", "oaiModel", "textModel"]) {
+  for (const f of ["provider", "anthropicModel", "anthropicScanModel", "oaiModel", "textModel"]) {
     const el = document.getElementById(f);
     if (c[f] && document.activeElement !== el) el.value = c[f].newValue ?? el.value;
     pickers[f]?.sync();
@@ -223,13 +210,8 @@ document.getElementById("oaiPreset").addEventListener("change", async (e) => {
 const valueOf = (f) => {
   const el = document.getElementById(f);
   if (el.type === "checkbox") return el.checked;
-  const n = Number(el.value);
-  if (f === "feePct") return Math.min(50, Math.max(0, n || 0));
-  if (f === "monthlyBudget") return Math.min(100000, Math.max(0, n || 0));
-  if (f === "minSellerPct") return Math.min(100, Math.max(0, n || 0));
-  if (f === "minSellerRatings") return Math.min(100000, Math.max(0, Math.round(n) || 0));
-  if (f === "oaiPriceIn" || f === "oaiPriceOut") return Math.min(1000, Math.max(0, n || 0));
-  if (el.type === "number") return Math.min(30, Math.max(1, Math.round(n) || 10));
+  // The same limits a restored backup goes through (lib/shared.js).
+  if (SLShared.isNumberSetting(f)) return SLShared.clampSetting(f, Number(el.value));
   return f === "ollamaUrl" || f === "oaiUrl" ? el.value.trim().replace(/\/+$/, "") : el.value.trim();
 };
 async function saveField(f) {
@@ -264,14 +246,15 @@ for (const b of document.querySelectorAll("[data-reveal]")) {
 
 // The banner at the top: is the model ready to run, and if not, what's the one thing missing?
 async function showStatus() {
-  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "oaiKey", "oaiModel", "oaiUrl", "textModel"]);
+  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel"]);
   const provider = s.provider || "anthropic";
   const card = document.getElementById("statusCard");
   let ready = false, title, text;
   if (provider === "anthropic") {
     ready = !!s.anthropicKey;
     const m = s.anthropicModel || "claude-sonnet-5-5";
-    title = ready ? `Ready: ${NAMES[m] || m}` : "One step left: add a Claude API key";
+    const scanM = s.anthropicScanModel === undefined ? "claude-haiku-5-5" : s.anthropicScanModel || m;
+    title = ready ? `Ready: ${NAMES[m] || m}${scanM !== m ? `, scans with ${NAMES[scanM] || scanM}` : ""}` : "One step left: add a Claude API key";
     text = ready ? "Open an eBay or Marketplace search and press Scan, or just look at the free marks on the cards." : "Paste it below and it is checked right away. Prefer not to use Claude? Pick another AI service or Ollama under Model; the free marks and sold-price tools work without any model.";
   } else if (provider === "openai") {
     const keyless = /localhost|127\.0\.0\.1/.test(s.oaiUrl || "");
@@ -341,6 +324,7 @@ document.getElementById("test").addEventListener("click", async () => {
   if (document.getElementById("provider").value === "anthropic") return testClaude();
   if (document.getElementById("provider").value === "openai") return testOpenAI();
   const url = document.getElementById("ollamaUrl").value.trim().replace(/\/+$/, "");
+  if (!(await allowOrigin(url))) return (testMsg.textContent = "Second Look needs your permission to reach that address.");
   testMsg.textContent = "Testing…";
   try {
     const res = await fetch(`${url}/api/tags`);
@@ -364,8 +348,33 @@ load().then(showStatus);
 
 // ---------- Backup ----------
 // Collections are merged on restore (a backup never deletes anything here); settings come from the backup.
-const BACKUP_SETS = ["saved", "savedSearches", "quickFilters", "notInterested", "listingMemory", "codeStems", "usage"];
+const BACKUP_SETS = ["saved", "savedSearches", "quickFilters", "notInterested", "listingMemory", "codeStems", "usage", "stats", "modePrefs"];
 const SECRET = ["anthropicKey", "oaiKey"];
+
+// A backup file can hold anything, and saved addresses become links on eBay and Facebook pages. Keep
+// only addresses on those two sites (SLShared.safeUrl in lib/shared.js); a bad one is
+// rebuilt from the listing's key or the search words, and counted so the note can say so.
+const isRecord = (v) => v && typeof v === "object" && !Array.isArray(v);
+function cleanSaved(saved, fixed) {
+  const out = {};
+  for (const [k, r] of Object.entries(saved)) {
+    if (!isRecord(r) || !/^(ebay|fb):[\w-]+$/.test(k)) continue;
+    const u = SLShared.savedItemUrl(k, r);
+    if (u !== r.u && r.u) fixed.n++;
+    out[k] = { ...r, u };
+  }
+  return out;
+}
+function cleanSearches(searches, fixed) {
+  const out = {};
+  for (const [k, r] of Object.entries(searches)) {
+    if (!isRecord(r) || typeof r.q !== "string") continue;
+    const url = SLShared.searchUrl(r);
+    if (url !== r.url) fixed.n++;
+    out[k] = { ...r, url };
+  }
+  return out;
+}
 document.getElementById("backup").addEventListener("click", async () => {
   const all = await chrome.storage.local.get([...FIELDS, ...BACKUP_SETS]);
   const settings = Object.fromEntries(FIELDS.filter((f) => !SECRET.includes(f) && all[f] !== undefined).map((f) => [f, all[f]]));
@@ -394,24 +403,52 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   if (data?.app !== "second-look") return note("That file isn't a Second Look backup.");
   const here = await chrome.storage.local.get(BACKUP_SETS);
   const out = {};
+  const fixed = { n: 0 };
+  if (isRecord(data.saved)) data.saved = cleanSaved(data.saved, fixed);
+  if (isRecord(data.savedSearches)) data.savedSearches = cleanSearches(data.savedSearches, fixed);
   for (const k of BACKUP_SETS) {
     if (!data[k] || typeof data[k] !== "object") continue;
     if (k === "usage") {
       // Spending per day: keep whichever record of a day is larger, so nothing is counted twice.
       const days = { ...(here.usage?.days || {}) };
-      for (const [d, v] of Object.entries(data.usage.days || {})) if (!days[d] || v.usd > days[d].usd) days[d] = v;
+      for (const [d, v] of Object.entries(isRecord(data.usage.days) ? data.usage.days : {})) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !isRecord(v) || !Number.isFinite(v.usd) || v.usd < 0 || !Number.isFinite(v.calls)) continue; // the budget adds these up
+        if (!days[d] || v.usd > days[d].usd) days[d] = { usd: v.usd, calls: v.calls, models: isRecord(v.models) ? v.models : {} };
+      }
       out.usage = { days };
+    } else if (k === "stats") {
+      const counts = Object.fromEntries(Object.entries(data.stats).filter(([, n]) => Number.isFinite(n) && n >= 0));
+      out.stats = { ...counts, ...(here.stats || {}) };
     } else if (k === "listingMemory") {
       const m = { ...(here.listingMemory || {}) };
       for (const [key, r] of Object.entries(data.listingMemory)) if (!m[key] || (r?.a || 0) > (m[key].a || 0)) m[key] = r;
       out.listingMemory = m;
     } else out[k] = { ...data[k], ...(here[k] || {}) }; // what's here wins where both have it
   }
-  const settings = Object.fromEntries(Object.entries(data.settings || {}).filter(([f]) => FIELDS.includes(f) && !SECRET.includes(f)));
+  // Settings go through the same limits as typing them here; one that doesn't make sense is left out.
+  const settings = {};
+  let skipped = 0;
+  for (const [f, v] of Object.entries(isRecord(data.settings) ? data.settings : {})) {
+    if (!FIELDS.includes(f) || SECRET.includes(f)) continue;
+    const clean = SLShared.cleanSetting(f, v);
+    if (clean === undefined) skipped++;
+    else settings[f] = clean;
+  }
+  // A backup from before the two word lists became one.
+  if (settings.filterWords === undefined && (data.settings?.hideWords !== undefined || data.settings?.needWords !== undefined)) {
+    settings.filterWords = SLShared.filterFromLists(String(data.settings.hideWords ?? ""), String(data.settings.needWords ?? ""));
+  }
   await chrome.storage.local.set({ ...out, ...settings });
   await load();
   showMemory();
   showSpend();
-  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-  note(`Restored from ${file.name}: ${plural(Object.keys(data.saved || {}).length, "saved listing")}, ${plural(Object.keys(data.savedSearches || {}).length, "search")}, and settings.`.replace("searchs", "searches"));
+  const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
+  const reset = fixed.n ? ` ${plural(fixed.n, "link")} to somewhere other than eBay or Facebook ${fixed.n === 1 ? "was" : "were"} replaced.` : "";
+  const left = skipped ? ` ${plural(skipped, "setting")} in the file didn't make sense and ${skipped === 1 ? "was" : "were"} left out.` : "";
+  note(`Restored from ${file.name}: ${plural(Object.keys(data.saved || {}).length, "saved listing")}, ${plural(Object.keys(data.savedSearches || {}).length, "search", "searches")}, and settings.${reset}${left}`);
 });
+
+// Folded sections open when a jump link (or the address) points at them.
+const openSection = (hash) => document.querySelector(`${hash} details`)?.setAttribute("open", "");
+document.querySelectorAll("nav.jump a").forEach((a) => a.addEventListener("click", () => openSection(a.hash)));
+if (/^#sec-[\w-]+$/.test(location.hash)) openSection(location.hash);

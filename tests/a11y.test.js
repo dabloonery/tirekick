@@ -31,12 +31,12 @@
     key(tabs[1], "ArrowLeft");
     await wait(50);
 
-    const lens = [...root.querySelectorAll("[data-lens]")];
+    const lens = [...root.querySelectorAll("button[data-mode]")];
     lens[0].focus();
     key(lens[0], "ArrowRight");
     await wait(50);
-    check("ArrowRight picks Fix & flip", lens[1].getAttribute("aria-checked") === "true" && active() === lens[1], "lens unchanged");
-    check("only the checked lens is in the tab order", lens[1].tabIndex === 0 && lens[0].tabIndex === -1, `tabIndex ${lens.map((t) => t.tabIndex)}`);
+    check("ArrowRight picks Reseller", lens[1].getAttribute("aria-checked") === "true" && active() === lens[1], "lens unchanged");
+    check("only the checked mode is in the tab order", lens[1].tabIndex === 0 && lens[0].tabIndex === -1, `tabIndex ${lens.map((t) => t.tabIndex)}`);
 
     // 3. Escape closes the panel and returns focus to the tab.
     key(active() || tab, "Escape");

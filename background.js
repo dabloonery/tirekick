@@ -867,6 +867,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 // The content script on the page does the work and shows the answer; we just point it at the image.
 
 const MENU_ID = "second-look-photo";
+const HOME_MENU_ID = "second-look-home";
 
 // Before 0.32 the always-hide and only-show words were two comma-separated lists; they are one line now.
 async function migrateFilterWords() {
@@ -890,7 +891,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       contexts: ["image"],
       documentUrlPatterns: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
     });
+    chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Second Look home", contexts: ["action"] });
   });
+  updateBadge().catch(() => {});
 });
 
 // ---------- The side tab ----------
@@ -899,7 +902,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 const AUTO_ID = "second-look-auto";
 // What a page gets, in load order: shared pieces, the plain rules, the site adapters, then the panel.
-const CONTENT_FILES = ["lib/shared.js", "content/rules.js", "content/adapters.js", "content/panel.js"];
+const CONTENT_FILES = ["lib/shared.js", "content/rules.js", "content/adapters.js", "content/home.js", "content/panel.js"];
 
 // Install and a settings change can both ask at once; run one at a time so they don't race.
 let syncing = Promise.resolve();
@@ -925,7 +928,10 @@ async function doSyncAutoScripts() {
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
 });
-chrome.runtime.onStartup.addListener(() => syncAutoScripts().catch(() => {}));
+chrome.runtime.onStartup.addListener(() => {
+  syncAutoScripts().catch(() => {});
+  updateBadge().catch(() => {});
+});
 
 // ---------- Nothing runs on eBay/Facebook until you ask (when the tab is off) ----------
 // No content scripts are declared in the manifest, so page loads are untouched.
@@ -943,31 +949,85 @@ async function ensureInjected(tabId) {
 }
 
 // On a page Second Look doesn't work on, the icon says so for a few seconds instead of doing nothing.
-async function notHere(tabId) {
-  const title = "Second Look works on eBay searches, categories and listings, and on Facebook Marketplace.";
-  await chrome.action.setBadgeBackgroundColor({ tabId, color: "#6B675F" }).catch(() => {});
-  await chrome.action.setBadgeText({ tabId, text: "?" }).catch(() => {});
-  await chrome.action.setTitle({ tabId, title }).catch(() => {});
-  setTimeout(() => {
-    chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
-    chrome.action.setTitle({ tabId, title: chrome.runtime.getManifest().action.default_title }).catch(() => {});
-  }, 5000);
+// ---------- The toolbar badge ----------
+// A number on the icon when something saved is worth another look: a saved listing got cheaper, or a
+// saved search had listings at your price. Nothing is checked in the background: this only reads what
+// the panel recorded the last time those listings were on your screen. Looking at Home marks them seen.
+async function updateBadge() {
+  const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
+  const fresh = SLShared.alerts(saved, savedSearches, alertsAck).filter((a) => a.isNew);
+  const base = chrome.runtime.getManifest().action.default_title;
+  await chrome.action.setBadgeBackgroundColor({ color: "#C8461F" });
+  await chrome.action.setBadgeText({ text: fresh.length > 99 ? "99+" : fresh.length ? String(fresh.length) : "" });
+  await chrome.action.setTitle({ title: fresh.length ? `${base}\n${SLShared.alertSummary(fresh)}. Click the icon to see them.` : base });
 }
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.saved || changes.savedSearches || changes.alertsAck) updateBadge().catch(() => {});
+});
 
-async function openPanel(tabId) {
+// Home is a tab in the panel on eBay and Facebook (alerts on saved things, numbers, spending). Show it
+// on a page you already have open there, or open eBay and show it there.
+const waitLoaded = (tabId, ms = 20000) =>
+  new Promise((resolve) => {
+    const done = () => {
+      chrome.tabs.onUpdated.removeListener(on);
+      clearTimeout(timer);
+      resolve();
+    };
+    const on = (id, info) => id === tabId && info.status === "complete" && done();
+    const timer = setTimeout(done, ms);
+    chrome.tabs.onUpdated.addListener(on);
+    chrome.tabs.get(tabId).then((t) => t.status === "complete" && done(), done); // it may have finished already
+  });
+// true when this page has the panel (a search, a category, a listing, or the eBay front page) and now shows Home.
+async function showHome(tabId) {
   try {
     await ensureInjected(tabId);
-    const [{ result: ours } = {}] = await chrome.scripting.executeScript({
+    const [{ result } = {}] = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
         if (!window.SecondLook?.pageType()) return false;
-        window.dispatchEvent(new CustomEvent("second-look-toggle"));
+        window.dispatchEvent(new CustomEvent("second-look-show", { detail: { view: "home" } }));
         return true;
       },
     });
-    if (!ours) await notHere(tabId);
+    return !!result;
   } catch {
-    await notHere(tabId); // a page the extension can't touch (not eBay or Facebook)
+    return false;
+  }
+}
+async function openHome() {
+  const tabs = await chrome.tabs.query({ url: ["https://www.ebay.com/*", "https://www.facebook.com/*"] }).catch(() => []);
+  for (const tab of tabs.sort((a, b) => Number(b.active) - Number(a.active))) {
+    if (tab.discarded || tab.status !== "complete" || !(await showHome(tab.id))) continue;
+    await chrome.tabs.update(tab.id, { active: true });
+    await chrome.windows.update(tab.windowId, { focused: true });
+    return;
+  }
+  const tab = await chrome.tabs.create({ url: "https://www.ebay.com/" });
+  await waitLoaded(tab.id);
+  await showHome(tab.id);
+}
+
+// The icon opens the panel, or tucks it away; with something new to look at it opens on Home instead.
+// On a page the panel doesn't work on (not eBay or Marketplace), it brings up Home on eBay.
+async function openPanel(tabId) {
+  try {
+    const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
+    const news = SLShared.alerts(saved, savedSearches, alertsAck).some((a) => a.isNew);
+    await ensureInjected(tabId);
+    const [{ result: ours } = {}] = await chrome.scripting.executeScript({
+      target: { tabId },
+      args: [news],
+      func: (news) => {
+        if (!window.SecondLook?.pageType()) return false;
+        window.dispatchEvent(news ? new CustomEvent("second-look-show", { detail: { view: "home" } }) : new CustomEvent("second-look-toggle"));
+        return true;
+      },
+    });
+    if (!ours) await openHome();
+  } catch {
+    await openHome().catch(() => {}); // a page the extension can't touch
   }
 }
 
@@ -976,6 +1036,7 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === HOME_MENU_ID) return openHome();
   if (info.menuItemId !== MENU_ID || !tab?.id) return;
   try {
     await ensureInjected(tab.id);

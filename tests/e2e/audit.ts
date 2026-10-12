@@ -49,6 +49,9 @@ for (const mode of ["dark", "light"]) {
   await R(p, `r.querySelector('[data-act=tab]').click()`); await sleep(500);
   await panelShot(p, `${mode}_03_pre_scan`);
   report[mode + "_pre_scan"] = await R(p, `return (${METRICS})(r)`);
+  await R(p, `r.querySelector('[data-mode=reseller]').click()`); await sleep(300);
+  await panelShot(p, `${mode}_03b_reseller`);
+  await R(p, `r.querySelector('[data-mode=buyer]').click()`); await sleep(300);
   await R(p, `r.querySelector('[data-act=scan]').click()`); await sleep(2600);
   const rowAt = await R(p, `const b=r.querySelector('.list .row').getBoundingClientRect(); return [b.x+b.width/2, b.y+b.height/2]`);
   await p.ev(`1`); await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: rowAt[0], y: rowAt[1] }, p.sessionId); await sleep(200);
@@ -62,7 +65,7 @@ for (const mode of ["dark", "light"]) {
   await panelShot(p, `${mode}_07_filter_spend`);
   await R(p, `r.querySelector('.qf-toggle').click(); r.querySelector('.spend').click()`);
   // ideas
-  await R(p, `r.querySelector('.pi-search button:last-of-type, .pi-search .actions button')?.click(); [...r.querySelectorAll('.pi-search button')].find(b=>/Ideas/.test(b.textContent))?.click()`); await sleep(1500);
+  await R(p, `r.querySelector('[data-act=ideas]').click()`); await sleep(1500);
   await R(p, `r.querySelector('.ideas-inline').scrollIntoView()`); await sleep(300);
   await panelShot(p, `${mode}_08_ideas`);
   // saved view: save two, hide one
@@ -72,6 +75,11 @@ for (const mode of ["dark", "light"]) {
   await R(p, `r.querySelector('[data-view=saved]').click()`); await sleep(500);
   await panelShot(p, `${mode}_09_saved`);
   report[mode + "_saved"] = await R(p, `return (${METRICS})(r)`);
+  await R(p, `r.querySelector('[data-view=home]').click()`); await sleep(800);
+  await panelShot(p, `${mode}_09b_home`);
+  report[mode + "_home"] = await R(p, `return (${METRICS})(r)`);
+  await R(p, `r.querySelector('.body').scrollTop = 99999`); await sleep(200);
+  await panelShot(p, `${mode}_09c_home_lower`);
   // item page
   const it = await open(`https://www.ebay.com/itm/184891897312`); await scheme(it, mode); await sleep(2200);
   await R(it, `r.querySelector('[data-act=tab]').click()`); await sleep(400);

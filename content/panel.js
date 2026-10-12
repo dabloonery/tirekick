@@ -6,7 +6,8 @@
   const SL = window.SecondLook;
   const SLShared = window.SLShared;
   const SLRules = window.SLRules;
-  if (!SL || !SLShared || !SLRules || window.__secondLookPanel) return;
+  const SLHome = window.SLHome;
+  if (!SL || !SLShared || !SLRules || !SLHome || window.__secondLookPanel) return;
   window.__secondLookPanel = true;
 
   // Verdict colours come from the theme (--v-great etc.), keyed by data-v.
@@ -167,6 +168,76 @@
     .nav button[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--ink); }
     .nav .cnt { margin-left:5px; font-weight:400; color:var(--muted); }
     .nav .cnt:empty { display:none; }
+    .nav .cnt.alert { color:var(--accent); font-weight:700; }
+
+    /* ---------- Home: alerts on saved things, numbers, spending, what you use ---------- */
+    .view-home { padding:4px 16px 16px; }
+    .hm { display:grid; gap:2px; }
+    .hm-sec { padding:14px 0 8px; border-top:var(--bw) solid var(--rule); }
+    .hm-sec:first-child { border-top:0; padding-top:10px; }
+    .hm h3 { margin:0 0 10px; display:flex; align-items:center; gap:8px; color:var(--muted); font:600 12px/1.2 var(--ui); }
+    .hm .hm-grow { flex:1; }
+    .hm .hm-count { font-size:12px; font-weight:400; font-variant-numeric:tabular-nums; }
+    .hm .hm-hint { display:block; color:var(--muted); font-size:12px; }
+    .hm p.hm-hint { margin:8px 0 0; }
+    .hm .hm-empty { color:var(--muted); font-size:13px; padding:2px 0 8px; }
+    .hm a { color:var(--ink); text-underline-offset:3px; text-decoration-color:var(--line); }
+    .hm a:hover { text-decoration-color:currentColor; }
+    .hm-btn { display:inline-block; min-height:24px; font:600 12px/1.2 var(--ui); padding:5px 10px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:none; color:var(--ink); cursor:pointer; text-decoration:none; }
+    .hm-btn:hover { border-color:var(--ink); }
+    .hm-btn.primary { background:var(--ink); color:var(--on-ink); border-color:var(--ink); }
+    .hm-btn.small { padding:4px 8px; }
+    .hm-btn:focus-visible, .hm a:focus-visible, .hm .col:focus-visible, .hm summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .hm-bar { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin:0 0 10px; }
+    .hm-bar i { display:block; height:100%; background:var(--v-great); }
+    .hm-steps { list-style:none; margin:0 0 8px; padding:0; display:grid; gap:8px; }
+    .hm-steps li { display:grid; grid-template-columns:22px 1fr; gap:10px; align-items:start; padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
+    .hm-steps .num { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font:600 12px/1 var(--ui); box-shadow:inset 0 0 0 1px var(--line); color:var(--muted); }
+    .hm-steps li.done .num { background:var(--v-great); box-shadow:none; color:var(--on-v); }
+    .hm-steps li.done b { color:var(--muted); font-weight:400; text-decoration:line-through; text-decoration-color:var(--line); }
+    .hm-steps b { display:block; font-weight:600; }
+    .hm-steps .acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .hm-alerts { display:grid; gap:8px; }
+    .hm-alert { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:start; padding:9px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
+    .hm-alert.new { border-color:var(--v-great); }
+    .hm-tag { font-size:12px; font-weight:600; padding:1px 8px; border-radius:999px; background:var(--paper-2); color:var(--muted); white-space:nowrap; }
+    .hm-alert.new .hm-tag { background:var(--v-great); color:var(--on-v); }
+    .hm-alert .t { min-width:0; overflow-wrap:anywhere; }
+    .hm-alert .t a { font-weight:600; }
+    .hm-alert .t small { display:block; color:var(--muted); font-size:12px; }
+    .hm .down { color:var(--v-great); font-weight:600; }
+    .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:8px; }
+    .hm-tile { padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
+    .hm-tile span { display:block; color:var(--muted); font-size:12px; }
+    .hm-tile b { display:block; font:600 20px/1.25 var(--mono); font-variant-numeric:lining-nums; }
+    .hm-tile small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
+    .hm-meter { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin-top:7px; }
+    .hm-meter i { display:block; height:100%; background:var(--ink); }
+    .hm-meter.hot i { background:var(--accent); }
+    .hm-chart { position:relative; padding:20px 0 0 44px; }
+    .hm .plot { position:relative; height:96px; display:flex; align-items:flex-end; gap:2px; border-bottom:var(--bw) solid var(--rule); }
+    .hm .grid { position:absolute; left:0; right:0; height:0; border-top:var(--bw) solid var(--rule); pointer-events:none; }
+    .hm .ylab { position:absolute; left:-44px; width:38px; text-align:right; font-size:12px; color:var(--muted); transform:translateY(-50%); font-variant-numeric:tabular-nums; }
+    .hm .col { flex:1; min-width:0; height:100%; display:flex; align-items:flex-end; justify-content:center; background:none; border:0; padding:0; cursor:default; position:relative; }
+    .hm .col i { display:block; width:100%; max-width:14px; border-radius:2px 2px 0 0; background:var(--muted); opacity:.55; transition:opacity .12s; }
+    .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--ink); }
+    .hm .xaxis { display:flex; justify-content:space-between; gap:6px; font-size:12px; color:var(--muted); margin-top:5px; }
+    .hm-tip { position:absolute; z-index:5; pointer-events:none; background:var(--ink); color:var(--on-ink); padding:5px 9px; border-radius:var(--r-sm); font-size:12px; opacity:0; transform:translate(-50%, -100%); transition:opacity .1s; white-space:nowrap; }
+    .hm-tip b { font:600 14px/1.2 var(--mono); display:block; }
+    .hm-tip.show { opacity:1; }
+    .hm-table { margin-top:10px; }
+    .hm-table summary { cursor:pointer; color:var(--muted); font-size:12px; padding:3px 0; }
+    .hm table { border-collapse:collapse; width:100%; font-size:12px; margin-top:6px; }
+    .hm th, .hm td { text-align:left; padding:4px 6px; border-bottom:var(--bw) solid var(--rule); }
+    .hm td.n, .hm th.n { text-align:right; font-variant-numeric:tabular-nums; }
+    .hm-use { display:grid; gap:7px; margin-top:8px; }
+    .hm-use > div { display:grid; grid-template-columns:minmax(110px, 150px) 1fr 34px; gap:10px; align-items:center; font-size:13px; }
+    .hm-use .track { height:8px; }
+    .hm-use .track i { display:block; height:100%; background:var(--ink); border-radius:0 2px 2px 0; min-width:2px; }
+    .hm-use .track i.zero { background:var(--rule); }
+    .hm-use b { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
+    .hm-foot { margin-top:14px; padding-top:12px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
+    @media (prefers-reduced-motion: reduce) { .hm .col i, .hm-tip { transition:none; } }
     /* how far a scan has got, as a hairline under the tabs (the status says it in words) */
     .progress { height:2px; margin-top:-2px; position:relative; z-index:3; }
     .progress i { display:block; height:100%; width:0; background:var(--accent); transition:width .3s ease; }
@@ -198,15 +269,19 @@
     input::placeholder { color:var(--muted); opacity:.7; }
     input:focus { outline:2px solid var(--ink); outline-offset:-1px; }
 
-    .lens { display:grid; grid-template-columns:repeat(2,1fr); gap:2px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
-    .lens button { border:0; border-radius:calc(var(--r-sm) - 2px); background:none; color:var(--muted); font:600 13px/1 var(--ui); padding:8px 0; cursor:pointer; transition:background .15s, color .15s; }
-    .lens button:hover { color:var(--ink); }
-    .lens button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
+    /* Buyer or Reseller: two ways of shopping, above the tabs because Saved and Home follow it too */
+    .modebar { flex:none; display:grid; grid-template-columns:repeat(2,1fr); gap:2px; margin:2px 16px 8px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
+    .modebar button { display:grid; gap:2px; padding:6px 4px; border:0; border-radius:calc(var(--r-sm) - 2px); background:none; color:var(--muted); font:inherit; text-align:center; cursor:pointer; transition:background .15s, color .15s; }
+    .modebar button b { font:600 13px/1.2 var(--ui); }
+    .modebar button span { font-size:12px; line-height:1.2; }
+    .modebar button:hover { color:var(--ink); }
+    .modebar button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
+    .head, .nav { flex:none; }
     .hint { color:var(--muted); font-size:13px; }
-    .lens-hint { margin-top:6px; }
-    .lens-label { margin-bottom:6px; }
     .inputs { display:grid; gap:12px; }
-    .folded .inputs, .folded .lens-hint { display:none; }
+    .folded .inputs, .folded .mode-hint { display:none; }
+    .wrap:not([data-workspace="reseller"]) .feewrap { display:none; }
+    .feewrap .hint { margin-top:6px; }
     .inputs-sum { display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:8px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:12px; color:var(--muted); }
     .inputs-sum b { color:var(--ink); font-weight:600; }
     .inputs-sum .sum-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -293,7 +368,7 @@
     .welcome:has(.step-key:not([hidden])) li:not(.step-key)::before { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--line); }
     .welcome:has(.step-key:not([hidden])) li:not(.step-key) button { color:inherit; text-decoration:none; cursor:default; pointer-events:none; }
     /* Model-only controls wait until there is a model: Compare prices against and free sold prices still work */
-    .no-model .lenswrap, .no-model .want-field, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
+    .no-model .want-field, .no-model .feewrap, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
 
     /* first run, list bar */
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:13px; }
@@ -462,6 +537,17 @@
     .srow .meta { margin-top:1px; }
     .srow .down { color:var(--v-great); font-weight:600; }
     .sv-acts { margin:4px 0 10px; }
+    .hidden-box { margin-top:12px; border-top:var(--bw) solid var(--rule); padding-top:4px; }
+    .hidden-box summary { display:flex; gap:8px; align-items:baseline; min-height:24px; padding:6px 0; cursor:pointer; list-style:none; color:var(--muted); font-size:12px; }
+    .hidden-box summary::-webkit-details-marker { display:none; }
+    .hidden-box summary::before { content:"+"; width:10px; color:var(--muted); }
+    .hidden-box[open] summary::before { content:"\\2212"; }
+    .hidden-box summary b { color:var(--muted); font-size:12px; font-weight:600; }
+    .hidden-box summary:hover, .hidden-box summary:hover b { color:var(--ink); }
+    .hidden-box summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .srow.hid a { font-weight:400; color:var(--muted); }
+    .srow > .spark { flex:none; width:76px; height:24px; margin-top:2px; }
+    .pi-line .spark { margin:8px 0 4px; }
     .view-saved .sub { margin-top:10px; }
     .view-saved .sub:first-of-type { margin-top:0; }
     .sx { flex:none; width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); font:16px/1 var(--ui); cursor:pointer; }
@@ -515,9 +601,13 @@
         <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
         <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
       </div>
+      <div class="modebar" role="radiogroup" aria-label="Mode">
+        <button role="radio" data-mode="buyer" title="Buying something to keep and use"><b>Buyer</b><span>to keep and use</span></button><button role="radio" data-mode="reseller" title="Buying something to fix up and sell"><b>Reseller</b><span>to fix up and flip</span></button>
+      </div>
       <div class="nav" role="tablist" aria-label="Views">
         <button role="tab" data-view="page" aria-selected="true">This page</button>
         <button role="tab" data-view="saved" aria-selected="false">Saved<span class="cnt"></span></button>
+        <button role="tab" data-view="home" aria-selected="false">Home<span class="cnt alert" hidden></span></button>
       </div>
       <div class="progress" hidden aria-hidden="true"><i></i></div>
       <div class="body">
@@ -529,7 +619,7 @@
           <ol>
             <li class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
               <button class="scan setup-go" data-act="open-settings">Open settings</button></li>
-            <li><button data-step="lens">Choose what you're buying for</button>: Use, or Fix &amp; flip.</li>
+            <li><button data-step="lens">Pick Buyer or Reseller</button> at the top: to keep and use, or to fix up and flip.</li>
             <li><button data-step="want">Say what you want</button>, like "working, with charger". Optional.</li>
             <li><button data-step="scan">Press Scan</button> and every listing gets a score and a reason.</li>
           </ol>
@@ -538,15 +628,10 @@
         </div>
         <div class="setup" hidden><b class="setup-title">Add a Claude API key to start.</b> <span class="setup-text">It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings.</span>
           <button class="scan" data-act="open-settings">Open settings</button></div>
-        <div class="lenswrap">
-          <label class="lens-label" id="lens-label">Buying to</label>
-          <div class="lens" role="radiogroup" aria-labelledby="lens-label">
-            <button role="radio" data-lens="use">Use</button><button role="radio" data-lens="project">Fix &amp; flip</button>
-          </div>
-          <div class="hint lens-hint"></div>
-        </div>
+        <div class="hint mode-hint"></div>
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
+        <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price before a margin is worked out. eBay's are around 13%.</div></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
@@ -582,6 +667,7 @@
       <div class="itemout"></div>
       </div>
       <div class="view view-saved" hidden><div class="status saved-status" role="status"></div><div class="saved-body"></div></div>
+      <div class="view view-home" hidden></div>
       </div>
       <div class="foot">
         <div class="spend-detail" hidden></div>
@@ -621,7 +707,7 @@
   const ideasList = $(".ideas-list");
   const ideasStatus = $(".ideas-status");
   const wantEl = $("#want");
-  const lensHint = $(".lens-hint");
+  const modeHint = $(".mode-hint");
   const qwrap = $(".qwrap");
   const browseNote = $(".browse-note");
   // Browse mode: a results page with nothing to compare against (e.g. the Marketplace home feed).
@@ -716,6 +802,7 @@
   let touched = false; // the user (or the toolbar icon) has opened/closed it on this page
   const showOpen = (open) => {
     wrap.classList.toggle("open", open);
+    if (open) setTimeout(() => home.seen(), 0); // Home counts as seen once it's on screen
     $('[data-act="tab"]').setAttribute("aria-label", open ? "Tuck Second Look away" : "Open Second Look");
   };
   // Keyboard users: opening puts focus in the panel and closing puts it back on the tab, so it is
@@ -729,7 +816,7 @@
   };
   const toggleOpen = () => setOpen(!wrap.classList.contains("open"));
 
-  // Tabs and Use/Fix & flip/Skipped-style radios: arrow keys (and Home/End) move and choose; only the
+  // Tabs and Buyer/Reseller/Skipped-style radios: arrow keys (and Home/End) move and choose; only the
   // chosen one is in the Tab order, as the ARIA patterns say. attr is the state attribute the code already sets.
   const rovingGroup = (group, attr) => {
     const items = [...group.querySelectorAll(`[role="${attr === "aria-selected" ? "tab" : "radio"}"]`)];
@@ -1101,7 +1188,7 @@
       const step = b.dataset.step;
       if (step === "want") wantEl.focus();
       else if (step === "scan") (scanBtn.hidden ? analyzeBtn : scanBtn).focus();
-      else root.querySelector("[data-lens][aria-checked='true']")?.focus();
+      else root.querySelector("button[data-mode][aria-checked='true']")?.focus();
     })
   );
   let introPending = false;
@@ -1118,48 +1205,103 @@
     applyIntro();
   }).catch(() => {});
 
-  // ---------- lens: what you want the listing for ----------
-
-  const LENS = {
-    use: { name: "Use", hint: "For yourself: working items at a good price. Broken, untested and for-parts ones score low." },
-    project: { name: "Fix & flip", hint: "Projects: an easy fix, a resale margin after eBay fees and parts, or both. Broken and untested ones are welcome." },
+  // ---------- mode: Buyer or Reseller ----------
+  // Two ways of shopping, each with its own tools and its own remembered sort, skipped-listings setting
+  // and "What I want". Under the hood they are the two judgments the model has always made: "use" (a
+  // working item for yourself) and "project" (fix up and flip), which the rest of this file calls the lens.
+  const MODES = {
+    use: {
+      id: "buyer",
+      name: "Buyer mode",
+      as: "a buyer",
+      hint: "Find a good one to keep: fair prices, honest sellers, no scams. Broken and untested ones score low.",
+      want: "e.g. working, with charger, under $150",
+      sort: "score",
+    },
+    project: {
+      id: "reseller",
+      name: "Reseller mode",
+      as: "a reseller",
+      hint: "Find ones worth fixing and selling: an easy fix, or a margin after fees and parts. Broken and untested ones are welcome.",
+      want: "e.g. common fault, parts easy to find, sells fast",
+      sort: "margin",
+    },
   };
+  const LENS_OF = { buyer: "use", reseller: "project" };
   let lens = "use";
-  let onLensShown = () => {}; // the filter bar's broken-listing toggle follows the lens (set up further down)
-  const showLens = () => {
-    root.querySelectorAll("[data-lens]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.lens === lens)));
-    lensHint.textContent = LENS[lens].hint;
+  let onLensShown = () => {}; // the filter bar's broken-listing toggle follows the mode (set up further down)
+  let onModeChanged = () => {}; // Home redraws for the mode (set up further down)
+  let modePrefs = { use: {}, project: {} }; // per mode: { sort, skip, want }
+  const feeEl = $("#fee");
+  const showMode = () => {
+    const m = MODES[lens];
+    root.querySelectorAll("button[data-mode]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.mode === m.id)));
+    wrap.dataset.workspace = m.id;
+    modeHint.textContent = m.hint;
+    wantEl.placeholder = m.want;
+    for (const o of sortSel.options) o.hidden = o.disabled = o.value === "margin" && lens === "use"; // margins are the Reseller's
     onLensShown();
   };
-  const setLens = (next) => {
-    if (next === lens || !LENS[next]) return;
+  // This mode's own sort, skipped-listings setting and wants (the page's cards follow through render()).
+  const applyPrefs = () => {
+    const p = modePrefs[lens] || {};
+    sortMode = SORTS[p.sort] && !(p.sort === "margin" && lens === "use") ? p.sort : MODES[lens].sort;
+    sortSel.value = sortMode;
+    skipMode = ["show", "dim", "hide"].includes(p.skip) ? p.skip : "dim"; // greyed out unless you choose otherwise
+    document.documentElement.dataset.slSkip = wrap.dataset.skipmode = skipMode;
+    root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
+    wantEl.value = p.want || "";
+  };
+  const setPref = (key, value) => {
+    (modePrefs[lens] ||= {})[key] = value;
+    if (alive()) chrome.storage.local.set({ modePrefs }).catch(() => {});
+  };
+  const setMode = (id) => {
+    const next = LENS_OF[id];
+    if (!next || next === lens) return;
     lens = next;
-    showLens();
+    if (next === "project") bump("flipSwitches");
     if (alive()) chrome.storage.local.set({ lens }).catch(() => {});
-    // Scores mean something different under another lens, so start the page over.
+    applyPrefs();
+    showMode();
+    onModeChanged();
+    // Scores mean something different in the other mode, so start the page over.
     const had = scored.size || itemEl.childElementCount;
     clearStickers();
     listEl.replaceChildren();
     itemEl.replaceChildren();
+    redecorateAll(); // the non-AI marks (and listings you hid) stay
     setCount(0);
+    render();
     if (had)
       setStatus(
         SL.pageType() === "item"
-          ? `Switched to ${LENS[lens].name}. Press Analyze to judge this listing that way.`
-          : `Switched to ${LENS[lens].name}. Scan again to judge these listings for that (anything already judged this way comes back free).`
+          ? `${MODES[lens].name}. Press Analyze to judge this listing as ${MODES[lens].as}.`
+          : `${MODES[lens].name}. Scan again to judge these listings as ${MODES[lens].as} (anything already judged this way comes back free).`
       );
     refreshPending();
   };
-  root.querySelectorAll("[data-lens]").forEach((b) => b.addEventListener("click", () => setLens(b.dataset.lens)));
-  wantEl.addEventListener("change", () => alive() && chrome.storage.local.set({ want: wantEl.value.trim() }).catch(() => {}));
+  root.querySelectorAll("button[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  wantEl.addEventListener("change", () => setPref("want", wantEl.value.trim()));
   // The scan button says when your edits mean a rescan (refreshPending is defined further down).
-  for (const el of [wantEl, queryEl]) el.addEventListener("input", () => refreshPending());
-  chrome.storage.local.get({ lens: "use", want: "" }).then((v) => {
-    lens = v.lens === "fix" || v.lens === "flip" ? "project" : LENS[v.lens] ? v.lens : "use"; // older Fix and Flip are one mode now
-    if (!wantEl.value) wantEl.value = v.want;
-    showLens();
+  for (const el of [wantEl, queryEl, feeEl]) el.addEventListener("input", () => refreshPending());
+  // Selling fees: one number for the margins; it's the same setting as on the settings page.
+  const showFee = () => send("getSettings").then((s) => root.activeElement !== feeEl && (feeEl.value = String(s.feePct))).catch(() => {});
+  feeEl.addEventListener("change", () => {
+    const n = SLShared.clampSetting("feePct", Number(feeEl.value));
+    feeEl.value = String(n);
+    if (alive()) chrome.storage.local.set({ feePct: n }).catch(() => {});
+    refreshPending();
   });
-  showLens();
+  showFee();
+  const modeReady = chrome.storage.local.get({ lens: "use", modePrefs: null, sortMode: "score", skipMode: "dim", want: "" }).then((v) => {
+    lens = v.lens === "fix" || v.lens === "flip" ? "project" : MODES[v.lens] ? v.lens : "use"; // older Fix and Flip are one mode now
+    modePrefs = v.modePrefs || { use: {}, project: {} };
+    // From before there were modes: the one sort, skipped setting and wants go to the mode that was in use.
+    if (!v.modePrefs) modePrefs[lens] = { sort: v.sortMode, skip: v.skipMode, want: v.want };
+    applyPrefs();
+    showMode();
+  });
 
   const money = (n) => `${n < 0 ? "\u2212" : ""}$${Math.abs(Math.round(n))}`;
   const fmtCost = (usd) => (usd < 0.01 ? "under $0.01" : `~$${usd.toFixed(2)}`);
@@ -1328,14 +1470,12 @@
   let savedSearches = {}; // "site|query" -> { site, q, url, a0: when saved, v: last visit, n: listings then, fresh: new to you then }
   const dirtyMemory = new Set();
   const dirtyStems = new Set();
-  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "skipMode", "codeStems", "saved", "savedSearches"]).then((v) => {
+  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "codeStems", "saved", "savedSearches"]).then((v) => {
     memory = v.listingMemory || {};
     codeStems = v.codeStems || {};
     saved = v.saved || {};
     savedSearches = v.savedSearches || {};
     notInterested = v.notInterested || {};
-    skipMode = ["show", "dim", "hide"].includes(v.skipMode) ? v.skipMode : "dim"; // greyed out unless you choose otherwise
-    document.documentElement.dataset.slSkip = wrap.dataset.skipmode = skipMode;
   });
   const loadPrefs = () =>
     send("getSettings")
@@ -1621,10 +1761,31 @@
     root.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === v)));
     $(".view-page").hidden = v !== "page";
     $(".view-saved").hidden = v !== "saved";
+    $(".view-home").hidden = v !== "home";
+    if (v === "home") home.refresh().then(() => home.seen()).catch(() => {});
     $(".body").scrollTop = 0;
     if (v === "saved") renderSaved();
   };
   root.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+  // Home: alerts on saved things, a few numbers, spending, what you use. Looking at it marks the alerts seen.
+  const homeCount = $('.nav [data-view="home"] .cnt');
+  const home = SLHome.mount($(".view-home"), {
+    send,
+    getMode: () => MODES[lens].id,
+    isShown: () => view === "home" && wrap.classList.contains("open") && !document.hidden,
+    onAlerts: (n) => {
+      homeCount.textContent = n ? String(n) : "";
+      homeCount.hidden = !n;
+    },
+  });
+  home.refresh().catch(() => {});
+  onModeChanged = () => home.refresh().catch(() => {});
+  document.addEventListener("visibilitychange", () => home.seen());
+  // The toolbar icon (and its right-click menu) can bring up a particular tab.
+  window.addEventListener("second-look-show", (e) => {
+    setView(e.detail?.view === "home" ? "home" : view);
+    setOpen(true);
+  });
   const siteName = (k) => (k.startsWith("fb") ? "Marketplace" : "eBay");
   const removeStored = async (name, k) => {
     const next = await writeStored(name, (s) => delete s[k]);
@@ -1647,6 +1808,15 @@
   };
   const savedSearchUrl = (r) =>
     safeUrl(r.url, r.site === "facebook" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(r.q || "")}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(r.q || "")}`);
+  // A small line of the prices seen for a saved listing, when there's more than one.
+  const priceHistory = (k, r) => {
+    const mem = memory[k];
+    let pts = mem ? [...(mem.h || []).map(([p, t]) => ({ v: p, t })), { v: mem.p ?? r.p, t: mem.a ?? r.a }] : [];
+    if (pts.length < 2 && r.p0 != null && r.p != null && r.p0 !== r.p) pts = [{ v: r.p0, t: r.a0 }, { v: r.p, t: r.a }];
+    const line = SLShared.spark(pts, { w: 76, h: 24, label: `Price history: ${pts.map((p) => dollars(p.v)).join(" \u2192 ")}` });
+    return line ? h("div", { class: "spark" }, line) : null;
+  };
+  let hiddenOpen = false; // the folded "Hidden" section stays as you left it while the list redraws
   const renderSaved = () => {
     const items = Object.entries(saved).sort((a, b) => b[1].a0 - a[1].a0);
     const searches = Object.entries(savedSearches).sort((a, b) => b[1].v - a[1].v);
@@ -1683,17 +1853,18 @@
             !items.length && !searches.length
               ? h("div", { class: "hint" }, "Hover any card and press Save to keep it here, or save a search from the actions under the Scan button. Both sites, kept in this browser. Prices update whenever the listing is on your screen again.")
               : null,
-            items.length ? h("b", { class: "sub" }, `Listings \u00b7 ${items.length}`) : null,
+            items.length ? h("b", { class: "sub" }, `Saved listings \u00b7 ${items.length}`) : null,
             ...items.map(([k, r]) =>
               h(
                 "div",
                 { class: "srow" },
                 h("div", {}, h("a", { href: safeUrl(r.u, itemUrl(k)), target: "_blank", rel: "noopener" }, r.t || safeUrl(r.u, itemUrl(k))), h("div", { class: "meta" }, priceLine(k, r))),
+                priceHistory(k, r),
                 h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove")
               )
             ),
             items.length ? h("div", { class: "actions sv-acts" }, copy) : null,
-            searches.length ? h("b", { class: "sub" }, `Searches \u00b7 ${searches.length}`) : null,
+            searches.length ? h("b", { class: "sub" }, `Saved searches \u00b7 ${searches.length}`) : null,
             ...searches.map(([k, r]) =>
               h(
                 "div",
@@ -1723,31 +1894,37 @@
                   }, `Open all ${searches.length} searches`)
                 )
               : null,
-            // Not interested: every one can come back, not just the last.
-            hidden.length ? h("b", { class: "sub" }, `Hidden \u00b7 ${hidden.length}`) : null,
-            ...hidden.slice(0, 40).map(([k, r]) =>
-              h(
-                "div",
-                { class: "srow" },
-                h("div", {}, h("a", { href: itemUrl(k), target: "_blank", rel: "noopener" }, r.t || itemUrl(k)), h("div", { class: "meta" }, `${siteName(k)} \u00b7 hidden ${shortDate(r.a)}`)),
-                h("button", { class: "srow-act", title: "Show this listing again", onclick: () => setInterested(k, true) }, "Unhide")
-              )
-            ),
-            hidden.length > 40 ? h("div", { class: "hint" }, `and ${hidden.length - 40} older`) : null,
-            hidden.length > 1
+            // Not interested: folded away (they are not things you kept), and every one can come back.
+            hidden.length
               ? h(
-                  "div",
-                  { class: "actions sv-acts" },
-                  h("button", {
-                    onclick: async () => {
-                      if (!confirm(`Show all ${hidden.length} hidden listings again?`)) return;
-                      notInterested = {};
-                      await chrome.storage.local.set({ notInterested: {} });
-                      redecorateAll();
-                      renderSaved();
-                      sayHere("Everything you hid is back.");
-                    },
-                  }, "Unhide all")
+                  "details",
+                  { class: "hidden-box", open: hiddenOpen ? "" : null, ontoggle: (e) => (hiddenOpen = e.currentTarget.open) },
+                  h("summary", {}, h("b", {}, `Hidden \u00b7 ${hidden.length}`), h("span", {}, "listings you marked Not interested")),
+                  ...hidden.slice(0, 40).map(([k, r]) =>
+                    h(
+                      "div",
+                      { class: "srow hid" },
+                      h("div", {}, h("a", { href: itemUrl(k), target: "_blank", rel: "noopener" }, r.t || itemUrl(k)), h("div", { class: "meta" }, `${siteName(k)} \u00b7 hidden ${shortDate(r.a)}`)),
+                      h("button", { class: "srow-act", title: "Show this listing again", onclick: () => setInterested(k, true) }, "Unhide")
+                    )
+                  ),
+                  hidden.length > 40 ? h("div", { class: "hint" }, `and ${hidden.length - 40} older`) : null,
+                  hidden.length > 1
+                    ? h(
+                        "div",
+                        { class: "actions sv-acts" },
+                        h("button", {
+                          onclick: async () => {
+                            if (!confirm(`Show all ${hidden.length} hidden listings again?`)) return;
+                            notInterested = {};
+                            await chrome.storage.local.set({ notInterested: {} });
+                            redecorateAll();
+                            renderSaved();
+                            sayHere("Everything you hid is back.");
+                          },
+                        }, "Unhide all")
+                      )
+                    : null
                 )
               : null,
           ].filter(Boolean)
@@ -1804,7 +1981,7 @@
     if (!force && keysNow.size === passKeys.size && [...keysNow].every((k) => passKeys.has(k))) return;
     passing = true;
     try {
-      await Promise.all([memoryReady, prefsReady, quickReady]);
+      await Promise.all([memoryReady, prefsReady, quickReady, modeReady]);
       const items = SL.extract();
       passKeys = keysNow;
       if (pageHadKnown === null && items.length) pageHadKnown = items.some((it) => memory[keyOf(it.url)]);
@@ -2263,7 +2440,7 @@
   // What the last scan judged for. Change your wants, the comparison or the lens and the next
   // scan judges the whole page again (anything judged this way before still comes back free).
   let scanInputs = null;
-  const inputsNow = () => [lens, wantEl.value.trim(), queryEl.value.trim()].join("|");
+  const inputsNow = () => [lens, wantEl.value.trim(), queryEl.value.trim(), lens === "project" ? feeEl.value : ""].join("|");
   const inputsChanged = () => scanInputs !== null && scored.size > 0 && scanInputs !== inputsNow();
 
   // On eBay the sold-listings search is made from the eBay page itself (same site, your cookies,
@@ -2313,10 +2490,20 @@
       await chrome.storage.local.set({ soldCooldownUntil: until });
       throw new Error(pausedMsg(until));
     };
-    const { status, html } = await fetchSoldHtml(query, condition);
-    if (status === 403 || status === 429 || status === 503) return pause();
+    const { status, html, via, pausedUntil } = await fetchSoldHtml(query, condition);
+    // From Facebook with no eBay tab open, the request goes out from the background script, which eBay
+    // trusts less. A refusal there pauses only that route (open eBay in a tab and it works again),
+    // not lookups made from eBay's own pages.
+    const workerMsg = (until) => `Price lookups from Facebook paused ${Math.ceil((until - Date.now()) / 60000)} min: eBay asked for a browser check. Open eBay in another tab and they work again.`;
+    if (pausedUntil) throw new Error(workerMsg(pausedUntil));
+    const refused = async () => {
+      if (via !== "worker") return pause();
+      await send("soldWorkerBlocked");
+      throw new Error(workerMsg(Date.now() + 30 * 60 * 1000));
+    };
+    if (status === 403 || status === 429 || status === 503) return refused();
     if (!html) throw new Error(`eBay sold search failed (${status}).`);
-    if (blockedPage(html)) return pause(); // never cache a check page as "no sales"
+    if (blockedPage(html)) return refused(); // never cache a check page as "no sales"
     const market = SL.summarizeSold(html);
     // Keep the cache small: drop expired entries, cap at 100 searches.
     const fresh = Object.entries(soldCache).filter(([, v]) => Date.now() - v.at < SOLD_TTL_MS).slice(-99);
@@ -2380,7 +2567,7 @@
       }
       market = working || parts ? { ...(working || { median: null }), parts } : null;
     } catch (e) {
-      console.warn("[Second Look] sold comps failed:", e);
+      console.debug("[Second Look] sold comps failed:", e.message); // shown in the panel; not an extension error
       if (epoch !== pageEpoch) return null;
       // You can still look yourself: eBay's own sold search, in a normal tab.
       marketEl.replaceChildren(
@@ -2554,6 +2741,7 @@
   let lastDeals = 0;
   const refreshPending = () => {
     updateFold();
+    showIdeasBtn();
     freeRow.hidden = scanning || SL.pageType() !== "results" || !queryEl.value.trim() || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
     if (scanning || SL.pageType() !== "results") return;
     let n = 0;
@@ -2629,7 +2817,6 @@
         ? [
             h("button", { class: savedSearches[searchKey(q)] ? "on" : null, onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "Saved search" : "Save search"),
             h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, SL.currentSite() === "ebay" ? "Try on Marketplace \u2197" : "Try on eBay \u2197"),
-            h("button", { onclick: getIdeas, title: "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)" }, "Ideas"),
           ]
         : []),
       resetBtn
@@ -2766,18 +2953,14 @@
 
   sortSel.addEventListener("change", () => {
     sortMode = sortSel.value;
-    if (alive()) chrome.storage.local.set({ sortMode }).catch(() => {});
+    setPref("sort", sortMode); // each mode keeps its own
     render();
-  });
-  chrome.storage.local.get({ sortMode: "score" }).then((v) => {
-    sortMode = SORTS[v.sortMode] ? v.sortMode : "score";
-    sortSel.value = sortMode;
   });
   root.querySelectorAll("[data-skip]").forEach((b) =>
     b.addEventListener("click", () => {
       skipMode = b.dataset.skip;
       document.documentElement.dataset.slSkip = wrap.dataset.skipmode = skipMode;
-      if (alive()) chrome.storage.local.set({ skipMode }).catch(() => {});
+      setPref("skip", skipMode);
       render();
       renderPageInfo();
     })
@@ -2786,6 +2969,7 @@
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
     if (["filterWords", "minSellerRatings", "minSellerPct", "autoMarks"].some((k) => changes[k])) loadPrefs().then(redecorateAll);
+    if (changes.feePct) showFee();
     if (changes.notInterested && !changes.notInterested.newValue) {
       notInterested = {};
       redecorateAll();
@@ -3133,6 +3317,7 @@
       scam ? h("div", { class: "scamnote" }, h("b", {}, "Likely scam. "), scam) : "",
       when || f.drop ? h("div", {}, `${when || "Seen before"}${f.drop ? `; it was ${dollars(f.drop.from)} then` : ""}.`) : "",
       history ? h("div", {}, history) : "",
+      history ? h("div", { class: "spark" }, SLShared.spark([...f.history.map(([p, t]) => ({ v: p, t })), { v: f.price, t: Date.now() }], { label: history })) : "",
       sv?.p0 != null && f.price != null && f.price !== sv.p0 ? h("div", {}, `Saved on ${shortDate(sv.a0)} at ${dollars(sv.p0)}.`) : "",
       chips.length ? h("div", { class: "chips" }, chips) : "",
       slot ? "" : acts
@@ -3312,7 +3497,7 @@
       const forLens = lens;
       const market = await getMarket(settings, query, forLens);
       priceNotes(listing, market, forLens, settings.feePct);
-      setStatus(`Analyzing this listing for ${LENS[forLens].name.toLowerCase()}…`);
+      setStatus(`Analyzing this listing as ${MODES[forLens].as}…`);
       const r = await sendAI("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
       // Certain scam signs (see scamWarning) overrule whatever the model made of the listing.
       if (itemFacts?.key === keyOf(location.href)) {
@@ -3472,6 +3657,14 @@
     }
   };
   ideasBtn.addEventListener("click", getIdeas);
+  // On eBay's front page there's no search yet and ideas start one; on a search they're other ways to search it.
+  const showIdeasBtn = () => {
+    const type = SL.pageType();
+    ideasBtn.hidden = !(type === "home" || (type === "results" && queryEl.value.trim()));
+    ideasBtn.textContent = type === "home" ? "Find searches for what I want" : "Find better searches for this";
+    ideasBtn.title = type === "home" ? "" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)";
+  };
+  queryEl.addEventListener("input", showIdeasBtn);
   wantEl.addEventListener("keydown", (e) => e.key === "Enter" && SL.pageType() === "home" && getIdeas());
 
   // ---------- show only on results pages (FB is a single-page app) ----------
@@ -3512,7 +3705,7 @@
       scanBtn.hidden = type !== "results";
       analyzeBtn.hidden = type !== "item";
       qwrap.hidden = type === "home";
-      ideasBtn.hidden = type !== "home"; // on eBay's front page there's no search yet: ideas start one
+      showIdeasBtn();
       ideasBox.hidden = true;
       wrap.dataset.page = type;
       setView(type === "other" ? "saved" : "page");

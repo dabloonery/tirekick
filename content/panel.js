@@ -1297,7 +1297,7 @@
       if (w > 80 && w < host.getBoundingClientRect().width - 40) node.style.setProperty("--sl-fit", `${Math.round(w - 20)}px`);
       if (SL.currentSite() === "facebook") node.classList.add("sl-right");
       // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
-      if (host.getBoundingClientRect().width < 250) node.classList.add("sl-compact");
+      if (SL.currentSite() === "facebook" && host.getBoundingClientRect().width < 250) node.classList.add("sl-compact");
       return node;
     };
     if (it) {

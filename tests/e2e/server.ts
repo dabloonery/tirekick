@@ -43,7 +43,12 @@ Deno.serve({ port: 1234, onListen(){} }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (u.pathname === "/calls") return new Response(JSON.stringify(calls), { headers: { ...cors, "content-type": "application/json" } });
   if (u.pathname === "/v1/messages") {
+    if (req.headers.get("x-api-key") === "bad") return new Response(JSON.stringify({ error: { message: "invalid x-api-key" } }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
     const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, hasSchema: !!body.output_config?.format, cached: JSON.stringify(body.system).includes("ephemeral"), sys: (body.system || "").slice(0, 60) });
+    if (body.output_config?.format?.schema?.properties?.suggestions) return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ suggestions: [
+      { query: "pentax k1000 body only", kind: "narrow", why: "Drops lens kits that raise the price", maxPrice: 0, newest: false },
+      { query: "pentax k 1000", kind: "typo", why: "Sellers often split the model number", maxPrice: 0, newest: true },
+      { query: "pentax km", kind: "alt", why: "Near-identical later model", maxPrice: 120, newest: false }] }) }], usage: { input_tokens: 300, output_tokens: 100 } }), { headers: { ...cors, "content-type": "application/json" } });
     if (body.output_config?.format?.schema?.properties?.summary) return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ score: 64, verdict: "good", summary: "Mock summary of the camera.", flags: ["clear photos"], questions: ["Does the meter work?", "Any fungus in the lens?", "Light seals new?"], offerLow: 230, offerHigh: 260, homebrew: "" }) }], usage: { input_tokens: 1500, output_tokens: 400 } }), { headers: { ...cors, "content-type": "application/json" } });
     const user = typeof body.messages[0].content === "string" ? body.messages[0].content : "";
     const ids = [...user.matchAll(/^id (\d+) \|/gm)].map((m) => +m[1]);

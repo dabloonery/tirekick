@@ -279,7 +279,7 @@
     .head, .nav { flex:none; }
     .hint { color:var(--muted); font-size:13px; }
     .inputs { display:grid; gap:12px; }
-    .folded .inputs, .folded .mode-hint { display:none; }
+    .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
     .wrap:not([data-workspace="reseller"]) .feewrap { display:none; }
     .feewrap .hint { margin-top:6px; }
     .inputs-sum { display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:8px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:12px; color:var(--muted); }
@@ -1089,6 +1089,7 @@
     return sum;
   };
   const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
+  const perCall = (n) => (n < 0.01 ? "under $0.01 each" : `about $${n.toFixed(2)} each`);
   let lastUsage = null;
   // Always pass the record explicitly: after a reset it's undefined, and that must show $0.00.
   const renderSpend = (usage) => {
@@ -1112,7 +1113,7 @@
         ? h(
             "div",
             { class: "sd-models" },
-            models.map(([m, v]) => h("div", {}, h("span", {}, nameOf(m)), h("span", {}, `${usd(v.usd)} \u00b7 ${v.calls} call${v.calls === 1 ? "" : "s"} \u00b7 ~${usd(v.usd / v.calls)} each`))),
+            models.map(([m, v]) => h("div", {}, h("span", {}, nameOf(m)), h("span", {}, `${usd(v.usd)} \u00b7 ${v.calls} call${v.calls === 1 ? "" : "s"} \u00b7 ${perCall(v.usd / v.calls)}`))),
             rest >= 0.005 ? h("div", {}, h("span", {}, "Not split by model"), h("span", {}, usd(rest))) : null
           )
         : h("div", { class: "hint" }, "Nothing spent on paid AI this month."),
@@ -1782,7 +1783,9 @@
   onModeChanged = () => home.refresh().catch(() => {});
   document.addEventListener("visibilitychange", () => home.seen());
   // The toolbar icon (and its right-click menu) can bring up a particular tab.
+  // From the toolbar icon (detail.toggle): with Home already on screen, the click tucks the panel away as usual.
   window.addEventListener("second-look-show", (e) => {
+    if (e.detail?.toggle && view === "home" && wrap.classList.contains("open")) return setOpen(false);
     setView(e.detail?.view === "home" ? "home" : view);
     setOpen(true);
   });

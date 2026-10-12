@@ -1022,7 +1022,7 @@ async function openPanel(tabId) {
       args: [news],
       func: (news) => {
         if (!window.SecondLook?.pageType()) return false;
-        window.dispatchEvent(news ? new CustomEvent("second-look-show", { detail: { view: "home" } }) : new CustomEvent("second-look-toggle"));
+        window.dispatchEvent(news ? new CustomEvent("second-look-show", { detail: { view: "home", toggle: true } }) : new CustomEvent("second-look-toggle"));
         return true;
       },
     });

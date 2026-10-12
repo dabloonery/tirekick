@@ -16,6 +16,15 @@ c.on((m: any) => {
   if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails?.exception?.description || m.params.exceptionDetails?.text);
   if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map((a: any) => a.value ?? a.description).join(" "));
 });
+// The background worker's errors too.
+{
+  const { targetInfos } = await c.send("Target.getTargets");
+  const sw = targetInfos.find((t: any) => t.type === "service_worker" && t.url.includes(EXT));
+  if (sw) {
+    const { sessionId } = await c.send("Target.attachToTarget", { targetId: sw.targetId, flatten: true });
+    await c.send("Runtime.enable", {}, sessionId);
+  } else errors.push("no service worker found");
+}
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 const store = (js: string) => o.ev(`chrome.storage.local.set(${js})`);
 const get = (k: string) => o.ev(`chrome.storage.local.get(${JSON.stringify(k)}).then(v=>v[${JSON.stringify(k)}])`);
@@ -203,6 +212,16 @@ const n0 = await pages();
 await o.ev(`chrome.runtime.sendMessage({type:'openHome'})`);
 await sleep(1200);
 ok("openHome shows Home on an eBay page already open, and opens no tab", (await pages()) === n0 && (await R(p, `return r.querySelector('.wrap').classList.contains('open') && !r.querySelector('.view-home').hidden`)), { n0, now: await pages() });
+
+// the toolbar icon with something new: from tucked away, a click shows Home, a second one tucks the panel away
+await R(p, `r.querySelector('[data-act=toggle]').click()`);
+await sleep(400);
+await p.ev(`window.dispatchEvent(new CustomEvent('second-look-show', { detail: { view: 'home', toggle: true } }))`);
+await sleep(400);
+const shownHome = await R(p, `return r.querySelector('.wrap').classList.contains('open') && !r.querySelector('.view-home').hidden`);
+await p.ev(`window.dispatchEvent(new CustomEvent('second-look-show', { detail: { view: 'home', toggle: true } }))`);
+await sleep(400);
+ok("the toolbar icon opens on Home, and a second click tucks it away", shownHome && !(await R(p, `return r.querySelector('.wrap').classList.contains('open')`)));
 
 // ---------- backups and settings ----------
 await reset(`{batchSize:10, provider:'anthropic'}`);

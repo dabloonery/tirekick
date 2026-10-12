@@ -1,5 +1,5 @@
 import { connect } from "./cdp.ts";
-export const EXT = Deno.readTextFileSync(new URL("ext_id.txt", import.meta.url)).trim();
+export const EXT = Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/ext_id.txt").trim();
 export async function start() {
   const c = await connect();
   const tabs: Record<string,string> = {};

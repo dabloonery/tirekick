@@ -13,7 +13,7 @@ ul{list-style:none;margin:0;padding:20px 24px;display:grid;grid-template-columns
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 body only, untested</div><div class="s-card__price">$60.00</div><span>3 bids · 2d 4h left</span><a href="https://www.ebay.com/itm/5555555555">item</a></li>
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 + 28mm lens, tested, great</div><div class="s-card__price">$110.00</div><span>or Best Offer</span><span>99.5% positive (1.2K)</span><a href="https://www.ebay.com/itm/6666666666">item</a></li>
 </ul></body></html>`;
-Deno.serve({ port: 8443, cert: Deno.readTextFileSync("cert.pem"), key: Deno.readTextFileSync("key.pem"), onListen(){} }, (req) => {
+Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/cert.pem"), key: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/key.pem"), onListen(){} }, (req) => {
   const u = new URL(req.url);
   if (u.pathname.startsWith("/sch/")) return new Response(u.searchParams.has("empty") ? "<!doctype html><title>x</title><ul></ul>" : page("Pentax results"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/itm/")) return new Response(`<!doctype html><html><head><meta charset="utf-8"><title>Pentax K1000 | eBay</title></head><body><main>

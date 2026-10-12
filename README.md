@@ -20,12 +20,39 @@ background.
    eBay and Marketplace page; the free marks on the cards work with the panel closed. Click the tab
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
 
-The first time, the panel opens by itself with a three-step welcome (choose Use or Fix & flip, say
-what you want, press Scan); each step is a link that jumps to the right box. **Got it** closes it for
+The first time, the panel opens by itself with a three-step welcome (pick Buyer or Reseller, say
+what you want, press Scan); each step is a link that jumps to the right box. With no model set up
+yet, adding a key is step one, with **Open settings** as the one button, and the controls that need a
+model wait until it's done (comparing sold prices works without one). **Got it** closes it for
 good, and the **?** button in the panel header brings it back.
 
-The panel has two views: **This page** (everything below) and **Saved** (your saved listings and
-searches, and everything you've hidden), which works on any eBay or Marketplace page.
+**Where it sits**: docked to the right edge (the default) or the left, in one of three widths.
+Drag the header toward a side and let go (both sides light up as you drag) to dock it there, drag the
+panel's inner edge and it settles on the nearest width, or click the header and use the arrow keys:
+left and right pick the side, up and down the width, Home puts it back. Double-clicking the header also
+puts it back. Each site remembers its own, and the panel always fits the window. Esc tucks it away
+from anywhere on the page (except while you're typing in the site's own boxes).
+
+At the top, **Buyer** (to keep and use) or **Reseller** (to fix up and flip) says how you're shopping
+(see below). Under it, three tabs: **This page** (everything below), **Saved** (your saved listings and
+searches; what you've hidden is folded away at the bottom) and **Home** (what's worth another look, a
+few numbers, spending, which features you use). Saved and Home work on any eBay or Marketplace page.
+
+## Home
+
+- **Worth another look**: saved listings that got cheaper since you saved them, and saved searches
+  that had listings at your price the last time you looked. New ones also show as a number on the
+  toolbar icon; clicking the icon then opens the panel on Home, and looking at Home marks them seen.
+  Nothing checks in the background: these update when those listings are on your screen.
+- **At a glance**: saved listings and searches, price drops (Buyer) or listings at your price
+  (Reseller), and this month's spend against your budget.
+- **Spent on paid AI, 30 days**: a bar per day (hover for the figure), with **Table view** for the
+  numbers and the cost per model.
+- **What you use**: plain counters kept in this browser (scans, sold-price comparisons, analyses,
+  search ideas, photo checks, saves, hides, switches to Reseller). **Reset counts** clears them.
+- **Getting started**: four steps with a check beside each one done; **Hide** folds it away.
+- Right-click the toolbar icon for **Open Second Look home**; on a page Second Look doesn't work on,
+  the icon opens eBay with Home showing.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Fair price,
 Skip, Suspicious) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
@@ -36,7 +63,7 @@ browser under the listing, for 60 days. Open the same search in a new tab, the s
 search, or reload, and the tags are already there, with "Scored Oct 11 with Opus 5.5" in the hover card
 and no model call. A listing's own page shows what an earlier scan said about it, and Analyze there
 updates its card in every search. A saved score only comes back while the price is the one it was judged
-at and the lens (Use / Fix & flip) matches; changing what you want offers **Rescan with your changes**,
+at and the mode (Buyer / Reseller) matches; changing what you want offers **Rescan with your changes**,
 and **Start over** clears the page without bringing them back until you leave it.
 
 ## Scams
@@ -57,11 +84,13 @@ S1337". Second Look watches for it:
   Telegram shows a "Likely scam" note, and the analysis is Suspicious whatever the model thought.
   A plain phone number ("call or text") is only a hint.
 
-Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide above the results).
+Suspicious listings are greyed out along with skipped ones (Skips and scams: Show / Dim / Hide, under **Filter**). Dimming fades the card but not its tag or chips, so a
+scam warning stays readable.
 
 ## Everyday use
 
-- **Buying to: Use / Fix & flip** at the top of the panel says what you want listings for (see below).
+- **Buyer / Reseller** at the top of the panel says what you want listings for (see below). Each
+  mode remembers its own sort, skipped-listings setting and "What I want".
 - **What I want**: "working, with charger, under $80". Every scan, analysis and search idea
   takes it into account, and a listing that misses something says so. After a scan it folds into
   one line with the compare words (**Edit** opens them); change either and the button becomes
@@ -70,43 +99,46 @@ Suspicious listings are greyed out along with skipped ones (Show / Dim / Hide ab
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
   price, auctions ending soonest, biggest margin, or new and cheaper first.
-- **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide in the
-  bar above the results.
+- **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide under
+  **Filter** (Skips and scams).
+- **A row's links** (Open, Sold, Save, Not interested) appear when you point at it or Tab into it,
+  so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
-  now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Undo.
+  now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Unhide.
 - **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
   seller (copyable), a suggested offer with a ready-to-send message, and a photo check.
-- **✦ Ideas** (next to Save search) suggests other ways to search for what's on the page: the
+- **Find better searches for this** (under Scan) suggests other ways to search for what's on the page: the
   misspellings sellers make, other model names, tighter or looser words. Click one to run it,
-  ☆ to save it, hover for why. On eBay's front page, "Find searches for what I want" does the same
+  Save to keep it, hover for why. On eBay's front page, "Find searches for what I want" does the same
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Second Look".
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
-- **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved, Use / Fix & flip and Show / Dim / Hide.
-- **Esc** tucks the panel away; the sliders icon opens settings. On a page Second Look doesn't
-  work on, the toolbar icon shows a "?" for a moment instead of opening.
+- **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
+- **The footer** shows this month's spend; click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
+- **Esc** tucks the panel away; the sliders icon opens settings.
 
-## Use, or Fix & flip
+## Buyer and Reseller
 
-| Buying to | Scores high | The tag shows |
+| Mode | Scores high | The tag shows |
 |---|---|---|
-| **Use** | Working items for yourself at a good price; "for parts" and "as is" are marked down | How the price compares with sold ones |
-| **Fix & flip** | Projects: an easy, cheap fix, a resale margin after eBay fees and parts, or both; broken and untested ones are welcome | "Easy fix · ≈ $16 margin", or "≈ $26 margin" for one that works; the likely fault on hover |
+| **Buyer** | Working items for yourself at a good price; "for parts" and "as is" are marked down | How the price compares with sold ones |
+| **Reseller** | Projects: an easy, cheap fix, a resale margin after selling fees and parts, or both; broken and untested ones are welcome | "Easy fix · ≈ $16 margin", or "≈ $26 margin" for one that works; the likely fault on hover |
 
-Fix & flip knows the usual faults for electronics, retro tech and consoles (dirty cartridge
+Reseller adds a **Selling fees (%)** box (the same setting as in settings) and sorts by **biggest
+margin** to start with. Reseller knows the usual faults for electronics, retro tech and consoles (dirty cartridge
 connectors, tired capacitors, worn disc drives…) and what has a homebrew scene; "What you're
 into" in settings steers that, and the rules of thumb live in `FIX_KNOWLEDGE` in
 `background.js`. On a listing page it adds a repair plan: likely faults, parts, tools,
 difficulty. Repair guesses come from the listing text only: use them to decide what to ask the
-seller, not as a diagnosis. Set "eBay fees" in settings to your category's fee so margins are real.
+seller, not as a diagnosis. Set the selling fees to your category's fee so margins are real.
 
-The filter bar's broken-listing switch follows the mode: **Hide broken** in Use, **Broken only**
-in Fix & flip (for when you only want fix-ups).
+The filter bar's broken-listing switch follows the mode: **Hide broken** in Buyer, **Broken only**
+in Reseller (for when you only want fix-ups).
 
 ## Prices
 
 - Comparisons use what you'd actually pay (price plus shipping) against what sold listings went
-  for. The used median comes from recent eBay sales; Fix & flip also looks up what **broken** ones
+  for. The used median comes from recent eBay sales; Reseller also looks up what **broken** ones
   sell for (when the page has broken or untested listings): pay less than that and the worst case is reselling it as-is. "The sales behind these"
   lists the sales behind each number. eBay's "results matching fewer words" are left out.
 - The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
@@ -141,14 +173,14 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
   ✕ **Not interested**.
 
-**Filtering a search** (the **Filter** button above the list opens the fields, and says how many are set; a search that has a filter or a deal price opens them by itself; each search remembers its own):
+**Filtering a search** (the **Filter** button above the list opens the fields, and says how many are set; Enter or Esc folds them away again, and a search's saved filter applies with the box folded; each search remembers its own):
 
 - **Words**, like an eBay search: `dmg -case -game` keeps listings with "dmg" and drops any with
   "case" or "game"; `1000/2000` is either; `"must go"` is a phrase. They match the title and the
   card's text, so `-china` drops "from China" on eBay.
 - **$ min – max**, shipping included: a minimum clears out the cases and cables.
 - **New only** hides everything you've seen before, for the searches you check every day.
-- **Hide broken** (Use) or **Broken only** (Fix & flip) acts on listings that say broken, untested,
+- **Hide broken** (Buyer) or **Broken only** (Reseller) acts on listings that say broken, untested,
   for parts, no power, disc read error and the like: the "any of these words" search Marketplace
   can't do. Those words also show as a chip on cards (and moving sale, must go, estate sale:
   sellers who want it gone).
@@ -167,18 +199,19 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
   cheaper first. Click a title to jump to the card.
 - **Saved**: listings you save, from either site, with the price when you saved them and the
   latest you've seen ("$52 (↓ from $60)"), and searches you save with **Save this search**, which
-  remember when you last looked and how many were at your price; they're in the **Saved** view, which
-  also lists what you've hidden. **Open all searches** opens each
+  remember when you last looked and how many were at your price; they're in the **Saved** view, with
+  a small line of each saved listing's price over time, and what you've hidden folded away at the bottom. **Open all searches** opens each
   in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text.
   Prices update whenever a saved listing is on your screen again; nothing is checked in the
   background.
 - **Try on Marketplace / Try on eBay** runs your words on the other site.
 
 **On a listing page**: when you saw it before, its price history ("$70 (Sep 30) → $60 (Oct 5) →
-$55 now"), Save, Not interested, and Sold on eBay.
+$55 now", with a small line of it), Save, Not interested, and Sold on eBay.
 
-**In settings**: words that always hide a listing (starts with replica, repro, box only…) and
-words a title must have. Hidden and filtered listings are never sent to a model. **Find photo**
+**In settings**: words to always filter by, in the filter bar's syntax (`-replica -repro -"box only"`
+drops those; a plain word must be in the title). Older "always hide" and "only show" lists were
+turned into this line. Hidden and filtered listings are never sent to a model. **Find photo**
 (in a tag's hover card or the listing view) runs a reverse image search, to catch photos lifted
 from elsewhere.
 
@@ -186,8 +219,10 @@ Turn off "Mark cards before you scan" in settings to keep cards untouched until 
 
 ## Model and cost
 
-New installs start on **Sonnet 5.5** (scoring is a simple job; Opus costs about twice as much for scans), and the scan's fixed instructions are marked for the API's prompt cache, so later batches read them cheaper. Existing installs keep the model they chose. The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
-**Sonnet 5.5** (half the price), **Haiku 4.5** (a quarter), the other AI service you've set up,
+Scans use their own model, **Haiku 5.5** by default (about a fortieth of Opus 5.5's price; a scan sends
+many listings at once), set under "Claude model for scans" in settings; analyzing one listing, photo
+checks and search ideas use the main model. New installs start the main model on **Sonnet 5.5**, and the scan's fixed instructions are marked for the API's prompt cache, so later batches read them cheaper. Existing installs keep the model they chose. The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
+**Sonnet 5.5** (half the price), **Haiku 5.5** (about a fortieth), the other AI service you've set up,
 or your **Ollama** model (free, local). Next to it is this month's spend on paid AI; click it for
 today, this month, last month and each model's cost per call. Set a monthly budget in settings and
 paid AI stops when it's reached.
@@ -295,6 +330,9 @@ refresh the tab. The version number there tells you which copy is running.
 | File | Job |
 |---|---|
 | `manifest.json` | Permissions, icon, keyboard shortcut. With "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
+| `lib/shared.js` | Small pieces shared by the worker, the pages and settings: the link and photo-host checks, settings limits (also applied to restored backups), alert rules, the spend summary, the price sparkline |
+| `content/rules.js` | The plain rules (words and filters, scam signs, photo verdicts, fix-up words) as functions with no page, storage or network |
+| `content/home.js` | The panel's Home tab |
 | `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape; the sold-price median |
 | `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
 | `background.js` | Talks to Claude, other AI services or Ollama (retries, timeouts, Stop, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
@@ -307,6 +345,6 @@ collection is what Meta's and eBay's terms prohibit and what gets accounts flagg
 
 ## Tests
 
-`tests/e2e/run.sh` (needs `deno` and `openssl` as well) loads the real unpacked extension in headless Chrome against a mock Claude API and checks that scores persist across tabs, searches, the listing page and reloads.
+`tests/e2e/run.sh` (needs `deno` and `openssl` as well) loads the real unpacked extension in headless Chrome against a mock Claude API: `scores-persist.ts` (scores across tabs, searches, the listing page, reloads), `marketplace.ts` (a Facebook Marketplace-shaped page: reading, repost scams, marks, scan), `diagnostic.ts`, `first-run.ts`.
 
 `tests/run.sh` loads the panel on an eBay-shaped page in headless Chrome (needs `google-chrome-stable` and `python3`) and prints PASS/FAIL for the keyboard and focus behaviour. The extension APIs are stubbed; it does not exercise the models or real sites.

@@ -6,11 +6,14 @@
 //      on eBay the page fetches them itself)
 // Content scripts send messages; this file answers them.
 
+importScripts("lib/shared.js"); // SLShared: link and photo checks, settings limits, alert rules
+
 const DEFAULTS = {
   theme: "match", // match the browser (dark if it does not say), or "dark" / "light"
   provider: "anthropic", // "anthropic" (Claude API), "openai" (any OpenAI-compatible service) or "ollama" (local)
   anthropicKey: "",
-  anthropicModel: "claude-sonnet-5-5", // Scoring is a simple task; Opus stays a menu choice for when you want it
+  anthropicModel: "claude-sonnet-5-5", // analysis, photo checks, search ideas; Opus stays a menu choice for when you want it
+  anthropicScanModel: "claude-haiku-5-5", // scans, which send many listings at once: a cheaper model keeps them affordable ("" = the one above)
   anthropicUrl: "https://api.anthropic.com", // only changed for testing
   // Any service that speaks the OpenAI chat API: OpenAI, Gemini, OpenRouter, DeepSeek, Mistral, xAI, LM Studio...
   oaiPreset: "openrouter",
@@ -29,8 +32,8 @@ const DEFAULTS = {
   feePct: 13.6, // eBay fees as % of the sale, for flip margins
   interests: "Electronics, older and retro tech, video games and consoles, anything with an active homebrew scene.",
   // Filters and seller rules: plain checks, no AI. Hidden listings are never sent to the model.
-  hideWords: "replica, reproduction, repro, box only, empty box, manual only, case only, photo only, picture only",
-  needWords: "",
+  // Same words as the filter bar: -word drops a listing, other words are required, a/b is either, quotes keep a phrase.
+  filterWords: '-replica -reproduction -repro -"box only" -"empty box" -"manual only" -"case only" -"photo only" -"picture only"',
   minSellerRatings: 10,
   minSellerPct: 97,
   autoMarks: true, // chips on cards before any scan: new to you, price drops, warnings
@@ -63,6 +66,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
   const { ollamaUrl } = await getSettings();
+  // Only addresses you've allowed: this computer's Ollama is, any other (a restored backup could name one) needs your OK first.
+  let origin = "";
+  try {
+    origin = new URL(ollamaUrl).origin;
+  } catch {}
+  if (!origin || !(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) {
+    throw new Error(`Second Look isn't allowed to reach ${origin || ollamaUrl} yet. In settings, press Test connection to allow it.`);
+  }
   const body = {
     model,
     messages,
@@ -105,20 +116,21 @@ async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
 // simple tasks; temperature and forced tool_choice are not accepted. Thinking tokens count
 // toward max_tokens, so leave generous room (it's a ceiling, not a charge).
 
-async function anthropicMessage({ system, content, schema, maxTokens = 16000, signal }) {
-  const { anthropicKey, anthropicModel, anthropicUrl, monthlyBudget } = await getSettings();
+const anthropicMessage = (opts) => withBudget(() => anthropicMessageOnce(opts));
+async function anthropicMessageOnce({ system, content, schema, maxTokens = 16000, signal, model }) {
+  const { anthropicKey, anthropicModel, anthropicUrl } = await getSettings();
+  model ||= anthropicModel;
   if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
-  await checkBudget(monthlyBudget);
   const body = {
-    model: anthropicModel,
+    model,
     max_tokens: maxTokens,
     messages: [{ role: "user", content }],
     output_config: {},
   };
-  // Effort works on Opus 4.5+, Sonnet 4.6+ and every 5-series model; Haiku 4.5, Sonnet 4.5 and older reject it.
-  if (!/haiku|sonnet-4-5|claude-3/.test(anthropicModel)) body.output_config.effort = "low";
+  // Effort works on Opus 4.5+, Sonnet 4.6+ and every 5-series model (Haiku 5.5 too); Haiku 4.5, Sonnet 4.5 and older reject it.
+  if (!/haiku-[1-4]|sonnet-4-5|claude-3/.test(model)) body.output_config.effort = "low";
   // Server-side fallback (re-run on another model if a safety classifier declines) is for the 5-series.
-  const isFiveSeries = /^claude-(opus-5|sonnet-5-5|fable-5|mythos-5)/.test(anthropicModel);
+  const isFiveSeries = /^claude-(opus-5|sonnet-5-5|fable-5|mythos-5)/.test(model);
   if (isFiveSeries) body.fallbacks = "default";
   // The instructions repeat in every batch of a scan: let the API reuse them (cheaper reads, where the model caches).
   if (system) body.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
@@ -156,21 +168,39 @@ async function anthropicMessage({ system, content, schema, maxTokens = 16000, si
   if (res.status === 529) throw new Error("The Claude API is overloaded right now. Try again in a minute.");
   if (!res.ok) {
     const text = await res.text();
-    if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognise the model "${anthropicModel}". Check it in the extension options.`);
+    if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognise the model "${model}". Check it in the extension options.`);
     throw new Error(`Claude API error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
+  // Billed whatever the answer turns out to be (cut off, declined), so count it first.
+  const cost = await addSpend(data.model || model, data.usage);
   if (data.stop_reason === "refusal") throw new Error("Claude declined this request.");
   if (data.stop_reason === "max_tokens") throw new Error("Claude's answer was cut off. Lower \"Listings per request\" in settings and try again.");
   const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
-  return { text, cost: await addSpend(data.model || anthropicModel, data.usage) };
+  return { text, cost };
+}
+
+// Batches run a few at a time, so what's already out counts too (at what the last call cost); otherwise
+// each would pass the budget check before any of them had been paid for.
+let paidInFlight = 0;
+let lastPaidUsd = 0;
+async function withBudget(fn) {
+  await checkBudget((await getSettings()).monthlyBudget);
+  paidInFlight++;
+  try {
+    const r = await fn();
+    if (r?.cost > 0) lastPaidUsd = r.cost;
+    return r;
+  } finally {
+    paidInFlight--;
+  }
 }
 
 // Paid services stop once this month's estimated spend reaches the budget.
 async function checkBudget(monthlyBudget) {
   if (!(monthlyBudget > 0)) return;
   const spent = monthSpent((await chrome.storage.local.get("usage")).usage);
-  if (spent >= monthlyBudget) {
+  if (spent + paidInFlight * lastPaidUsd >= monthlyBudget) {
     throw new Error(`This month's budget of $${monthlyBudget} is used up (about $${spent.toFixed(2)} spent). Raise it in settings, or switch to Ollama in the panel's model menu.`);
   }
 }
@@ -185,8 +215,9 @@ const OAI_NAMES = [
 ];
 const oaiName = (url) => OAI_NAMES.find(([re]) => re.test(url))?.[1] || new URL(url).host;
 
-async function openaiChat({ messages, schema, model, signal }) {
-  const { oaiUrl, oaiKey, oaiModel, oaiPriceIn, oaiPriceOut, monthlyBudget } = await getSettings();
+const openaiChat = (opts) => withBudget(() => openaiChatOnce(opts));
+async function openaiChatOnce({ messages, schema, model, signal }) {
+  const { oaiUrl, oaiKey, oaiModel, oaiPriceIn, oaiPriceOut } = await getSettings();
   model ||= oaiModel;
   const name = oaiName(oaiUrl);
   if (!model) throw new Error(`Pick a model for ${name} in settings (Test connection lists them).`);
@@ -194,7 +225,6 @@ async function openaiChat({ messages, schema, model, signal }) {
   if (!(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) {
     throw new Error(`Second Look isn't allowed to reach ${origin} yet. In settings, press Test connection to allow it.`);
   }
-  await checkBudget(monthlyBudget);
   const headers = { "Content-Type": "application/json" };
   if (oaiKey) headers.Authorization = `Bearer ${oaiKey}`;
   const openrouter = /openrouter\.ai/.test(oaiUrl);
@@ -233,15 +263,17 @@ async function openaiChat({ messages, schema, model, signal }) {
     throw new Error(`${name} error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
+  // Cost: OpenRouter says exactly; otherwise your prices per million tokens, if you entered them.
+  // Counted before the answer is judged: a cut-off or declined one is billed all the same.
+  const u = data.usage || {};
+  const usd = typeof u.cost === "number" ? u.cost : oaiPriceIn > 0 || oaiPriceOut > 0 ? ((u.prompt_tokens || 0) * oaiPriceIn + (u.completion_tokens || 0) * oaiPriceOut) / 1e6 : 0;
+  const cost = usd > 0 ? await addSpend(data.model || model, null, usd) : 0;
   const choice = data.choices?.[0];
   if (choice?.message?.refusal) throw new Error(`${name} declined this request.`);
   if (choice?.finish_reason === "length") throw new Error(`${name}'s answer was cut off. Lower "Listings per request" in settings and try again.`);
   const content = choice?.message?.content;
   const out = Array.isArray(content) ? content.map((c) => c.text || "").join("") : content || "";
-  // Cost: OpenRouter says exactly; otherwise your prices per million tokens, if you entered them.
-  const u = data.usage || {};
-  const usd = typeof u.cost === "number" ? u.cost : oaiPriceIn > 0 || oaiPriceOut > 0 ? ((u.prompt_tokens || 0) * oaiPriceIn + (u.completion_tokens || 0) * oaiPriceOut) / 1e6 : 0;
-  return { text: out, cost: usd > 0 ? await addSpend(data.model || model, null, usd) : 0 };
+  return { text: out, cost };
 }
 // Plain JSON mode doesn't carry the schema, so it goes into the instructions.
 function withSchemaNote(messages, schema) {
@@ -259,6 +291,7 @@ const PRICES = [
   [/opus-(5|4)/, 5, 25],
   [/sonnet-5/, 2, 10],
   [/sonnet-4/, 3, 15],
+  [/haiku-5/, 0.1, 0.5], // for prompts up to 100K tokens; a scan batch is far smaller
   [/haiku-4/, 1, 5],
 ];
 
@@ -396,9 +429,10 @@ Use only the text you are given. Never invent specs or seller details. If inform
 Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`.replace("SCAM_RULE", SCAM_RULE);
 
 // One call that works for either provider; returns { text, cost }.
-async function llmText({ system, userText, schema, signal }) {
-  const { provider, textModel } = await getSettings();
-  if (provider === "anthropic") return anthropicMessage({ system, content: userText, schema, signal });
+async function llmText({ system, userText, schema, signal, scan = false }) {
+  const settings = await getSettings();
+  const { provider, textModel } = settings;
+  if (provider === "anthropic") return anthropicMessage({ system, content: userText, schema, signal, model: scan ? scanModelOf(settings) : undefined });
   if (provider === "openai") return openaiChat({ messages: [{ role: "system", content: system }, { role: "user", content: userText }], schema, signal });
   const text = await ollamaChat({
     model: textModel,
@@ -460,6 +494,7 @@ async function rankBatch({ items, query, market, lens = "use", want = "", browse
     userText: [!browse && marketText(query, market), want && `What the buyer wants: ${want}`, `Listings:\n${listingText}`].filter(Boolean).join("\n\n"),
     schema: rankSchema(lens, !!browse),
     signal,
+    scan: true,
   });
   if (cost > 0) await noteRankRate(items.length, cost);
   return { items: parseModelJson(text).items || [], cost };
@@ -468,25 +503,32 @@ async function rankBatch({ items, query, market, lens = "use", want = "", browse
 // ---------- What a scan will cost, before you press Scan ----------
 // What scoring has actually cost per listing with each model (recent scans weigh most); before
 // there's any history, a rough figure from list prices and typical token counts.
-const modelInUse = (s) => (s.provider === "anthropic" ? s.anthropicModel : s.provider === "openai" ? s.oaiModel : s.textModel);
-async function noteRankRate(n, cost) {
-  const model = modelInUse(await getSettings());
-  const { rankRate = {} } = await chrome.storage.local.get("rankRate");
-  const r = (rankRate[model] ||= { usd: 0, items: 0 });
-  r.usd += cost;
-  r.items += n;
-  if (r.items > 300) (r.usd /= 2), (r.items /= 2);
-  await chrome.storage.local.set({ rankRate });
+// The model that scores listings in a scan (what the cost estimate and the score memory go by).
+const scanModelOf = (s) => (s.provider === "anthropic" ? s.anthropicScanModel || s.anthropicModel : s.provider === "openai" ? s.oaiModel : s.textModel);
+let rateQueue = Promise.resolve(); // batches finish together: one read-modify-write at a time
+function noteRankRate(n, cost) {
+  rateQueue = rateQueue
+    .then(async () => {
+      const model = scanModelOf(await getSettings());
+      const { rankRate = {} } = await chrome.storage.local.get("rankRate");
+      const r = (rankRate[model] ||= { usd: 0, items: 0 });
+      r.usd += cost;
+      r.items += n;
+      if (r.items > 300) (r.usd /= 2), (r.items /= 2);
+      await chrome.storage.local.set({ rankRate });
+    })
+    .catch(() => {});
+  return rateQueue;
 }
 async function perListingCost() {
   const settings = await getSettings();
-  const { provider, anthropicModel, batchSize, oaiPriceIn, oaiPriceOut } = settings;
+  const { provider, batchSize, oaiPriceIn, oaiPriceOut } = settings;
   if (provider === "ollama") return 0;
   const { rankRate = {} } = await chrome.storage.local.get("rankRate");
-  const r = rankRate[modelInUse(settings)];
+  const r = rankRate[scanModelOf(settings)];
   if (r?.items >= 10) return r.usd / r.items;
   // No history yet: Claude's list prices, or the prices you entered for another service.
-  const price = provider === "anthropic" ? PRICES.find(([re]) => re.test(anthropicModel)) : oaiPriceIn > 0 || oaiPriceOut > 0 ? [null, oaiPriceIn, oaiPriceOut] : null;
+  const price = provider === "anthropic" ? PRICES.find(([re]) => re.test(scanModelOf(settings))) : oaiPriceIn > 0 || oaiPriceOut > 0 ? [null, oaiPriceIn, oaiPriceOut] : null;
   if (!price) return 0;
   const b = Math.max(1, batchSize | 0);
   // About 200 input tokens a listing plus ~1,600 of instructions per request; about 160 output a listing plus ~300 a request.
@@ -664,16 +706,13 @@ function photoAdjust(p) {
 
 async function checkPhoto({ imageUrl, title, signal }) {
   const { visionModel, provider, oaiVisionModel } = await getSettings();
-  // Photos come from listing pages; fetch only ordinary https image addresses, never local or private ones.
-  let host = "";
-  try {
-    const u = new URL(imageUrl);
-    if (u.protocol === "https:") host = u.hostname;
-    else if (u.protocol === "data:" && /^data:image\//.test(imageUrl)) host = "data";
-  } catch {}
-  if (!host || host === "localhost" || /^(\d+\.){3}\d+$|^\[|\.local$|\.internal$/.test(host)) throw new Error("That photo address can't be checked.");
+  // Photos come from listing pages, which can point an image anywhere (even at a service on this computer):
+  // only eBay's and Facebook's own image hosts are fetched, or a photo already inline in the page.
+  const inline = /^data:image\//.test(imageUrl);
+  if (!inline && !SLShared.isListingImage(imageUrl)) throw new Error("Only photos from eBay and Facebook can be checked.");
   const imgRes = await fetchWithTimeout(imageUrl, { signal }, 30 * 1000, "The photo took too long to load.");
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
+  if (!inline && !SLShared.isListingImage(imgRes.url)) throw new Error("That photo was passed on to another site, so it wasn't checked.");
   const buf = await imgRes.arrayBuffer();
   if (buf.byteLength > 3.5 * 1024 * 1024) throw new Error("That photo is too large to check (over 3.5 MB).");
   const b64 = bufferToBase64(buf);
@@ -742,14 +781,23 @@ async function fetchSoldHtml({ url }) {
           return { status: res.status, html: res.ok ? await res.text() : "" };
         },
       });
-      if (result) return result;
+      if (result) return { ...result, via: "tab" };
     } catch {
       // that tab couldn't do it (closed, navigating, a check page); try the next, then the fallback
     }
   }
-  // Otherwise from here, still with your eBay cookies.
+  // Otherwise from here. eBay trusts this far less than a request from its own page (other site,
+  // other headers), so a refusal here is remembered on its own and doesn't stop lookups made from
+  // an eBay tab. Until it lapses, say so without asking eBay again.
+  const { soldWorkerPausedUntil = 0 } = await chrome.storage.local.get("soldWorkerPausedUntil");
+  if (Date.now() < soldWorkerPausedUntil) return { status: 0, html: "", via: "worker", pausedUntil: soldWorkerPausedUntil };
   const res = await fetchWithTimeout(url, { credentials: "include" }, 30 * 1000, "eBay took too long to answer.");
-  return { status: res.status, html: res.ok ? await res.text() : "" };
+  return { status: res.status, html: res.ok ? await res.text() : "", via: "worker" };
+}
+// The page saw eBay's browser check in an answer fetched from here.
+async function soldWorkerBlocked() {
+  await chrome.storage.local.set({ soldWorkerPausedUntil: Date.now() + 30 * 60 * 1000 });
+  return true;
 }
 
 // ---------- Fonts ----------
@@ -760,7 +808,7 @@ async function fetchSoldHtml({ url }) {
 // Page scripts get the settings without the API key: they never need it.
 async function getPageSettings() {
   const { anthropicKey, oaiKey, ...rest } = await getSettings();
-  return { ...rest, hasKey: !!anthropicKey, hasOaiKey: !!oaiKey, oaiName: rest.oaiUrl ? oaiName(rest.oaiUrl) : "", scanRate: await perListingCost() };
+  return { ...rest, scanModel: scanModelOf(rest), hasKey: !!anthropicKey, hasOaiKey: !!oaiKey, oaiName: rest.oaiUrl ? oaiName(rest.oaiUrl) : "", scanRate: await perListingCost() };
 }
 
 const openOptions = async () => chrome.runtime.openOptionsPage();
@@ -791,7 +839,7 @@ async function abort({ ids }) {
   return true;
 }
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, openOptions, openTabs, abort, getSettings: getPageSettings };
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, soldWorkerBlocked, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -819,12 +867,23 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 // The content script on the page does the work and shows the answer; we just point it at the image.
 
 const MENU_ID = "second-look-photo";
+const HOME_MENU_ID = "second-look-home";
+
+// Before 0.32 the always-hide and only-show words were two comma-separated lists; they are one line now.
+async function migrateFilterWords() {
+  const s = await chrome.storage.local.get(["hideWords", "needWords", "filterWords"]);
+  if (s.filterWords !== undefined || (s.hideWords === undefined && s.needWords === undefined)) return;
+  await chrome.storage.local.set({ filterWords: SLShared.filterFromLists(s.hideWords, s.needWords) });
+  await chrome.storage.local.remove(["hideWords", "needWords"]);
+}
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
-  const current = await chrome.storage.local.get(null);
-  await chrome.storage.local.set({ ...DEFAULTS, ...current });
-  if (!["match", "dark", "light"].includes(current.theme)) await chrome.storage.local.remove("theme"); // the old retro themes are gone; keep a real choice
+  await migrateFilterWords().catch(() => {});
+  // Defaults are not copied into storage: getSettings() fills in whatever you haven't set, so a better
+  // default (a new model, say) reaches every install that never chose otherwise.
+  const { theme } = await chrome.storage.local.get("theme");
+  if (theme !== undefined && !["match", "dark", "light"].includes(theme)) await chrome.storage.local.remove("theme"); // the old retro themes are gone; keep a real choice
   await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -833,7 +892,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       contexts: ["image"],
       documentUrlPatterns: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
     });
+    chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Second Look home", contexts: ["action"] });
   });
+  updateBadge().catch(() => {});
 });
 
 // ---------- The side tab ----------
@@ -841,6 +902,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // With it off, nothing runs there until you click the toolbar icon (the gentlest option).
 
 const AUTO_ID = "second-look-auto";
+// What a page gets, in load order: shared pieces, the plain rules, the site adapters, then the panel.
+const CONTENT_FILES = ["lib/shared.js", "content/rules.js", "content/adapters.js", "content/home.js", "content/panel.js"];
 
 // Install and a settings change can both ask at once; run one at a time so they don't race.
 let syncing = Promise.resolve();
@@ -854,7 +917,7 @@ async function doSyncAutoScripts() {
   const def = {
     id: AUTO_ID,
     matches: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
-    js: ["content/adapters.js", "content/panel.js"],
+    js: CONTENT_FILES,
     runAt: "document_end", // the tab shows as soon as the page is parsed, not after every image loads
     persistAcrossSessions: true,
   };
@@ -866,7 +929,10 @@ async function doSyncAutoScripts() {
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
 });
-chrome.runtime.onStartup.addListener(() => syncAutoScripts().catch(() => {}));
+chrome.runtime.onStartup.addListener(() => {
+  syncAutoScripts().catch(() => {});
+  updateBadge().catch(() => {});
+});
 
 // ---------- Nothing runs on eBay/Facebook until you ask (when the tab is off) ----------
 // No content scripts are declared in the manifest, so page loads are untouched.
@@ -878,37 +944,91 @@ async function ensureInjected(tabId) {
     func: () => !!window.__secondLookPanel,
   });
   if (!present) {
-    await chrome.scripting.executeScript({ target: { tabId }, files: ["content/adapters.js", "content/panel.js"] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: CONTENT_FILES });
   }
   return !!present;
 }
 
 // On a page Second Look doesn't work on, the icon says so for a few seconds instead of doing nothing.
-async function notHere(tabId) {
-  const title = "Second Look works on eBay searches, categories and listings, and on Facebook Marketplace.";
-  await chrome.action.setBadgeBackgroundColor({ tabId, color: "#6B675F" }).catch(() => {});
-  await chrome.action.setBadgeText({ tabId, text: "?" }).catch(() => {});
-  await chrome.action.setTitle({ tabId, title }).catch(() => {});
-  setTimeout(() => {
-    chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
-    chrome.action.setTitle({ tabId, title: chrome.runtime.getManifest().action.default_title }).catch(() => {});
-  }, 5000);
+// ---------- The toolbar badge ----------
+// A number on the icon when something saved is worth another look: a saved listing got cheaper, or a
+// saved search had listings at your price. Nothing is checked in the background: this only reads what
+// the panel recorded the last time those listings were on your screen. Looking at Home marks them seen.
+async function updateBadge() {
+  const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
+  const fresh = SLShared.alerts(saved, savedSearches, alertsAck).filter((a) => a.isNew);
+  const base = chrome.runtime.getManifest().action.default_title;
+  await chrome.action.setBadgeBackgroundColor({ color: "#C8461F" });
+  await chrome.action.setBadgeText({ text: fresh.length > 99 ? "99+" : fresh.length ? String(fresh.length) : "" });
+  await chrome.action.setTitle({ title: fresh.length ? `${base}\n${SLShared.alertSummary(fresh)}. Click the icon to see them.` : base });
 }
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.saved || changes.savedSearches || changes.alertsAck) updateBadge().catch(() => {});
+});
 
-async function openPanel(tabId) {
+// Home is a tab in the panel on eBay and Facebook (alerts on saved things, numbers, spending). Show it
+// on a page you already have open there, or open eBay and show it there.
+const waitLoaded = (tabId, ms = 20000) =>
+  new Promise((resolve) => {
+    const done = () => {
+      chrome.tabs.onUpdated.removeListener(on);
+      clearTimeout(timer);
+      resolve();
+    };
+    const on = (id, info) => id === tabId && info.status === "complete" && done();
+    const timer = setTimeout(done, ms);
+    chrome.tabs.onUpdated.addListener(on);
+    chrome.tabs.get(tabId).then((t) => t.status === "complete" && done(), done); // it may have finished already
+  });
+// true when this page has the panel (a search, a category, a listing, or the eBay front page) and now shows Home.
+async function showHome(tabId) {
   try {
     await ensureInjected(tabId);
-    const [{ result: ours } = {}] = await chrome.scripting.executeScript({
+    const [{ result } = {}] = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
         if (!window.SecondLook?.pageType()) return false;
-        window.dispatchEvent(new CustomEvent("second-look-toggle"));
+        window.dispatchEvent(new CustomEvent("second-look-show", { detail: { view: "home" } }));
         return true;
       },
     });
-    if (!ours) await notHere(tabId);
+    return !!result;
   } catch {
-    await notHere(tabId); // a page the extension can't touch (not eBay or Facebook)
+    return false;
+  }
+}
+async function openHome() {
+  const tabs = await chrome.tabs.query({ url: ["https://www.ebay.com/*", "https://www.facebook.com/*"] }).catch(() => []);
+  for (const tab of tabs.sort((a, b) => Number(b.active) - Number(a.active))) {
+    if (tab.discarded || tab.status !== "complete" || !(await showHome(tab.id))) continue;
+    await chrome.tabs.update(tab.id, { active: true });
+    await chrome.windows.update(tab.windowId, { focused: true });
+    return;
+  }
+  const tab = await chrome.tabs.create({ url: "https://www.ebay.com/" });
+  await waitLoaded(tab.id);
+  await showHome(tab.id);
+}
+
+// The icon opens the panel, or tucks it away; with something new to look at it opens on Home instead.
+// On a page the panel doesn't work on (not eBay or Marketplace), it brings up Home on eBay.
+async function openPanel(tabId) {
+  try {
+    const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
+    const news = SLShared.alerts(saved, savedSearches, alertsAck).some((a) => a.isNew);
+    await ensureInjected(tabId);
+    const [{ result: ours } = {}] = await chrome.scripting.executeScript({
+      target: { tabId },
+      args: [news],
+      func: (news) => {
+        if (!window.SecondLook?.pageType()) return false;
+        window.dispatchEvent(news ? new CustomEvent("second-look-show", { detail: { view: "home", toggle: true } }) : new CustomEvent("second-look-toggle"));
+        return true;
+      },
+    });
+    if (!ours) await openHome();
+  } catch {
+    await openHome().catch(() => {}); // a page the extension can't touch
   }
 }
 
@@ -917,6 +1037,7 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === HOME_MENU_ID) return openHome();
   if (info.menuItemId !== MENU_ID || !tab?.id) return;
   try {
     await ensureInjected(tab.id);

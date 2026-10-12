@@ -13,8 +13,53 @@ ul{list-style:none;margin:0;padding:20px 24px;display:grid;grid-template-columns
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 body only, untested</div><div class="s-card__price">$60.00</div><span>3 bids · 2d 4h left</span><a href="https://www.ebay.com/itm/5555555555">item</a></li>
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 + 28mm lens, tested, great</div><div class="s-card__price">$110.00</div><span>or Best Offer</span><span>99.5% positive (1.2K)</span><a href="https://www.ebay.com/itm/6666666666">item</a></li>
 </ul></body></html>`;
-Deno.serve({ port: 8443, cert: Deno.readTextFileSync("cert.pem"), key: Deno.readTextFileSync("key.pem"), onListen(){} }, (req) => {
+// Facebook nests each card's link a dozen boxes inside its grid cell, and a card can link to its listing twice.
+const deep = (inner: string) => "<div>".repeat(14) + inner + "</div>".repeat(14);
+const fbPage = (title: string) => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+<style>body{font:14px system-ui;margin:0}main{display:grid;grid-template-columns:repeat(4,200px);gap:16px;padding:20px}a{display:block;color:inherit;}a.dup{display:none}main a:not(.dup){text-decoration:none;border:1px solid #ddd;border-radius:8px;overflow:hidden}
+.ph{height:140px;background:#ccc}a div{padding:2px 10px}</style></head><body><div role="main"><main>
+${deep(`<a href="/marketplace/item/111/"><div class="ph"></div><div>$85</div><div>Pentax K1000 35mm film camera</div><div>Albuquerque, NM</div></a><a href="/marketplace/item/111/" class="dup" aria-hidden="true" tabindex="-1"></a>`)}
+${deep(`<a href="/marketplace/item/222/"><div class="ph"></div><div>$120</div><div>Nintendo Game Boy Advance SP M2465</div><div>Albuquerque, NM</div></a>`)}
+${deep(`<a href="/marketplace/item/333/"><div class="ph"></div><div>$30</div><div>Nintendo Game Boy Advance SP K7731</div><div>Rio Rancho, NM</div></a>`)}
+${deep(`<a href="/marketplace/item/444/"><div class="ph"></div><div>Just listed</div><div>$140</div><div>Canon AE-1 with 50mm lens</div><div>Santa Fe, NM</div></a>`)}
+${deep(`<a href="/marketplace/item/555/"><div class="ph"></div><div>$60</div><div>$75</div><div>Yashica FX-3, light seals new</div><div>Albuquerque, NM</div></a>`)}
+</main></div></body></html>`;
+// ?bench=N on facebook.com: a Marketplace-sized page for performance checks (perf.ts). N cards, each nested
+// fourteen boxes deep like Facebook's, more added as you scroll, and the page rewriting class names all the time.
+const benchPage = (n: number, churn = true) => {
+  const words = ["Nintendo", "Game Boy", "Pentax", "Canon", "camera", "console", "lens", "controller", "bundle", "working", "for parts", "untested", "M2465", "K7731"];
+  const card = (i: number) => {
+    const t = `${words[i % words.length]} ${words[(i * 7) % words.length]} ${words[(i * 3) % words.length]}${i % 9 === 0 ? " Q" + (1000 + i) : ""}`;
+    return "<div class=\"x1 x2 x3\">".repeat(14) + `<a href="/marketplace/item/${100000 + i}/"><div class="ph"></div><div>$${20 + (i * 13) % 300}</div><div>${t}</div><div>Albuquerque, NM</div></a>` + "</div>".repeat(14);
+  };
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Marketplace</title><style>body{font:14px system-ui;margin:0}main{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:20px}a{display:block;color:inherit;text-decoration:none;border:1px solid #ddd;border-radius:8px;overflow:hidden}.ph{height:150px;background:#ccc}a div{padding:2px 10px}.x9{outline:0}</style></head>
+<body><div role="main"><main id="g">${Array.from({ length: n }, (_, i) => card(i)).join("")}</main></div>
+<script>
+let next = ${n};
+const words = ${JSON.stringify(words)};
+const card = ${card.toString()};
+const add = (k) => { let h = ""; for (let i = 0; i < k; i++) h += card(next++); document.getElementById("g").insertAdjacentHTML("beforeend", h); };
+// infinite scroll, and Facebook-style churn: class names change all over the page several times a second
+addEventListener("scroll", () => { if (innerHeight + scrollY > document.body.scrollHeight - 800) add(24); });
+const all = () => document.querySelectorAll(".x1");
+if (${churn}) setInterval(() => { const a = all(); for (let i = 0; i < 40; i++) a[(Math.random() * a.length) | 0].classList.toggle("x9"); }, 250);
+</script></body></html>`;
+};
+// ?fixture=<name>: a saved page from tests/fixtures at the real address, with the plain scripts added (adapters.ts).
+const ROOT = new URL("../../", import.meta.url);
+const fixturePage = (name: string) => {
+  const html = Deno.readTextFileSync(new URL(`tests/fixtures/${name.replace(/[^\w-]/g, "")}.html`, ROOT));
+  const scripts = ["lib/shared.js", "content/rules.js", "content/adapters.js"].map((f) => `<script>${Deno.readTextFileSync(new URL(f, ROOT))}</script>`).join("");
+  return new Response(html.replace(/<\/body>/i, `${scripts}</body>`), { headers: { "content-type": "text/html; charset=utf-8" } });
+};
+Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/cert.pem"), key: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/key.pem"), onListen(){} }, (req) => {
   const u = new URL(req.url);
+  if (u.searchParams.has("fixture")) return fixturePage(u.searchParams.get("fixture")!);
+  if (u.hostname === "www.facebook.com" && u.searchParams.has("bench")) return new Response(benchPage(+u.searchParams.get("bench")!, u.searchParams.get("churn") !== "0"), { headers: { "content-type": "text/html" } });
+  if (/\.jpg$/.test(u.pathname)) return new Response(Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (x) => x.charCodeAt(0)), { headers: { "content-type": "image/gif" } });
+  if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace"), { headers: { "content-type": "text/html" } });
+  // A sold search for "blockme" is refused, like eBay's browser check.
+  if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /blockme/.test(u.searchParams.get("_nkw") || "")) return new Response("denied", { status: 403 });
   if (u.pathname.startsWith("/sch/")) return new Response(u.searchParams.has("empty") ? "<!doctype html><title>x</title><ul></ul>" : page("Pentax results"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/itm/")) return new Response(`<!doctype html><html><head><meta charset="utf-8"><title>Pentax K1000 | eBay</title></head><body><main>
 <h1 class="x-item-title__mainTitle"><span class="ux-textspans">Pentax K1000 35mm SLR Film Camera w 50mm PK Mount</span></h1>
@@ -31,9 +76,17 @@ Deno.serve({ port: 1234, onListen(){} }, async (req) => {
   const u = new URL(req.url);
   const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (u.pathname === "/calls" && req.method === "DELETE") { calls = []; return new Response("[]", { headers: cors }); }
   if (u.pathname === "/calls") return new Response(JSON.stringify(calls), { headers: { ...cors, "content-type": "application/json" } });
   if (u.pathname === "/v1/messages") {
-    const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, hasSchema: !!body.output_config?.format, cached: JSON.stringify(body.system).includes("ephemeral"), sys: (body.system || "").slice(0, 60) });
+    if (req.headers.get("x-api-key") === "bad") return new Response(JSON.stringify({ error: { message: "invalid x-api-key" } }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
+    const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, fallbacks: body.fallbacks, hasSchema: !!body.output_config?.format, cached: JSON.stringify(body.system).includes("ephemeral"), sys: (body.system || "").slice(0, 60) });
+    // Key "cutoff": billed, but the answer was cut off.
+    if (req.headers.get("x-api-key") === "cutoff") return new Response(JSON.stringify({ model: body.model, stop_reason: "max_tokens", content: [{ type: "text", text: "{\"items\": [" }], usage: { input_tokens: 4000, output_tokens: 16000 } }), { headers: { ...cors, "content-type": "application/json" } });
+    if (body.output_config?.format?.schema?.properties?.suggestions) return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ suggestions: [
+      { query: "pentax k1000 body only", kind: "narrow", why: "Drops lens kits that raise the price", maxPrice: 0, newest: false },
+      { query: "pentax k 1000", kind: "typo", why: "Sellers often split the model number", maxPrice: 0, newest: true },
+      { query: "pentax km", kind: "alt", why: "Near-identical later model", maxPrice: 120, newest: false }] }) }], usage: { input_tokens: 300, output_tokens: 100 } }), { headers: { ...cors, "content-type": "application/json" } });
     if (body.output_config?.format?.schema?.properties?.summary) return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ score: 64, verdict: "good", summary: "Mock summary of the camera.", flags: ["clear photos"], questions: ["Does the meter work?", "Any fungus in the lens?", "Light seals new?"], offerLow: 230, offerHigh: 260, homebrew: "" }) }], usage: { input_tokens: 1500, output_tokens: 400 } }), { headers: { ...cors, "content-type": "application/json" } });
     const user = typeof body.messages[0].content === "string" ? body.messages[0].content : "";
     const ids = [...user.matchAll(/^id (\d+) \|/gm)].map((m) => +m[1]);

@@ -11,8 +11,8 @@
     check("Claude model is a menu with the three models", !!cl && [...cl.options].filter((o) => o.value && !o.value.startsWith("\u0000")).length === 3, cl ? [...cl.options].map((o) => o.value).join(",") : "no menu");
     check("saved Claude model is selected and its text box hidden", cl.value === "claude-sonnet-5-5" && cin.hidden, `value ${cl.value}, hidden ${cin.hidden}`);
     check("the menu is what the label points to", document.querySelector('label[for="anthropicModelPick"]') !== null, "label still points at the text box");
-    await choose(cl, "claude-haiku-4-5");
-    check("picking a model saves it", __store.anthropicModel === "claude-haiku-4-5", `stored ${__store.anthropicModel}`);
+    await choose(cl, "claude-haiku-5-5");
+    check("picking a model saves it", __store.anthropicModel === "claude-haiku-5-5", `stored ${__store.anthropicModel}`);
     await choose(cl, "\u0000other");
     check("Another model shows the text box", !cin.hidden, "still hidden");
     cin.value = "claude-experimental-1"; cin.dispatchEvent(new Event("change", { bubbles: true })); await wait(150);

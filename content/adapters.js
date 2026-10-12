@@ -31,6 +31,7 @@
 
   // Lazy-loaded cards often carry a 1x1 placeholder in src and the real photo in a data- attribute.
   const isPlaceholder = (u) => /^data:|\.gif(\?|$)/i.test(u);
+  SL.isPlaceholder = isPlaceholder;
   const firstImage = (root) => {
     const img = root.querySelector("img");
     if (!img) return "";
@@ -51,13 +52,16 @@
   SL.bigImage = (u) => (/ebayimg\.com/.test(u || "") ? u.replace(/s-l\d+\./, "s-l1600.") : u || "");
 
   // "+$12.35 delivery", "+$5 shipping estimate", "Free delivery", "Free International Shipping"
-  SL.parseShipping = (text) => {
+  // loose: for a listing page's own shipping line, where the amount comes without a "+" ("US $8.50 Standard
+  // Shipping"). Not for cards, where a price sits right next to the words.
+  SL.parseShipping = (text, loose = false) => {
     if (!text) return null;
     const t = text.replace(/\u00a0/g, " ");
     const paid = t.match(/\+\s?\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:delivery|shipping|postage)/i);
     if (paid) return parseFloat(paid[1].replace(/,/g, ""));
     if (/free\s+(?:[\w-]+\s+){0,2}(?:delivery|shipping)/i.test(t)) return 0; // "Free 2-4 day delivery"
-    return null;
+    const bare = loose && t.match(/\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:[A-Za-z]+\s+){0,2}(?:delivery|shipping|postage)/i);
+    return bare ? parseFloat(bare[1].replace(/,/g, "")) : null;
   };
   const withTotal = (it) => ({ ...it, total: it.price == null ? null : Math.round((it.price + (it.shipping || 0)) * 100) / 100 });
 
@@ -142,15 +146,29 @@
   // Moving the sale off the site is how these scams get paid. Returns { sure, why[] }: sure when
   // the contact is disguised to slip past Facebook's filters ("www . jmyzl . com", "remove the
   // spaces", "505_507__6507", "text me a screenshot"); a plain phone number or website is only a hint.
-  const DOT = String.raw`\s*(?:\.|\(dot\)|\[dot\]|\bdot\b)\s*`;
+  // Addresses written to slip past a filter. Ordinary sentences must not match: "Works perfectly. Me and
+  // my wife…" has the same shape as "name. me", so a gap after the dot alone only counts for endings no
+  // sentence starts with, in lower case, and "polka dot top" needs a real ending too.
   const TLD = "(?:com|net|org|shop|store|top|xyz|site|online|club|vip|cc|co|us|io|me)";
+  const REAL = "(?:com|net|org|shop|xyz|vip|cc|io)";
+  const LABEL = "[a-z0-9-]{3,}";
+  const WWW = String.raw`(?:w\s*w\s*w\s*(?:\.|\(dot\)|\[dot\]|\bdot\b)\s*)?`;
+  const SPACED = [
+    new RegExp(String.raw`\b${WWW}${LABEL}\s*(?:\(dot\)|\[dot\])\s*${TLD}\b`, "i"), // name [dot] shop
+    new RegExp(String.raw`\b${WWW}${LABEL}\s+\.\s*${REAL}\b`, "i"), // www . name . com
+    new RegExp(String.raw`\b${WWW}${LABEL}\s+dot\s+${REAL}\b`, "i"), // name dot com
+    new RegExp(String.raw`\b[a-zA-Z0-9-]{3,}\.\s+${REAL}\b`), // name. com (lower case ending)
+  ];
+  const PLAIN_SITE = new RegExp(String.raw`\b(?:www\.)?${LABEL}\.${TLD}\b`, "i");
   SL.offSite = (text) => {
     const t = (text || "").replace(/\u00a0/g, " ");
     const why = [];
     let sure = false;
-    const site = t.match(new RegExp(String.raw`\b(?:w\s*w\s*w${DOT})?[a-z0-9-]{3,}${DOT}${TLD}\b`, "i"));
+    let site = null;
+    for (const re of SPACED) if ((site = t.match(re))) break;
+    const hidden = !!site;
+    site ||= t.match(PLAIN_SITE);
     if (site) {
-      const hidden = /\s|dot/i.test(site[0].replace(/^w\s*w\s*w/i, "www"));
       if (hidden) sure = true;
       if (!/facebook|ebay/i.test(site[0])) why.push(`${hidden ? "disguised " : ""}web address “${site[0].trim()}”`);
     }
@@ -170,7 +188,11 @@
     if (apps) {
       const list = [...new Set(apps.map((a) => a.toLowerCase().replace(/\s+/g, " ")))];
       why.push(`mentions ${list.join(", ")}`);
-      if (list.some((a) => /screenshot|whats|telegram|gift/.test(a))) sure = true; // "call or text" alone is ordinary
+      // "call or text" alone is ordinary, and so is "screenshot of the battery health" or "comes with a $20 gift
+      // card": those only count when they ask you to send one, or ask to be paid with one.
+      const asksScreenshot = /(?:text|send|dm|message|e-?mail)[^.\n]{0,40}screenshot|screenshot[^.\n]{0,30}(?:to me|to this|back to)/i.test(t);
+      const giftPay = /(?:pay|payment|accept|take|only)[^.\n]{0,30}gift ?cards?|gift ?cards? (?:only|as payment|payment)/i.test(t);
+      if (list.some((a) => /whats|telegram/.test(a)) || asksScreenshot || giftPay) sure = true;
     }
     return why.length ? { sure, why } : null;
   };
@@ -233,6 +255,10 @@
   // the visible text lines inside that link instead.
 
   const FB_LABELS = /^(just listed|sponsored|price dropped|partner listing|new listing|shipping available|ships to you|free shipping|pending|sold)$/i;
+  // A card that hasn't changed since it was last read (same link, same text) isn't read again: the feed is
+  // read whenever more listings load, and reading every card each time made long feeds stutter. The photo
+  // is looked up every time (Facebook swaps a placeholder for the real one without changing the text).
+  const fbRead = new WeakMap(); // link element -> { href, text, item }
   SL.extractFacebook = (root = document) => {
     const links = root.querySelectorAll('a[href*="/marketplace/item/"]');
     const out = [];
@@ -242,6 +268,12 @@
       const itemId = (href.match(/\/marketplace\/item\/(\d+)/) || [])[1];
       if (!itemId || seen.has(itemId)) return;
       seen.add(itemId);
+      const text = a.textContent;
+      const hit = fbRead.get(a);
+      if (hit && hit.href === href && hit.text === text) {
+        out.push({ ...hit.item, imageUrl: firstImage(a), el: a });
+        return;
+      }
 
       // innerText gives one line per text block, but only for cards being shown; a card we've hidden
       // (filtered, not interested) falls back to its text pieces, which split the same way here.
@@ -261,8 +293,7 @@
       const now = SL.parsePrice(priceLine);
       const was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (/^\$\s?[\d,]/.test(l) ? SL.parsePrice(l) : null)).find((n) => n != null);
 
-      out.push(
-        withTotal({
+      const item = withTotal({
           site: "facebook",
           title,
           priceText: priceLine,
@@ -276,8 +307,9 @@
           titleCode: SL.titleCode(title),
           ...(was != null && now != null && was > now && { wasPrice: was }),
           ...(lines.some((l) => /^just listed$/i.test(l)) && { justListed: true }),
-        })
-      );
+        });
+      fbRead.set(a, { href, text, item });
+      out.push(item);
     });
     return out;
   };
@@ -327,7 +359,7 @@
         title,
         priceText,
         price: SL.parsePrice(priceText),
-        shipping: SL.parseShipping(shippingText),
+        shipping: SL.parseShipping(shippingText, true),
         // the label sits in .ux-textspans (the text beside it repeats it for screen readers and adds a "More information" button)
         condition: squash(firstText(document, [".x-item-condition-text .ux-textspans", ".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
         seller,

@@ -839,7 +839,7 @@ async function abort({ ids }) {
   return true;
 }
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, soldWorkerBlocked, openOptions, openTabs, abort, getSettings: getPageSettings };
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, soldWorkerBlocked, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -879,10 +879,11 @@ async function migrateFilterWords() {
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
-  await migrateFilterWords().catch(() => {}); // before the defaults go in, so an old list isn't overwritten by the default words
-  const current = await chrome.storage.local.get(null);
-  await chrome.storage.local.set({ ...DEFAULTS, ...current });
-  if (!["match", "dark", "light"].includes(current.theme)) await chrome.storage.local.remove("theme"); // the old retro themes are gone; keep a real choice
+  await migrateFilterWords().catch(() => {});
+  // Defaults are not copied into storage: getSettings() fills in whatever you haven't set, so a better
+  // default (a new model, say) reaches every install that never chose otherwise.
+  const { theme } = await chrome.storage.local.get("theme");
+  if (theme !== undefined && !["match", "dark", "light"].includes(theme)) await chrome.storage.local.remove("theme"); // the old retro themes are gone; keep a real choice
   await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({

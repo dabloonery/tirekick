@@ -147,7 +147,7 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
   ✕ **Not interested**.
 
-**Filtering a search** (the **Filter** button above the list opens the fields, and says how many are set; a search that has a filter or a deal price opens them by itself; each search remembers its own):
+**Filtering a search** (the **Filter** button above the list opens the fields, and says how many are set; Enter or Esc folds them away again, and a search's saved filter applies with the box folded; each search remembers its own):
 
 - **Words**, like an eBay search: `dmg -case -game` keeps listings with "dmg" and drops any with
   "case" or "game"; `1000/2000` is either; `"must go"` is a phrase. They match the title and the

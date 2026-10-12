@@ -81,4 +81,15 @@ Re-measured with `tests/e2e/audit.ts` (same states, dark and light). The headles
 - **18** The closed tab takes the page's colours (light on eBay's white pages).
 - **19** A scan shows a 2px accent progress line under the tabs.
 
-Still open: **7** (Side Panel prototype), **20** (three emphasis mechanisms), the Filter auto-collapse in **3**. Rows reserve the space of their hidden links, so the list keeps its rhythm when you point at a row; the cost is a quiet gap under each row.
+## Done in 0.30.0
+- **3** Filter folds on Enter or Esc (Esc no longer closes the panel from inside it) and starts folded; the button carries the count ("Filter · 2").
+- **20** One way to dim: in the panel as on the page, the content fades and the tag (and any "Likely scam" line) stays at full strength.
+- Page stickers: the score box drops the repeated verdict word when the verdict is written beside it, so it is 36px instead of 44px and covers less of the photo; narrow Marketplace cards keep the word.
+- Card hover chips say Save / Saved / Not interested without glyphs, like the panel.
+- "Scan again" (nothing new to score) is a secondary button, like "Analyze again".
+- A row's reserved link line doubles as its bottom padding (gap 39px → 28px under a row at rest).
+- The welcome card's "No key yet?" tip only shows while there is no model.
+- Settings: the spending note is two short sentences.
+- `tests/e2e/ux.ts` checks these interactions (11 checks).
+
+Still open: **7** (Side Panel prototype). Rows reserve the space of their hidden links, so the list keeps its rhythm when you point at a row; the cost is a quiet gap under each row.

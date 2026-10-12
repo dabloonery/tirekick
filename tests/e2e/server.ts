@@ -24,9 +24,20 @@ ${deep(`<a href="/marketplace/item/333/"><div class="ph"></div><div>$30</div><di
 ${deep(`<a href="/marketplace/item/444/"><div class="ph"></div><div>Just listed</div><div>$140</div><div>Canon AE-1 with 50mm lens</div><div>Santa Fe, NM</div></a>`)}
 ${deep(`<a href="/marketplace/item/555/"><div class="ph"></div><div>$60</div><div>$75</div><div>Yashica FX-3, light seals new</div><div>Albuquerque, NM</div></a>`)}
 </main></div></body></html>`;
+// ?fixture=<name>: a saved page from tests/fixtures at the real address, with the plain scripts added (adapters.ts).
+const ROOT = new URL("../../", import.meta.url);
+const fixturePage = (name: string) => {
+  const html = Deno.readTextFileSync(new URL(`tests/fixtures/${name.replace(/[^\w-]/g, "")}.html`, ROOT));
+  const scripts = ["lib/shared.js", "content/rules.js", "content/adapters.js"].map((f) => `<script>${Deno.readTextFileSync(new URL(f, ROOT))}</script>`).join("");
+  return new Response(html.replace(/<\/body>/i, `${scripts}</body>`), { headers: { "content-type": "text/html; charset=utf-8" } });
+};
 Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/cert.pem"), key: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/key.pem"), onListen(){} }, (req) => {
   const u = new URL(req.url);
+  if (u.searchParams.has("fixture")) return fixturePage(u.searchParams.get("fixture")!);
+  if (/\.jpg$/.test(u.pathname)) return new Response(Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (x) => x.charCodeAt(0)), { headers: { "content-type": "image/gif" } });
   if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace"), { headers: { "content-type": "text/html" } });
+  // A sold search for "blockme" is refused, like eBay's browser check.
+  if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /blockme/.test(u.searchParams.get("_nkw") || "")) return new Response("denied", { status: 403 });
   if (u.pathname.startsWith("/sch/")) return new Response(u.searchParams.has("empty") ? "<!doctype html><title>x</title><ul></ul>" : page("Pentax results"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/itm/")) return new Response(`<!doctype html><html><head><meta charset="utf-8"><title>Pentax K1000 | eBay</title></head><body><main>
 <h1 class="x-item-title__mainTitle"><span class="ux-textspans">Pentax K1000 35mm SLR Film Camera w 50mm PK Mount</span></h1>
@@ -43,10 +54,13 @@ Deno.serve({ port: 1234, onListen(){} }, async (req) => {
   const u = new URL(req.url);
   const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (u.pathname === "/calls" && req.method === "DELETE") { calls = []; return new Response("[]", { headers: cors }); }
   if (u.pathname === "/calls") return new Response(JSON.stringify(calls), { headers: { ...cors, "content-type": "application/json" } });
   if (u.pathname === "/v1/messages") {
     if (req.headers.get("x-api-key") === "bad") return new Response(JSON.stringify({ error: { message: "invalid x-api-key" } }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
-    const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, hasSchema: !!body.output_config?.format, cached: JSON.stringify(body.system).includes("ephemeral"), sys: (body.system || "").slice(0, 60) });
+    const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, fallbacks: body.fallbacks, hasSchema: !!body.output_config?.format, cached: JSON.stringify(body.system).includes("ephemeral"), sys: (body.system || "").slice(0, 60) });
+    // Key "cutoff": billed, but the answer was cut off.
+    if (req.headers.get("x-api-key") === "cutoff") return new Response(JSON.stringify({ model: body.model, stop_reason: "max_tokens", content: [{ type: "text", text: "{\"items\": [" }], usage: { input_tokens: 4000, output_tokens: 16000 } }), { headers: { ...cors, "content-type": "application/json" } });
     if (body.output_config?.format?.schema?.properties?.suggestions) return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ suggestions: [
       { query: "pentax k1000 body only", kind: "narrow", why: "Drops lens kits that raise the price", maxPrice: 0, newest: false },
       { query: "pentax k 1000", kind: "typo", why: "Sellers often split the model number", maxPrice: 0, newest: true },

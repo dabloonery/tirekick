@@ -1,0 +1,18 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      # The runner image has google-chrome-stable, python3 and openssl already.
+      - run: google-chrome-stable --version
+      - run: deno task test
+      - run: deno task pack

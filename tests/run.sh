@@ -25,3 +25,4 @@ rm -f _opts.html
 
 # the scam rules on their own
 deno run --allow-read offsite.test.mjs
+deno test --allow-read unit/ >/dev/null 2>&1 && echo "PASS unit tests (rules, shared, adapters)" || echo "FAIL unit tests: run  deno test --allow-read tests/unit/  for details"

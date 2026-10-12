@@ -15,7 +15,7 @@ ul{list-style:none;margin:0;padding:20px 24px;display:grid;grid-template-columns
 </ul></body></html>`;
 Deno.serve({ port: 8443, cert: Deno.readTextFileSync("cert.pem"), key: Deno.readTextFileSync("key.pem"), onListen(){} }, (req) => {
   const u = new URL(req.url);
-  if (u.pathname.startsWith("/sch/")) return new Response(page("Pentax results"), { headers: { "content-type": "text/html" } });
+  if (u.pathname.startsWith("/sch/")) return new Response(u.searchParams.has("empty") ? "<!doctype html><title>x</title><ul></ul>" : page("Pentax results"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/itm/")) return new Response(`<!doctype html><html><head><meta charset="utf-8"><title>Pentax K1000 | eBay</title></head><body><main>
 <h1 class="x-item-title__mainTitle"><span class="ux-textspans">Pentax K1000 35mm SLR Film Camera w 50mm PK Mount</span></h1>
 <div class="x-price-primary"><span class="ux-textspans">US $294.90</span></div>
@@ -33,7 +33,7 @@ Deno.serve({ port: 1234, onListen(){} }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (u.pathname === "/calls") return new Response(JSON.stringify(calls), { headers: { ...cors, "content-type": "application/json" } });
   if (u.pathname === "/v1/messages") {
-    const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, hasSchema: !!body.output_config?.format, sys: (body.system || "").slice(0, 60) });
+    const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, hasSchema: !!body.output_config?.format, cached: JSON.stringify(body.system).includes("ephemeral"), sys: (body.system || "").slice(0, 60) });
     if (body.output_config?.format?.schema?.properties?.summary) return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ score: 64, verdict: "good", summary: "Mock summary of the camera.", flags: ["clear photos"], questions: ["Does the meter work?", "Any fungus in the lens?", "Light seals new?"], offerLow: 230, offerHigh: 260, homebrew: "" }) }], usage: { input_tokens: 1500, output_tokens: 400 } }), { headers: { ...cors, "content-type": "application/json" } });
     const user = typeof body.messages[0].content === "string" ? body.messages[0].content : "";
     const ids = [...user.matchAll(/^id (\d+) \|/gm)].map((m) => +m[1]);

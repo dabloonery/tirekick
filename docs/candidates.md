@@ -130,3 +130,7 @@ Found and fixed:
 4. Settings: two groups of number fields had a label with nothing to label; now named groups.
 
 Also done in 0.26.1: the "add a key" card now sits above the welcome card; eBay result titles get the off-site-contact check (titles only). Still open: API keys sit in storage.local, which content scripts can technically read (they never ask for it).
+
+# 0.27.0: cheaper default scans, Check this page
+- New installs default to Sonnet 5.5; the system prompt carries `cache_control` and spend counts cache writes (1.25x) and reads (0.1x). Not measured: the real saving (needs a live key; Sonnet caches from 1,024 tokens, our instructions are roughly 1,600, so it should apply, Opus's larger minimum may not).
+- "Check this page" diagnostic on "No listings found" / unreadable listing. Verified by `tests/e2e/diagnostic.ts` on an empty page; not yet seen on a live site that changed layout.

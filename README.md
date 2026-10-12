@@ -186,7 +186,7 @@ Turn off "Mark cards before you scan" in settings to keep cards untouched until 
 
 ## Model and cost
 
-The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
+New installs start on **Sonnet 5.5** (scoring is a simple job; Opus costs about twice as much for scans), and the scan's fixed instructions are marked for the API's prompt cache, so later batches read them cheaper. Existing installs keep the model they chose. The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
 **Sonnet 5.5** (half the price), **Haiku 4.5** (a quarter), the other AI service you've set up,
 or your **Ollama** model (free, local). Next to it is this month's spend on paid AI; click it for
 today, this month, last month and each model's cost per call. Set a monthly budget in settings and
@@ -266,6 +266,8 @@ the Saved section. **Settings → Backup** saves it all to a file (never your AP
 it in another browser or profile, adding to what's there.
 
 ## When it breaks
+
+When a scan finds no listings, or a listing can't be read, the status line offers **Check this page**: it counts the cards found, how many had a title, price, photo and seller rating, and the state of the sold-price lookups, then copies that report (counts and three public titles, nothing else) for a bug report.
 
 Both sites change their markup without warning. If a scan says "No listings found":
 

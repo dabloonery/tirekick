@@ -22,4 +22,7 @@ ok("marked-down card says it was $75", (await a.ev(`document.body.textContent.in
 ok("scan scored the rest (5 stickers)", (await a.ev(`document.querySelectorAll('.second-look-sticker').length`)) === 5);
 ok("scores restored in a second tab", (await b.ev(`document.querySelectorAll('.second-look-sticker').length`)) >= 3);
 ok("no verdict text cut off on narrow cards", (await b.ev(`[...document.querySelectorAll('.second-look-sticker')].every(s=>getComputedStyle(s.querySelector('.sl-verdict')).display==='none'||s.querySelector('.sl-verdict').scrollWidth<=s.querySelector('.sl-verdict').clientWidth+1)`)));
+ok("marks sit on whole grid cells, so hiding one leaves no gap", await a.ev(`[...document.querySelectorAll('[data-sl-cell]')].length === 5 && [...document.querySelectorAll('[data-sl-cell]')].every(n=>n.parentElement.tagName==='MAIN')`));
+await sh(a, `r.querySelector('.qf-toggle').click(); r.querySelector('[data-skip=hide]').click()`); await sleep(300);
+ok("Hide skips: the grid closes up", await a.ev(`(()=>{const v=[...document.querySelector('main').children].filter(n=>getComputedStyle(n).display!=='none'); return v.length>0 && v.length<5 && v.every((n,i)=>Math.abs(n.getBoundingClientRect().left-(20+i*216))<2)})()`));
 c.close();

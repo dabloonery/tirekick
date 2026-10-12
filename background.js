@@ -105,18 +105,18 @@ async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
 // simple tasks; temperature and forced tool_choice are not accepted. Thinking tokens count
 // toward max_tokens, so leave generous room (it's a ceiling, not a charge).
 
-async function anthropicMessage({ system, content, schema, maxTokens = 16000, signal }) {
-  const { anthropicKey, anthropicModel, anthropicUrl, monthlyBudget } = await getSettings();
+const anthropicMessage = (opts) => withBudget(() => anthropicMessageOnce(opts));
+async function anthropicMessageOnce({ system, content, schema, maxTokens = 16000, signal }) {
+  const { anthropicKey, anthropicModel, anthropicUrl } = await getSettings();
   if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
-  await checkBudget(monthlyBudget);
   const body = {
     model: anthropicModel,
     max_tokens: maxTokens,
     messages: [{ role: "user", content }],
     output_config: {},
   };
-  // Effort works on Opus 4.5+, Sonnet 4.6+ and every 5-series model; Haiku 4.5, Sonnet 4.5 and older reject it.
-  if (!/haiku|sonnet-4-5|claude-3/.test(anthropicModel)) body.output_config.effort = "low";
+  // Effort works on Opus 4.5+, Sonnet 4.6+ and every 5-series model (Haiku 5.5 too); Haiku 4.5, Sonnet 4.5 and older reject it.
+  if (!/haiku-[1-4]|sonnet-4-5|claude-3/.test(anthropicModel)) body.output_config.effort = "low";
   // Server-side fallback (re-run on another model if a safety classifier declines) is for the 5-series.
   const isFiveSeries = /^claude-(opus-5|sonnet-5-5|fable-5|mythos-5)/.test(anthropicModel);
   if (isFiveSeries) body.fallbacks = "default";
@@ -160,17 +160,35 @@ async function anthropicMessage({ system, content, schema, maxTokens = 16000, si
     throw new Error(`Claude API error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
+  // Billed whatever the answer turns out to be (cut off, declined), so count it first.
+  const cost = await addSpend(data.model || anthropicModel, data.usage);
   if (data.stop_reason === "refusal") throw new Error("Claude declined this request.");
   if (data.stop_reason === "max_tokens") throw new Error("Claude's answer was cut off. Lower \"Listings per request\" in settings and try again.");
   const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
-  return { text, cost: await addSpend(data.model || anthropicModel, data.usage) };
+  return { text, cost };
+}
+
+// Batches run a few at a time, so what's already out counts too (at what the last call cost); otherwise
+// each would pass the budget check before any of them had been paid for.
+let paidInFlight = 0;
+let lastPaidUsd = 0;
+async function withBudget(fn) {
+  await checkBudget((await getSettings()).monthlyBudget);
+  paidInFlight++;
+  try {
+    const r = await fn();
+    if (r?.cost > 0) lastPaidUsd = r.cost;
+    return r;
+  } finally {
+    paidInFlight--;
+  }
 }
 
 // Paid services stop once this month's estimated spend reaches the budget.
 async function checkBudget(monthlyBudget) {
   if (!(monthlyBudget > 0)) return;
   const spent = monthSpent((await chrome.storage.local.get("usage")).usage);
-  if (spent >= monthlyBudget) {
+  if (spent + paidInFlight * lastPaidUsd >= monthlyBudget) {
     throw new Error(`This month's budget of $${monthlyBudget} is used up (about $${spent.toFixed(2)} spent). Raise it in settings, or switch to Ollama in the panel's model menu.`);
   }
 }
@@ -185,8 +203,9 @@ const OAI_NAMES = [
 ];
 const oaiName = (url) => OAI_NAMES.find(([re]) => re.test(url))?.[1] || new URL(url).host;
 
-async function openaiChat({ messages, schema, model, signal }) {
-  const { oaiUrl, oaiKey, oaiModel, oaiPriceIn, oaiPriceOut, monthlyBudget } = await getSettings();
+const openaiChat = (opts) => withBudget(() => openaiChatOnce(opts));
+async function openaiChatOnce({ messages, schema, model, signal }) {
+  const { oaiUrl, oaiKey, oaiModel, oaiPriceIn, oaiPriceOut } = await getSettings();
   model ||= oaiModel;
   const name = oaiName(oaiUrl);
   if (!model) throw new Error(`Pick a model for ${name} in settings (Test connection lists them).`);
@@ -194,7 +213,6 @@ async function openaiChat({ messages, schema, model, signal }) {
   if (!(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) {
     throw new Error(`Second Look isn't allowed to reach ${origin} yet. In settings, press Test connection to allow it.`);
   }
-  await checkBudget(monthlyBudget);
   const headers = { "Content-Type": "application/json" };
   if (oaiKey) headers.Authorization = `Bearer ${oaiKey}`;
   const openrouter = /openrouter\.ai/.test(oaiUrl);
@@ -233,15 +251,17 @@ async function openaiChat({ messages, schema, model, signal }) {
     throw new Error(`${name} error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
+  // Cost: OpenRouter says exactly; otherwise your prices per million tokens, if you entered them.
+  // Counted before the answer is judged: a cut-off or declined one is billed all the same.
+  const u = data.usage || {};
+  const usd = typeof u.cost === "number" ? u.cost : oaiPriceIn > 0 || oaiPriceOut > 0 ? ((u.prompt_tokens || 0) * oaiPriceIn + (u.completion_tokens || 0) * oaiPriceOut) / 1e6 : 0;
+  const cost = usd > 0 ? await addSpend(data.model || model, null, usd) : 0;
   const choice = data.choices?.[0];
   if (choice?.message?.refusal) throw new Error(`${name} declined this request.`);
   if (choice?.finish_reason === "length") throw new Error(`${name}'s answer was cut off. Lower "Listings per request" in settings and try again.`);
   const content = choice?.message?.content;
   const out = Array.isArray(content) ? content.map((c) => c.text || "").join("") : content || "";
-  // Cost: OpenRouter says exactly; otherwise your prices per million tokens, if you entered them.
-  const u = data.usage || {};
-  const usd = typeof u.cost === "number" ? u.cost : oaiPriceIn > 0 || oaiPriceOut > 0 ? ((u.prompt_tokens || 0) * oaiPriceIn + (u.completion_tokens || 0) * oaiPriceOut) / 1e6 : 0;
-  return { text: out, cost: usd > 0 ? await addSpend(data.model || model, null, usd) : 0 };
+  return { text: out, cost };
 }
 // Plain JSON mode doesn't carry the schema, so it goes into the instructions.
 function withSchemaNote(messages, schema) {
@@ -259,6 +279,7 @@ const PRICES = [
   [/opus-(5|4)/, 5, 25],
   [/sonnet-5/, 2, 10],
   [/sonnet-4/, 3, 15],
+  [/haiku-5/, 0.1, 0.5], // for prompts up to 100K tokens; a scan batch is far smaller
   [/haiku-4/, 1, 5],
 ];
 
@@ -469,14 +490,20 @@ async function rankBatch({ items, query, market, lens = "use", want = "", browse
 // What scoring has actually cost per listing with each model (recent scans weigh most); before
 // there's any history, a rough figure from list prices and typical token counts.
 const modelInUse = (s) => (s.provider === "anthropic" ? s.anthropicModel : s.provider === "openai" ? s.oaiModel : s.textModel);
-async function noteRankRate(n, cost) {
-  const model = modelInUse(await getSettings());
-  const { rankRate = {} } = await chrome.storage.local.get("rankRate");
-  const r = (rankRate[model] ||= { usd: 0, items: 0 });
-  r.usd += cost;
-  r.items += n;
-  if (r.items > 300) (r.usd /= 2), (r.items /= 2);
-  await chrome.storage.local.set({ rankRate });
+let rateQueue = Promise.resolve(); // batches finish together: one read-modify-write at a time
+function noteRankRate(n, cost) {
+  rateQueue = rateQueue
+    .then(async () => {
+      const model = modelInUse(await getSettings());
+      const { rankRate = {} } = await chrome.storage.local.get("rankRate");
+      const r = (rankRate[model] ||= { usd: 0, items: 0 });
+      r.usd += cost;
+      r.items += n;
+      if (r.items > 300) (r.usd /= 2), (r.items /= 2);
+      await chrome.storage.local.set({ rankRate });
+    })
+    .catch(() => {});
+  return rateQueue;
 }
 async function perListingCost() {
   const settings = await getSettings();

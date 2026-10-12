@@ -26,6 +26,13 @@ yet, adding a key is step one, with **Open settings** as the one button, and the
 model wait until it's done (comparing sold prices works without one). **Got it** closes it for
 good, and the **?** button in the panel header brings it back.
 
+**Where it sits**: docked to the right edge (the default) or the left, in one of three widths.
+Drag the header toward a side and let go (both sides light up as you drag) to dock it there, drag the
+panel's inner edge and it settles on the nearest width, or click the header and use the arrow keys:
+left and right pick the side, up and down the width, Home puts it back. Double-clicking the header also
+puts it back. Each site remembers its own, and the panel always fits the window. Esc tucks it away
+from anywhere on the page (except while you're typing in the site's own boxes).
+
 The panel has two views: **This page** (everything below) and **Saved** (your saved listings and
 searches, and everything you've hidden), which works on any eBay or Marketplace page.
 
@@ -193,7 +200,7 @@ Turn off "Mark cards before you scan" in settings to keep cards untouched until 
 ## Model and cost
 
 New installs start on **Sonnet 5.5** (scoring is a simple job; Opus costs about twice as much for scans), and the scan's fixed instructions are marked for the API's prompt cache, so later batches read them cheaper. Existing installs keep the model they chose. The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
-**Sonnet 5.5** (half the price), **Haiku 4.5** (a quarter), the other AI service you've set up,
+**Sonnet 5.5** (half the price), **Haiku 5.5** (about a fortieth), the other AI service you've set up,
 or your **Ollama** model (free, local). Next to it is this month's spend on paid AI; click it for
 today, this month, last month and each model's cost per call. Set a monthly budget in settings and
 paid AI stops when it's reached.

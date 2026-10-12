@@ -22,3 +22,6 @@ google-chrome-stable --headless=new --disable-gpu --no-sandbox --user-data-dir="
   "http://www.ebay.com:$PORT/_opts.html" 2>/dev/null \
   | sed -n '/<pre id="result">/,/<\/pre>/p' | sed 's/<[^>]*>//g' | grep -E '^(PASS|FAIL)'
 rm -f _opts.html
+
+# the scam rules on their own
+deno run --allow-read offsite.test.mjs

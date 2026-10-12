@@ -41,4 +41,37 @@ await p.key("Escape"); await sleep(150);
 ok("Esc closes the popover first", (await R(`return r.querySelector('.spend-detail').hidden`)) && (await R(`return r.querySelector('.wrap').classList.contains('open')`)));
 await R(`r.querySelector('.spend').click(); r.querySelector('.list .row .title').click()`); await sleep(150);
 ok("a click elsewhere closes it", await R(`return r.querySelector('.spend-detail').hidden`));
+// clicking off: the Sort menu and the spend popover both close
+const so = await R(`const b=r.querySelector('.sort').getBoundingClientRect(); return [b.x+b.width/2, b.y+b.height/2]`);
+await p.click(so[0], so[1]); await sleep(300);
+ok("Sort menu opens", await R(`return r.querySelector('.sort').matches(':open')`));
+await p.click(300, 400); await sleep(300);
+ok("a click on the page closes the Sort menu", !(await R(`return r.querySelector('.sort').matches(':open')`)));
+await R(`r.querySelector('[data-act=tab]').click()`); await sleep(400); // that click tucked nothing? make sure it's open
+if (!(await R(`return r.querySelector('.wrap').classList.contains('open')`))) { await R(`r.querySelector('[data-act=tab]').click()`); await sleep(400); }
+await R(`r.querySelector('.spend').click()`); await sleep(150);
+await p.click(300, 400); await sleep(200);
+ok("a click on the page closes the spend popover", await R(`return r.querySelector('.spend-detail').hidden`));
+
+// moving: drag the header to the left half, it docks left; resizing: the inner edge snaps to a width
+if (!(await R(`return r.querySelector('.wrap').classList.contains('open')`))) { await R(`r.querySelector('[data-act=tab]').click()`); await sleep(400); }
+const hd = await R(`const b=r.querySelector('.head .grow').getBoundingClientRect(); return [b.x+20, b.y+8]`);
+const drag = async (from: number[], to: number[]) => {
+  await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: from[0], y: from[1] }, p.sessionId);
+  await c.send("Input.dispatchMouseEvent", { type: "mousePressed", x: from[0], y: from[1], button: "left", buttons: 1, clickCount: 1 }, p.sessionId);
+  for (let i = 1; i <= 8; i++) await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: from[0] + ((to[0] - from[0]) * i) / 8, y: from[1], button: "left", buttons: 1 }, p.sessionId);
+  await c.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: to[0], y: to[1], button: "left", buttons: 0, clickCount: 1 }, p.sessionId);
+  await sleep(500);
+};
+await drag(hd, [200, hd[1]]);
+ok("drag the header left: it docks left", (await R(`return r.querySelector('.wrap').dataset.side`)) === "left" && (await R(`return Math.round(r.querySelector('.panel').getBoundingClientRect().left)`)) < 40, await R(`return r.querySelector('.wrap').dataset.side+' '+r.querySelector('.panel').getBoundingClientRect().left`));
+const edge = await R(`const b=r.querySelector('.rz-e').getBoundingClientRect(); return [b.x+b.width/2, b.y+b.height/2]`);
+await drag(edge, [edge[0] + 95, edge[1]]);
+ok("pull the inner edge: it settles on the wide size", (await R(`return Math.round(r.querySelector('.panel').getBoundingClientRect().width)`)) === 480, String(await R(`return r.querySelector('.panel').getBoundingClientRect().width`)));
+await R(`r.querySelector('.head').focus()`); await p.key("ArrowRight"); await sleep(400); await p.key("ArrowDown"); await sleep(400);
+ok("keyboard: right arrow docks right, down narrows", (await R(`return r.querySelector('.wrap').dataset.side`)) === "right" && (await R(`return Math.round(r.querySelector('.panel').getBoundingClientRect().width)`)) === 380);
+await sleep(500);
+ok("the place is remembered per site", JSON.stringify((await o.ev(`chrome.storage.local.get('panelBox')`)).panelBox || {}) === "{}" , JSON.stringify(await o.ev(`chrome.storage.local.get('panelBox')`)));
+await p.key("ArrowLeft"); await sleep(800);
+ok("…and saved when it's not the default", (await o.ev(`chrome.storage.local.get('panelBox')`)).panelBox?.ebay?.side === "left", JSON.stringify(await o.ev(`chrome.storage.local.get('panelBox')`)));
 c.close();

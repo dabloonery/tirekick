@@ -154,3 +154,41 @@ What it was, worst first:
 7. **Smaller:** cards whose text hasn't changed aren't read again; the tag's fade-in is gone (hundreds of animations on a feed); the every-two-seconds panel refresh only writes what changed; the date formatter is made once; off-screen result rows aren't laid out (`content-visibility`) and only the first dozen fade in.
 
 `tests/all.sh` now ends with `perf.ts` as a guard: the run fails if the feed is busy more than 5 of 10 seconds or a frame waits over a second.
+
+# Accessibility pass and the paper-and-ink look (0.34.0)
+
+## Accessibility (`tests/e2e/a11y.ts`)
+Measured from Chrome's own accessibility tree, a real Tab walk, forced-colours emulation and a 700x450 viewport (a 1400x900 window at 200%).
+
+| Found | Fix |
+|---|---|
+| The header's icon SVGs were exposed as unnamed images (a screen reader said "image" three times before each button) | Decorative SVGs are `aria-hidden` |
+| The mode buttons were named "Buyerto keep and use" | A space between the name and its subtitle |
+| The model menu in the footer had no focus ring | `:focus-visible` ring like the other controls |
+| In Windows high contrast every tab looked selected (the system paints all borders) and the chosen mode looked like the other | Under `forced-colors`, only the chosen tab keeps its line, chosen buttons use `Highlight`, score dials become plain outlined circles |
+| At 200% zoom the header, mode bar and tabs took more than half the panel | Below 620px of height the tagline and mode subtitles drop out |
+
+Kept: the drag handle (the header) is a Tab stop, because it's also how the keyboard moves the panel (arrow keys). Nothing scrolls sideways at 200%, in the panel or settings.
+
+## The look
+Inspired by the 0.13 "paper and ink" identity: warm paper, ink, hairlines, colour only for verdicts and one vermilion accent.
+- **Fraunces** is back (bundled, OFL, added with the FontFace API from bytes the background provides, so it isn't web-accessible and page font rules can't block it). It's used for what you *read*: the wordmark (*Look* in italic), the headline, scores, prices, Home's numbers, the offer, sold prices, and settings headings. What you *operate* stays in the UI face.
+- **Scores are dials**: a ring that fills to the score in the verdict's colour, in the panel and on the card tags. Card tags are rounded paper pills; chips are pills too.
+- **The mode switch** is a quiet track with a raised thumb and a vermilion dot, instead of an inked block; the chosen tab is underlined in vermilion.
+- Softer corners (12px panels, 7px controls), a raised welcome card, and a soft edge under the tabs once the list has scrolled (a scroll-driven animation, no script).
+
+## The redesign, past the restyle
+A second pass rethought layout and hierarchy, not only the finish:
+
+| Before | After | Why |
+|---|---|---|
+| Header with a tagline, a two-line Buyer/Reseller bar, then the tabs: ~160px on every view | One header row; the tabs and a small Buyer/Reseller pill switch share the second row: ~88px | The results get the height. What each mode means is already the first line of This page, and the buttons keep it for screen readers |
+| Scan, then a full-width "Find better searches for this", then an underlined "Just compare sold prices · free, no AI" | Scan, then **Better searches** and **Sold prices · free** side by side, both hairline buttons | One primary action, two equal secondary ones; three different weights were competing |
+| Results summary: a headline and a counts line | Headline, a **verdict bar** (one segment per verdict, as wide as its count; named for screen readers), then the counts | How good the page is, at a glance |
+| List rows separated by hairlines only | The row you point at is tinted, edge to edge, with its links | Its links clearly belong to it |
+| Listing page: a 46px score beside "Worth a look · 64 out of 100" | A 60px dial, the verdict in the serif | The judgment leads |
+| Saved: price inside the details line, Remove always visible in its own column | The price in its own serif column; Remove in the details line, shown on hover or focus; section titles in the serif | The title gets the width; prices line up |
+| Home: boxed tiles, small grey section labels | An open grid of numbers with a hairline rule; serif section titles; the chart's peak in vermilion | Less boxing; the same type scale as This page |
+| Filter: inked toggles; a hairline segmented control | Segmented controls match the mode switch (a track with a raised thumb) | One control style throughout |
+| Settings: the section links scroll away | They stay at the top, over a blurred band; sections land below them | Long page, quick jumps |
+| Selling fees: a full-width box with a two-line hint | A small number box beside its label, one-line hint | It's a number, not a sentence |

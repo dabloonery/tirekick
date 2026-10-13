@@ -70,8 +70,8 @@
       const keyed = d.provider === "ollama" || (d.provider === "openai" && !!d.oaiModel) || (d.provider === "anthropic" && !!d.hasKey);
       const steps = [
         { done: keyed, title: "Connect a model", text: "Paste a Claude API key (or pick another AI service or Ollama). Card marks, filters and sold-price comparisons work without one.", acts: [h("button", { class: "hm-btn primary", onclick: () => send("openOptions").catch(() => {}) }, "Open settings")] },
-        { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: "Search eBay or Marketplace, then pick Buyer (to keep and use) or Reseller (to fix up and flip) at the top of this panel.", acts: [link("https://www.ebay.com/", "eBay", { class: "hm-btn" }), link("https://www.facebook.com/marketplace/", "Marketplace", { class: "hm-btn" })] },
-        { done: (d.stats.scans || 0) + (d.stats.soldLookups || 0) > 0, title: "Press Scan, or compare sold prices", text: "Scan scores each listing. “Just compare sold prices” is free and needs no model." },
+        { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: "Search eBay or Marketplace, then pick Buyer (to keep and use) or Reseller (to fix up and flip) at the top right of this panel.", acts: [link("https://www.ebay.com/", "eBay", { class: "hm-btn" }), link("https://www.facebook.com/marketplace/", "Marketplace", { class: "hm-btn" })] },
+        { done: (d.stats.scans || 0) + (d.stats.soldLookups || 0) > 0, title: "Press Scan, or compare sold prices", text: "Scan scores each listing. “Sold prices”, under Scan, is free and needs no model." },
         { done: Object.keys(d.saved).length + Object.keys(d.savedSearches).length > 0, title: "Save a listing or a search", text: "Hover a card and press Save, or use Save search in the panel. Price drops show up here and as a number on the toolbar icon." },
       ];
       const n = steps.filter((s) => s.done).length;

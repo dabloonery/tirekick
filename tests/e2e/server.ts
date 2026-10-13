@@ -80,6 +80,9 @@ Deno.serve({ port: 1234, onListen(){} }, async (req) => {
   if (u.pathname === "/calls") return new Response(JSON.stringify(calls), { headers: { ...cors, "content-type": "application/json" } });
   if (u.pathname === "/v1/messages") {
     if (req.headers.get("x-api-key") === "bad") return new Response(JSON.stringify({ error: { message: "invalid x-api-key" } }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
+    // Key "ratelimit": 429. Key "slow": answers after 8 seconds (to see a scan under way, and Stop).
+    if (req.headers.get("x-api-key") === "ratelimit") return new Response(JSON.stringify({ error: { message: "rate limited" } }), { status: 429, headers: { ...cors, "content-type": "application/json" } });
+    if (req.headers.get("x-api-key") === "slow") await new Promise((r) => setTimeout(r, 8000));
     const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, fallbacks: body.fallbacks, hasSchema: !!body.output_config?.format, cached: JSON.stringify(body.system).includes("ephemeral"), sys: (body.system || "").slice(0, 60) });
     // Key "cutoff": billed, but the answer was cut off.
     if (req.headers.get("x-api-key") === "cutoff") return new Response(JSON.stringify({ model: body.model, stop_reason: "max_tokens", content: [{ type: "text", text: "{\"items\": [" }], usage: { input_tokens: 4000, output_tokens: 16000 } }), { headers: { ...cors, "content-type": "application/json" } });

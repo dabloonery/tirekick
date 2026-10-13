@@ -806,7 +806,15 @@
   const freeRow = $(".freeprices");
 
   // action: an optional { label, fn } shown after the text, e.g. Undo.
+  // An error that says where the fix is gets a button that goes there.
+  const fixFor = (text) =>
+    text === STALE
+      ? { label: "Reload the page", fn: () => location.reload() }
+      : /\b(settings|extension options)\b/.test(text)
+        ? { label: "Open settings", fn: () => send("openOptions").catch(() => {}) }
+        : null;
   const setStatusNow = (text, isErr = false, action = null) => {
+    if (isErr && !action) action = fixFor(text);
     statusEl.textContent = text;
     if (action) statusEl.append(h("button", { onclick: action.fn }, action.label));
     statusEl.classList.toggle("err", isErr);
@@ -1265,7 +1273,7 @@
     if (alive()) chrome.storage.local.set({ introDone: true }).catch(() => {});
   });
   $('[data-act="help"]').addEventListener("click", () => {
-    if (SL.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved.");
+    if (SL.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved, and what changed is on Home.");
     showIntro(welcome.hidden);
     if (!welcome.hidden) welcome.scrollIntoView({ block: "nearest" });
   });
@@ -3923,7 +3931,7 @@
       showIdeasBtn();
       ideasBox.hidden = true;
       wrap.dataset.page = type;
-      setView(type === "other" ? "saved" : "page");
+      setView(type === "other" ? "home" : "page"); // nothing to do here: the overview
       applyIntro();
       ideasList.replaceChildren();
       ideasStatus.textContent = "";

@@ -54,13 +54,13 @@ flowchart LR
 | Step | What the person sees | Primary action | Evidence |
 |---|---|---|---|
 | Install | Nothing opens; the tab appears on the next eBay or Marketplace page | — | Implemented |
-| First open, no model | Welcome card: four steps; step 1 is *Add a Claude API key*, with **Open settings**. The free marks already work, and the card says so | Open settings | Verified (`audit.ts` first run, `a11y.test.js`) |
+| First open, no model | Welcome card: *Add a Claude API key to start* with **Open settings**, then three short points (what Scan does, Buyer or Reseller, the tag's reasons) and that the free marks already work | Open settings | Verified (`audit.ts` first run) |
 | Settings | Status card: *Ready: Sonnet 5.5, scans with Haiku 5.5* or what's missing; Model section first | Paste key → Test connection | Verified (`tests/options`, `features.ts`) |
-| Search page | Free tags on every card (scam words, off-site contact, "for parts"); panel shows what it will compare and **Scan N listings · under 1¢** | Scan | Verified |
+| Search page | Free tags on every card (scam words, off-site contact, "for parts"); the panel has one field (What I want), one line for the compare words (*Prices compared with sold "pentax k1000" · Change*) and **Scan N listings · under 1¢** | Scan | Verified |
 | Scanning | Status line *Ranking 6 listings with Haiku 5.5…*, spinner, **Stop**, a progress hairline under the tabs; the Scan button is disabled | Stop (optional) | Verified (`states.ts`) |
-| Results | *2 worth a look*, the verdict bar, counts, Save search / Try on Marketplace / Start over; the ranked list; tags on the cards | Open the best one | Verified |
+| Results | *2 worth a look*, the verdict bar, counts, Save search / Try on Marketplace / Start over; the ranked list (a title shows the card on the page, **Open ↗** under the price opens it); tags on the cards | Open the best one | Verified |
 | Listing page | 60px dial, verdict, summary, suggested offer with a message to copy, questions for the seller | Copy message | Verified |
-| Repeat use | Home: *Worth another look* (price drops, saved searches with listings at your price), getting started, spending | Open the alert | Verified (`features.ts`) |
+| Repeat use | Home leads the tabs: *Worth another look* first when there's something (price drops, saved searches at your price), then getting started, then numbers that open their lists; spending and usage are folded | Open the alert | Verified (`features.ts`) |
 | Leave | Settings › Backup and your data: Save a backup, Restore, **Delete everything** (asks first). Uninstalling also deletes everything | Delete everything | Verified (`states.ts`) |
 
 ## 4. States
@@ -83,7 +83,7 @@ Every message names what happened and what to do; where the fix is somewhere els
 | Partial success | Status line | *Ranked 4 of 6 new listings…*; the ones not scored are offered again on the next Scan | Scan (Implemented) |
 | Nothing to scan here | Panel opens on **Home**; This page says *Nothing to scan on this page. Open a search, a category or a listing…* | Open a search |
 | Empty Saved | Saved | *Hover any card and press Save to keep it here, or save a search…* | — |
-| Empty Home | Home | Getting started (n of 4) and *Nothing yet. Saved listings that get cheaper…* | The step's button |
+| Empty Home | Home | Getting started (n of 4) and *Nothing new. Saved listings that get cheaper, and saved searches with listings at your price, show up here.* | The step's button |
 | eBay pushes back on sold lookups | Status / note | Sold prices pause for an hour; scans continue without them (Verified, `features.ts`) | — |
 | Extension updated under an open page | Status line | *Second Look was updated. Reload this page to keep using it.* | **Reload the page** (Implemented) |
 | Photo can't be checked | Photo card | *Only photos from eBay and Facebook can be checked.* / *That photo is too large…* | — |
@@ -120,14 +120,17 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | Header | Mark, *Second Look*, help, settings, tuck away. It's the drag handle (drag to the other edge to dock there; double-click to reset) and a Tab stop: ←/→ choose the side, ↑/↓ the width |
 | Tabs | Home · This page · Saved. Arrow keys move between them (roving tabindex); the chosen one has the vermilion line |
 | Buyer / Reseller | A pill switch at the end of the tab row (radiogroup, arrow keys). Each mode keeps its own sort, skip handling and wants. The meaning is This page's first line and part of each button's name |
+| What I want / compare words | One field, What I want. The compare words come from the page's search and are one line with **Change** until changed; after a scan both fold into *Comparing "…" · wants …* with **Edit**, or **Add what you want** when it's empty |
+| Mode hint | What the mode is for, as This page's first line: during your first three scans, and after a switch until the next scan |
 | Scan | The one primary button. Says the count and the estimated cost. Becomes a quiet *Scan again* when nothing is new |
 | Better searches · Sold prices | Equal secondary buttons, side by side |
 | Status line | One line, `role=status`. Errors in the verdict red with a left rule, and the fix button. Stop sits beside it while busy |
 | Verdict bar | One segment per verdict, as wide as its count; `role=img` with the counts as its name |
-| List row | Dial, title (scrolls to and flashes the card), verdict, why, price. The row you point at or Tab into is tinted and shows Open / Check photo / Save / Not interested |
+| List row | Dial, title (scrolls to and flashes the card), verdict, why, price with **Open ↗** under it (always shown). The row you point at or Tab into is tinted and shows Check photo / Save / Not interested |
 | Filter bar | Sticky at the top of the list. Filter toggles words, price range, New only, Hide broken, deal price, and Show / Dim / Hide for skips. Enter or Esc folds it; the button keeps the count |
 | Card tag | Focusable; hover or focus shows the hover card. Never covers Facebook's "Just listed" corner (top right on Marketplace) |
-| Footer | Model menu (changes at once) and this month's spend, which opens the spending detail |
+| Footer | The quality menu and this month's spend (opens the spending detail). With Claude the menu is **Thrifty** (Haiku for both), **Balanced** (Haiku scans, Sonnet for a single listing; the default) or **Thorough** (Sonnet scans, Opus): one choice sets both models, so what it shows is what scans use. Another pair from settings shows as *Custom*. Other services and Ollama are listed by model |
+| Home tiles | Saved listings, price drops, saved searches open Saved; spent this month opens the spending detail |
 
 ## 7. Accessibility acceptance criteria (WCAG 2.2 AA)
 
@@ -163,7 +166,27 @@ Run on the real extension (`tests/e2e/run.sh <file>`; screenshots with the `*_OU
 
 Not covered by automation, to check by hand in branded Chrome: the toolbar shortcut and badge, the right-click Home item, installing and updating over an open eBay tab (the *Reload the page* state), a real screen reader, and live eBay and Facebook pages (their markup changes without notice).
 
-## 9. Open decisions
+## 9. Review, 2026-10-13: what was confusing, and what changed
+
+A pass over the whole workflow as a first-time and a returning user.
+
+| Where | What was wrong | Change |
+|---|---|---|
+| Footer | It named one model (Sonnet 5.5), but scans, the thing you do most, used another (Haiku 5.5). Picking a model there didn't change scans | A quality menu: Thrifty, Balanced, Thorough. Each sets both models; the label says both |
+| First run | Two onboardings: a four-step welcome on This page and four steps on Home, worded differently. The welcome's steps were things the panel already shows | The welcome is a key step (if needed) and three short points; Home keeps the checklist |
+| Before a scan | Two text fields, one of which (Compare prices against) fills itself from the page and rarely needs touching | One field; the compare words are a line with Change (search and listing pages) |
+| After a scan | *no wants set* told you what's missing | **Add what you want** offers it |
+| Mode hint | Two lines on every visit, long after you know the modes | Only while new (first three scans) and right after a switch |
+| Success status | *Ranked 6 of 6 new listings* restated the headline awkwardly | *Scored 6 new listings*; *Ranked x of y* only when some are missing |
+| List rows | The only way to open a listing was a link that appears on hover | **Open ↗** under every price; the title still shows the card on the page |
+| Filter | *Filter: dmg -case -game* and *Deal at ≤* were cryptic | *Words: working -parts* and *Your price ≤*, the words Home uses for it |
+| Home | Setup came before news; four numbers that went nowhere; a spending chart and usage counters always open | What's new first; the numbers open their lists; spending and usage fold away |
+| Non-search page | The panel opened on Saved | It opens on Home |
+| Errors | Said *check it in settings* | Have **Open settings** (or **Reload the page**) |
+
+Kept on purpose: the title scrolls to the card (preferred: seeing the card in its place, with Open as the explicit way to the listing), the hover-only row links (titles and prices lead; Tab reaches them), and Sold prices beside Scan (free, and useful before you spend anything).
+
+## 10. Open decisions
 
 - A Chrome side panel prototype (section 2).
 - Localisation: English only today; strings are inline. RTL is not applicable until there's a translation.

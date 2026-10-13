@@ -124,7 +124,7 @@ await reset(`{anthropicKey:'sk-ant-test'}`);
   await sleep(700);
   const home = await R(p, `return r.querySelector('.view-home').textContent`);
   await shot(p, "empty_home");
-  ok("Home, empty: says what will show up", /Nothing yet/.test(home), home.slice(0, 80));
+  ok("Home, empty: says what will show up", /Nothing new/.test(home), home.slice(0, 80));
 }
 
 // ---- Delete everything ----

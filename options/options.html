@@ -6,11 +6,15 @@
 <title>Second Look settings</title>
 <link rel="icon" href="../icons/icon32.png">
 <style>
+  /* the serif from the panel: wordmark, section titles and the big numbers */
+  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-600.woff2") format("woff2"); font-weight:600; font-display:swap; }
+  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-400.woff2") format("woff2"); font-weight:400; font-display:swap; }
+  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-400-italic.woff2") format("woff2"); font-weight:400; font-style:italic; font-display:swap; }
 
   :root {
-    --r:6px; --r-sm:4px; --bw:1px; --press:none;
+    --r:12px; --r-sm:7px; --bw:1px; --press:none;
     --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
-    --display:var(--ui);
+    --display:"SL Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
     color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C; --danger:#FF8A80;
   }
   @media (prefers-color-scheme: light) {
@@ -25,13 +29,13 @@
   header { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
   .mark { width:30px; height:30px; flex:none; }
   .mark .dot { fill:var(--accent); }
-  h1 { margin:0; font:600 28px/1.1 var(--display); letter-spacing:-.01em; }
+  h1 { margin:0; font:600 32px/1.1 var(--display); letter-spacing:-.015em; }
   h1 em { font-style:italic; font-weight:400; }
   h1 small { font:400 15px/1 var(--ui); color:var(--muted); margin-left:6px; letter-spacing:0; }
   p.lede { color:var(--muted); margin:0 0 8px; }
 
   section { padding:24px 0 6px; border-top:var(--bw) solid var(--rule); margin-top:22px; }
-  h2 { margin:0 0 10px; font:600 18px/1.3 var(--ui); color:var(--ink); }
+  h2 { margin:0 0 10px; font:600 21px/1.25 var(--display); letter-spacing:-.01em; color:var(--ink); }
   .field { display:grid; gap:6px; margin-bottom:18px; }
   label { font:600 14px/1.4 var(--ui); }
   .hint { color:var(--muted); font-size:13px; font-weight:400; }

@@ -55,6 +55,28 @@
       });
     });
 
+  // The serif ships inside the extension and is added with the FontFace API from bytes the background
+  // provides, once the page is idle. Until then (or if it fails) the --display stack falls back to
+  // a system serif, so nothing waits on it.
+  const FONTS = [
+    ["SL Fraunces", "fraunces-600.woff2", { weight: "600" }],
+    ["SL Fraunces", "fraunces-400.woff2", { weight: "400" }],
+    ["SL Fraunces", "fraunces-400-italic.woff2", { weight: "400", style: "italic" }],
+  ];
+  const loadFonts = async () => {
+    for (const [family, file, desc] of FONTS) {
+      try {
+        const b64 = await send("getFont", { file });
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        document.fonts.add(await new FontFace(family, bytes.buffer, desc).load());
+      } catch (e) {
+        if (alive()) console.warn("[Second Look] font", file, e.message);
+        return;
+      }
+    }
+  };
+  (window.requestIdleCallback || setTimeout)(loadFonts, { timeout: 1500 });
+
   // Small DOM builder: always uses textContent, so listing text can't inject HTML.
   const h = (tag, attrs = {}, ...kids) => {
     const el = document.createElement(tag);
@@ -67,8 +89,18 @@
     return el;
   };
 
-  const tagEl = (verdict, score) =>
-    h("div", { class: "tag", "data-v": verdict, role: "img", "aria-label": `Score ${score}, ${SHORT[verdict] || verdict}` }, h("span", {}, String(score)), h("i", {}, SHORT[verdict] || ""));
+  const tagEl = (verdict, score) => {
+    const el = h("div", { class: "tag", "data-v": verdict, role: "img", "aria-label": `Score ${score}, ${SHORT[verdict] || verdict}` }, h("span", {}, String(score)), h("i", {}, SHORT[verdict] || ""));
+    el.style.setProperty("--p", String(Math.max(0, Math.min(100, Number(score) || 0))));
+    return el;
+  };
+
+  // The card tag's score: a dial like the panel's, set through CSSOM so a page's style rules can't block it
+  const scoreDial = (item) => {
+    const el = h("div", { class: "sl-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || ""));
+    el.style.setProperty("--p", String(Math.max(0, Math.min(100, Number(item.score) || 0))));
+    return el;
+  };
 
   // ---------- panel shell (shadow DOM keeps site CSS out) ----------
 
@@ -84,18 +116,19 @@
   // --on-v and --on-accent are the text colours that sit on a verdict or accent fill.
   const THEME_DARK = `color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176;
       --accent:#E2673C; --on-accent:#161513; --v-great:#5FD08B; --v-good:#B5D36A; --v-fair:#E0B050; --v-pass:#A9A59B; --v-suspicious:#FF8A80; --on-v:#161513;
-      --shadow:0 0 0 1px rgba(255,255,255,.04), 0 18px 44px -12px rgba(0,0,0,.75);`;
+      --raise:#34312C; --shadow:0 0 0 1px rgba(255,255,255,.04), 0 18px 44px -12px rgba(0,0,0,.75);`;
   const THEME_LIGHT = `color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A;
       --accent:#C8461F; --on-accent:#fff; --v-great:#0A6B35; --v-good:#4A6500; --v-fair:#85540A; --v-pass:#5C5850; --v-suspicious:#B00020; --on-v:#fff;
-      --shadow:0 1px 2px rgba(28,27,25,.06), 0 18px 44px -14px rgba(28,27,25,.32);`;
+      --raise:#FFFFFF; --shadow:0 1px 2px rgba(28,27,25,.06), 0 18px 44px -14px rgba(28,27,25,.32);`;
   // Colour, type and shape. Shared by the panel and the photo-check card.
   const THEME_CSS = `
     /* ---------- tokens: dark first; the light set is used when the browser asks for it or Setup says so ---------- */
     .wrap {
       --w: min(380px, calc(100vw - 32px)); --gap: 16px; /* applyBox() sets --w from the chosen width */
-      --r:6px; --r-sm:4px; --bw:1px; --press:none;
+      --r:12px; --r-sm:7px; --bw:1px; --press:none;
       --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
-      --display:var(--ui);
+      /* the serif (bundled, see FONTS) is for the wordmark, headlines, scores and prices; everything you operate stays in --ui */
+      --display:"SL Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
       --mono:"Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       font:14px/1.5 var(--ui); color:var(--ink); -webkit-font-smoothing:antialiased;
       ${THEME_DARK}
@@ -126,7 +159,7 @@
     .wrap[data-page-theme="dark"] .tab { ${THEME_DARK} background:var(--paper); color:var(--ink); border-color:var(--line); }
     .open .tab { width:0; padding:0; border:0; opacity:0; pointer-events:none; box-shadow:none; overflow:hidden; }
     .tab .mark { width:18px; height:18px; }
-    .tab .tab-label { writing-mode:vertical-rl; font:600 14px/1 var(--ui); letter-spacing:.01em; }
+    .tab .tab-label { writing-mode:vertical-rl; font:600 15px/1 var(--display); letter-spacing:.01em; }
     .count { position:absolute; top:-9px; left:-9px; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--ink); color:var(--on-ink);
       font:600 11px/20px var(--ui); font-style:normal; text-align:center; font-variant-numeric:tabular-nums; }
     .count.new { background:var(--accent); color:var(--on-accent); }
@@ -165,7 +198,13 @@
     .nav { display:flex; padding:0 16px; border-bottom:var(--bw) solid var(--rule); }
     .nav button { border:0; background:none; margin:0 18px -1px 0; padding:8px 0 9px; border-bottom:2px solid transparent; color:var(--muted); font:600 13px/1 var(--ui); cursor:pointer; }
     .nav button:hover { color:var(--ink); }
-    .nav button[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--ink); }
+    .nav button[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--accent); }
+    /* Windows high contrast paints every border; keep only the chosen tab's line, and mark chosen buttons with Highlight */
+    @media (forced-colors: active) {
+      .nav button { border-bottom-color:Canvas; }
+      .nav button[aria-selected="true"] { border-bottom-color:Highlight; }
+      .modebar button[aria-checked="true"], .seg button[aria-checked="true"] { forced-color-adjust:none; background:Highlight; color:HighlightText; }
+    }
     .nav .cnt { margin-left:5px; font-weight:400; color:var(--muted); }
     .nav .cnt:empty { display:none; }
     .nav .cnt.alert { color:var(--accent); font-weight:700; }
@@ -209,7 +248,7 @@
     .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:8px; }
     .hm-tile { padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
     .hm-tile span { display:block; color:var(--muted); font-size:12px; }
-    .hm-tile b { display:block; font:600 20px/1.25 var(--mono); font-variant-numeric:lining-nums; }
+    .hm-tile b { display:block; font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; }
     .hm-tile small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
     .hm-meter { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin-top:7px; }
     .hm-meter i { display:block; height:100%; background:var(--ink); }
@@ -223,7 +262,7 @@
     .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--ink); }
     .hm .xaxis { display:flex; justify-content:space-between; gap:6px; font-size:12px; color:var(--muted); margin-top:5px; }
     .hm-tip { position:absolute; z-index:5; pointer-events:none; background:var(--ink); color:var(--on-ink); padding:5px 9px; border-radius:var(--r-sm); font-size:12px; opacity:0; transform:translate(-50%, -100%); transition:opacity .1s; white-space:nowrap; }
-    .hm-tip b { font:600 14px/1.2 var(--mono); display:block; }
+    .hm-tip b { font:600 15px/1.2 var(--display); display:block; }
     .hm-tip.show { opacity:1; }
     .hm-table { margin-top:10px; }
     .hm-table summary { cursor:pointer; color:var(--muted); font-size:12px; padding:3px 0; }
@@ -255,14 +294,19 @@
     .mark svg { width:100%; height:100%; }
     .mark .dot { fill:var(--accent); }
     .grow { flex:1; min-width:0; }
-    .wordmark { font:700 16px/1.1 var(--ui); letter-spacing:0; }
-    .wordmark em { font-style:normal; font-weight:400; }
+    .wordmark { font:600 19px/1.1 var(--display); letter-spacing:-.01em; }
+    .wordmark em { font-style:italic; font-weight:400; }
     .head small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
     .icon-btn { flex:none; width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); cursor:pointer; }
     .icon-btn svg { width:16px; height:16px; }
     .icon-btn:hover { background:var(--paper-2); color:var(--ink); }
 
     .body { flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--rule) transparent; }
+    /* once the list scrolls under the tabs, a soft edge shows there's more above (no script: a scroll-driven animation) */
+    @supports (animation-timeline: scroll()) {
+      .body { animation:scrolled linear both; animation-timeline:scroll(self); animation-range:0 32px; }
+      @keyframes scrolled { from { box-shadow:inset 0 0 0 transparent; } to { box-shadow:inset 0 10px 10px -10px rgba(0,0,0,.28); } }
+    }
     .controls { padding:14px 16px 12px; display:grid; grid-template-columns:minmax(0, 1fr); gap:12px; }
     label { display:block; margin-bottom:6px; color:var(--muted); font:600 12px/1.2 var(--ui); }
     input { width:100%; padding:9px 11px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; transition:border-color .15s; }
@@ -270,13 +314,20 @@
     input:focus { outline:2px solid var(--ink); outline-offset:-1px; }
 
     /* Buyer or Reseller: two ways of shopping, above the tabs because Saved and Home follow it too */
-    .modebar { flex:none; display:grid; grid-template-columns:repeat(2,1fr); gap:2px; margin:2px 16px 8px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
-    .modebar button { display:grid; gap:2px; padding:6px 4px; border:0; border-radius:calc(var(--r-sm) - 2px); background:none; color:var(--muted); font:inherit; text-align:center; cursor:pointer; transition:background .15s, color .15s; }
-    .modebar button b { font:600 13px/1.2 var(--ui); }
+    .modebar { flex:none; display:grid; grid-template-columns:repeat(2,1fr); gap:3px; margin:2px 16px 10px; padding:3px; background:var(--paper-2); border-radius:calc(var(--r-sm) + 3px); }
+    .modebar button { display:grid; gap:1px; padding:7px 4px 6px; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); font:inherit; text-align:center; cursor:pointer; transition:background .18s, color .18s, box-shadow .18s; }
+    .modebar button b { font:600 15px/1.15 var(--display); letter-spacing:-.005em; }
     .modebar button span { font-size:12px; line-height:1.2; }
     .modebar button:hover { color:var(--ink); }
-    .modebar button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
+    .modebar button[aria-checked="true"] { background:var(--raise); color:var(--ink); box-shadow:0 0 0 1px var(--rule), 0 1px 3px rgba(0,0,0,.12); }
+    .modebar button[aria-checked="true"] b::before { content:""; display:inline-block; width:6px; height:6px; margin:0 6px 0 -12px; border-radius:50%; background:var(--accent); vertical-align:.18em; }
     .head, .nav { flex:none; }
+    @media (max-height: 620px) {
+      .head { padding-top:10px; padding-bottom:6px; }
+      .head small, .modebar button span { display:none; }
+      .modebar { margin-bottom:6px; }
+      .modebar button { padding:5px 4px; }
+    }
     .hint { color:var(--muted); font-size:13px; }
     .inputs { display:grid; gap:12px; }
     .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
@@ -330,8 +381,9 @@
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size:4px 4px; background-repeat:no-repeat; }
     .model:focus { outline:none; border-color:var(--ink); }
+    .model:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .spend { all:unset; padding:4px 0; cursor:pointer; color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }
-    .spend b { color:var(--ink); font:600 14px/1 var(--mono); font-variant-numeric:lining-nums tabular-nums; }
+    .spend b { color:var(--ink); font:600 15px/1 var(--display); font-variant-numeric:lining-nums tabular-nums; }
     .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
     .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
     .budget { height:3px; background:var(--rule); }
@@ -341,7 +393,7 @@
       background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
     .sd-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
     .sd-grid span { display:block; color:var(--muted); font-size:12px; }
-    .sd-grid b { font:600 18px/1.2 var(--mono); font-variant-numeric:lining-nums; }
+    .sd-grid b { font:600 20px/1.2 var(--display); font-variant-numeric:lining-nums; }
     .sd-models { display:grid; gap:3px; }
     .sd-models div { display:flex; justify-content:space-between; gap:8px; }
     .sd-models div span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
@@ -350,7 +402,8 @@
     .sd-note button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 
     /* first-run walkthrough */
-    .welcome { display:grid; gap:8px; padding:12px 14px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:13px; }
+    .welcome { display:grid; gap:8px; padding:14px 16px; border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--raise); font-size:13px; }
+    .welcome > b:first-child { font:600 19px/1.2 var(--display); letter-spacing:-.01em; }
     .welcome b { font:600 15px/1.2 var(--ui); }
     .welcome ol { margin:0; padding:0; list-style:none; display:grid; gap:4px; counter-reset:step; }
     .welcome li { counter-increment:step; position:relative; padding-left:26px; line-height:1.45; }
@@ -431,7 +484,7 @@
     .pi-search:not(:has(> :not([hidden]))) { display:none; }
     .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:13px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
-    .pi-head { margin-bottom:2px; color:var(--ink); font:700 18px/1.3 var(--ui); }
+    .pi-head { margin-bottom:3px; color:var(--ink); font:600 23px/1.2 var(--display); letter-spacing:-.015em; }
     .pi-head .mono { font-family:var(--mono); }
     .pi-line b { color:var(--ink); font-weight:600; }
     .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
@@ -457,7 +510,7 @@
     .mnote a { color:var(--ink); font-weight:600; text-underline-offset:3px; }
     .mgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); gap:12px; }
     .mlabel { color:var(--muted); font-size:12px; }
-    .mval { display:block; font:600 22px/1.15 var(--mono); font-variant-numeric:lining-nums; margin:2px 0 1px; }
+    .mval { display:block; font:600 24px/1.15 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; margin:2px 0 1px; }
     .msub { color:var(--muted); font-size:12px; }
     .comps { margin-top:8px; }
     .comps summary { cursor:pointer; color:var(--ink); font-weight:600; font-size:12px; list-style:none; }
@@ -468,13 +521,13 @@
     .comps ul { list-style:none; margin:0; padding:0; }
     .comps li a { display:flex; gap:10px; padding:3px 0; color:var(--ink); text-decoration:none; }
     .comps li a:hover .ct { text-decoration:underline; }
-    .comps .cp { flex:none; width:44px; font:600 12px/1.5 var(--mono); font-variant-numeric:tabular-nums; }
+    .comps .cp { flex:none; width:44px; font:600 13px/1.5 var(--display); font-variant-numeric:lining-nums tabular-nums; }
     .comps .ct { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
 
     /* results */
     .list, .itemout { padding:0 16px 12px; }
     .list:empty, .itemout:empty { display:none; }
-    .row { display:grid; grid-template-columns:46px minmax(0,1fr) auto; gap:12px; padding:12px 0; border-top:var(--bw) solid var(--rule); animation:fade .25s ease both; }
+    .row { display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:12px; padding:14px 0; border-top:var(--bw) solid var(--rule); animation:fade .25s ease both; }
     .row.still { animation:none; }
     /* Long lists (a Marketplace feed can give hundreds of rows): rows out of view aren't laid out or painted
        until they scroll in, and only the first few fade in. */
@@ -482,13 +535,17 @@
     .list > .row:nth-child(n+13) { animation:none; }
     .itemout > .row:first-child { border-top:0; }
     @keyframes fade { from { opacity:0; } to { opacity:1; } }
-    .tag { --c:var(--v-fair); width:46px; height:46px; border:1.5px solid var(--c); border-radius:var(--r-sm); display:grid; place-content:center; text-align:center; line-height:1; }
-    .tag span { font:700 18px/1 var(--mono); color:var(--c); font-variant-numeric:tabular-nums; }
-    .tag i { display:block; margin-top:3px; font:700 10px/1 var(--ui); font-style:normal; letter-spacing:.06em; text-transform:uppercase; color:var(--c); }
-    .list .tag, .itemout .tag { height:34px; }
-    .list .tag i, .itemout .tag i { display:none; }
+    /* the score as a dial: the ring fills to the score in the verdict's colour */
+    .tag { --c:var(--v-fair); --p:50; position:relative; width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
+      background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--rule) 0); }
+    .tag::before { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--paper); }
+    .tag span { position:relative; font:600 17px/1 var(--display); color:var(--c); font-variant-numeric:lining-nums tabular-nums; }
+    .tag i { display:none; }
+    @media (forced-colors: active) { .tag { background:none; border:2px solid CanvasText; } .tag::before { display:none; } }
     .row.plain { padding:12px 0; grid-template-columns:minmax(0,1fr) auto; }
-    .pr { text-align:right; font:700 15px/1.35 var(--mono); font-variant-numeric:tabular-nums; }
+    .itemout .title { font:600 18px/1.3 var(--display); letter-spacing:-.01em; cursor:default; }
+    .itemout .title .verdict { font-weight:600; }
+    .pr { text-align:right; font:600 17px/1.3 var(--display); font-variant-numeric:lining-nums tabular-nums; letter-spacing:-.01em; }
     .pr.deal { color:var(--accent); }
     .scamline { color:var(--v-suspicious); font-weight:600; }
     /* Dim, as on the page: the row's text fades, its tag and any "Likely scam" line stay at full strength */
@@ -578,7 +635,7 @@
     .offer { margin-top:12px; padding:11px 12px; background:var(--paper-2); border-radius:var(--r-sm); font-size:13px; }
     .offer-acts { margin-top:8px; }
     .msg-preview { margin-top:8px; color:var(--muted); font-style:italic; }
-    .offer b { font:600 18px/1 var(--mono); font-variant-numeric:lining-nums; margin:0 2px; }
+    .offer b { font:600 20px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
     .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }
     .adjust.up { color:var(--v-great); }
 
@@ -601,12 +658,12 @@
       <div class="head" tabindex="0" role="group" aria-label="Panel position: left and right arrow keys pick the side, up and down the width" title="Drag to the left or right edge to dock it there; double-click to put it back">
         <span class="mark">${MARK}</span>
         <div class="grow"><div class="wordmark">Second <em>Look</em></div><small>for careful buyers</small></div>
-        <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
-        <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
-        <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+        <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
+        <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
+        <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
       </div>
       <div class="modebar" role="radiogroup" aria-label="Mode">
-        <button role="radio" data-mode="buyer" title="Buying something to keep and use"><b>Buyer</b><span>to keep and use</span></button><button role="radio" data-mode="reseller" title="Buying something to fix up and sell"><b>Reseller</b><span>to fix up and flip</span></button>
+        <button role="radio" data-mode="buyer" title="Buying something to keep and use"><b>Buyer</b> <span>to keep and use</span></button><button role="radio" data-mode="reseller" title="Buying something to fix up and sell"><b>Reseller</b> <span>to fix up and flip</span></button>
       </div>
       <div class="nav" role="tablist" aria-label="Views">
         <button role="tab" data-view="page" aria-selected="true">This page</button>
@@ -1386,21 +1443,34 @@
       html:not([data-sl-theme="dark"]) :is(.second-look-sticker, .second-look-marks) { ${LT} }
       .second-look-sticker { --c:var(--v-fair);
         position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--sl-fit, calc(100% - 20px));
-        background:var(--sl-paper); color:var(--sl-ink); border-radius:4px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
+        background:var(--sl-paper); color:var(--sl-ink); border-radius:999px; box-shadow:0 0 0 1px var(--sl-rule), var(--sl-shadow);
         font:400 12px/1.2 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; text-align:left; letter-spacing:normal; cursor:help;
         } /* no fade-in: tags appear as cards load, and animating hundreds of them on a long feed cost frames */
       .second-look-sticker[data-v="great"] { --c:var(--v-great); } .second-look-sticker[data-v="good"] { --c:var(--v-good); }
       .second-look-sticker[data-v="pass"] { --c:var(--v-pass); } .second-look-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
-      .second-look-sticker .sl-score { flex:none; width:44px; height:44px; box-sizing:border-box; border:1.5px solid var(--c); border-radius:4px; color:var(--c);
-        display:grid; place-content:center; text-align:center; line-height:1; }
-      .second-look-sticker .sl-score b { display:block; font:700 18px/1 "Atkinson Hyperlegible Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums; }
+      /* the score: a dial whose ring fills to the score (as in the panel) */
+      .second-look-sticker .sl-score { --p:50; position:relative; flex:none; width:44px; height:44px; box-sizing:border-box; border-radius:50%; color:var(--c);
+        display:grid; place-content:center; text-align:center; line-height:1; background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--sl-rule) 0); }
+      .second-look-sticker .sl-score::before { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--sl-paper); }
+      .second-look-sticker .sl-score > * { position:relative; }
+      .second-look-sticker .sl-score b { display:block; font:600 17px/1 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; font-variant-numeric:lining-nums tabular-nums; }
       .second-look-sticker .sl-score i { display:block; margin-top:3px; font-weight:700; font-size:10px; line-height:1; font-family:inherit; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
       .second-look-sticker .sl-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
-      .second-look-sticker .sl-verdict { font-weight:700; font-size:14px; white-space:nowrap; }
+      .second-look-sticker .sl-verdict { font:600 15px/1.15 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.005em; white-space:nowrap; }
       .second-look-sticker.sl-compact .sl-verdict { display:none; }
       /* The verdict is written beside the score, so the box needn't say it again and can cover less of the photo.
          On a narrow card the verdict hides, and the short word comes back under the score. */
-      .second-look-sticker:not(.sl-compact) .sl-score { width:36px; height:36px; }
+      .second-look-sticker:not(.sl-compact) .sl-score { width:38px; height:38px; }
+      .second-look-sticker:not(.sl-compact) .sl-score b { font-size:16px; }
+      /* narrow cards keep the short word under the number: the dial grows to hold both */
+      .second-look-sticker.sl-compact { border-radius:26px; }
+      .second-look-sticker.sl-compact .sl-score { width:48px; height:48px; }
+      .second-look-sticker.sl-compact .sl-score b { font-size:16px; }
+      .second-look-sticker.sl-compact .sl-score i { font-size:8px; margin-top:2px; }
+      @media (forced-colors: active) {
+        .second-look-sticker .sl-score { background:none; border:2px solid CanvasText; }
+        .second-look-sticker .sl-score::before { display:none; }
+      }
       .second-look-sticker:not(.sl-compact) .sl-score i { display:none; }
       .second-look-sticker.sl-compact .sl-text:not(:has(.sl-sub)) { display:none; }
       .second-look-sticker.sl-compact { padding-right:4px; }
@@ -1413,7 +1483,7 @@
       .second-look-sticker.sl-right .sl-below { left:auto; right:4px; align-items:flex-end; }
       .second-look-sticker.sl-right .sl-under { justify-content:flex-end; }
       .second-look-sticker .sl-under { display:flex; flex-wrap:wrap; gap:4px; width:max-content; max-width:var(--sl-fit, 320px); }
-      .sl-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:4px; background:var(--sl-ink); color:var(--sl-paper);
+      .sl-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--sl-ink); color:var(--sl-paper);
         font:600 12px/1.35 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:nowrap; letter-spacing:normal; text-transform:none; }
       .sl-chip svg { width:11px; height:11px; }
       .sl-chip.k-new { background:var(--sl-accent); color:var(--sl-on-accent); } .sl-chip.k-good { background:var(--v-great); color:var(--sl-on-v); } .sl-chip.k-warn { background:var(--v-suspicious); color:var(--sl-on-v); }
@@ -1442,11 +1512,11 @@
         text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
       .second-look-sticker .sl-acts :is(button, a):hover { text-decoration-color:currentColor; }
       .second-look-sticker .sl-pop { display:none; width:264px; max-width:min(264px, 80vw); padding:12px 14px;
-        background:var(--sl-paper); color:var(--sl-ink); border-radius:4px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
+        background:var(--sl-paper); color:var(--sl-ink); border-radius:12px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
         font:400 13px/1.5 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:normal; text-transform:none; cursor:auto; }
       .second-look-sticker:hover .sl-pop, .second-look-sticker:focus-within .sl-pop { display:block; }
       .second-look-sticker:focus-visible { outline:2px solid var(--sl-ink); outline-offset:3px; }
-      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font-weight:700; font-size:15px; line-height:1.3; }
+      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font:600 17px/1.25 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.01em; }
       .second-look-sticker .sl-pop b span { color:var(--c); }
       .second-look-sticker .sl-flags { margin-top:6px; color:var(--sl-muted); }
       .second-look-flash { outline:2px solid #C8461F !important; outline-offset:4px; animation:sl-flash 2s ease-out both; }
@@ -2224,7 +2294,7 @@
 
   const stickerEl = (item, f, key) => {
     const v = VERDICT[item.verdict] || VERDICT.fair;
-    const CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+    const CAMERA = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
     const sub = lensLine(item);
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
@@ -2239,7 +2309,7 @@
     return h(
       "div",
       { class: "second-look-sticker", "data-v": item.verdict, tabindex: "0", role: "group", "aria-label": `Second Look: score ${item.score}, ${v.label}. Tab to the reasons and actions.` },
-      h("div", { class: "sl-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || "")),
+      scoreDial(item),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
       // Below the tag, in one column: the chip row, then (on hover) the card with the reasons. However
       // many rows the chips wrap to, the card sits under them.

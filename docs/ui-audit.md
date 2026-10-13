@@ -154,3 +154,25 @@ What it was, worst first:
 7. **Smaller:** cards whose text hasn't changed aren't read again; the tag's fade-in is gone (hundreds of animations on a feed); the every-two-seconds panel refresh only writes what changed; the date formatter is made once; off-screen result rows aren't laid out (`content-visibility`) and only the first dozen fade in.
 
 `tests/all.sh` now ends with `perf.ts` as a guard: the run fails if the feed is busy more than 5 of 10 seconds or a frame waits over a second.
+
+# Accessibility pass and the paper-and-ink look (0.34.0)
+
+## Accessibility (`tests/e2e/a11y.ts`)
+Measured from Chrome's own accessibility tree, a real Tab walk, forced-colours emulation and a 700x450 viewport (a 1400x900 window at 200%).
+
+| Found | Fix |
+|---|---|
+| The header's icon SVGs were exposed as unnamed images (a screen reader said "image" three times before each button) | Decorative SVGs are `aria-hidden` |
+| The mode buttons were named "Buyerto keep and use" | A space between the name and its subtitle |
+| The model menu in the footer had no focus ring | `:focus-visible` ring like the other controls |
+| In Windows high contrast every tab looked selected (the system paints all borders) and the chosen mode looked like the other | Under `forced-colors`, only the chosen tab keeps its line, chosen buttons use `Highlight`, score dials become plain outlined circles |
+| At 200% zoom the header, mode bar and tabs took more than half the panel | Below 620px of height the tagline and mode subtitles drop out |
+
+Kept: the drag handle (the header) is a Tab stop, because it's also how the keyboard moves the panel (arrow keys). Nothing scrolls sideways at 200%, in the panel or settings.
+
+## The look
+Inspired by the 0.13 "paper and ink" identity: warm paper, ink, hairlines, colour only for verdicts and one vermilion accent.
+- **Fraunces** is back (bundled, OFL, added with the FontFace API from bytes the background provides, so it isn't web-accessible and page font rules can't block it). It's used for what you *read*: the wordmark (*Look* in italic), the headline, scores, prices, Home's numbers, the offer, sold prices, and settings headings. What you *operate* stays in the UI face.
+- **Scores are dials**: a ring that fills to the score in the verdict's colour, in the panel and on the card tags. Card tags are rounded paper pills; chips are pills too.
+- **The mode switch** is a quiet track with a raised thumb and a vermilion dot, instead of an inked block; the chosen tab is underlined in vermilion.
+- Softer corners (12px panels, 7px controls), a raised welcome card, and a soft edge under the tabs once the list has scrolled (a scroll-driven animation, no script).

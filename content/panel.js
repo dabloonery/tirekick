@@ -362,6 +362,7 @@
     .welcome .w-points li::marker { color:var(--accent); }
     .welcome .w-points b { font:600 13px/1.45 var(--ui); }
     .welcome .tip { color:var(--muted); }
+    .welcome .w-note { font-size:12px; }
     .welcome .go { justify-self:start; }
     /* No model yet: the key is step 1 and the only call to action; the steps after it are plain text until it's done */
     .welcome .step-key { display:grid; gap:4px; padding:10px 12px; border-radius:var(--r-sm); background:var(--paper-2); }
@@ -656,6 +657,7 @@
             <li>Point at a card's tag for the reasons, <i>Save</i> and <i>Not interested</i>.</li>
           </ul>
           <div class="tip">No key yet? The marks on the cards already warn about scams, free.</div>
+          <div class="hint w-note">Scores, prices and warnings are estimates to help you decide, not a guarantee: check the listing and the seller yourself.</div>
           <button class="ghost go" data-act="intro-done">Got it</button>
         </div>
         <div class="setup" hidden><b class="setup-title">Add a Claude API key to start.</b> <span class="setup-text">It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings.</span>
@@ -1746,8 +1748,9 @@
 
   // Where the sticker goes. eBay cards are fine as they are. A Facebook card is a link that may be
   // inline or zero-height, so climb to the nearest real box that still holds only this one listing.
+  const cardsHere = () => SL.site()?.cards || {}; // how this site's cards behave (lib/sites.js)
   const stickerHost = (el) => {
-    if (SL.currentSite() !== "facebook") return el;
+    if (!cardsHere().nested) return el;
     let node = el;
     for (let i = 0; i < 6 && node; i++) {
       const r = node.getBoundingClientRect();
@@ -1769,7 +1772,7 @@
       ? !!box.querySelector(`${ITEM_LINK}:not([href*="/item/${id}/"]):not([href$="/item/${id}"]):not([href*="/item/${id}?"])`)
       : [...box.querySelectorAll(ITEM_LINK)].some((a) => itemIdOf(a) !== id);
   const cellOf = (el) => {
-    if (SL.currentSite() !== "facebook") return el;
+    if (!cardsHere().nested) return el;
     const id = itemIdOf(el.closest(ITEM_LINK) || el.querySelector(ITEM_LINK) || el);
     let node = el;
     for (let i = 0; i < 40; i++) {
@@ -1807,7 +1810,7 @@
   // measured first and dressed after (decorateAll).
   const measure = (linkEl) => {
     const host = stickerHost(linkEl);
-    const img = SL.currentSite() === "ebay" ? host.querySelector("img") : null;
+    const img = cardsHere().fitToPhoto ? host.querySelector("img") : null;
     return { host, cell: cellOf(linkEl), isStatic: getComputedStyle(host).position === "static", imgW: img ? img.getBoundingClientRect().width : 0, hostW: host.getBoundingClientRect().width };
   };
   // What a card's dressing depends on, as a string: when it hasn't changed, the card is left as it is.
@@ -1865,10 +1868,11 @@
         node.style.setProperty("--sl-fit", `${Math.round(w - 20)}px`);
         if (w - 20 < 150) node.classList.add("sl-compact"); // a small photo: the score alone fits, the rest is on hover
       }
-      if (SL.currentSite() === "facebook") node.classList.add("sl-right");
+      const cards = cardsHere();
+      if (cards.corner === "right") node.classList.add("sl-right");
       // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
-      if (SL.currentSite() === "facebook" && m.hostW < 250) node.classList.add("sl-compact");
-      if (SL.currentSite() === "facebook") {
+      if (cards.compactUnder && m.hostW < cards.compactUnder) node.classList.add("sl-compact");
+      if (cards.overlaps) {
         node.addEventListener("pointerenter", () => cell.setAttribute("data-sl-lift", ""));
         node.addEventListener("pointerleave", () => cell.removeAttribute("data-sl-lift"));
       }
@@ -1940,7 +1944,7 @@
     setStatus(was ? "Removed from Saved." : `Saved \u201c${(f.title || "listing").slice(0, 50)}\u201d. It's under Saved at the bottom of the panel.`, false, { label: "Undo", fn: () => toggleSave(key) });
   };
   const searchKey = (q) => `${SL.currentSite()}|${q.trim().toLowerCase()}`;
-  const pageSearch = () => (SL.currentSite() === "ebay" ? SL.ebayQuery() : SL.facebookQuery()).trim();
+  const pageSearch = () => (SL.site()?.queryOf(location) || "").trim();
   const toggleSearch = async (q) => {
     const k = searchKey(q);
     const was = !!savedSearches[k];
@@ -1991,7 +1995,7 @@
     setView(e.detail?.view === "home" ? "home" : view);
     setOpen(true);
   });
-  const siteName = (k) => (k.startsWith("fb") ? "Marketplace" : "eBay");
+  const siteName = (k) => SLSites.nameOf(k);
   const removeStored = async (name, k) => {
     const next = await writeStored(name, (s) => delete s[k]);
     if (name === "saved") saved = next;
@@ -2000,19 +2004,18 @@
   };
   // The Saved view: listings with the price you saved them at and the latest you've seen, searches
   // with when you last looked, and what you've hidden (each one can come back). Built when shown.
-  const itemUrl = (k) => (k.startsWith("fb:") ? `https://www.facebook.com/marketplace/item/${k.slice(3)}/` : `https://www.ebay.com/itm/${k.slice(5)}`);
+  const itemUrl = (k) => SLSites.itemUrl(k);
   // Where a saved listing or search leads. Stored addresses are checked first (a restored backup can hold
-  // anything): only eBay and Facebook over https; anything else is rebuilt from the key or the search words.
+  // anything): only the sites this works on, over https; anything else is rebuilt from the key or the search words.
   const safeUrl = (u, fallback) => {
     try {
       const x = new URL(u);
-      return x.protocol === "https:" && /^(?:www\.)?(?:ebay\.com|facebook\.com)$/.test(x.hostname) ? x.href : fallback;
+      return x.protocol === "https:" && (SLSites.isSiteHost(x.hostname) || SLSites.isSiteHost(`www.${x.hostname}`)) ? x.href : fallback;
     } catch {
       return fallback;
     }
   };
-  const savedSearchUrl = (r) =>
-    safeUrl(r.url, r.site === "facebook" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(r.q || "")}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(r.q || "")}`);
+  const savedSearchUrl = (r) => safeUrl(r.url, (SLSites.get(r.site) || SLSites.get("ebay")).searchUrl(r.q || ""));
   // A small line of the prices seen for a saved listing, when there's more than one.
   const priceHistory = (k, r) => {
     const mem = memory[k];
@@ -2086,7 +2089,7 @@
                   {},
                   h("a", { href: savedSearchUrl(r), title: "Run this search again" }, `\u201c${r.q}\u201d`),
                   h("div", { class: "meta" }, [
-                    `${r.site === "ebay" ? "eBay" : "Marketplace"} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`,
+                    `${(SLSites.get(r.site) || SLSites.get("facebook")).name} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`,
                     r.deal ? h("span", { class: r.deals ? "down" : "" }, ` \u00b7 ${r.deals || "none"} at your $${r.deal}`) : "",
                     h("button", { class: "srow-act", title: "Remove this search", onclick: () => removeStored("savedSearches", k) }, "Remove"),
                   ])
@@ -2156,13 +2159,13 @@
   });
   memoryReady.then(renderSaved);
 
-  // The same words on the other site, in a new tab.
-  const otherSiteUrl = (q) =>
-    SL.currentSite() === "ebay" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(q)}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`;
+  // The same words on the other site, in a new tab (with more sites, the first of the others).
+  const otherSite = () => SLSites.others(SL.currentSite())[0];
+  const otherSiteUrl = (q) => otherSite().searchUrl(q);
 
 
   const reapplyFacebook = () => {
-    if ((!scored.size && !facts.size) || SL.currentSite() !== "facebook") return;
+    if ((!scored.size && !facts.size) || !cardsHere().recycles) return;
     const todo = [];
     document.querySelectorAll(ITEM_LINK).forEach((a) => {
       const key = keyOf(a.href);
@@ -2557,15 +2560,7 @@
   // The card for a listing, found again from the page: the element kept from the scan can be gone
   // (sites re-render), and the first link to the item can sit outside the results (a carousel,
   // "recently viewed"), so prefer one inside a result card.
-  const elFor = (key) => {
-    const id = key.split(":")[1];
-    if (key.startsWith("fb:")) {
-      const links = [...document.querySelectorAll(`a[href*="/marketplace/item/${id}"]`)];
-      return links.find((a) => a.closest("[data-second-look-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
-    }
-    const links = [...document.querySelectorAll(`a[href*="/itm/"][href*="${id}"]`)].filter((a) => keyOf(a.href) === key);
-    return links.map((a) => a.closest(SL.EBAY_CARDS)).find(Boolean) || null;
-  };
+  const elFor = (key) => SL.cardFor(key);
   const focusCard = (it) => {
     const key = keyOf(it.url);
     const el = it.el?.isConnected ? it.el : elFor(key) || document.querySelector(`[data-second-look-key="${CSS.escape(key)}"]`);
@@ -2638,7 +2633,7 @@
     const { soldCooldownUntil = 0, soldLog = [], soldCache = {} } = await chrome.storage.local.get(["soldCooldownUntil", "soldLog", "soldCache"]);
     const lines = [
       `Second Look ${chrome.runtime.getManifest().version} on ${SL.currentSite()} (${type}), ${location.origin}${location.pathname}`,
-      type === "results" && `Cards on the page: ${SL.currentSite() === "facebook" ? document.querySelectorAll(ITEM_LINK).length : document.querySelectorAll(SL.EBAY_CARDS).length}; read as listings: ${items.length}`,
+      type === "results" && `Cards on the page: ${document.querySelectorAll(SL.currentSite() === "ebay" ? SL.EBAY_CARDS : SL.listingLinks()).length}; read as listings: ${items.length}`,
       type === "results" && items.length && `With a title ${n((i) => i.title)}, price ${n((i) => i.price != null)}, photo ${n((i) => i.imageUrl)}, shipping known ${n((i) => i.shipping != null)}, seller rating ${n((i) => i.sellerPct != null)}`,
       type === "results" && items.length && `First titles: ${items.slice(0, 3).map((i) => `\u201c${i.title.slice(0, 40)}\u201d`).join(", ")}`,
       type === "item" && (() => { const l = SL.extractItem(); return `Listing read: title ${l.title ? "yes" : "NO"}, price ${l.price != null ? "yes" : "NO"}, photos ${l.imageUrls?.length || 0}, seller ${l.seller ? "yes" : "no"}`; })(),
@@ -2670,7 +2665,7 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const fetchSoldHtml = async (query, condition) => {
     const url = SL.soldUrl(query, SL.SOLD_CONDITION[condition]);
-    if (location.hostname !== "www.ebay.com") return send("fetchSoldHtml", { url });
+    if (!SLSites.soldSite().hosts.includes(location.hostname)) return send("fetchSoldHtml", { url }); // from eBay's own page when on it
     const res = await fetch(url, { credentials: "include", signal: AbortSignal.timeout(30000) });
     return { status: res.status, html: res.ok ? await res.text() : "" };
   };
@@ -2917,7 +2912,7 @@
   // ---------- listings that loaded after the last scan ----------
 
   const currentKeys = () => {
-    const sel = SL.currentSite() === "facebook" ? ITEM_LINK : SL.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", ");
+    const sel = SL.listingLinks();
     const keys = new Set();
     document.querySelectorAll(sel).forEach((a) => keys.add(keyOf(a.href)));
     return keys;
@@ -3030,7 +3025,7 @@
       ...(q
         ? [
             h("button", { class: savedSearches[searchKey(q)] ? "on" : null, onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "Saved search" : "Save search"),
-            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, SL.currentSite() === "ebay" ? "Try on Marketplace \u2197" : "Try on eBay \u2197"),
+            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, `Try on ${otherSite().name} \u2197`),
           ]
         : []),
       resetBtn
@@ -3546,7 +3541,7 @@
     f.campaign
       ? `This title has been posted under other codes too (${f.campaign.join(", ")}): one fake listing copied many times.`
       : f.offSite?.sure
-        ? `It asks you to get in touch outside ${f.site === "ebay" ? "eBay" : "Facebook"} (${f.offSite.why.join("; ")}). That's how these scams take payment.`
+        ? `It asks you to get in touch outside ${(SLSites.get(f.site) || SLSites.get("facebook")).owner} (${f.offSite.why.join("; ")}). That's how these scams take payment.`
         : "";
   const renderItemInfo = () => {
     const f = itemFacts;
@@ -3630,7 +3625,7 @@
       );
     } else if (r.offerHigh > 0) {
       // A first message you can paste to the seller, opening at the low end of the range.
-      const message = `Hi! Is this still available? Would you take $${r.offerLow}?${listing.site === "facebook" ? " I can pick up whenever suits you." : ""}`;
+      const message = `Hi! Is this still available? Would you take $${r.offerLow}?${SLSites.get(listing.site)?.local ? " I can pick up whenever suits you." : ""}`;
       const copy = h("button", {
         onclick: async () => {
           try {

@@ -348,20 +348,53 @@ refresh the tab. The version number there tells you which copy is running.
 | File | Job |
 |---|---|
 | `manifest.json` | Permissions, icon, keyboard shortcut. With "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
+| `lib/sites.js` | The sites it works on, in one table: names, addresses, listing keys, which page is a search or a listing, photo hosts, how each site's cards behave. Loaded first everywhere; adding a site starts here (`docs/adding-a-site.md`) |
 | `lib/shared.js` | Small pieces shared by the worker, the pages and settings: the link and photo-host checks, settings limits (also applied to restored backups), alert rules, the spend summary, the price sparkline |
 | `content/rules.js` | The plain rules (words and filters, scam signs, photo verdicts, fix-up words) as functions with no page, storage or network |
 | `content/home.js` | Home: in the panel's tab and on Second Look's own page (with its styles) |
 | `lib/sold.js` | eBay sold-price lookups with one pace, cache and back-off for every page |
 | `hub/hub.html`, `hub/hub.js` | Second Look's own page, for anywhere: look something up, saved listings and searches, Home |
-| `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape; the sold-price median |
+| `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape, through per-site tables (`READERS`, `ITEM_READERS`, `SEARCH_BUILDERS`, `LISTING_LINKS`, `CARD_FINDERS`, `BROWSE_CONTEXT`); the sold-price median |
 | `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
 | `background.js` | Talks to Claude, other AI services or Ollama (retries, timeouts, Stop, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
 | `options/` | Settings page |
 | `icons/` | The toolbar icon |
 
 The ranking prompt (`RANK_BASE`, `SCAM_RULE` and `LENS_RULES` in `background.js`) is the part most worth tuning.
-Keep it to pages you're looking at, one scan when you press the button: automated, unattended
-collection is what Meta's and eBay's terms prohibit and what gets accounts flagged.
+
+## Ground rules
+
+eBay's and Meta's terms prohibit automated, unattended collection, and that's what gets accounts
+flagged. Every change keeps to these:
+
+- **Only pages you're looking at.** Second Look reads the listings on a page open in your browser, and
+  never opens, crawls or refreshes a marketplace page by itself. Automatic scanning reads the search
+  you're looking at as it loads, only while that tab is on your screen.
+- **Requests to the sites are few, spaced and started by you.** eBay sold-price lookups happen because
+  you pressed something (or turned on automatic scanning): at most eight an hour, five seconds apart,
+  cached for six hours, from your own browser.
+- **Never get past a bot check.** At the first sign of eBay's "checking your browser" page, lookups stop
+  for an hour (half an hour for the background route) and say so. Nothing tries to solve, avoid or
+  disguise itself from a check, a captcha or a rate limit.
+- **Nothing leaves the browser except to the AI service you chose, and eBay's own search.** No server,
+  no analytics, no account; no listing data is republished anywhere.
+- **No logos, no implied endorsement.** "eBay" and "Facebook Marketplace" name what it works with.
+- **Estimates, said to be estimates.** Scores, prices, margins and warnings help you decide; they aren't
+  advice or a guarantee, and the extension says how far each one can be trusted.
+
+## Licence and disclaimer
+
+Copyright © 2026 dabloonery, all rights reserved for now (see `LICENSE`, which also has the no-warranty
+terms). It's meant to be open-sourced later; that's a change of `LICENSE` (Apache-2.0 or MIT, say), and the
+repository has no keys or secrets in it or its history to clean up first.
+The bundled Fraunces font is under the SIL Open Font License (`fonts/LICENSE.md`).
+
+Scores, verdicts, price comparisons, margins, scam warnings, repair guesses and suggested offers are
+estimates produced by software and AI models from what a listing shows: information, not advice, and
+not a guarantee about any item, seller or price. Check listings and sellers yourself.
+
+Not affiliated with or endorsed by eBay Inc. or Meta Platforms, Inc. eBay and Facebook are trademarks of
+their respective owners.
 
 ## Tests
 

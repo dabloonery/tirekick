@@ -1,6 +1,6 @@
 # Plan: OfferUp and Craigslist
 
-Status: a plan, nothing built. Dated 2026-10-13.
+Status: a plan. Step 1 (the sites table) is done as of 0.36.1, with no change in behaviour; nothing for OfferUp or Craigslist is built. How to add a site: `docs/adding-a-site.md`. Dated 2026-10-13.
 
 ## Why
 
@@ -28,7 +28,7 @@ Both are where second-hand buying happens locally, and both have the problems Se
 
 ## Order
 
-1. The sites table, eBay and Marketplace only.
+1. ~~The sites table, eBay and Marketplace only.~~ Done: `lib/sites.js`, the per-site maps in `content/adapters.js`, and `tests/unit/sites.test.mjs`.
 2. Craigslist (stable markup, simplest cards), with fixtures for the gallery, list and old layouts and a listing page.
 3. OfferUp (an app like Marketplace: recycled cards, late-loading prices), with fixtures and a long-feed performance check like `perf.ts`.
 4. The hub, saved searches and "Also on" across all four; README, privacy policy and store listing (the new optional permissions and why).

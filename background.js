@@ -6,7 +6,7 @@
 //      on eBay the page fetches them itself)
 // Content scripts send messages; this file answers them.
 
-importScripts("lib/shared.js"); // SLShared: link and photo checks, settings limits, alert rules
+importScripts("lib/sites.js", "lib/shared.js"); // SLSites: the sites it works on. SLShared: link and photo checks, settings limits, alert rules
 
 const DEFAULTS = {
   theme: "match", // match the browser (dark if it does not say), or "dark" / "light"
@@ -833,12 +833,12 @@ async function getPageSettings() {
 const openOptions = async () => chrome.runtime.openOptionsPage();
 
 // Saved searches, opened in background tabs in one go (a page can only open one tab per click).
-// Only eBay and Marketplace addresses, and at most 12.
+// Only search addresses on the sites this works on (lib/sites.js), and at most 12.
 async function openTabs({ urls }) {
   const ok = (u) => {
     try {
       const { protocol, hostname, pathname } = new URL(u);
-      return protocol === "https:" && ((hostname === "www.ebay.com" && /^\/(sch|b)\//.test(pathname)) || (hostname === "www.facebook.com" && pathname.startsWith("/marketplace")));
+      return protocol === "https:" && SLSites.isSearchUrl({ hostname, pathname });
     } catch {
       return false;
     }
@@ -910,7 +910,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       id: MENU_ID,
       title: "Check this photo with Second Look",
       contexts: ["image"],
-      documentUrlPatterns: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
+      documentUrlPatterns: SLSites.matches(),
     });
     chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Second Look home", contexts: ["action"] });
     // Anywhere: select a thing's name and see what it sells for, or search for it on both sites.
@@ -925,7 +925,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 const AUTO_ID = "second-look-auto";
 // What a page gets, in load order: shared pieces, the plain rules, the site adapters, then the panel.
-const CONTENT_FILES = ["lib/shared.js", "content/rules.js", "content/adapters.js", "lib/sold.js", "content/home.js", "content/panel.js"];
+const CONTENT_FILES = ["lib/sites.js", "lib/shared.js", "content/rules.js", "content/adapters.js", "lib/sold.js", "content/home.js", "content/panel.js"];
 
 // Install and a settings change can both ask at once; run one at a time so they don't race.
 let syncing = Promise.resolve();
@@ -938,7 +938,7 @@ async function doSyncAutoScripts() {
   const { showTab } = await getSettings();
   const def = {
     id: AUTO_ID,
-    matches: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
+    matches: SLSites.matches(), // every site in lib/sites.js (each also needs its host permission in manifest.json)
     js: CONTENT_FILES,
     runAt: "document_end", // the tab shows as soon as the page is parsed, not after every image loads
     persistAcrossSessions: true,

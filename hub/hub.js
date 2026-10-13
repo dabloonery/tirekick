@@ -27,7 +27,7 @@
       })
     );
   const money = (n) => `$${Math.round(n)}`;
-  const siteName = (k) => (k.startsWith("fb:") || k === "facebook" ? "Marketplace" : "eBay");
+  const siteName = (k) => (SLSites.get(k) ? SLSites.get(k).name : SLSites.nameOf(k));
 
   // the theme from settings, like the panel
   const applyTheme = (t) => (t === "dark" || t === "light" ? (document.documentElement.dataset.theme = t) : delete document.documentElement.dataset.theme);
@@ -38,19 +38,21 @@
   const qEl = $("#q");
   const answer = $("#answer");
   const goBtn = $("#go");
-  const ebayUrl = (q) => `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`;
-  const fbUrl = (q) => `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(q)}`;
+  // A search button per site (lib/sites.js), then one for all of them ("Both" while there are two).
+  const sitesBox = $(".sites");
+  sitesBox.replaceChildren(
+    ...SLSites.all.map((s) => h("a", { class: "btn", id: `on-${s.key}`, target: "_blank", rel: "noopener", href: s.home }, `Search ${s.name} \u2197`)),
+    h("button", { type: "button", id: "on-both" }, SLSites.all.length === 2 ? "Both" : "All")
+  );
   const syncLinks = () => {
     const q = qEl.value.trim();
-    $("#on-ebay").href = q ? ebayUrl(q) : "https://www.ebay.com/";
-    $("#on-fb").href = q ? fbUrl(q) : "https://www.facebook.com/marketplace/";
+    for (const s of SLSites.all) $(`#on-${s.key}`).href = q ? s.searchUrl(q) : s.home;
   };
   qEl.addEventListener("input", syncLinks);
   $("#on-both").addEventListener("click", () => {
     const q = qEl.value.trim();
     if (!q) return qEl.focus();
-    chrome.tabs.create({ url: ebayUrl(q), active: true });
-    chrome.tabs.create({ url: fbUrl(q), active: false });
+    SLSites.all.forEach((s, i) => chrome.tabs.create({ url: s.searchUrl(q), active: i === 0 }));
   });
 
   // The same lookups as the panel's, with the same pace and cache: through an eBay tab you have open if
@@ -104,7 +106,7 @@
     const searches = Object.entries(savedSearches).sort((a, b) => (b[1].v || 0) - (a[1].v || 0));
     const body = $("#saved-body");
     if (!items.length && !searches.length) {
-      return body.replaceChildren(h("p", { class: "empty" }, "Nothing saved yet. On eBay or Marketplace, point at a listing's tag and press Save, or save a search from the panel."));
+      return body.replaceChildren(h("p", { class: "empty" }, `Nothing saved yet. On ${SLSites.all.map((s) => s.name).join(" or ")}, point at a listing's tag and press Save, or save a search from the panel.`));
     }
     const listRows = items.map(([k, r]) => {
       const cheaper = S.dropped(r);
@@ -153,6 +155,10 @@
   });
   home.refresh().then(home.seen).catch(() => {});
   document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && home.wake().catch(() => {}));
+
+  // Not affiliated with any of the sites (named from lib/sites.js)
+  const owners = [...new Set(SLSites.all.map((s) => s.owner))];
+  $("#not-affiliated").textContent = `Not affiliated with or endorsed by ${owners.join(" or ")}. ${owners.join(" and ")} are trademarks of their owners.`;
 
   // ---------- started with words (right-click "Look up …", or a link) ----------
   const start = new URLSearchParams(location.search).get("q");

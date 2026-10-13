@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Second Look",
-  "version": "0.36.0",
+  "version": "0.36.1",
   "description": "Score tags, sold-price checks and scam warnings for eBay and Facebook Marketplace, judged by Claude, other AI or a local model.",
   "minimum_chrome_version": "116",
   "homepage_url": "https://github.com/dabloonery/Second-Look",

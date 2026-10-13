@@ -66,7 +66,7 @@ ${card(24, `${t.split(/\s+/)[0]} strap and cap`, 8)}
 };
 const fixturePage = (name: string) => {
   const html = Deno.readTextFileSync(new URL(`tests/fixtures/${name.replace(/[^\w-]/g, "")}.html`, ROOT));
-  const scripts = ["lib/shared.js", "content/rules.js", "content/adapters.js"].map((f) => `<script>${Deno.readTextFileSync(new URL(f, ROOT))}</script>`).join("");
+  const scripts = ["lib/sites.js", "lib/shared.js", "content/rules.js", "content/adapters.js"].map((f) => `<script>${Deno.readTextFileSync(new URL(f, ROOT))}</script>`).join("");
   return new Response(html.replace(/<\/body>/i, `${scripts}</body>`), { headers: { "content-type": "text/html; charset=utf-8" } });
 };
 Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/cert.pem"), key: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/key.pem"), onListen(){} }, (req) => {

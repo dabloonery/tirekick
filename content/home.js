@@ -1,16 +1,16 @@
-// Second Look: the Home tab in the panel. What's been kept in this browser (alerts on saved things,
+// Tirekick: the Home tab in the panel. What's been kept in this browser (alerts on saved things,
 // a few numbers, spending, which features get used), plus a short checklist for a first visit.
 // It reads storage and draws; nothing is sent anywhere. Everything from storage goes in through
 // textContent (titles come from web pages and from restored backups).
 //
-//   const home = SLHome.mount(box, { send, getMode, isShown, onAlerts });
+//   const home = TKHome.mount(box, { send, getMode, isShown, onAlerts });
 //   home.refresh()  draws it again from storage
 //   home.seen()     marks the alerts as seen, when Home is what's on screen (isShown())
 
 (() => {
-  const SLShared = window.SLShared;
-  if (!SLShared || window.SLHome) return;
-  const { itemUrl, searchUrl, dropped, alerts: alertsOf } = SLShared;
+  const TKShared = window.TKShared;
+  if (!TKShared || window.TKHome) return;
+  const { itemUrl, searchUrl, dropped, alerts: alertsOf } = TKShared;
 
   const h = (tag, attrs = {}, ...kids) => {
     const el = document.createElement(tag);
@@ -64,7 +64,7 @@
 
     // ---------- sections ----------
     const link = (href, text, extra = {}) => h("a", { href, target: "_blank", rel: "noopener", ...extra }, text);
-    const itemHref = (k) => SLShared.savedItemUrl(k, D.saved[k]);
+    const itemHref = (k) => TKShared.savedItemUrl(k, D.saved[k]);
 
     function start(d) {
       const keyed = d.provider === "ollama" || (d.provider === "openai" && !!d.oaiModel) || (d.provider === "anthropic" && !!d.hasKey);
@@ -101,7 +101,7 @@
 
     function numbers(d) {
       const mode = getMode();
-      const sum = SLShared.usageSummary(d.usage);
+      const sum = TKShared.usageSummary(d.usage);
       const savedRows = Object.values(d.saved);
       const cheaper = savedRows.filter(dropped);
       const off = cheaper.reduce((s, r) => s + (r.p0 - r.p), 0);
@@ -234,5 +234,5 @@
     };
   }
 
-  window.SLHome = { mount };
+  window.TKHome = { mount };
 })();

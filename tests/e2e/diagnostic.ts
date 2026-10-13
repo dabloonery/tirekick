@@ -2,7 +2,7 @@ import { start, EXT, sleep } from "./lib.ts";
 const { open, c } = await start();
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', introDone:true})`);
-const sh = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host').shadowRoot; ${js}})()`);
+const sh = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host').shadowRoot; ${js}})()`);
 const e = await open(`https://www.ebay.com/sch/i.html?_nkw=nothing&empty=1`); await sleep(1500);
 await sh(e, `r.querySelector('[data-act=scan]').click()`); await sleep(800);
 console.log("empty status:", await sh(e, `return r.querySelector('.status').textContent`));

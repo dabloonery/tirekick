@@ -1,4 +1,4 @@
-// Second Look — background service worker.
+// Tirekick — background service worker.
 // Everything that talks to the outside world lives here:
 //   1. the model: the Claude API, or your local Ollama server (ranking, analysis, ideas, photo checks)
 //   2. listing photos (fetched and base64-encoded for the vision model)
@@ -6,7 +6,7 @@
 //      on eBay the page fetches them itself)
 // Content scripts send messages; this file answers them.
 
-importScripts("lib/shared.js"); // SLShared: link and photo checks, settings limits, alert rules
+importScripts("lib/shared.js"); // TKShared: link and photo checks, settings limits, alert rules
 
 const DEFAULTS = {
   theme: "match", // match the browser (dark if it does not say), or "dark" / "light"
@@ -72,7 +72,7 @@ async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
     origin = new URL(ollamaUrl).origin;
   } catch {}
   if (!origin || !(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) {
-    throw new Error(`Second Look isn't allowed to reach ${origin || ollamaUrl} yet. In settings, press Test connection to allow it.`);
+    throw new Error(`Tirekick isn't allowed to reach ${origin || ollamaUrl} yet. In settings, press Test connection to allow it.`);
   }
   const body = {
     model,
@@ -223,12 +223,12 @@ async function openaiChatOnce({ messages, schema, model, signal }) {
   if (!model) throw new Error(`Pick a model for ${name} in settings (Test connection lists them).`);
   const origin = new URL(oaiUrl).origin;
   if (!(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) {
-    throw new Error(`Second Look isn't allowed to reach ${origin} yet. In settings, press Test connection to allow it.`);
+    throw new Error(`Tirekick isn't allowed to reach ${origin} yet. In settings, press Test connection to allow it.`);
   }
   const headers = { "Content-Type": "application/json" };
   if (oaiKey) headers.Authorization = `Bearer ${oaiKey}`;
   const openrouter = /openrouter\.ai/.test(oaiUrl);
-  if (openrouter) headers["X-Title"] = "Second Look";
+  if (openrouter) headers["X-Title"] = "Tirekick";
   const formats = schema
     ? [{ type: "json_schema", json_schema: { name: "answer", strict: true, schema } }, { type: "json_object" }, null]
     : [null];
@@ -709,10 +709,10 @@ async function checkPhoto({ imageUrl, title, signal }) {
   // Photos come from listing pages, which can point an image anywhere (even at a service on this computer):
   // only eBay's and Facebook's own image hosts are fetched, or a photo already inline in the page.
   const inline = /^data:image\//.test(imageUrl);
-  if (!inline && !SLShared.isListingImage(imageUrl)) throw new Error("Only photos from eBay and Facebook can be checked.");
+  if (!inline && !TKShared.isListingImage(imageUrl)) throw new Error("Only photos from eBay and Facebook can be checked.");
   const imgRes = await fetchWithTimeout(imageUrl, { signal }, 30 * 1000, "The photo took too long to load.");
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
-  if (!inline && !SLShared.isListingImage(imgRes.url)) throw new Error("That photo was passed on to another site, so it wasn't checked.");
+  if (!inline && !TKShared.isListingImage(imgRes.url)) throw new Error("That photo was passed on to another site, so it wasn't checked.");
   const buf = await imgRes.arrayBuffer();
   if (buf.byteLength > 3.5 * 1024 * 1024) throw new Error("That photo is too large to check (over 3.5 MB).");
   const b64 = bufferToBase64(buf);
@@ -881,14 +881,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 // ---------- Right-click on a photo ----------
 // The content script on the page does the work and shows the answer; we just point it at the image.
 
-const MENU_ID = "second-look-photo";
-const HOME_MENU_ID = "second-look-home";
+const MENU_ID = "tirekick-photo";
+const HOME_MENU_ID = "tirekick-home";
 
 // Before 0.32 the always-hide and only-show words were two comma-separated lists; they are one line now.
 async function migrateFilterWords() {
   const s = await chrome.storage.local.get(["hideWords", "needWords", "filterWords"]);
   if (s.filterWords !== undefined || (s.hideWords === undefined && s.needWords === undefined)) return;
-  await chrome.storage.local.set({ filterWords: SLShared.filterFromLists(s.hideWords, s.needWords) });
+  await chrome.storage.local.set({ filterWords: TKShared.filterFromLists(s.hideWords, s.needWords) });
   await chrome.storage.local.remove(["hideWords", "needWords"]);
 }
 
@@ -899,15 +899,15 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // default (a new model, say) reaches every install that never chose otherwise.
   const { theme } = await chrome.storage.local.get("theme");
   if (theme !== undefined && !["match", "dark", "light"].includes(theme)) await chrome.storage.local.remove("theme"); // the old retro themes are gone; keep a real choice
-  await syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
+  await syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
-      title: "Check this photo with Second Look",
+      title: "Check this photo with Tirekick",
       contexts: ["image"],
       documentUrlPatterns: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
     });
-    chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Second Look home", contexts: ["action"] });
+    chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Tirekick home", contexts: ["action"] });
   });
   updateBadge().catch(() => {});
 });
@@ -916,7 +916,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // With "showTab" on, the page scripts are registered to load on eBay and Facebook pages.
 // With it off, nothing runs there until you click the toolbar icon (the gentlest option).
 
-const AUTO_ID = "second-look-auto";
+const AUTO_ID = "tirekick-auto";
+const OLD_AUTO_IDS = ["second-look-auto"]; // registered before the rename; left alone, it would load the page scripts twice
 // What a page gets, in load order: shared pieces, the plain rules, the site adapters, then the panel.
 const CONTENT_FILES = ["lib/shared.js", "content/rules.js", "content/adapters.js", "content/home.js", "content/panel.js"];
 
@@ -936,13 +937,15 @@ async function doSyncAutoScripts() {
     runAt: "document_end", // the tab shows as soon as the page is parsed, not after every image loads
     persistAcrossSessions: true,
   };
+  const old = await chrome.scripting.getRegisteredContentScripts({ ids: OLD_AUTO_IDS });
+  if (old.length) await chrome.scripting.unregisterContentScripts({ ids: old.map((s) => s.id) });
   const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [AUTO_ID] });
   if (showTab && !existing.length) await chrome.scripting.registerContentScripts([def]);
   else if (showTab) await chrome.scripting.updateContentScripts([def]); // pick up changes after an update
   else if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: [AUTO_ID] });
 }
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Second Look]", e.message));
+  if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
 });
 chrome.runtime.onStartup.addListener(() => {
   syncAutoScripts().catch(() => {});
@@ -956,7 +959,7 @@ chrome.runtime.onStartup.addListener(() => {
 async function ensureInjected(tabId) {
   const [{ result: present } = {}] = await chrome.scripting.executeScript({
     target: { tabId },
-    func: () => !!window.__secondLookPanel,
+    func: () => !!window.__tirekickPanel,
   });
   if (!present) {
     await chrome.scripting.executeScript({ target: { tabId }, files: CONTENT_FILES });
@@ -964,18 +967,18 @@ async function ensureInjected(tabId) {
   return !!present;
 }
 
-// On a page Second Look doesn't work on, the icon says so for a few seconds instead of doing nothing.
+// On a page Tirekick doesn't work on, the icon says so for a few seconds instead of doing nothing.
 // ---------- The toolbar badge ----------
 // A number on the icon when something saved is worth another look: a saved listing got cheaper, or a
 // saved search had listings at your price. Nothing is checked in the background: this only reads what
 // the panel recorded the last time those listings were on your screen. Looking at Home marks them seen.
 async function updateBadge() {
   const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
-  const fresh = SLShared.alerts(saved, savedSearches, alertsAck).filter((a) => a.isNew);
+  const fresh = TKShared.alerts(saved, savedSearches, alertsAck).filter((a) => a.isNew);
   const base = chrome.runtime.getManifest().action.default_title;
   await chrome.action.setBadgeBackgroundColor({ color: "#C8461F" });
   await chrome.action.setBadgeText({ text: fresh.length > 99 ? "99+" : fresh.length ? String(fresh.length) : "" });
-  await chrome.action.setTitle({ title: fresh.length ? `${base}\n${SLShared.alertSummary(fresh)}. Click the icon to see them.` : base });
+  await chrome.action.setTitle({ title: fresh.length ? `${base}\n${TKShared.alertSummary(fresh)}. Click the icon to see them.` : base });
 }
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.saved || changes.savedSearches || changes.alertsAck) updateBadge().catch(() => {});
@@ -1002,8 +1005,8 @@ async function showHome(tabId) {
     const [{ result } = {}] = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
-        if (!window.SecondLook?.pageType()) return false;
-        window.dispatchEvent(new CustomEvent("second-look-show", { detail: { view: "home" } }));
+        if (!window.Tirekick?.pageType()) return false;
+        window.dispatchEvent(new CustomEvent("tirekick-show", { detail: { view: "home" } }));
         return true;
       },
     });
@@ -1030,14 +1033,14 @@ async function openHome() {
 async function openPanel(tabId) {
   try {
     const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
-    const news = SLShared.alerts(saved, savedSearches, alertsAck).some((a) => a.isNew);
+    const news = TKShared.alerts(saved, savedSearches, alertsAck).some((a) => a.isNew);
     await ensureInjected(tabId);
     const [{ result: ours } = {}] = await chrome.scripting.executeScript({
       target: { tabId },
       args: [news],
       func: (news) => {
-        if (!window.SecondLook?.pageType()) return false;
-        window.dispatchEvent(news ? new CustomEvent("second-look-show", { detail: { view: "home", toggle: true } }) : new CustomEvent("second-look-toggle"));
+        if (!window.Tirekick?.pageType()) return false;
+        window.dispatchEvent(news ? new CustomEvent("tirekick-show", { detail: { view: "home", toggle: true } }) : new CustomEvent("tirekick-toggle"));
         return true;
       },
     });
@@ -1056,8 +1059,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ID || !tab?.id) return;
   try {
     await ensureInjected(tab.id);
-    await chrome.tabs.sendMessage(tab.id, { type: "second-look-check-photo", imageUrl: info.srcUrl });
+    await chrome.tabs.sendMessage(tab.id, { type: "tirekick-check-photo", imageUrl: info.srcUrl });
   } catch (e) {
-    console.warn("[Second Look] photo check failed to start:", e.message);
+    console.warn("[Tirekick] photo check failed to start:", e.message);
   }
 });

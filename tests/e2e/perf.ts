@@ -6,7 +6,7 @@ import { start, EXT, sleep } from "./lib.ts";
 const { open, c } = await start();
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 const URL_ = `https://www.facebook.com/marketplace/albuquerque/search?query=camera&bench=240${Deno.env.get("PERF_CHURN") === "0" ? "&churn=0" : ""}`;
-const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
+const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
 const metrics = async (p: any) => Object.fromEntries((await c.send("Performance.getMetrics", {}, p.sessionId)).metrics.map((m: any) => [m.name, m.value]));
 
 async function run(label: string, withExtension: boolean) {
@@ -123,7 +123,7 @@ async function run(label: string, withExtension: boolean) {
   }
   const d = (k: string) => Math.round((after[k] - before[k]) * 1000);
   const cards = await p.ev(`document.querySelectorAll('a[href*="/marketplace/item/"]').length`);
-  const tags = await p.ev(`document.querySelectorAll('.second-look-sticker, .second-look-marks').length`);
+  const tags = await p.ev(`document.querySelectorAll('.tirekick-sticker, .tirekick-marks').length`);
   if (withExtension && Deno.env.get("PERF_GUARD")) {
     // A guard for the test run, generous for slower machines: the :has() freeze this caught was 60 seconds.
     const busy = d("TaskDuration");
@@ -132,13 +132,13 @@ async function run(label: string, withExtension: boolean) {
   console.log(`${label.padEnd(22)} script ${String(d("ScriptDuration")).padStart(5)} ms  style ${String(d("RecalcStyleDuration")).padStart(5)} ms  layout ${String(d("LayoutDuration")).padStart(5)} ms  busy ${String(d("TaskDuration")).padStart(5)} ms of 10000  worst frame gap ${Math.round(gaps[0])} ms, frames over 50 ms: ${gaps.filter((g: number) => g > 50).length}  (${cards} cards, ${tags} tagged)`);
   if (withExtension) {
     // Opening the panel on a long feed: the list is drawn then (it isn't while tucked away), so time the click.
-    const openMs = await p.ev(`(() => { const r = document.getElementById('second-look-host').shadowRoot; const t = performance.now(); r.querySelector('[data-act=tab]').click(); r.querySelector('.list').getBoundingClientRect(); return Math.round(performance.now() - t); })()`);
+    const openMs = await p.ev(`(() => { const r = document.getElementById('tirekick-host').shadowRoot; const t = performance.now(); r.querySelector('[data-act=tab]').click(); r.querySelector('.list').getBoundingClientRect(); return Math.round(performance.now() - t); })()`);
     const rows = await R(p, `return r.querySelectorAll('.list .row').length`);
-    const sortMs = await p.ev(`(() => { const r = document.getElementById('second-look-host').shadowRoot; const s = r.querySelector('.sort'); const t = performance.now(); s.value = 'price'; s.dispatchEvent(new Event('change')); r.querySelector('.list').getBoundingClientRect(); return Math.round(performance.now() - t); })()`);
+    const sortMs = await p.ev(`(() => { const r = document.getElementById('tirekick-host').shadowRoot; const s = r.querySelector('.sort'); const t = performance.now(); s.value = 'price'; s.dispatchEvent(new Event('change')); r.querySelector('.list').getBoundingClientRect(); return Math.round(performance.now() - t); })()`);
     console.log(`${"".padEnd(22)} opening the panel: ${openMs} ms for ${rows} rows; re-sorting: ${sortMs} ms`);
   }
   await p.close();
 }
 if (!Deno.env.get("PERF_GUARD")) await run("page alone", false);
-await run("with Second Look", true);
+await run("with Tirekick", true);
 c.close();

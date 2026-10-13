@@ -1,8 +1,8 @@
-# Second Look: privacy policy
+# Tirekick: privacy policy
 
 *Last updated: October 2026*
 
-Second Look is a browser extension for people buying second-hand on eBay and Facebook Marketplace. This page says
+Tirekick is a browser extension for people buying second-hand on eBay and Facebook Marketplace. This page says
 what it keeps, what it sends, and to whom. The short version: **it has no server and no analytics, the developer receives
 nothing, and anything that leaves your computer goes to a service you chose, because you asked for it.**
 
@@ -23,7 +23,7 @@ things from the panel, and save a backup file or restore one (never including yo
 
 ## What leaves your computer, and only when you ask
 
-Second Look does nothing on a page until you open its panel, press a button, or (for the free marks on cards) load an eBay or Marketplace
+Tirekick does nothing on a page until you open its panel, press a button, or (for the free marks on cards) load an eBay or Marketplace
 page you are already looking at. It never browses, checks prices, or contacts anyone in the background.
 
 | When you… | What is sent | To whom |

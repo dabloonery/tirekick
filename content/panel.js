@@ -169,7 +169,7 @@
     /* one height for every view, so switching This page / Saved / a listing doesn't move the panel; only the body scrolls */
     .panel { width:var(--w); height:min(760px, calc(100vh - 48px)); display:flex; flex-direction:column; overflow:hidden; margin-right:var(--gap);
       background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
-    .head { display:flex; align-items:center; gap:10px; padding:14px 12px 8px 16px; cursor:grab; touch-action:none; }
+    .head { display:flex; align-items:center; gap:10px; padding:12px 10px 4px 16px; cursor:grab; touch-action:none; }
     .head button { cursor:pointer; }
     .head:focus-visible { outline:2px solid var(--ink); outline-offset:-2px; border-radius:var(--r); }
 
@@ -195,8 +195,8 @@
     .wrap[data-side="left"] .panel { margin-right:0; margin-left:var(--gap); }
     .wrap[data-side="left"] .count { left:auto; right:-9px; }
     .wrap[data-side="left"] [data-act="toggle"] svg { transform:scaleX(-1); }
-    .nav { display:flex; padding:0 16px; border-bottom:var(--bw) solid var(--rule); }
-    .nav button { border:0; background:none; margin:0 18px -1px 0; padding:8px 0 9px; border-bottom:2px solid transparent; color:var(--muted); font:600 13px/1 var(--ui); cursor:pointer; }
+    .nav { display:flex; min-width:0; }
+    .nav button { border:0; background:none; margin:0 16px -1px 0; padding:12px 0 10px; white-space:nowrap; border-bottom:2px solid transparent; color:var(--muted); font:600 13px/1 var(--ui); cursor:pointer; }
     .nav button:hover { color:var(--ink); }
     .nav button[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--accent); }
     /* Windows high contrast paints every border; keep only the chosen tab's line, and mark chosen buttons with Highlight */
@@ -214,7 +214,8 @@
     .hm { display:grid; gap:2px; }
     .hm-sec { padding:14px 0 8px; border-top:var(--bw) solid var(--rule); }
     .hm-sec:first-child { border-top:0; padding-top:10px; }
-    .hm h3 { margin:0 0 10px; display:flex; align-items:center; gap:8px; color:var(--muted); font:600 12px/1.2 var(--ui); }
+    .hm h3 { margin:0 0 10px; display:flex; align-items:baseline; gap:8px; color:var(--ink); font:600 17px/1.3 var(--display); letter-spacing:-.01em; }
+    .hm h3 .hm-count, .hm h3 .hm-btn { font-family:var(--ui); letter-spacing:normal; }
     .hm .hm-grow { flex:1; }
     .hm .hm-count { font-size:12px; font-weight:400; font-variant-numeric:tabular-nums; }
     .hm .hm-hint { display:block; color:var(--muted); font-size:12px; }
@@ -231,6 +232,7 @@
     .hm-bar i { display:block; height:100%; background:var(--v-great); }
     .hm-steps { list-style:none; margin:0 0 8px; padding:0; display:grid; gap:8px; }
     .hm-steps li { display:grid; grid-template-columns:22px 1fr; gap:10px; align-items:start; padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
+    .hm-steps li:not(.done) { background:var(--raise); }
     .hm-steps .num { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font:600 12px/1 var(--ui); box-shadow:inset 0 0 0 1px var(--line); color:var(--muted); }
     .hm-steps li.done .num { background:var(--v-great); box-shadow:none; color:var(--on-v); }
     .hm-steps li.done b { color:var(--muted); font-weight:400; text-decoration:line-through; text-decoration-color:var(--line); }
@@ -245,8 +247,8 @@
     .hm-alert .t a { font-weight:600; }
     .hm-alert .t small { display:block; color:var(--muted); font-size:12px; }
     .hm .down { color:var(--v-great); font-weight:600; }
-    .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:8px; }
-    .hm-tile { padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
+    .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px 16px; }
+    .hm-tile { padding:2px 0 0 12px; border-left:2px solid var(--rule); }
     .hm-tile span { display:block; color:var(--muted); font-size:12px; }
     .hm-tile b { display:block; font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; }
     .hm-tile small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
@@ -258,8 +260,8 @@
     .hm .grid { position:absolute; left:0; right:0; height:0; border-top:var(--bw) solid var(--rule); pointer-events:none; }
     .hm .ylab { position:absolute; left:-44px; width:38px; text-align:right; font-size:12px; color:var(--muted); transform:translateY(-50%); font-variant-numeric:tabular-nums; }
     .hm .col { flex:1; min-width:0; height:100%; display:flex; align-items:flex-end; justify-content:center; background:none; border:0; padding:0; cursor:default; position:relative; }
-    .hm .col i { display:block; width:100%; max-width:14px; border-radius:2px 2px 0 0; background:var(--muted); opacity:.55; transition:opacity .12s; }
-    .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--ink); }
+    .hm .col i { display:block; width:100%; max-width:14px; border-radius:3px 3px 0 0; background:var(--muted); opacity:.45; transition:opacity .12s; }
+    .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--accent); }
     .hm .xaxis { display:flex; justify-content:space-between; gap:6px; font-size:12px; color:var(--muted); margin-top:5px; }
     .hm-tip { position:absolute; z-index:5; pointer-events:none; background:var(--ink); color:var(--on-ink); padding:5px 9px; border-radius:var(--r-sm); font-size:12px; opacity:0; transform:translate(-50%, -100%); transition:opacity .1s; white-space:nowrap; }
     .hm-tip b { font:600 15px/1.2 var(--display); display:block; }
@@ -313,26 +315,24 @@
     input::placeholder { color:var(--muted); opacity:.7; }
     input:focus { outline:2px solid var(--ink); outline-offset:-1px; }
 
-    /* Buyer or Reseller: two ways of shopping, above the tabs because Saved and Home follow it too */
-    .modebar { flex:none; display:grid; grid-template-columns:repeat(2,1fr); gap:3px; margin:2px 16px 10px; padding:3px; background:var(--paper-2); border-radius:calc(var(--r-sm) + 3px); }
-    .modebar button { display:grid; gap:1px; padding:7px 4px 6px; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); font:inherit; text-align:center; cursor:pointer; transition:background .18s, color .18s, box-shadow .18s; }
-    .modebar button b { font:600 15px/1.15 var(--display); letter-spacing:-.005em; }
-    .modebar button span { font-size:12px; line-height:1.2; }
+    /* Buyer or Reseller: a small switch at the end of the tab row, because Saved and Home follow it too.
+       What each one means is the first line of This page (.mode-hint). */
+    .bar { flex:none; display:flex; align-items:center; gap:10px; padding:0 12px 0 16px; border-bottom:var(--bw) solid var(--rule); }
+    .modebar { flex:none; margin-left:auto; display:flex; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
+    .modebar button { min-height:26px; padding:4px 11px; border:0; border-radius:999px; background:none; color:var(--muted); font:600 12px/1 var(--ui); cursor:pointer; transition:background .18s, color .18s, box-shadow .18s; }
     .modebar button:hover { color:var(--ink); }
-    .modebar button[aria-checked="true"] { background:var(--raise); color:var(--ink); box-shadow:0 0 0 1px var(--rule), 0 1px 3px rgba(0,0,0,.12); }
-    .modebar button[aria-checked="true"] b::before { content:""; display:inline-block; width:6px; height:6px; margin:0 6px 0 -12px; border-radius:50%; background:var(--accent); vertical-align:.18em; }
+    .modebar button[aria-checked="true"] { background:var(--raise); color:var(--ink); box-shadow:0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,.12); }
+    .panel { container-type:inline-size; }
+    @container (max-width: 350px) { .nav button { margin-right:12px; } .modebar button { padding:4px 8px; } }
     .head, .nav { flex:none; }
-    @media (max-height: 620px) {
-      .head { padding-top:10px; padding-bottom:6px; }
-      .head small, .modebar button span { display:none; }
-      .modebar { margin-bottom:6px; }
-      .modebar button { padding:5px 4px; }
-    }
+    @media (max-height: 620px) { .head { padding-top:8px; padding-bottom:0; } .nav button { padding:9px 0 8px; } }
     .hint { color:var(--muted); font-size:13px; }
     .inputs { display:grid; gap:12px; }
     .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
     .wrap:not([data-workspace="reseller"]) .feewrap { display:none; }
-    .feewrap .hint { margin-top:6px; }
+    .feewrap { display:grid; grid-template-columns:1fr 84px; align-items:center; column-gap:12px; }
+    .feewrap label { margin:0; }
+    .feewrap .hint { grid-column:1 / -1; margin-top:6px; }
     .inputs-sum { display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:8px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:12px; color:var(--muted); }
     .inputs-sum b { color:var(--ink); font-weight:600; }
     .inputs-sum .sum-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -342,15 +342,15 @@
     .browse-note { margin-top:6px; }
     .browse-note b { color:var(--ink); font-weight:600; }
 
-    .scan { background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
+    .scan { min-height:42px; background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
       box-shadow:var(--press); cursor:pointer; transition:opacity .15s, transform .08s, box-shadow .08s; }
     .scan:hover:not(:disabled) { opacity:.88; }
     .scan .cost, .ghost .cost { font-weight:400; opacity:.75; }
     .scan:disabled { opacity:.55; cursor:progress; }
-    .freeprices { margin-top:-4px; text-align:center; color:var(--muted); font-size:12px; }
-    .freeprices button { all:unset; padding:3px 0; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
-    .freeprices button:hover { text-decoration-color:currentColor; }
-    .freeprices button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    /* the other two ways to use a search, side by side under Scan */
+    .alts { display:flex; gap:8px; margin-top:-4px; }
+    .alts > * { flex:1 1 0; min-width:0; }
+    .alts:not(:has(> :not([hidden]))) { display:none; }
     .status { color:var(--muted); font-size:13px; white-space:pre-line; }
     .statusrow { display:flex; align-items:flex-start; gap:10px; }
     .statusrow .status { flex:1; min-width:0; }
@@ -462,6 +462,7 @@
     .qt { border:var(--bw) solid var(--line); background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
     .qt:hover { color:var(--ink); border-color:var(--muted); }
     .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
+    .qt { min-height:26px; }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
     .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 12px/1 var(--ui); letter-spacing:normal; text-transform:none; }
     .qf-deal input { width:62px; }
@@ -484,14 +485,18 @@
     .pi-search:not(:has(> :not([hidden]))) { display:none; }
     .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:13px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
+    .pi-bar { display:flex; gap:2px; height:6px; margin:8px 0 10px; }
+    .pi-bar i { min-width:6px; border-radius:3px; background:var(--c); }
+    @media (forced-colors: active) { .pi-bar i { forced-color-adjust:none; } }
     .pi-head { margin-bottom:3px; color:var(--ink); font:600 23px/1.2 var(--display); letter-spacing:-.015em; }
     .pi-head .mono { font-family:var(--mono); }
     .pi-line b { color:var(--ink); font-weight:600; }
     .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
-    .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
-    .seg button { border:0; background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:6px 10px; border-radius:calc(var(--r-sm) - 2px); cursor:pointer; }
-    .seg button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
+    .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
+    .seg button { min-height:24px; border:0; background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:5px 11px; border-radius:999px; cursor:pointer; }
+    .seg button:hover { color:var(--ink); }
+    .seg button[aria-checked="true"] { background:var(--raise); color:var(--ink); box-shadow:0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,.12); }
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .fchip { font-size:12px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
@@ -529,12 +534,15 @@
     .list:empty, .itemout:empty { display:none; }
     .row { display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:12px; padding:14px 0; border-top:var(--bw) solid var(--rule); animation:fade .25s ease both; }
     .row.still { animation:none; }
+    .list > .row, .list > .row.plain { margin:0 -16px; padding-left:16px; padding-right:16px; transition:background .12s; }
+    .list > .row:hover, .list > .row:focus-within { background:color-mix(in srgb, var(--paper-2) 70%, transparent); }
     /* Long lists (a Marketplace feed can give hundreds of rows): rows out of view aren't laid out or painted
        until they scroll in, and only the first few fade in. */
     .list > .row { content-visibility:auto; contain-intrinsic-size:auto 110px; }
     .list > .row:nth-child(n+13) { animation:none; }
     .itemout > .row:first-child { border-top:0; }
     @keyframes fade { from { opacity:0; } to { opacity:1; } }
+    .view:not([hidden]) { animation:fade .16s ease both; }
     /* the score as a dial: the ring fills to the score in the verdict's colour */
     .tag { --c:var(--v-fair); --p:50; position:relative; width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
       background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--rule) 0); }
@@ -543,7 +551,11 @@
     .tag i { display:none; }
     @media (forced-colors: active) { .tag { background:none; border:2px solid CanvasText; } .tag::before { display:none; } }
     .row.plain { padding:12px 0; grid-template-columns:minmax(0,1fr) auto; }
-    .itemout .title { font:600 18px/1.3 var(--display); letter-spacing:-.01em; cursor:default; }
+    .itemout .title { font:600 19px/1.3 var(--display); letter-spacing:-.01em; cursor:default; }
+    .itemout > .row:first-child { grid-template-columns:60px minmax(0,1fr) auto; align-items:start; }
+    .itemout > .row:first-child .tag { width:60px; height:60px; }
+    .itemout > .row:first-child .tag::before { inset:4px; }
+    .itemout > .row:first-child .tag span { font-size:23px; }
     .itemout .title .verdict { font-weight:600; }
     .pr { text-align:right; font:600 17px/1.3 var(--display); font-variant-numeric:lining-nums tabular-nums; letter-spacing:-.01em; }
     .pr.deal { color:var(--accent); }
@@ -585,12 +597,16 @@
     [hidden] { display:none !important; }
 
     /* search ideas */
-    .ghost { background:none; color:var(--ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:9px; font:600 13px/1 var(--ui); cursor:pointer; transition:background .15s, color .15s; }
-    .ghost:hover:not(:disabled) { background:var(--ink); color:var(--on-ink); }
+    .ghost { min-height:38px; background:none; color:var(--ink); border:var(--bw) solid var(--line); border-radius:var(--r-sm); padding:9px 10px; font:600 13px/1.1 var(--ui); cursor:pointer; transition:background .15s, border-color .15s; }
+    .ghost:hover:not(:disabled) { background:var(--paper-2); border-color:var(--ink); }
     .ghost:disabled { opacity:.55; cursor:progress; }
     .ideas-list:empty { display:none; }
-    .saved-body .sub { display:block; margin:4px 0 0; color:var(--muted); font-size:12px; font-weight:600; }
-    .srow { display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--rule); }
+    .saved-body .sub { display:block; margin:6px 0 4px; color:var(--ink); font:600 17px/1.3 var(--display); letter-spacing:-.01em; }
+    .saved-body .sub ~ .sub { margin-top:18px; }
+    .srow { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-top:1px solid var(--rule); }
+    .srow .pr { flex:none; }
+    .srow .meta .srow-act { margin-left:10px; }
+    @media (hover:hover) { .srow:not(:hover):not(:focus-within) .meta .srow-act { visibility:hidden; } }
     .sub + .srow { border-top:0; }
     .srow > div { flex:1; min-width:0; }
     .srow a { padding:3px 0; color:var(--ink); font-weight:600; text-decoration:none; overflow-wrap:anywhere; }
@@ -644,7 +660,7 @@
     input:focus-visible { outline-offset:-1px; }
 
 
-    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .idea, .count, .progress i, .busy .status::before { transition:none !important; animation:none !important; } }
+    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .view, .idea, .count, .progress i, .busy .status::before { transition:none !important; animation:none !important; } }
   </style>
   <div class="wrap">
    <div class="zones" aria-hidden="true"><div class="zone" data-side="left"></div><div class="zone" data-side="right"></div></div>
@@ -657,18 +673,20 @@
       <div class="rz rz-w" data-edge="w" aria-hidden="true" title="Drag to change the width"></div><div class="rz rz-e" data-edge="e" aria-hidden="true" title="Drag to change the width"></div>
       <div class="head" tabindex="0" role="group" aria-label="Panel position: left and right arrow keys pick the side, up and down the width" title="Drag to the left or right edge to dock it there; double-click to put it back">
         <span class="mark">${MARK}</span>
-        <div class="grow"><div class="wordmark">Second <em>Look</em></div><small>for careful buyers</small></div>
+        <div class="grow"><div class="wordmark">Second <em>Look</em></div></div>
         <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
         <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
         <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
       </div>
-      <div class="modebar" role="radiogroup" aria-label="Mode">
-        <button role="radio" data-mode="buyer" title="Buying something to keep and use"><b>Buyer</b> <span>to keep and use</span></button><button role="radio" data-mode="reseller" title="Buying something to fix up and sell"><b>Reseller</b> <span>to fix up and flip</span></button>
-      </div>
-      <div class="nav" role="tablist" aria-label="Views">
-        <button role="tab" data-view="page" aria-selected="true">This page</button>
-        <button role="tab" data-view="saved" aria-selected="false">Saved<span class="cnt"></span></button>
-        <button role="tab" data-view="home" aria-selected="false">Home<span class="cnt alert" hidden></span></button>
+      <div class="bar">
+        <div class="nav" role="tablist" aria-label="Views">
+          <button role="tab" data-view="home" aria-selected="false">Home<span class="cnt alert" hidden></span></button>
+          <button role="tab" data-view="page" aria-selected="true">This page</button>
+          <button role="tab" data-view="saved" aria-selected="false">Saved<span class="cnt"></span></button>
+        </div>
+        <div class="modebar" role="radiogroup" aria-label="Shopping as">
+          <button role="radio" data-mode="buyer" title="Buyer: something to keep and use">Buyer<span class="sr">, to keep and use</span></button><button role="radio" data-mode="reseller" title="Reseller: something to fix up and flip">Reseller<span class="sr">, to fix up and flip</span></button>
+        </div>
       </div>
       <div class="progress" hidden aria-hidden="true"><i></i></div>
       <div class="body">
@@ -680,7 +698,7 @@
           <ol>
             <li class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
               <button class="scan setup-go" data-act="open-settings">Open settings</button></li>
-            <li><button data-step="lens">Pick Buyer or Reseller</button> at the top: to keep and use, or to fix up and flip.</li>
+            <li><button data-step="lens">Pick Buyer or Reseller</button> (top right): to keep and use, or to fix up and flip.</li>
             <li><button data-step="want">Say what you want</button>, like "working, with charger". Optional.</li>
             <li><button data-step="scan">Press Scan</button> and every listing gets a score and a reason.</li>
           </ol>
@@ -692,18 +710,20 @@
         <div class="hint mode-hint"></div>
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
-        <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price before a margin is worked out. eBay's are around 13%.</div></div>
+        <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
-        <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
-        <div class="freeprices" hidden><button data-act="prices">Just compare sold prices</button> <span>free, no AI</span></div>
+        <div class="alts">
+          <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
+          <button class="ghost freeprices" data-act="prices" hidden title="The eBay sold-price lookup on its own: free, no AI">Sold prices <span class="cost">free</span></button>
+        </div>
         <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are cancelled">Stop</button></div>
-        <div class="pageinfo" hidden><div class="pi-head" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
+        <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
         <div class="ideas-inline" hidden><div class="status ideas-status" role="status"></div><div class="ideas-list"></div></div>
       </div>
       <div class="listbar" hidden>
@@ -778,6 +798,7 @@
   const pageInfo = $(".pageinfo");
   const piLine = $(".pi-line");
   const piHead = $(".pi-head");
+  const piBar = $(".pi-bar");
   const piSearch = $(".pi-search");
   const listBar = $(".listbar");
   const sortSel = $(".sort");
@@ -1978,7 +1999,7 @@
     const items = Object.entries(saved).sort((a, b) => b[1].a0 - a[1].a0);
     const searches = Object.entries(savedSearches).sort((a, b) => b[1].v - a[1].v);
     const hidden = Object.entries(notInterested).sort((a, b) => b[1].a - a[1].a);
-    $(".nav .cnt").textContent = items.length + searches.length ? String(items.length + searches.length) : "";
+    $('.nav [data-view="saved"] .cnt').textContent = items.length + searches.length ? String(items.length + searches.length) : "";
     if (view !== "saved") return;
     const sayHere = (text, err = false) => {
       const st = $(".saved-status");
@@ -1988,10 +2009,12 @@
     const priceLine = (k, r) => {
       const now = r.p != null ? dollars(r.p) : "no price";
       const moved = r.p0 != null && r.p != null && r.p !== r.p0;
+      // the price itself has its own column (.pr); this line says where, when, and how it moved
       return [
-        `${siteName(k)} \u00b7 ${now}`,
-        moved ? h("span", { class: r.p < r.p0 ? "down" : "" }, ` (${r.p < r.p0 ? "\u2193" : "\u2191"} from ${dollars(r.p0)})`) : "",
+        siteName(k),
+        moved ? h("span", { class: r.p < r.p0 ? "down" : "" }, ` \u00b7 ${r.p < r.p0 ? "\u2193" : "\u2191"} from ${dollars(r.p0)}`) : "",
         ` \u00b7 ${r.a - r.a0 > 60000 ? `seen ${shortDate(r.a)}` : `saved ${shortDate(r.a0)}`}`,
+        r.p == null ? ` \u00b7 ${now}` : "",
       ];
     };
     const copy = h("button", {
@@ -2015,9 +2038,14 @@
               h(
                 "div",
                 { class: "srow" },
-                h("div", {}, h("a", { href: safeUrl(r.u, itemUrl(k)), target: "_blank", rel: "noopener" }, r.t || safeUrl(r.u, itemUrl(k))), h("div", { class: "meta" }, priceLine(k, r))),
+                h(
+                  "div",
+                  {},
+                  h("a", { href: safeUrl(r.u, itemUrl(k)), target: "_blank", rel: "noopener" }, r.t || safeUrl(r.u, itemUrl(k))),
+                  h("div", { class: "meta" }, priceLine(k, r), h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove"))
+                ),
                 priceHistory(k, r),
-                h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove")
+                r.p != null ? h("div", { class: "pr" }, dollars(r.p)) : null
               )
             ),
             items.length ? h("div", { class: "actions sv-acts" }, copy) : null,
@@ -2033,9 +2061,9 @@
                   h("div", { class: "meta" }, [
                     `${r.site === "ebay" ? "eBay" : "Marketplace"} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`,
                     r.deal ? h("span", { class: r.deals ? "down" : "" }, ` \u00b7 ${r.deals || "none"} at your $${r.deal}`) : "",
+                    h("button", { class: "srow-act", title: "Remove this search", onclick: () => removeStored("savedSearches", k) }, "Remove"),
                   ])
-                ),
-                h("button", { class: "srow-act", title: "Remove this search", onclick: () => removeStored("savedSearches", k) }, "Remove")
+                )
               )
             ),
             searches.length > 1
@@ -2966,6 +2994,19 @@
     const worthN = scored.filter((it) => (it.verdict === "great" || it.verdict === "good") && !likelyScam(facts.get(keyOf(it.url)))).length;
     piHead.hidden = !scored.length;
     piHead.textContent = !scored.length ? "" : worthN ? `${worthN} worth a look` : "Nothing here is a bargain";
+    // How the scored listings split, best to worst: one segment per verdict, as wide as its count.
+    const split = ["great", "good", "fair", "pass", "suspicious"].map((v) => [v, scored.filter((it) => it.verdict === v).length]).filter(([, c]) => c);
+    const splitSig = split.join();
+    if (piBar.dataset.sig !== splitSig) {
+      piBar.dataset.sig = splitSig;
+      piBar.replaceChildren(...split.map(([v, c]) => {
+        const seg = h("i", { "data-v": v, title: `${c} ${VERDICT[v].label.toLowerCase()}` });
+        seg.style.flexGrow = String(c);
+        return seg;
+      }));
+      piBar.setAttribute("aria-label", split.map(([v, c]) => `${c} ${VERDICT[v].label.toLowerCase()}`).join(", "));
+    }
+    piBar.hidden = !scored.length;
     const scamN = n((f) => likelyScam(f) && !f.hidden);
     const bits = [`<b>${all.length}</b> listings`];
     if (scamN) bits.push(`<b>${scamN}</b> look like scams`);
@@ -3835,7 +3876,7 @@
   const showIdeasBtn = () => {
     const type = SL.pageType();
     ideasBtn.hidden = !(type === "home" || (type === "results" && queryEl.value.trim()));
-    setIf(ideasBtn, "textContent", type === "home" ? "Find searches for what I want" : "Find better searches for this");
+    setIf(ideasBtn, "textContent", type === "home" ? "Find searches for what I want" : "Better searches");
     setIf(ideasBtn, "title", type === "home" ? "" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)");
   };
   queryEl.addEventListener("input", showIdeasBtn);

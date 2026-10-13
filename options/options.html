@@ -34,7 +34,7 @@
   h1 small { font:400 15px/1 var(--ui); color:var(--muted); margin-left:6px; letter-spacing:0; }
   p.lede { color:var(--muted); margin:0 0 8px; }
 
-  section { padding:24px 0 6px; border-top:var(--bw) solid var(--rule); margin-top:22px; }
+  section { padding:24px 0 6px; border-top:var(--bw) solid var(--rule); margin-top:22px; scroll-margin-top:48px; }
   h2 { margin:0 0 10px; font:600 21px/1.25 var(--display); letter-spacing:-.01em; color:var(--ink); }
   .field { display:grid; gap:6px; margin-bottom:18px; }
   label { font:600 14px/1.4 var(--ui); }
@@ -80,7 +80,8 @@
   .status-card .row-btns { margin-top:0; }
   .status-card a.btn { display:inline-block; font:600 13px/1 var(--ui); padding:8px 12px; border-radius:var(--r-sm); border:var(--bw) solid var(--ink); color:var(--ink); text-decoration:none; }
   .status-card a.btn.primary { background:var(--ink); color:var(--on-ink); }
-  nav.jump { display:flex; flex-wrap:wrap; gap:6px 14px; margin:14px 0 0; font-size:13px; }
+  nav.jump { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:6px 14px; margin:14px -8px 0; padding:10px 8px; font-size:13px;
+    background:color-mix(in srgb, var(--paper) 90%, transparent); backdrop-filter:blur(8px); }
   nav.jump a { display:inline-block; padding:2px 0 1px; color:var(--muted); text-decoration:none; border-bottom:1px solid var(--rule); }
   nav.jump a:hover { color:var(--ink); border-color:var(--ink); }
   .keyrow { display:flex; gap:8px; }

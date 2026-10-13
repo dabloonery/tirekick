@@ -140,7 +140,7 @@ ok("settings from before there were modes go to the mode that was in use", (awai
 // ---------- searches, marks and Saved ----------
 await reset();
 p = await openPanel(SEARCH);
-ok("a search has a Find better searches button", (await R(p, `const b=r.querySelector('[data-act=ideas]'); return !b.hidden && /better searches/.test(b.textContent)`)));
+ok("a search has a Better searches button", (await R(p, `const b=r.querySelector('[data-act=ideas]'); return !b.hidden && /better searches/i.test(b.textContent)`)));
 it = await openPanel("https://www.ebay.com/itm/184891897312");
 await sleep(1200);
 ok("a listing page doesn't", await R(it, `return r.querySelector('[data-act=ideas]').hidden`));

@@ -805,6 +805,21 @@ async function soldWorkerBlocked() {
 // exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
 // and a site's font rules can't block them.
 
+// ---------- Fonts ----------
+// Page scripts get the bundled serif as bytes and add it with the FontFace API. Nothing is
+// exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
+// and a site's font rules can't block them.
+const FONT_FILES = /^(fraunces-400|fraunces-400-italic|fraunces-600)\.woff2$/;
+const fontCache = new Map();
+async function getFont({ file }) {
+  if (!FONT_FILES.test(file || "")) throw new Error("Unknown font.");
+  if (!fontCache.has(file)) {
+    const res = await fetch(chrome.runtime.getURL(`fonts/${file}`));
+    fontCache.set(file, bufferToBase64(await res.arrayBuffer()));
+  }
+  return fontCache.get(file);
+}
+
 // Page scripts get the settings without the API key: they never need it.
 async function getPageSettings() {
   const { anthropicKey, oaiKey, ...rest } = await getSettings();
@@ -839,7 +854,7 @@ async function abort({ ids }) {
   return true;
 }
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, soldWorkerBlocked, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
+const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, soldWorkerBlocked, getFont, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];

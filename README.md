@@ -263,10 +263,12 @@ Plain and built to be read: dark first, a hairline and a word beside every colou
 monospaced face so prices line up. **Settings → On the page → Theme**: *Match my browser* (the
 default; dark if the browser doesn't say), *Dark* or *Light*. The panel follows that; the marks on
 eBay and Marketplace cards follow the page itself (its real background, so a site's dark mode or a
-dark-mode extension counts). One scale everywhere (panel, card marks, photo card, settings): sizes 11, 12, 13, 14, 15, 18, 22 (10 only inside the score tag), weights 400 and 600 (700 for numerals and headings). Buttons come in three tiers: filled (the one action to take: Scan, Analyze, Test connection), outlined (other actions), and plain underlined text for actions inside a list; a red outline means it clears something. Colour carries meaning only: the verdict colours, red for scams and clearing things, orange for "new" and "at your price". The tag's word and the line beside it use the same vocabulary (Great / Great deal, Fair / Fair price, Scam? / Suspicious). Text is Atkinson Hyperlegible if you have it installed, otherwise your
-system font. Palettes and type live in `THEME_DARK`, `THEME_LIGHT` and `THEME_CSS` near the top of
-`content/panel.js`, and the card marks' own tokens in `ensureStickerStyles`. Text contrast is 4.6:1
-or better in both themes, and control borders 3:1 or better.
+dark-mode extension counts). One scale everywhere (panel, card marks, photo card, settings): sizes 11, 12, 13, 14, 15, 18, 22 (10 only inside the score tag), weights 400 and 600 (800 for numerals and headings). Buttons come in three tiers: filled (the one action to take: Scan, Analyze, Test connection), outlined (other actions), and plain underlined text for actions inside a list; a red outline means it clears something. Colour carries meaning only: the verdict colours, red for scams and clearing things, orange for "new" and "at your price". The tag's word and the line beside it use the same vocabulary (Great / Great deal, Fair / Fair price, Scam? / Suspicious). Type is Bricolage Grotesque (bundled), a
+narrower cut for the wordmark, headings, scores and prices. Scores are tread dots: the fill is the verdict, the tread
+lights up as far as the score, Skip is hollow and Suspicious carries a "!" badge, and each verdict word has its own
+glyph, so color is never the only cue. Palettes, type, the dot and the glyphs all live in `lib/theme.js`, which the
+panel, the card tags and the settings page read. Text contrast is 4.5:1 or better in both themes, and control
+borders 3:1 or better.
 
 ## Local setup with Ollama (CachyOS, about 30 minutes, mostly downloads)
 
@@ -333,6 +335,7 @@ refresh the tab. The version number there tells you which copy is running.
 |---|---|
 | `manifest.json` | Permissions, icon, keyboard shortcut. With "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
 | `lib/shared.js` | Small pieces shared by the worker, the pages and settings: the link and photo-host checks, settings limits (also applied to restored backups), alert rules, the spend summary, the price sparkline |
+| `lib/theme.js` | The look in one place: both color themes, the Bricolage Grotesque faces, the tread-dot score, the verdict glyphs and the wordmark. Change a color or shape here and the panel, card tags and settings follow; `node scripts/icons.mjs` redraws the toolbar icons from it |
 | `content/rules.js` | The plain rules (words and filters, scam signs, photo verdicts, fix-up words) as functions with no page, storage or network |
 | `content/home.js` | The panel's Home tab |
 | `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape; the sold-price median |

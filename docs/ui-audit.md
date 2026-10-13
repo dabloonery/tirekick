@@ -176,3 +176,19 @@ Inspired by the 0.13 "paper and ink" identity: warm paper, ink, hairlines, colou
 - **Scores are dials**: a ring that fills to the score in the verdict's colour, in the panel and on the card tags. Card tags are rounded paper pills; chips are pills too.
 - **The mode switch** is a quiet track with a raised thumb and a vermilion dot, instead of an inked block; the chosen tab is underlined in vermilion.
 - Softer corners (12px panels, 7px controls), a raised welcome card, and a soft edge under the tabs once the list has scrolled (a scroll-driven animation, no script).
+
+## The redesign, past the restyle
+A second pass rethought layout and hierarchy, not only the finish:
+
+| Before | After | Why |
+|---|---|---|
+| Header with a tagline, a two-line Buyer/Reseller bar, then the tabs: ~160px on every view | One header row; the tabs and a small Buyer/Reseller pill switch share the second row: ~88px | The results get the height. What each mode means is already the first line of This page, and the buttons keep it for screen readers |
+| Scan, then a full-width "Find better searches for this", then an underlined "Just compare sold prices · free, no AI" | Scan, then **Better searches** and **Sold prices · free** side by side, both hairline buttons | One primary action, two equal secondary ones; three different weights were competing |
+| Results summary: a headline and a counts line | Headline, a **verdict bar** (one segment per verdict, as wide as its count; named for screen readers), then the counts | How good the page is, at a glance |
+| List rows separated by hairlines only | The row you point at is tinted, edge to edge, with its links | Its links clearly belong to it |
+| Listing page: a 46px score beside "Worth a look · 64 out of 100" | A 60px dial, the verdict in the serif | The judgment leads |
+| Saved: price inside the details line, Remove always visible in its own column | The price in its own serif column; Remove in the details line, shown on hover or focus; section titles in the serif | The title gets the width; prices line up |
+| Home: boxed tiles, small grey section labels | An open grid of numbers with a hairline rule; serif section titles; the chart's peak in vermilion | Less boxing; the same type scale as This page |
+| Filter: inked toggles; a hairline segmented control | Segmented controls match the mode switch (a track with a raised thumb) | One control style throughout |
+| Settings: the section links scroll away | They stay at the top, over a blurred band; sections land below them | Long page, quick jumps |
+| Selling fees: a full-width box with a two-line hint | A small number box beside its label, one-line hint | It's a number, not a sentence |

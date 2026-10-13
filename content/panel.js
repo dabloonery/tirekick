@@ -55,6 +55,28 @@
       });
     });
 
+  // The serif ships inside the extension and is added with the FontFace API from bytes the background
+  // provides, once the page is idle. Until then (or if it fails) the --display stack falls back to
+  // a system serif, so nothing waits on it.
+  const FONTS = [
+    ["SL Fraunces", "fraunces-600.woff2", { weight: "600" }],
+    ["SL Fraunces", "fraunces-400.woff2", { weight: "400" }],
+    ["SL Fraunces", "fraunces-400-italic.woff2", { weight: "400", style: "italic" }],
+  ];
+  const loadFonts = async () => {
+    for (const [family, file, desc] of FONTS) {
+      try {
+        const b64 = await send("getFont", { file });
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        document.fonts.add(await new FontFace(family, bytes.buffer, desc).load());
+      } catch (e) {
+        if (alive()) console.warn("[Second Look] font", file, e.message);
+        return;
+      }
+    }
+  };
+  (window.requestIdleCallback || setTimeout)(loadFonts, { timeout: 1500 });
+
   // Small DOM builder: always uses textContent, so listing text can't inject HTML.
   const h = (tag, attrs = {}, ...kids) => {
     const el = document.createElement(tag);
@@ -67,8 +89,18 @@
     return el;
   };
 
-  const tagEl = (verdict, score) =>
-    h("div", { class: "tag", "data-v": verdict, role: "img", "aria-label": `Score ${score}, ${SHORT[verdict] || verdict}` }, h("span", {}, String(score)), h("i", {}, SHORT[verdict] || ""));
+  const tagEl = (verdict, score) => {
+    const el = h("div", { class: "tag", "data-v": verdict, role: "img", "aria-label": `Score ${score}, ${SHORT[verdict] || verdict}` }, h("span", {}, String(score)), h("i", {}, SHORT[verdict] || ""));
+    el.style.setProperty("--p", String(Math.max(0, Math.min(100, Number(score) || 0))));
+    return el;
+  };
+
+  // The card tag's score: a dial like the panel's, set through CSSOM so a page's style rules can't block it
+  const scoreDial = (item) => {
+    const el = h("div", { class: "sl-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || ""));
+    el.style.setProperty("--p", String(Math.max(0, Math.min(100, Number(item.score) || 0))));
+    return el;
+  };
 
   // ---------- panel shell (shadow DOM keeps site CSS out) ----------
 
@@ -84,18 +116,19 @@
   // --on-v and --on-accent are the text colours that sit on a verdict or accent fill.
   const THEME_DARK = `color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176;
       --accent:#E2673C; --on-accent:#161513; --v-great:#5FD08B; --v-good:#B5D36A; --v-fair:#E0B050; --v-pass:#A9A59B; --v-suspicious:#FF8A80; --on-v:#161513;
-      --shadow:0 0 0 1px rgba(255,255,255,.04), 0 18px 44px -12px rgba(0,0,0,.75);`;
+      --raise:#34312C; --shadow:0 0 0 1px rgba(255,255,255,.04), 0 18px 44px -12px rgba(0,0,0,.75);`;
   const THEME_LIGHT = `color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A;
       --accent:#C8461F; --on-accent:#fff; --v-great:#0A6B35; --v-good:#4A6500; --v-fair:#85540A; --v-pass:#5C5850; --v-suspicious:#B00020; --on-v:#fff;
-      --shadow:0 1px 2px rgba(28,27,25,.06), 0 18px 44px -14px rgba(28,27,25,.32);`;
+      --raise:#FFFFFF; --shadow:0 1px 2px rgba(28,27,25,.06), 0 18px 44px -14px rgba(28,27,25,.32);`;
   // Colour, type and shape. Shared by the panel and the photo-check card.
   const THEME_CSS = `
     /* ---------- tokens: dark first; the light set is used when the browser asks for it or Setup says so ---------- */
     .wrap {
       --w: min(380px, calc(100vw - 32px)); --gap: 16px; /* applyBox() sets --w from the chosen width */
-      --r:6px; --r-sm:4px; --bw:1px; --press:none;
+      --r:12px; --r-sm:7px; --bw:1px; --press:none;
       --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
-      --display:var(--ui);
+      /* the serif (bundled, see FONTS) is for the wordmark, headlines, scores and prices; everything you operate stays in --ui */
+      --display:"SL Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
       --mono:"Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       font:14px/1.5 var(--ui); color:var(--ink); -webkit-font-smoothing:antialiased;
       ${THEME_DARK}
@@ -126,7 +159,7 @@
     .wrap[data-page-theme="dark"] .tab { ${THEME_DARK} background:var(--paper); color:var(--ink); border-color:var(--line); }
     .open .tab { width:0; padding:0; border:0; opacity:0; pointer-events:none; box-shadow:none; overflow:hidden; }
     .tab .mark { width:18px; height:18px; }
-    .tab .tab-label { writing-mode:vertical-rl; font:600 14px/1 var(--ui); letter-spacing:.01em; }
+    .tab .tab-label { writing-mode:vertical-rl; font:600 15px/1 var(--display); letter-spacing:.01em; }
     .count { position:absolute; top:-9px; left:-9px; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--ink); color:var(--on-ink);
       font:600 11px/20px var(--ui); font-style:normal; text-align:center; font-variant-numeric:tabular-nums; }
     .count.new { background:var(--accent); color:var(--on-accent); }
@@ -136,7 +169,7 @@
     /* one height for every view, so switching This page / Saved / a listing doesn't move the panel; only the body scrolls */
     .panel { width:var(--w); height:min(760px, calc(100vh - 48px)); display:flex; flex-direction:column; overflow:hidden; margin-right:var(--gap);
       background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
-    .head { display:flex; align-items:center; gap:10px; padding:14px 12px 8px 16px; cursor:grab; touch-action:none; }
+    .head { display:flex; align-items:center; gap:10px; padding:12px 10px 4px 16px; cursor:grab; touch-action:none; }
     .head button { cursor:pointer; }
     .head:focus-visible { outline:2px solid var(--ink); outline-offset:-2px; border-radius:var(--r); }
 
@@ -162,10 +195,16 @@
     .wrap[data-side="left"] .panel { margin-right:0; margin-left:var(--gap); }
     .wrap[data-side="left"] .count { left:auto; right:-9px; }
     .wrap[data-side="left"] [data-act="toggle"] svg { transform:scaleX(-1); }
-    .nav { display:flex; padding:0 16px; border-bottom:var(--bw) solid var(--rule); }
-    .nav button { border:0; background:none; margin:0 18px -1px 0; padding:8px 0 9px; border-bottom:2px solid transparent; color:var(--muted); font:600 13px/1 var(--ui); cursor:pointer; }
+    .nav { display:flex; min-width:0; }
+    .nav button { border:0; background:none; margin:0 16px -1px 0; padding:12px 0 10px; white-space:nowrap; border-bottom:2px solid transparent; color:var(--muted); font:600 13px/1 var(--ui); cursor:pointer; }
     .nav button:hover { color:var(--ink); }
-    .nav button[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--ink); }
+    .nav button[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--accent); }
+    /* Windows high contrast paints every border; keep only the chosen tab's line, and mark chosen buttons with Highlight */
+    @media (forced-colors: active) {
+      .nav button { border-bottom-color:Canvas; }
+      .nav button[aria-selected="true"] { border-bottom-color:Highlight; }
+      .modebar button[aria-checked="true"], .seg button[aria-checked="true"] { forced-color-adjust:none; background:Highlight; color:HighlightText; }
+    }
     .nav .cnt { margin-left:5px; font-weight:400; color:var(--muted); }
     .nav .cnt:empty { display:none; }
     .nav .cnt.alert { color:var(--accent); font-weight:700; }
@@ -175,7 +214,8 @@
     .hm { display:grid; gap:2px; }
     .hm-sec { padding:14px 0 8px; border-top:var(--bw) solid var(--rule); }
     .hm-sec:first-child { border-top:0; padding-top:10px; }
-    .hm h3 { margin:0 0 10px; display:flex; align-items:center; gap:8px; color:var(--muted); font:600 12px/1.2 var(--ui); }
+    .hm h3 { margin:0 0 10px; display:flex; align-items:baseline; gap:8px; color:var(--ink); font:600 17px/1.3 var(--display); letter-spacing:-.01em; }
+    .hm h3 .hm-count, .hm h3 .hm-btn { font-family:var(--ui); letter-spacing:normal; }
     .hm .hm-grow { flex:1; }
     .hm .hm-count { font-size:12px; font-weight:400; font-variant-numeric:tabular-nums; }
     .hm .hm-hint { display:block; color:var(--muted); font-size:12px; }
@@ -192,6 +232,7 @@
     .hm-bar i { display:block; height:100%; background:var(--v-great); }
     .hm-steps { list-style:none; margin:0 0 8px; padding:0; display:grid; gap:8px; }
     .hm-steps li { display:grid; grid-template-columns:22px 1fr; gap:10px; align-items:start; padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
+    .hm-steps li:not(.done) { background:var(--raise); }
     .hm-steps .num { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font:600 12px/1 var(--ui); box-shadow:inset 0 0 0 1px var(--line); color:var(--muted); }
     .hm-steps li.done .num { background:var(--v-great); box-shadow:none; color:var(--on-v); }
     .hm-steps li.done b { color:var(--muted); font-weight:400; text-decoration:line-through; text-decoration-color:var(--line); }
@@ -206,10 +247,10 @@
     .hm-alert .t a { font-weight:600; }
     .hm-alert .t small { display:block; color:var(--muted); font-size:12px; }
     .hm .down { color:var(--v-great); font-weight:600; }
-    .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:8px; }
-    .hm-tile { padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); }
+    .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px 16px; }
+    .hm-tile { padding:2px 0 0 12px; border-left:2px solid var(--rule); }
     .hm-tile span { display:block; color:var(--muted); font-size:12px; }
-    .hm-tile b { display:block; font:600 20px/1.25 var(--mono); font-variant-numeric:lining-nums; }
+    .hm-tile b { display:block; font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; }
     .hm-tile small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
     .hm-meter { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin-top:7px; }
     .hm-meter i { display:block; height:100%; background:var(--ink); }
@@ -219,11 +260,11 @@
     .hm .grid { position:absolute; left:0; right:0; height:0; border-top:var(--bw) solid var(--rule); pointer-events:none; }
     .hm .ylab { position:absolute; left:-44px; width:38px; text-align:right; font-size:12px; color:var(--muted); transform:translateY(-50%); font-variant-numeric:tabular-nums; }
     .hm .col { flex:1; min-width:0; height:100%; display:flex; align-items:flex-end; justify-content:center; background:none; border:0; padding:0; cursor:default; position:relative; }
-    .hm .col i { display:block; width:100%; max-width:14px; border-radius:2px 2px 0 0; background:var(--muted); opacity:.55; transition:opacity .12s; }
-    .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--ink); }
+    .hm .col i { display:block; width:100%; max-width:14px; border-radius:3px 3px 0 0; background:var(--muted); opacity:.45; transition:opacity .12s; }
+    .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--accent); }
     .hm .xaxis { display:flex; justify-content:space-between; gap:6px; font-size:12px; color:var(--muted); margin-top:5px; }
     .hm-tip { position:absolute; z-index:5; pointer-events:none; background:var(--ink); color:var(--on-ink); padding:5px 9px; border-radius:var(--r-sm); font-size:12px; opacity:0; transform:translate(-50%, -100%); transition:opacity .1s; white-space:nowrap; }
-    .hm-tip b { font:600 14px/1.2 var(--mono); display:block; }
+    .hm-tip b { font:600 15px/1.2 var(--display); display:block; }
     .hm-tip.show { opacity:1; }
     .hm-table { margin-top:10px; }
     .hm-table summary { cursor:pointer; color:var(--muted); font-size:12px; padding:3px 0; }
@@ -255,33 +296,43 @@
     .mark svg { width:100%; height:100%; }
     .mark .dot { fill:var(--accent); }
     .grow { flex:1; min-width:0; }
-    .wordmark { font:700 16px/1.1 var(--ui); letter-spacing:0; }
-    .wordmark em { font-style:normal; font-weight:400; }
+    .wordmark { font:600 19px/1.1 var(--display); letter-spacing:-.01em; }
+    .wordmark em { font-style:italic; font-weight:400; }
     .head small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
     .icon-btn { flex:none; width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); cursor:pointer; }
     .icon-btn svg { width:16px; height:16px; }
     .icon-btn:hover { background:var(--paper-2); color:var(--ink); }
 
     .body { flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--rule) transparent; }
+    /* once the list scrolls under the tabs, a soft edge shows there's more above (no script: a scroll-driven animation) */
+    @supports (animation-timeline: scroll()) {
+      .body { animation:scrolled linear both; animation-timeline:scroll(self); animation-range:0 32px; }
+      @keyframes scrolled { from { box-shadow:inset 0 0 0 transparent; } to { box-shadow:inset 0 10px 10px -10px rgba(0,0,0,.28); } }
+    }
     .controls { padding:14px 16px 12px; display:grid; grid-template-columns:minmax(0, 1fr); gap:12px; }
     label { display:block; margin-bottom:6px; color:var(--muted); font:600 12px/1.2 var(--ui); }
     input { width:100%; padding:9px 11px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; transition:border-color .15s; }
     input::placeholder { color:var(--muted); opacity:.7; }
     input:focus { outline:2px solid var(--ink); outline-offset:-1px; }
 
-    /* Buyer or Reseller: two ways of shopping, above the tabs because Saved and Home follow it too */
-    .modebar { flex:none; display:grid; grid-template-columns:repeat(2,1fr); gap:2px; margin:2px 16px 8px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
-    .modebar button { display:grid; gap:2px; padding:6px 4px; border:0; border-radius:calc(var(--r-sm) - 2px); background:none; color:var(--muted); font:inherit; text-align:center; cursor:pointer; transition:background .15s, color .15s; }
-    .modebar button b { font:600 13px/1.2 var(--ui); }
-    .modebar button span { font-size:12px; line-height:1.2; }
+    /* Buyer or Reseller: a small switch at the end of the tab row, because Saved and Home follow it too.
+       What each one means is the first line of This page (.mode-hint). */
+    .bar { flex:none; display:flex; align-items:center; gap:10px; padding:0 12px 0 16px; border-bottom:var(--bw) solid var(--rule); }
+    .modebar { flex:none; margin-left:auto; display:flex; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
+    .modebar button { min-height:26px; padding:4px 11px; border:0; border-radius:999px; background:none; color:var(--muted); font:600 12px/1 var(--ui); cursor:pointer; transition:background .18s, color .18s, box-shadow .18s; }
     .modebar button:hover { color:var(--ink); }
-    .modebar button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
+    .modebar button[aria-checked="true"] { background:var(--raise); color:var(--ink); box-shadow:0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,.12); }
+    .panel { container-type:inline-size; }
+    @container (max-width: 350px) { .nav button { margin-right:12px; } .modebar button { padding:4px 8px; } }
     .head, .nav { flex:none; }
+    @media (max-height: 620px) { .head { padding-top:8px; padding-bottom:0; } .nav button { padding:9px 0 8px; } }
     .hint { color:var(--muted); font-size:13px; }
     .inputs { display:grid; gap:12px; }
     .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
     .wrap:not([data-workspace="reseller"]) .feewrap { display:none; }
-    .feewrap .hint { margin-top:6px; }
+    .feewrap { display:grid; grid-template-columns:1fr 84px; align-items:center; column-gap:12px; }
+    .feewrap label { margin:0; }
+    .feewrap .hint { grid-column:1 / -1; margin-top:6px; }
     .inputs-sum { display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:8px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:12px; color:var(--muted); }
     .inputs-sum b { color:var(--ink); font-weight:600; }
     .inputs-sum .sum-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -291,15 +342,15 @@
     .browse-note { margin-top:6px; }
     .browse-note b { color:var(--ink); font-weight:600; }
 
-    .scan { background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
+    .scan { min-height:42px; background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
       box-shadow:var(--press); cursor:pointer; transition:opacity .15s, transform .08s, box-shadow .08s; }
     .scan:hover:not(:disabled) { opacity:.88; }
     .scan .cost, .ghost .cost { font-weight:400; opacity:.75; }
     .scan:disabled { opacity:.55; cursor:progress; }
-    .freeprices { margin-top:-4px; text-align:center; color:var(--muted); font-size:12px; }
-    .freeprices button { all:unset; padding:3px 0; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
-    .freeprices button:hover { text-decoration-color:currentColor; }
-    .freeprices button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    /* the other two ways to use a search, side by side under Scan */
+    .alts { display:flex; gap:8px; margin-top:-4px; }
+    .alts > * { flex:1 1 0; min-width:0; }
+    .alts:not(:has(> :not([hidden]))) { display:none; }
     .status { color:var(--muted); font-size:13px; white-space:pre-line; }
     .statusrow { display:flex; align-items:flex-start; gap:10px; }
     .statusrow .status { flex:1; min-width:0; }
@@ -330,8 +381,9 @@
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size:4px 4px; background-repeat:no-repeat; }
     .model:focus { outline:none; border-color:var(--ink); }
+    .model:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .spend { all:unset; padding:4px 0; cursor:pointer; color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }
-    .spend b { color:var(--ink); font:600 14px/1 var(--mono); font-variant-numeric:lining-nums tabular-nums; }
+    .spend b { color:var(--ink); font:600 15px/1 var(--display); font-variant-numeric:lining-nums tabular-nums; }
     .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
     .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
     .budget { height:3px; background:var(--rule); }
@@ -341,7 +393,7 @@
       background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
     .sd-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
     .sd-grid span { display:block; color:var(--muted); font-size:12px; }
-    .sd-grid b { font:600 18px/1.2 var(--mono); font-variant-numeric:lining-nums; }
+    .sd-grid b { font:600 20px/1.2 var(--display); font-variant-numeric:lining-nums; }
     .sd-models { display:grid; gap:3px; }
     .sd-models div { display:flex; justify-content:space-between; gap:8px; }
     .sd-models div span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
@@ -350,7 +402,8 @@
     .sd-note button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 
     /* first-run walkthrough */
-    .welcome { display:grid; gap:8px; padding:12px 14px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:13px; }
+    .welcome { display:grid; gap:8px; padding:14px 16px; border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--raise); font-size:13px; }
+    .welcome > b:first-child { font:600 19px/1.2 var(--display); letter-spacing:-.01em; }
     .welcome b { font:600 15px/1.2 var(--ui); }
     .welcome ol { margin:0; padding:0; list-style:none; display:grid; gap:4px; counter-reset:step; }
     .welcome li { counter-increment:step; position:relative; padding-left:26px; line-height:1.45; }
@@ -409,6 +462,7 @@
     .qt { border:var(--bw) solid var(--line); background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
     .qt:hover { color:var(--ink); border-color:var(--muted); }
     .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
+    .qt { min-height:26px; }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
     .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 12px/1 var(--ui); letter-spacing:normal; text-transform:none; }
     .qf-deal input { width:62px; }
@@ -431,14 +485,18 @@
     .pi-search:not(:has(> :not([hidden]))) { display:none; }
     .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:13px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
-    .pi-head { margin-bottom:2px; color:var(--ink); font:700 18px/1.3 var(--ui); }
+    .pi-bar { display:flex; gap:2px; height:6px; margin:8px 0 10px; }
+    .pi-bar i { min-width:6px; border-radius:3px; background:var(--c); }
+    @media (forced-colors: active) { .pi-bar i { forced-color-adjust:none; } }
+    .pi-head { margin-bottom:3px; color:var(--ink); font:600 23px/1.2 var(--display); letter-spacing:-.015em; }
     .pi-head .mono { font-family:var(--mono); }
     .pi-line b { color:var(--ink); font-weight:600; }
     .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
-    .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); }
-    .seg button { border:0; background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:6px 10px; border-radius:calc(var(--r-sm) - 2px); cursor:pointer; }
-    .seg button[aria-checked="true"] { background:var(--ink); color:var(--on-ink); }
+    .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
+    .seg button { min-height:24px; border:0; background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:5px 11px; border-radius:999px; cursor:pointer; }
+    .seg button:hover { color:var(--ink); }
+    .seg button[aria-checked="true"] { background:var(--raise); color:var(--ink); box-shadow:0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,.12); }
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .fchip { font-size:12px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
@@ -457,7 +515,7 @@
     .mnote a { color:var(--ink); font-weight:600; text-underline-offset:3px; }
     .mgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); gap:12px; }
     .mlabel { color:var(--muted); font-size:12px; }
-    .mval { display:block; font:600 22px/1.15 var(--mono); font-variant-numeric:lining-nums; margin:2px 0 1px; }
+    .mval { display:block; font:600 24px/1.15 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; margin:2px 0 1px; }
     .msub { color:var(--muted); font-size:12px; }
     .comps { margin-top:8px; }
     .comps summary { cursor:pointer; color:var(--ink); font-weight:600; font-size:12px; list-style:none; }
@@ -468,27 +526,38 @@
     .comps ul { list-style:none; margin:0; padding:0; }
     .comps li a { display:flex; gap:10px; padding:3px 0; color:var(--ink); text-decoration:none; }
     .comps li a:hover .ct { text-decoration:underline; }
-    .comps .cp { flex:none; width:44px; font:600 12px/1.5 var(--mono); font-variant-numeric:tabular-nums; }
+    .comps .cp { flex:none; width:44px; font:600 13px/1.5 var(--display); font-variant-numeric:lining-nums tabular-nums; }
     .comps .ct { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
 
     /* results */
     .list, .itemout { padding:0 16px 12px; }
     .list:empty, .itemout:empty { display:none; }
-    .row { display:grid; grid-template-columns:46px minmax(0,1fr) auto; gap:12px; padding:12px 0; border-top:var(--bw) solid var(--rule); animation:fade .25s ease both; }
+    .row { display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:12px; padding:14px 0; border-top:var(--bw) solid var(--rule); animation:fade .25s ease both; }
     .row.still { animation:none; }
+    .list > .row, .list > .row.plain { margin:0 -16px; padding-left:16px; padding-right:16px; transition:background .12s; }
+    .list > .row:hover, .list > .row:focus-within { background:color-mix(in srgb, var(--paper-2) 70%, transparent); }
     /* Long lists (a Marketplace feed can give hundreds of rows): rows out of view aren't laid out or painted
        until they scroll in, and only the first few fade in. */
     .list > .row { content-visibility:auto; contain-intrinsic-size:auto 110px; }
     .list > .row:nth-child(n+13) { animation:none; }
     .itemout > .row:first-child { border-top:0; }
     @keyframes fade { from { opacity:0; } to { opacity:1; } }
-    .tag { --c:var(--v-fair); width:46px; height:46px; border:1.5px solid var(--c); border-radius:var(--r-sm); display:grid; place-content:center; text-align:center; line-height:1; }
-    .tag span { font:700 18px/1 var(--mono); color:var(--c); font-variant-numeric:tabular-nums; }
-    .tag i { display:block; margin-top:3px; font:700 10px/1 var(--ui); font-style:normal; letter-spacing:.06em; text-transform:uppercase; color:var(--c); }
-    .list .tag, .itemout .tag { height:34px; }
-    .list .tag i, .itemout .tag i { display:none; }
+    .view:not([hidden]) { animation:fade .16s ease both; }
+    /* the score as a dial: the ring fills to the score in the verdict's colour */
+    .tag { --c:var(--v-fair); --p:50; position:relative; width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
+      background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--rule) 0); }
+    .tag::before { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--paper); }
+    .tag span { position:relative; font:600 17px/1 var(--display); color:var(--c); font-variant-numeric:lining-nums tabular-nums; }
+    .tag i { display:none; }
+    @media (forced-colors: active) { .tag { background:none; border:2px solid CanvasText; } .tag::before { display:none; } }
     .row.plain { padding:12px 0; grid-template-columns:minmax(0,1fr) auto; }
-    .pr { text-align:right; font:700 15px/1.35 var(--mono); font-variant-numeric:tabular-nums; }
+    .itemout .title { font:600 19px/1.3 var(--display); letter-spacing:-.01em; cursor:default; }
+    .itemout > .row:first-child { grid-template-columns:60px minmax(0,1fr) auto; align-items:start; }
+    .itemout > .row:first-child .tag { width:60px; height:60px; }
+    .itemout > .row:first-child .tag::before { inset:4px; }
+    .itemout > .row:first-child .tag span { font-size:23px; }
+    .itemout .title .verdict { font-weight:600; }
+    .pr { text-align:right; font:600 17px/1.3 var(--display); font-variant-numeric:lining-nums tabular-nums; letter-spacing:-.01em; }
     .pr.deal { color:var(--accent); }
     .scamline { color:var(--v-suspicious); font-weight:600; }
     /* Dim, as on the page: the row's text fades, its tag and any "Likely scam" line stay at full strength */
@@ -528,12 +597,16 @@
     [hidden] { display:none !important; }
 
     /* search ideas */
-    .ghost { background:none; color:var(--ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:9px; font:600 13px/1 var(--ui); cursor:pointer; transition:background .15s, color .15s; }
-    .ghost:hover:not(:disabled) { background:var(--ink); color:var(--on-ink); }
+    .ghost { min-height:38px; background:none; color:var(--ink); border:var(--bw) solid var(--line); border-radius:var(--r-sm); padding:9px 10px; font:600 13px/1.1 var(--ui); cursor:pointer; transition:background .15s, border-color .15s; }
+    .ghost:hover:not(:disabled) { background:var(--paper-2); border-color:var(--ink); }
     .ghost:disabled { opacity:.55; cursor:progress; }
     .ideas-list:empty { display:none; }
-    .saved-body .sub { display:block; margin:4px 0 0; color:var(--muted); font-size:12px; font-weight:600; }
-    .srow { display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--rule); }
+    .saved-body .sub { display:block; margin:6px 0 4px; color:var(--ink); font:600 17px/1.3 var(--display); letter-spacing:-.01em; }
+    .saved-body .sub ~ .sub { margin-top:18px; }
+    .srow { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-top:1px solid var(--rule); }
+    .srow .pr { flex:none; }
+    .srow .meta .srow-act { margin-left:10px; }
+    @media (hover:hover) { .srow:not(:hover):not(:focus-within) .meta .srow-act { visibility:hidden; } }
     .sub + .srow { border-top:0; }
     .srow > div { flex:1; min-width:0; }
     .srow a { padding:3px 0; color:var(--ink); font-weight:600; text-decoration:none; overflow-wrap:anywhere; }
@@ -578,7 +651,7 @@
     .offer { margin-top:12px; padding:11px 12px; background:var(--paper-2); border-radius:var(--r-sm); font-size:13px; }
     .offer-acts { margin-top:8px; }
     .msg-preview { margin-top:8px; color:var(--muted); font-style:italic; }
-    .offer b { font:600 18px/1 var(--mono); font-variant-numeric:lining-nums; margin:0 2px; }
+    .offer b { font:600 20px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
     .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }
     .adjust.up { color:var(--v-great); }
 
@@ -587,7 +660,7 @@
     input:focus-visible { outline-offset:-1px; }
 
 
-    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .idea, .count, .progress i, .busy .status::before { transition:none !important; animation:none !important; } }
+    @media (prefers-reduced-motion: reduce) { .drawer, .tab, .row, .view, .idea, .count, .progress i, .busy .status::before { transition:none !important; animation:none !important; } }
   </style>
   <div class="wrap">
    <div class="zones" aria-hidden="true"><div class="zone" data-side="left"></div><div class="zone" data-side="right"></div></div>
@@ -600,18 +673,20 @@
       <div class="rz rz-w" data-edge="w" aria-hidden="true" title="Drag to change the width"></div><div class="rz rz-e" data-edge="e" aria-hidden="true" title="Drag to change the width"></div>
       <div class="head" tabindex="0" role="group" aria-label="Panel position: left and right arrow keys pick the side, up and down the width" title="Drag to the left or right edge to dock it there; double-click to put it back">
         <span class="mark">${MARK}</span>
-        <div class="grow"><div class="wordmark">Second <em>Look</em></div><small>for careful buyers</small></div>
-        <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
-        <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
-        <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+        <div class="grow"><div class="wordmark">Second <em>Look</em></div></div>
+        <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
+        <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
+        <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
       </div>
-      <div class="modebar" role="radiogroup" aria-label="Mode">
-        <button role="radio" data-mode="buyer" title="Buying something to keep and use"><b>Buyer</b><span>to keep and use</span></button><button role="radio" data-mode="reseller" title="Buying something to fix up and sell"><b>Reseller</b><span>to fix up and flip</span></button>
-      </div>
-      <div class="nav" role="tablist" aria-label="Views">
-        <button role="tab" data-view="page" aria-selected="true">This page</button>
-        <button role="tab" data-view="saved" aria-selected="false">Saved<span class="cnt"></span></button>
-        <button role="tab" data-view="home" aria-selected="false">Home<span class="cnt alert" hidden></span></button>
+      <div class="bar">
+        <div class="nav" role="tablist" aria-label="Views">
+          <button role="tab" data-view="home" aria-selected="false">Home<span class="cnt alert" hidden></span></button>
+          <button role="tab" data-view="page" aria-selected="true">This page</button>
+          <button role="tab" data-view="saved" aria-selected="false">Saved<span class="cnt"></span></button>
+        </div>
+        <div class="modebar" role="radiogroup" aria-label="Shopping as">
+          <button role="radio" data-mode="buyer" title="Buyer: something to keep and use">Buyer<span class="sr">, to keep and use</span></button><button role="radio" data-mode="reseller" title="Reseller: something to fix up and flip">Reseller<span class="sr">, to fix up and flip</span></button>
+        </div>
       </div>
       <div class="progress" hidden aria-hidden="true"><i></i></div>
       <div class="body">
@@ -623,7 +698,7 @@
           <ol>
             <li class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
               <button class="scan setup-go" data-act="open-settings">Open settings</button></li>
-            <li><button data-step="lens">Pick Buyer or Reseller</button> at the top: to keep and use, or to fix up and flip.</li>
+            <li><button data-step="lens">Pick Buyer or Reseller</button> (top right): to keep and use, or to fix up and flip.</li>
             <li><button data-step="want">Say what you want</button>, like "working, with charger". Optional.</li>
             <li><button data-step="scan">Press Scan</button> and every listing gets a score and a reason.</li>
           </ol>
@@ -635,18 +710,20 @@
         <div class="hint mode-hint"></div>
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
-        <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price before a margin is worked out. eBay's are around 13%.</div></div>
+        <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
-        <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
-        <div class="freeprices" hidden><button data-act="prices">Just compare sold prices</button> <span>free, no AI</span></div>
+        <div class="alts">
+          <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
+          <button class="ghost freeprices" data-act="prices" hidden title="The eBay sold-price lookup on its own: free, no AI">Sold prices <span class="cost">free</span></button>
+        </div>
         <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are cancelled">Stop</button></div>
-        <div class="pageinfo" hidden><div class="pi-head" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
+        <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
         <div class="ideas-inline" hidden><div class="status ideas-status" role="status"></div><div class="ideas-list"></div></div>
       </div>
       <div class="listbar" hidden>
@@ -721,6 +798,7 @@
   const pageInfo = $(".pageinfo");
   const piLine = $(".pi-line");
   const piHead = $(".pi-head");
+  const piBar = $(".pi-bar");
   const piSearch = $(".pi-search");
   const listBar = $(".listbar");
   const sortSel = $(".sort");
@@ -1386,21 +1464,34 @@
       html:not([data-sl-theme="dark"]) :is(.second-look-sticker, .second-look-marks) { ${LT} }
       .second-look-sticker { --c:var(--v-fair);
         position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--sl-fit, calc(100% - 20px));
-        background:var(--sl-paper); color:var(--sl-ink); border-radius:4px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
+        background:var(--sl-paper); color:var(--sl-ink); border-radius:999px; box-shadow:0 0 0 1px var(--sl-rule), var(--sl-shadow);
         font:400 12px/1.2 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; text-align:left; letter-spacing:normal; cursor:help;
         } /* no fade-in: tags appear as cards load, and animating hundreds of them on a long feed cost frames */
       .second-look-sticker[data-v="great"] { --c:var(--v-great); } .second-look-sticker[data-v="good"] { --c:var(--v-good); }
       .second-look-sticker[data-v="pass"] { --c:var(--v-pass); } .second-look-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
-      .second-look-sticker .sl-score { flex:none; width:44px; height:44px; box-sizing:border-box; border:1.5px solid var(--c); border-radius:4px; color:var(--c);
-        display:grid; place-content:center; text-align:center; line-height:1; }
-      .second-look-sticker .sl-score b { display:block; font:700 18px/1 "Atkinson Hyperlegible Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums; }
+      /* the score: a dial whose ring fills to the score (as in the panel) */
+      .second-look-sticker .sl-score { --p:50; position:relative; flex:none; width:44px; height:44px; box-sizing:border-box; border-radius:50%; color:var(--c);
+        display:grid; place-content:center; text-align:center; line-height:1; background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--sl-rule) 0); }
+      .second-look-sticker .sl-score::before { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--sl-paper); }
+      .second-look-sticker .sl-score > * { position:relative; }
+      .second-look-sticker .sl-score b { display:block; font:600 17px/1 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; font-variant-numeric:lining-nums tabular-nums; }
       .second-look-sticker .sl-score i { display:block; margin-top:3px; font-weight:700; font-size:10px; line-height:1; font-family:inherit; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
       .second-look-sticker .sl-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
-      .second-look-sticker .sl-verdict { font-weight:700; font-size:14px; white-space:nowrap; }
+      .second-look-sticker .sl-verdict { font:600 15px/1.15 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.005em; white-space:nowrap; }
       .second-look-sticker.sl-compact .sl-verdict { display:none; }
       /* The verdict is written beside the score, so the box needn't say it again and can cover less of the photo.
          On a narrow card the verdict hides, and the short word comes back under the score. */
-      .second-look-sticker:not(.sl-compact) .sl-score { width:36px; height:36px; }
+      .second-look-sticker:not(.sl-compact) .sl-score { width:38px; height:38px; }
+      .second-look-sticker:not(.sl-compact) .sl-score b { font-size:16px; }
+      /* narrow cards keep the short word under the number: the dial grows to hold both */
+      .second-look-sticker.sl-compact { border-radius:26px; }
+      .second-look-sticker.sl-compact .sl-score { width:48px; height:48px; }
+      .second-look-sticker.sl-compact .sl-score b { font-size:16px; }
+      .second-look-sticker.sl-compact .sl-score i { font-size:8px; margin-top:2px; }
+      @media (forced-colors: active) {
+        .second-look-sticker .sl-score { background:none; border:2px solid CanvasText; }
+        .second-look-sticker .sl-score::before { display:none; }
+      }
       .second-look-sticker:not(.sl-compact) .sl-score i { display:none; }
       .second-look-sticker.sl-compact .sl-text:not(:has(.sl-sub)) { display:none; }
       .second-look-sticker.sl-compact { padding-right:4px; }
@@ -1413,7 +1504,7 @@
       .second-look-sticker.sl-right .sl-below { left:auto; right:4px; align-items:flex-end; }
       .second-look-sticker.sl-right .sl-under { justify-content:flex-end; }
       .second-look-sticker .sl-under { display:flex; flex-wrap:wrap; gap:4px; width:max-content; max-width:var(--sl-fit, 320px); }
-      .sl-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:4px; background:var(--sl-ink); color:var(--sl-paper);
+      .sl-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--sl-ink); color:var(--sl-paper);
         font:600 12px/1.35 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:nowrap; letter-spacing:normal; text-transform:none; }
       .sl-chip svg { width:11px; height:11px; }
       .sl-chip.k-new { background:var(--sl-accent); color:var(--sl-on-accent); } .sl-chip.k-good { background:var(--v-great); color:var(--sl-on-v); } .sl-chip.k-warn { background:var(--v-suspicious); color:var(--sl-on-v); }
@@ -1442,11 +1533,11 @@
         text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
       .second-look-sticker .sl-acts :is(button, a):hover { text-decoration-color:currentColor; }
       .second-look-sticker .sl-pop { display:none; width:264px; max-width:min(264px, 80vw); padding:12px 14px;
-        background:var(--sl-paper); color:var(--sl-ink); border-radius:4px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
+        background:var(--sl-paper); color:var(--sl-ink); border-radius:12px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
         font:400 13px/1.5 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:normal; text-transform:none; cursor:auto; }
       .second-look-sticker:hover .sl-pop, .second-look-sticker:focus-within .sl-pop { display:block; }
       .second-look-sticker:focus-visible { outline:2px solid var(--sl-ink); outline-offset:3px; }
-      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font-weight:700; font-size:15px; line-height:1.3; }
+      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font:600 17px/1.25 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.01em; }
       .second-look-sticker .sl-pop b span { color:var(--c); }
       .second-look-sticker .sl-flags { margin-top:6px; color:var(--sl-muted); }
       .second-look-flash { outline:2px solid #C8461F !important; outline-offset:4px; animation:sl-flash 2s ease-out both; }
@@ -1908,7 +1999,7 @@
     const items = Object.entries(saved).sort((a, b) => b[1].a0 - a[1].a0);
     const searches = Object.entries(savedSearches).sort((a, b) => b[1].v - a[1].v);
     const hidden = Object.entries(notInterested).sort((a, b) => b[1].a - a[1].a);
-    $(".nav .cnt").textContent = items.length + searches.length ? String(items.length + searches.length) : "";
+    $('.nav [data-view="saved"] .cnt').textContent = items.length + searches.length ? String(items.length + searches.length) : "";
     if (view !== "saved") return;
     const sayHere = (text, err = false) => {
       const st = $(".saved-status");
@@ -1918,10 +2009,12 @@
     const priceLine = (k, r) => {
       const now = r.p != null ? dollars(r.p) : "no price";
       const moved = r.p0 != null && r.p != null && r.p !== r.p0;
+      // the price itself has its own column (.pr); this line says where, when, and how it moved
       return [
-        `${siteName(k)} \u00b7 ${now}`,
-        moved ? h("span", { class: r.p < r.p0 ? "down" : "" }, ` (${r.p < r.p0 ? "\u2193" : "\u2191"} from ${dollars(r.p0)})`) : "",
+        siteName(k),
+        moved ? h("span", { class: r.p < r.p0 ? "down" : "" }, ` \u00b7 ${r.p < r.p0 ? "\u2193" : "\u2191"} from ${dollars(r.p0)}`) : "",
         ` \u00b7 ${r.a - r.a0 > 60000 ? `seen ${shortDate(r.a)}` : `saved ${shortDate(r.a0)}`}`,
+        r.p == null ? ` \u00b7 ${now}` : "",
       ];
     };
     const copy = h("button", {
@@ -1945,9 +2038,14 @@
               h(
                 "div",
                 { class: "srow" },
-                h("div", {}, h("a", { href: safeUrl(r.u, itemUrl(k)), target: "_blank", rel: "noopener" }, r.t || safeUrl(r.u, itemUrl(k))), h("div", { class: "meta" }, priceLine(k, r))),
+                h(
+                  "div",
+                  {},
+                  h("a", { href: safeUrl(r.u, itemUrl(k)), target: "_blank", rel: "noopener" }, r.t || safeUrl(r.u, itemUrl(k))),
+                  h("div", { class: "meta" }, priceLine(k, r), h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove"))
+                ),
                 priceHistory(k, r),
-                h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove")
+                r.p != null ? h("div", { class: "pr" }, dollars(r.p)) : null
               )
             ),
             items.length ? h("div", { class: "actions sv-acts" }, copy) : null,
@@ -1963,9 +2061,9 @@
                   h("div", { class: "meta" }, [
                     `${r.site === "ebay" ? "eBay" : "Marketplace"} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`,
                     r.deal ? h("span", { class: r.deals ? "down" : "" }, ` \u00b7 ${r.deals || "none"} at your $${r.deal}`) : "",
+                    h("button", { class: "srow-act", title: "Remove this search", onclick: () => removeStored("savedSearches", k) }, "Remove"),
                   ])
-                ),
-                h("button", { class: "srow-act", title: "Remove this search", onclick: () => removeStored("savedSearches", k) }, "Remove")
+                )
               )
             ),
             searches.length > 1
@@ -2224,7 +2322,7 @@
 
   const stickerEl = (item, f, key) => {
     const v = VERDICT[item.verdict] || VERDICT.fair;
-    const CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+    const CAMERA = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
     const sub = lensLine(item);
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
@@ -2239,7 +2337,7 @@
     return h(
       "div",
       { class: "second-look-sticker", "data-v": item.verdict, tabindex: "0", role: "group", "aria-label": `Second Look: score ${item.score}, ${v.label}. Tab to the reasons and actions.` },
-      h("div", { class: "sl-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || "")),
+      scoreDial(item),
       h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
       // Below the tag, in one column: the chip row, then (on hover) the card with the reasons. However
       // many rows the chips wrap to, the card sits under them.
@@ -2896,6 +2994,19 @@
     const worthN = scored.filter((it) => (it.verdict === "great" || it.verdict === "good") && !likelyScam(facts.get(keyOf(it.url)))).length;
     piHead.hidden = !scored.length;
     piHead.textContent = !scored.length ? "" : worthN ? `${worthN} worth a look` : "Nothing here is a bargain";
+    // How the scored listings split, best to worst: one segment per verdict, as wide as its count.
+    const split = ["great", "good", "fair", "pass", "suspicious"].map((v) => [v, scored.filter((it) => it.verdict === v).length]).filter(([, c]) => c);
+    const splitSig = split.join();
+    if (piBar.dataset.sig !== splitSig) {
+      piBar.dataset.sig = splitSig;
+      piBar.replaceChildren(...split.map(([v, c]) => {
+        const seg = h("i", { "data-v": v, title: `${c} ${VERDICT[v].label.toLowerCase()}` });
+        seg.style.flexGrow = String(c);
+        return seg;
+      }));
+      piBar.setAttribute("aria-label", split.map(([v, c]) => `${c} ${VERDICT[v].label.toLowerCase()}`).join(", "));
+    }
+    piBar.hidden = !scored.length;
     const scamN = n((f) => likelyScam(f) && !f.hidden);
     const bits = [`<b>${all.length}</b> listings`];
     if (scamN) bits.push(`<b>${scamN}</b> look like scams`);
@@ -3765,7 +3876,7 @@
   const showIdeasBtn = () => {
     const type = SL.pageType();
     ideasBtn.hidden = !(type === "home" || (type === "results" && queryEl.value.trim()));
-    setIf(ideasBtn, "textContent", type === "home" ? "Find searches for what I want" : "Find better searches for this");
+    setIf(ideasBtn, "textContent", type === "home" ? "Find searches for what I want" : "Better searches");
     setIf(ideasBtn, "title", type === "home" ? "" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)");
   };
   queryEl.addEventListener("input", showIdeasBtn);

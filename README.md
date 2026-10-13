@@ -89,7 +89,7 @@ scam warning stays readable.
 
 ## Everyday use
 
-- **Buyer / Reseller** at the top of the panel says what you want listings for (see below). Each
+- **Buyer / Reseller**, the switch at the top right of the panel, says what you want listings for (see below). Each
   mode remembers its own sort, skipped-listings setting and "What I want".
 - **What I want**: "working, with charger, under $80". Every scan, analysis and search idea
   takes it into account, and a listing that misses something says so. After a scan it folds into
@@ -107,7 +107,7 @@ scam warning stays readable.
   now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Unhide.
 - **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
   seller (copyable), a suggested offer with a ready-to-send message, and a photo check.
-- **Find better searches for this** (under Scan) suggests other ways to search for what's on the page: the
+- **Better searches** (under Scan) suggests other ways to search for what's on the page: the
   misspellings sellers make, other model names, tighter or looser words. Click one to run it,
   Save to keep it, hover for why. On eBay's front page, "Find searches for what I want" does the same
   from "What I want".
@@ -192,7 +192,7 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
 
 **In the panel**:
 
-- **Just compare sold prices** (under the Scan button): the eBay sold-price lookup on its own, with
+- **Sold prices** (under the Scan button, marked free): the eBay sold-price lookup on its own, with
   no model. Prices already looked up for a search in the last six hours apply by themselves.
 - **The list** shows every listing on the page before any scan, priced with shipping, and sorts
   by cheapest (lots per item), furthest under the sold price, auctions ending soonest, or new and

@@ -22,12 +22,15 @@
     check("opening moves focus into the panel", !!a && !!a.closest(".panel"), `focus is on ${a ? a.className || a.tagName : "nothing"}`);
 
     // 2. Arrow keys move through the view tabs and Use / Fix & flip.
-    const tabs = [...root.querySelectorAll("[data-view]")];
+    // from This page (the second tab, after Home) to Saved and back, so the page view is showing after
+    const all = [...root.querySelectorAll("[data-view]")];
+    const at = all.findIndex((t) => t.dataset.view === "page");
+    const tabs = all.slice(at);
     tabs[0].focus();
     key(tabs[0], "ArrowRight");
     await wait(50);
     check("ArrowRight switches view tab", tabs[1].getAttribute("aria-selected") === "true" && active() === tabs[1], "still on first tab");
-    check("only the selected tab is in the tab order", tabs[1].tabIndex === 0 && tabs[0].tabIndex === -1, `tabIndex ${tabs.map((t) => t.tabIndex)}`);
+    check("only the selected tab is in the tab order", tabs[1].tabIndex === 0 && all.every((t) => t === tabs[1] || t.tabIndex === -1), `tabIndex ${all.map((t) => t.tabIndex)}`);
     key(tabs[1], "ArrowLeft");
     await wait(50);
 

@@ -23,7 +23,7 @@
 
   // ---------- photo checks change the rating ----------
   // The plain rules (photo verdicts, words, filters, scam signs, small formatters) live in content/rules.js.
-  const { clamp100, signed, adjustedVerdict, dollars, shortDate, normTitle, hash, likelyScam, PROJECT, MOTIVATED, clueOf } = SLRules;
+  const { clamp100, fitScore, signed, adjustedVerdict, dollars, shortDate, normTitle, hash, likelyScam, PROJECT, MOTIVATED, clueOf } = SLRules;
 
   // obj is a scored listing (or the single-listing result): has score + verdict.
   const applyPhotos = (obj, photos) => {
@@ -214,87 +214,7 @@
 
     /* ---------- Home: alerts on saved things, numbers, spending, what you use ---------- */
     .view-home { padding:4px 16px 16px; }
-    .hm { display:grid; gap:2px; }
-    .hm-sec { padding:14px 0 8px; border-top:var(--bw) solid var(--rule); }
-    .hm-sec:first-child { border-top:0; padding-top:10px; }
-    .hm h3 { margin:0 0 10px; display:flex; align-items:baseline; gap:8px; color:var(--ink); font:600 17px/1.3 var(--display); letter-spacing:-.01em; }
-    .hm h3 .hm-count, .hm h3 .hm-btn { font-family:var(--ui); letter-spacing:normal; }
-    .hm .hm-grow { flex:1; }
-    .hm .hm-count { font-size:12px; font-weight:400; font-variant-numeric:tabular-nums; }
-    .hm .hm-hint { display:block; color:var(--muted); font-size:12px; }
-    .hm p.hm-hint { margin:8px 0 0; }
-    .hm .hm-empty { color:var(--muted); font-size:13px; padding:2px 0 8px; }
-    .hm a { color:var(--ink); text-underline-offset:3px; text-decoration-color:var(--line); }
-    .hm a:hover { text-decoration-color:currentColor; }
-    .hm-btn { display:inline-block; min-height:24px; font:600 12px/1.2 var(--ui); padding:5px 10px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:none; color:var(--ink); cursor:pointer; text-decoration:none; }
-    .hm-btn:hover { border-color:var(--ink); }
-    .hm-btn.primary { background:var(--ink); color:var(--on-ink); border-color:var(--ink); }
-    .hm-btn.small { padding:4px 8px; }
-    .hm-btn:focus-visible, .hm a:focus-visible, .hm .col:focus-visible, .hm summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    .hm-bar { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin:0 0 10px; }
-    .hm-bar i { display:block; height:100%; background:var(--v-great); }
-    .hm-steps { list-style:none; margin:0 0 8px; padding:0; display:grid; gap:8px; }
-    .hm-steps li { display:grid; grid-template-columns:22px 1fr; gap:10px; align-items:start; padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
-    .hm-steps li:not(.done) { background:var(--raise); }
-    .hm-steps .num { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font:600 12px/1 var(--ui); box-shadow:inset 0 0 0 1px var(--line); color:var(--muted); }
-    .hm-steps li.done .num { background:var(--v-great); box-shadow:none; color:var(--on-v); }
-    .hm-steps li.done b { color:var(--muted); font-weight:400; text-decoration:line-through; text-decoration-color:var(--line); }
-    .hm-steps b { display:block; font-weight:600; }
-    .hm-steps .acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-    .hm-alerts { display:grid; gap:8px; }
-    .hm-alert { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:start; padding:9px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
-    .hm-alert.new { border-color:var(--v-great); }
-    .hm-tag { font-size:12px; font-weight:600; padding:1px 8px; border-radius:999px; background:var(--paper-2); color:var(--muted); white-space:nowrap; }
-    .hm-alert.new .hm-tag { background:var(--v-great); color:var(--on-v); }
-    .hm-alert .t { min-width:0; overflow-wrap:anywhere; }
-    .hm-alert .t a { font-weight:600; }
-    .hm-alert .t small { display:block; color:var(--muted); font-size:12px; }
-    .hm .down { color:var(--v-great); font-weight:600; }
-    .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px 16px; }
-    .hm-tile { padding:2px 0 0 12px; border-left:2px solid var(--rule); }
-    /* a number you can act on is a button: it goes to the list behind it */
-    button.hm-tile { all:unset; box-sizing:border-box; display:flex; flex-direction:column; justify-content:flex-start; padding:2px 0 0 12px; border-left:2px solid var(--rule); cursor:pointer; transition:border-color .15s; }
-    button.hm-tile:hover { border-left-color:var(--ink); }
-    button.hm-tile:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    /* the detail sections fold: a heading you can open */
-    .hm-fold > summary { list-style:none; cursor:pointer; }
-    .hm-fold > summary::-webkit-details-marker { display:none; }
-    .hm-fold > summary h3 { margin-bottom:0; }
-    .hm-fold > summary h3::after { content:"+"; margin-left:auto; padding-left:10px; color:var(--muted); font:400 16px/1 var(--ui); }
-    .hm-fold[open] > summary h3::after { content:"\\2212"; }
-    .hm-fold[open] > summary { margin-bottom:10px; }
-    .hm-fold > summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    .hm-tile span { display:block; color:var(--muted); font-size:12px; }
-    .hm-tile b { display:block; font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; }
-    .hm-tile small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
-    .hm-meter { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin-top:7px; }
-    .hm-meter i { display:block; height:100%; background:var(--ink); }
-    .hm-meter.hot i { background:var(--accent); }
-    .hm-chart { position:relative; padding:20px 0 0 44px; }
-    .hm .plot { position:relative; height:96px; display:flex; align-items:flex-end; gap:2px; border-bottom:var(--bw) solid var(--rule); }
-    .hm .grid { position:absolute; left:0; right:0; height:0; border-top:var(--bw) solid var(--rule); pointer-events:none; }
-    .hm .ylab { position:absolute; left:-44px; width:38px; text-align:right; font-size:12px; color:var(--muted); transform:translateY(-50%); font-variant-numeric:tabular-nums; }
-    .hm .col { flex:1; min-width:0; height:100%; display:flex; align-items:flex-end; justify-content:center; background:none; border:0; padding:0; cursor:default; position:relative; }
-    .hm .col i { display:block; width:100%; max-width:14px; border-radius:3px 3px 0 0; background:var(--muted); opacity:.45; transition:opacity .12s; }
-    .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--accent); }
-    .hm .xaxis { display:flex; justify-content:space-between; gap:6px; font-size:12px; color:var(--muted); margin-top:5px; }
-    .hm-tip { position:absolute; z-index:5; pointer-events:none; background:var(--ink); color:var(--on-ink); padding:5px 9px; border-radius:var(--r-sm); font-size:12px; opacity:0; transform:translate(-50%, -100%); transition:opacity .1s; white-space:nowrap; }
-    .hm-tip b { font:600 15px/1.2 var(--display); display:block; }
-    .hm-tip.show { opacity:1; }
-    .hm-table { margin-top:10px; }
-    .hm-table summary { cursor:pointer; color:var(--muted); font-size:12px; padding:3px 0; }
-    .hm table { border-collapse:collapse; width:100%; font-size:12px; margin-top:6px; }
-    .hm th, .hm td { text-align:left; padding:4px 6px; border-bottom:var(--bw) solid var(--rule); }
-    .hm td.n, .hm th.n { text-align:right; font-variant-numeric:tabular-nums; }
-    .hm-use { display:grid; gap:7px; margin-top:8px; }
-    .hm-fold .acts { margin-top:12px; }
-    .hm-use > div { display:grid; grid-template-columns:minmax(110px, 150px) 1fr 34px; gap:10px; align-items:center; font-size:13px; }
-    .hm-use .track { height:8px; }
-    .hm-use .track i { display:block; height:100%; background:var(--ink); border-radius:0 2px 2px 0; min-width:2px; }
-    .hm-use .track i.zero { background:var(--rule); }
-    .hm-use b { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
-    .hm-foot { margin-top:14px; padding-top:12px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
-    @media (prefers-reduced-motion: reduce) { .hm .col i, .hm-tip { transition:none; } }
+    ${SLHome.CSS}
     /* how far a scan has got, as a hairline under the tabs (the status says it in words) */
     .progress { height:2px; margin-top:-2px; position:relative; z-index:3; }
     .progress i { display:block; height:100%; width:0; background:var(--accent); transition:width .3s ease; }
@@ -370,6 +290,16 @@
     .scan:hover:not(:disabled) { opacity:.88; }
     .scan .cost, .ghost .cost { font-weight:400; opacity:.75; }
     .scan:disabled { opacity:.55; cursor:progress; }
+    /* Auto: a switch under Scan. On, new listings are scored as they load and Scan is only for a redo */
+    .autoscan { display:flex; align-items:center; gap:8px; margin:-4px 0 0; color:var(--muted); font:400 12px/1.3 var(--ui); letter-spacing:normal; text-transform:none; cursor:pointer; }
+    .autoscan[hidden] { display:none; }
+    .autoscan input { appearance:none; -webkit-appearance:none; flex:none; position:relative; width:30px; height:18px; margin:0; border-radius:999px; background:var(--rule); cursor:pointer; transition:background .15s; }
+    .autoscan input::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--raise); box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s; }
+    .autoscan input:checked { background:var(--ink); }
+    .autoscan input:checked::after { transform:translateX(12px); }
+    .autoscan input:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .autoscan:has(input:checked) { color:var(--ink); }
+    @media (forced-colors: active) { .autoscan input { appearance:auto; } .autoscan input::after { display:none; } }
     /* the other two ways to use a search, side by side under Scan */
     .alts { display:flex; gap:8px; margin-top:-4px; }
     .alts > * { flex:1 1 0; min-width:0; }
@@ -741,6 +671,7 @@
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
+        <label class="autoscan" hidden><input type="checkbox" class="auto-in" role="switch"><span>Scan new listings automatically</span></label>
         <div class="alts">
           <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
           <button class="ghost freeprices" data-act="prices" hidden title="The eBay sold-price lookup on its own: free, no AI">Sold prices <span class="cost">free</span></button>
@@ -1306,7 +1237,7 @@
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
     if (changes.usage) renderSpend(changes.usage.newValue);
-    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize"].some((k) => changes[k])) loadFooter().then(refreshPending);
+    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize", "autoScan"].some((k) => changes[k])) loadFooter().then(refreshPending);
   });
 
 
@@ -1368,7 +1299,40 @@
   let lens = "use";
   let onLensShown = () => {}; // the filter bar's broken-listing toggle follows the mode (set up further down)
   let onModeChanged = () => {}; // Home redraws for the mode (set up further down)
-  let modePrefs = { use: {}, project: {} }; // per mode: { sort, skip, want }
+  let modePrefs = { use: {}, project: {} }; // per mode: { sort, skip }
+  // "What I want" belongs to a search: what you want from a camera isn't what you want from a console.
+  // Each search keeps its own, per mode; a listing opened from a search in the same tab gets that search's.
+  // (Your general taste is "What you're into" in settings.)
+  let searchWants = {};
+  const WANTS_MAX = 300;
+  const wantKey = () => {
+    const q = SL.pageType() === "results" ? pageSearch().toLowerCase() : "";
+    return q ? `${lens}|${SL.currentSite()}|${q}` : null;
+  };
+  const tabWant = (v) => {
+    try {
+      if (v === undefined) return sessionStorage.getItem(`second-look-want-${lens}`) || "";
+      sessionStorage.setItem(`second-look-want-${lens}`, v);
+    } catch {
+      return "";
+    }
+  };
+  const applyWant = () => {
+    const k = wantKey();
+    const w = k ? searchWants[k] || "" : SL.pageType() === "item" ? tabWant() : "";
+    if (k) tabWant(w);
+    if (root.activeElement !== wantEl) wantEl.value = w;
+  };
+  const setWant = (v) => {
+    const k = wantKey();
+    tabWant(v);
+    if (!k) return;
+    if (v) searchWants[k] = v;
+    else delete searchWants[k];
+    const keys = Object.keys(searchWants);
+    if (keys.length > WANTS_MAX) keys.slice(0, keys.length - WANTS_MAX).forEach((x) => delete searchWants[x]);
+    if (alive()) chrome.storage.local.set({ searchWants }).catch(() => {});
+  };
   const feeEl = $("#fee");
   const showMode = () => {
     const m = MODES[lens];
@@ -1387,7 +1351,7 @@
     skipMode = ["show", "dim", "hide"].includes(p.skip) ? p.skip : "dim"; // greyed out unless you choose otherwise
     document.documentElement.dataset.slSkip = wrap.dataset.skipmode = skipMode;
     root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
-    wantEl.value = p.want || "";
+    applyWant();
   };
   const setPref = (key, value) => {
     (modePrefs[lens] ||= {})[key] = value;
@@ -1427,7 +1391,7 @@
     refreshPending();
   };
   root.querySelectorAll("button[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-  wantEl.addEventListener("change", () => setPref("want", wantEl.value.trim()));
+  wantEl.addEventListener("change", () => setWant(wantEl.value.trim()));
   // The scan button says when your edits mean a rescan (refreshPending is defined further down).
   for (const el of [wantEl, queryEl, feeEl]) el.addEventListener("input", () => refreshPending());
   // Selling fees: one number for the margins; it's the same setting as on the settings page.
@@ -1439,11 +1403,13 @@
     refreshPending();
   });
   showFee();
-  const modeReady = chrome.storage.local.get({ lens: "use", modePrefs: null, sortMode: "score", skipMode: "dim", want: "" }).then((v) => {
+  const modeReady = chrome.storage.local.get({ lens: "use", modePrefs: null, sortMode: "score", skipMode: "dim", searchWants: {} }).then((v) => {
     lens = v.lens === "fix" || v.lens === "flip" ? "project" : MODES[v.lens] ? v.lens : "use"; // older Fix and Flip are one mode now
     modePrefs = v.modePrefs || { use: {}, project: {} };
-    // From before there were modes: the one sort, skipped setting and wants go to the mode that was in use.
-    if (!v.modePrefs) modePrefs[lens] = { sort: v.sortMode, skip: v.skipMode, want: v.want };
+    searchWants = v.searchWants || {};
+    // From before there were modes: the one sort and skipped setting go to the mode that was in use.
+    // (Wants from then, and from when they were per mode, aren't carried over: they applied to every search.)
+    if (!v.modePrefs) modePrefs[lens] = { sort: v.sortMode, skip: v.skipMode };
     applyPrefs();
     showMode();
   });
@@ -1460,14 +1426,14 @@
     if (it.lot && it.total != null) return `Lot of ${it.lot} \u00b7 ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
     // Fix & flip: how hard the fix is (when there is one) and what it should make; whichever is known.
     if (it.lens === "project") {
-      const margin = it.margin != null ? `\u2248 ${money(it.margin)} margin${it.refIsEstimate ? " (est.)" : ""}` : "";
+      const margin = it.margin != null ? `\u2248 ${money(it.margin)} margin${it.refIsEstimate || it.refRough ? " (est.)" : ""}` : "";
       const broken = it.fault && !/^none$/i.test(it.fault);
       if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`)].filter(Boolean).join(" \u00b7 ");
       if (margin) return margin;
       if (broken && it.partsCost > 0) return `~$${it.partsCost} parts`;
     }
     if (it.vsWorking == null) return "";
-    return it.refIsEstimate ? `~${Math.round(it.vsWorking * 100)}% of typical price (est.)` : `${Math.round(it.vsWorking * 100)}% of sold price`;
+    return it.refIsEstimate ? `~${Math.round(it.vsWorking * 100)}% of typical price (est.)` : `${it.refRough ? "~" : ""}${Math.round(it.vsWorking * 100)}% of sold price`;
   };
 
   const priceStr = (it) =>
@@ -1755,7 +1721,7 @@
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
-    if (f.vsSold != null) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${Math.round(f.vsSold * 100)}% of sold`]);
+    if (f.vsSold != null) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold`]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
     if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
@@ -2320,7 +2286,7 @@
   const cachedMarket = async (query) => {
     if (!query.trim()) return null;
     const { soldCache = {} } = await chrome.storage.local.get("soldCache");
-    const hit = soldCache[`used:${query.trim().toLowerCase()}`];
+    const hit = soldCache[`v2:used:${query.trim().toLowerCase()}`];
     return hit?.market && Date.now() - hit.at < SOLD_TTL_MS ? { ...hit.market, condition: "used" } : null;
   };
 
@@ -2414,7 +2380,12 @@
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,
         item.reason || "",
-        item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}.`) : null,
+        item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}${item.scannedKind === "scan" || !item.scannedKind ? ", from the card's title, price and text (not the photos or the description)" : ", from the listing's page"}.`) : null,
+        // How the numbers were made, and how far to trust them
+        item.margin != null && item.lens === "project"
+          ? line(`Margin: resold at ${item.refIsEstimate ? "the estimated" : "the sold"} ${dollars(item.refWorking)}, less ${item.feePct}% + $0.40 fees${item.shipOut ? `, ~${dollars(item.shipOut)} shipping` : " (shipping not known: take it off)"}${item.partsCost ? `, ~${dollars(item.partsCost)} parts` : ""} and the ${dollars(item.total)} price. Before sales tax and your time.`)
+          : null,
+        item.refRough && !item.refIsEstimate ? line("The sold price comes from few sales or a wide spread: a rough guide.") : null,
         f.auction ? line(`Auction: ${f.bids || 0} bid${f.bids === 1 ? "" : "s"}${f.timeLeft ? `, ${f.timeLeft} left` : ""}. The price is only the current bid.${item.bidCap > 0 ? ` Worth bidding up to about ${dollars(item.bidCap)}${item.lens === "project" ? " to break even" : ""}.` : ""}`) : null,
         item.browse && item.sold ? line(`eBay sold \u201c${item.query}\u201d: median ${dollars(item.sold.median)}, middle half ${dollars(item.sold.p25)}\u2013${dollars(item.sold.p75)} (${item.sold.n} sales).`) : null,
         item.browse && !item.sold && item.est ? line(`Typical used price est. ${dollars(item.est.lo)}\u2013${dollars(item.est.hi)}: the model's estimate, not sales data.${item.query ? " Check sold prices in the panel for real numbers." : ""}`) : null,
@@ -2507,7 +2478,7 @@
         const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
         // Not scored (yet): the price is the headline, with what's known for free.
         if (it.score == null) {
-          const vs = f.vsSold != null ? ` \u00b7 ${Math.round(f.vsSold * 100)}% of sold median` : "";
+          const vs = f.vsSold != null ? ` \u00b7 ${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold median` : "";
           const each = it.lot && it.total != null ? ` \u00b7 lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
           listEl.append(
             h(
@@ -2546,7 +2517,7 @@
           it.vsWorking != null && !it.auction && !it.lot
             ? it.refIsEstimate
               ? ` \u00b7 ~${Math.round(it.vsWorking * 100)}% of typical (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-              : ` \u00b7 ${Math.round(it.vsWorking * 100)}% of sold median${it.sold ? ` (${it.sold.n} sales)` : ""}`
+              : ` \u00b7 ${it.refRough ? "~" : ""}${Math.round(it.vsWorking * 100)}% of sold median${it.sold ? ` (${it.sold.n} sales)` : ""}`
             : "";
         const line = lensLine(it);
         const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
@@ -2671,7 +2642,7 @@
       type === "results" && items.length && `With a title ${n((i) => i.title)}, price ${n((i) => i.price != null)}, photo ${n((i) => i.imageUrl)}, shipping known ${n((i) => i.shipping != null)}, seller rating ${n((i) => i.sellerPct != null)}`,
       type === "results" && items.length && `First titles: ${items.slice(0, 3).map((i) => `\u201c${i.title.slice(0, 40)}\u201d`).join(", ")}`,
       type === "item" && (() => { const l = SL.extractItem(); return `Listing read: title ${l.title ? "yes" : "NO"}, price ${l.price != null ? "yes" : "NO"}, photos ${l.imageUrls?.length || 0}, seller ${l.seller ? "yes" : "no"}`; })(),
-      `Sold prices: ${Date.now() < soldCooldownUntil ? `paused ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min (eBay asked for a browser check)` : "not paused"}; ${soldLog.filter((t) => Date.now() - t < 36e5).length} of ${PER_HOUR} lookups used this hour; ${Object.keys(soldCache).length} searches remembered`,
+      `Sold prices: ${Date.now() < soldCooldownUntil ? `paused ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min (eBay asked for a browser check)` : "not paused"}; ${soldLog.filter((t) => Date.now() - t < 36e5).length} of ${SLSold.PER_HOUR} lookups used this hour; ${Object.keys(soldCache).length} searches remembered`,
       `Scores kept: ${Object.keys(scansCache || {}).length} listings`,
     ].filter(Boolean);
     const text = lines.join("\n");
@@ -2692,22 +2663,10 @@
   const inputsNow = () => [lens, wantEl.value.trim(), queryEl.value.trim(), lens === "project" ? feeEl.value : ""].join("|");
   const inputsChanged = () => scanInputs !== null && scored.size > 0 && scanInputs !== inputsNow();
 
-  // On eBay the sold-listings search is made from the eBay page itself (same site, your cookies,
-  // normal browser headers), like any request eBay's own pages make. From Facebook it has to go
-  // through the background script. Either way the answer (just the summary, not the page) is
-  // remembered for a few hours across pages, and lookups pause for 30 minutes if eBay pushes back.
-  const SOLD_TTL_MS = 6 * 60 * 60 * 1000;
-  // eBay answers fast scripted traffic with a browser check ("Checking your browser before you
-  // access eBay", "Pardon Our Interruption"), and once that trips, your ordinary page loads get it
-  // too until it clears. So: few lookups, well spaced, and a long stop at the first sign of it.
-  const COOLDOWN_MS = 60 * 60 * 1000;
-  const GAP_MS = 5000; // between lookups, across all tabs
-  const PER_HOUR = 8;
-  const CHALLENGE = /checking your browser|pardon our interruption|verify yourself|captcha|security measure|access denied|unusual (traffic|activity)/i;
-  const RESULTS = /s-card|s-item|srp-results|srp-river|no exact matches|\b0 results\b/i;
-  // A real results page (even an empty one) is large and has the results markup; a check page is small and doesn't.
-  const blockedPage = (html) => (CHALLENGE.test(html.slice(0, 30000)) && !RESULTS.test(html)) || (!RESULTS.test(html) && html.length < 150000);
-
+  // Sold-price lookups (lib/sold.js) keep their pace, cache and back-off in one place for every page.
+  // On eBay the request is made from the eBay page itself (same site, your cookies, normal browser
+  // headers); from Facebook it goes through the background script, which prefers an open eBay tab.
+  const SOLD_TTL_MS = SLSold.TTL_MS;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const fetchSoldHtml = async (query, condition) => {
     const url = SL.soldUrl(query, SL.SOLD_CONDITION[condition]);
@@ -2715,53 +2674,18 @@
     const res = await fetch(url, { credentials: "include", signal: AbortSignal.timeout(30000) });
     return { status: res.status, html: res.ok ? await res.text() : "" };
   };
+  const soldMarket = SLSold.create({ fetchHtml: fetchSoldHtml, send, isStopped: () => stopRequested });
 
-  const pausedMsg = (until) => `Price lookups paused ${Math.ceil((until - Date.now()) / 60000)} min (eBay asked for a browser check).`;
-
-  // Resolves to a market summary, or null when there were too few sales to trust.
-  const soldMarket = async (query, condition) => {
-    const key = `${condition}:${query.trim().toLowerCase()}`;
-    const { soldCache = {}, soldCooldownUntil = 0, soldLog = [] } = await chrome.storage.local.get(["soldCache", "soldCooldownUntil", "soldLog"]);
-    const hit = soldCache[key];
-    if (hit && Date.now() - hit.at < SOLD_TTL_MS) return hit.market;
-    if (Date.now() < soldCooldownUntil) throw new Error(pausedMsg(soldCooldownUntil));
-    const recent = soldLog.filter((t) => Date.now() - t < 60 * 60 * 1000);
-    if (recent.length >= PER_HOUR) {
-      throw new Error(`Price lookups resting: ${PER_HOUR} this hour is plenty for eBay.`);
-    }
-    const wait = (recent.at(-1) || 0) + GAP_MS - Date.now();
-    if (wait > 0) await sleep(wait);
-    if (stopRequested) throw new Error("Stopped.");
-    await chrome.storage.local.set({ soldLog: [...recent, Date.now()] });
-
-    const pause = async () => {
-      const until = Date.now() + COOLDOWN_MS;
-      await chrome.storage.local.set({ soldCooldownUntil: until });
-      throw new Error(pausedMsg(until));
-    };
-    const { status, html, via, pausedUntil } = await fetchSoldHtml(query, condition);
-    // From Facebook with no eBay tab open, the request goes out from the background script, which eBay
-    // trusts less. A refusal there pauses only that route (open eBay in a tab and it works again),
-    // not lookups made from eBay's own pages.
-    const workerMsg = (until) => `Price lookups from Facebook paused ${Math.ceil((until - Date.now()) / 60000)} min: eBay asked for a browser check. Open eBay in another tab and they work again.`;
-    if (pausedUntil) throw new Error(workerMsg(pausedUntil));
-    const refused = async () => {
-      if (via !== "worker") return pause();
-      await send("soldWorkerBlocked");
-      throw new Error(workerMsg(Date.now() + 30 * 60 * 1000));
-    };
-    if (status === 403 || status === 429 || status === 503) return refused();
-    if (!html) throw new Error(`eBay sold search failed (${status}).`);
-    if (blockedPage(html)) return refused(); // never cache a check page as "no sales"
-    const market = SL.summarizeSold(html);
-    // Keep the cache small: drop expired entries, cap at 100 searches.
-    const fresh = Object.entries(soldCache).filter(([, v]) => Date.now() - v.at < SOLD_TTL_MS).slice(-99);
-    await chrome.storage.local.set({ soldCache: Object.fromEntries([...fresh, [key, { at: Date.now(), market }]]) });
-    return market;
-  };
-
+  // What the number rests on: how many sales, and when it's a rough guide (few sales, or a wide spread).
+  const leftOut = (d) => (d ? [d.offers && `${d.offers} best-offer sales (their real price isn't shown)`, d.lots && `${d.lots} lots`, d.parts && `${d.parts} for parts`, d.unrelated && `${d.unrelated} without the model number`, d.outliers && `${d.outliers} far-off prices`].filter(Boolean) : []);
   const priceCell = (label, m) =>
-    h("div", {}, h("span", { class: "mlabel" }, label), h("span", { class: "mval" }, `$${m.median}`), h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75} \u00b7 ${m.n} sales`));
+    h(
+      "div",
+      { title: [`The middle of ${m.n} recent eBay sales, shipping included where shown.`, leftOut(m.dropped).length && `Left out: ${leftOut(m.dropped).join(", ")}.`].filter(Boolean).join(" ") },
+      h("span", { class: "mlabel" }, label),
+      h("span", { class: "mval" }, `${m.confidence === "rough" ? "~" : ""}$${m.median}`),
+      h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75} \u00b7 ${m.n} sales${m.confidence === "rough" ? " \u00b7 a rough guide" : ""}`)
+    );
   const renderMarket = (market) => {
     if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a market price.");
     const groups = [
@@ -2834,15 +2758,21 @@
   // How each listing's total compares with the sold prices; for Fix & flip, the margin before repairs.
   // Lots aren't compared with a single item's price, and an auction's price is only the current bid,
   // so neither gets a margin; auctions get a sensible maximum bid instead (set once the score is in).
+  // The resale side of a margin: buyers' totals include shipping, which you then pay to send it on, so
+  // that comes off too (the shipping buyers paid on these sales, when enough of them paid it).
+  // Before sales tax and before your own time.
+  const resaleNet = (it) => it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - (it.shipOut || 0);
   const priceNotes = (it, market, forLens, feePct) => {
     const w = market?.median;
+    it.shipOut = market?.ship ?? null;
+    it.refRough = market?.confidence === "rough";
     const pm = market?.parts?.median;
     it.refWorking = w > 0 ? w : null;
     it.refParts = pm > 0 ? pm : null;
     it.feePct = feePct;
     it.vsWorking = it.total != null && w > 0 && !it.lot ? it.total / w : null;
     it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
-    it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(w * (1 - feePct / 100) - 0.4 - it.total) : null;
+    it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
   };
   // The most an auction is worth bidding, shipping included: the market price (Use); break-even after
   // fees and parts, or what broken ones sell for when there's no working price (Fix & flip).
@@ -2850,7 +2780,7 @@
     const ship = it.shipping || 0;
     const base =
       // Fix & flip: break even at the working price after fees and parts; without one, what broken ones fetch.
-      it.lens === "project" ? (it.refWorking ? it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - (it.partsCost || 0) : it.refParts)
+      it.lens === "project" ? (it.refWorking ? resaleNet(it) - (it.partsCost || 0) : it.refParts)
       : it.refWorking;
     return base != null ? Math.max(0, Math.floor(base - ship)) : null;
   };
@@ -2866,7 +2796,7 @@
   // only brought back while the price is the one it was judged at.
   const SCAN_DAYS = 60;
   const SCAN_MAX = 3000;
-  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "baseScore", "baseVerdict", "photoAdjust", "photos"];
+  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "refRough", "shipOut", "baseScore", "baseVerdict", "photoAdjust", "photos"];
   const priceOf = (it) => it.total ?? it.price ?? null;
   // Which model made a score: a scan's is the scan model, an analysis's the main one.
   const modelNow = (kind = "scan") => (kind === "scan" ? cfg.scanModel : cfg.provider === "ollama" ? cfg.textModel : cfg.provider === "openai" ? cfg.oaiModel : cfg.anthropicModel) || "";
@@ -2882,6 +2812,7 @@
     if (summary) snap.reason = summary;
     it.scannedAt = snap.at;
     it.scannedWith = snap.m;
+    it.scannedKind = kind;
     pendingScans.set(`${key}|${snap.lens}`, [key, snap]);
     clearTimeout(scanSaveTimer);
     scanSaveTimer = setTimeout(flushScans, 1000); // soon: opening the listing right after a scan must find it (leaving or hiding the tab saves at once)
@@ -2916,7 +2847,7 @@
       if (scored.has(key) || seen.has(key)) continue;
       const s = storedScan(key);
       if (!s || s.p !== priceOf(it)) continue;
-      Object.assign(it, Object.fromEntries(SNAP.filter((f) => s[f] !== undefined).map((f) => [f, s[f]])), { scannedAt: s.at, scannedWith: s.m, restored: true });
+      Object.assign(it, Object.fromEntries(SNAP.filter((f) => s[f] !== undefined).map((f) => [f, s[f]])), { scannedAt: s.at, scannedWith: s.m, scannedKind: s.kind, restored: true });
       scored.set(key, it);
       seen.add(key);
       const f = facts.get(key);
@@ -2941,7 +2872,7 @@
     it.vsWorking = it.refWorking && it.total != null && !it.lot ? it.total / it.refWorking : null;
     it.margin =
       it.lens === "project" && it.refWorking && it.total != null && !it.lot && !it.auction && it.related
-        ? Math.round(it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - it.total - (it.partsCost || 0))
+        ? Math.round(resaleNet(it) - it.total - (it.partsCost || 0))
         : it.margin;
     it.bidCap = it.auction && it.related ? bidCapFor(it) : null;
   };
@@ -2949,7 +2880,7 @@
   const applyResult = (it, r, forLens) => {
     Object.assign(it, {
       lens: forLens,
-      score: clamp100(r.score | 0),
+      score: fitScore(VERDICT[r.verdict] ? r.verdict : "fair", r.score),
       verdict: VERDICT[r.verdict] ? r.verdict : "fair",
       related: r.related !== false,
       flags: (r.flags || []).slice(0, 4),
@@ -3016,6 +2947,16 @@
     // Nothing new to score: the button stays, but steps back so the results lead.
     setIf(scanBtn, "className", label === "Scan again" ? "ghost" : "scan");
     setIf(scanBtn, "title", est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "");
+    autoTick(n, toScore, changed);
+    if (autoOn() && autoHold && autoHold !== "stopped") {
+      // Automatic scanning hit a problem (a key, the budget, the connection): say so on the closed tab too.
+      setIf(countEl, "textContent", "!");
+      setIf(countEl, "title", `Automatic scanning stopped: ${autoHold}`);
+      countEl.classList.add("new");
+      countEl.hidden = false;
+      resetBtn.hidden = !seen.size;
+      return;
+    }
     // The tab's badge, most useful first: listings at your price, then new ones to scan, then scored.
     const deals = dealCount();
     countEl.classList.toggle("deal", deals > 0);
@@ -3268,7 +3209,48 @@
   };
 
   let scanEpoch = -1;
-  const scan = async () => {
+  // ---------- automatic scanning ----------
+  // With the switch on, a search page you're looking at is scored as its listings load: once when it
+  // opens, then each time scrolling brings more. It waits until the page has stopped loading listings
+  // (two checks two seconds apart agree), never while you're typing in the panel, never in a background
+  // tab, and not after a problem or a Stop on this page until you press Scan yourself.
+  const autoRow = $(".autoscan");
+  const autoIn = $(".auto-in");
+  let autoHold = ""; // why it stopped on this page; a Scan you press, or a new page, clears it
+  let autoSig = null;
+  const autoSkip = new Set(); // listings the model passed over: offered again by Scan, not retried automatically
+  const autoOn = () => !!cfg.autoScan;
+  autoIn.addEventListener("change", async () => {
+    const on = autoIn.checked;
+    cfg.autoScan = on;
+    autoHold = "";
+    if (alive()) await chrome.storage.local.set({ autoScan: on }).catch(() => {});
+    if (!on) setStatus("Automatic scanning is off: press Scan when you want scores.");
+    else if (cfg.monthlyBudget > 0 || cfg.provider === "ollama")
+      setStatus(`Scanning automatically: new listings are scored as they load${cfg.provider === "ollama" ? " (free with Ollama)" : `, up to your $${cfg.monthlyBudget} monthly budget`}.`);
+    else
+      setStatus("Scanning automatically: new listings are scored as they load. There's no monthly budget to stop it.", false, {
+        label: "Set a $5 monthly budget",
+        fn: () => chrome.storage.local.set({ monthlyBudget: 5 }).then(() => setStatus("Monthly budget: $5. Change it in settings.")).catch(() => {}),
+      });
+    refreshPending();
+  });
+  const autoTick = (n, toScore, changed) => {
+    setIf(autoIn, "checked", autoOn());
+    autoRow.hidden = scanBtn.hidden || !!modelMissing;
+    const typing = root.activeElement && $(".inputs").contains(root.activeElement);
+    if (autoSkip.size && seen.size) n = [...currentKeys()].filter((k) => !seen.has(k) && !autoSkip.has(k)).length;
+    const due = autoOn() && !autoHold && !modelMissing && !changed && !typing && !document.hidden && (seen.size ? n : toScore) > 0;
+    if (!due) return void (autoSig = null);
+    const sig = `${seen.size}|${n}|${toScore}`;
+    if (autoSig !== sig) return void (autoSig = sig); // listings may still be loading: look again next time
+    autoSig = null;
+    scan({ auto: true });
+  };
+
+  const scan = async (opts) => {
+    const auto = opts?.auto === true; // a click passes its event: that's you
+    if (!auto) autoHold = "";
     if (scanning) {
       if (scanEpoch === pageEpoch) return;
       // A scan from a page you've left is still going: stop it, then start this page's.
@@ -3414,10 +3396,12 @@
       if (scored !== session) return; // you've moved on to another page
       // Anything not scored (failed batch, or the model skipped it) is offered again next scan.
       const missed = items.filter((it) => it.score == null);
-      missed.forEach((it) => seen.delete(keyOf(it.url)));
+      missed.forEach((it) => (seen.delete(keyOf(it.url)), autoSkip.add(keyOf(it.url))));
+      if (errors.length) autoHold = errors[0].message; // some requests failed: don't keep trying on its own
       setCount(scored.size);
       const costNote = toRank.length && cost > 0 ? ` Cost ${fmtCost(cost)}.` : "";
       if (stopRequested) {
+        autoHold = "stopped";
         return setStatus(`Stopped. Ranked ${items.length - missed.length} of ${items.length}; the other ${missed.length} are offered again.${costNote}`);
       }
       if (errors.length && missed.length === items.length) throw errors[0];
@@ -3430,6 +3414,7 @@
     } catch (e) {
       if (isStop(e)) setStatus("Stopped.");
       else setStatus(e.message, true);
+      autoHold = isStop(e) ? "stopped" : e.message || "an error";
     } finally {
       scanning = false;
       showProgress(null);
@@ -3437,7 +3422,7 @@
       scanBtn.disabled = false;
       refreshPending();
       renderPageInfo(); // the skipped-listings control appears once something is scored
-      requestAnimationFrame(showResults);
+      if (!auto) requestAnimationFrame(showResults); // an automatic scan never moves what you're reading
     }
   };
 
@@ -3610,7 +3595,7 @@
     const v = VERDICT[r.verdict] || VERDICT.fair;
     const score = clamp100(r.score | 0);
     const vs =
-      (listing.vsWorking != null ? ` · ${Math.round(listing.vsWorking * 100)}% of sold median` : "") +
+      (listing.vsWorking != null ? ` · ${listing.refRough ? "~" : ""}${Math.round(listing.vsWorking * 100)}% of sold median` : "") +
       (listing.vsParts != null ? ` · ${Math.round(listing.vsParts * 100)}% of for-parts median` : "");
     const rep = r.repair;
     const margin = listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (rep?.partsCost || 0) : null;
@@ -3777,6 +3762,8 @@
       priceNotes(listing, market, forLens, settings.feePct);
       setStatus(`Analyzing this listing as ${MODES[forLens].as}…`);
       const r = await sendAI("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
+      if (!VERDICT[r.verdict]) r.verdict = "fair";
+      r.score = fitScore(r.verdict, r.score); // the number agrees with the word
       // Certain scam signs (see scamWarning) overrule whatever the model made of the listing.
       if (itemFacts?.key === keyOf(location.href)) {
         itemFacts.offSite = listing.offSite; // the description may have loaded since the first look
@@ -3976,6 +3963,10 @@
     if (lastType === "results") saveScan(lastHref);
     lastHref = location.href;
     pageEpoch++; // work still running for the page you left finishes quietly (see scan)
+    applyWant();
+    autoHold = "";
+    autoSig = null;
+    autoSkip.clear();
     const type = (lastType = SL.pageType());
     const onResults = !!type;
     if (onResults && !host.isConnected) document.documentElement.append(host);

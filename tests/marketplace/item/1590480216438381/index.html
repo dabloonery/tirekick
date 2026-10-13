@@ -18,6 +18,7 @@
     storage: { local: { get: async () => ({}), set: async () => {}, onChanged: { addListener() {} } } } };
 </script>
 <script src="/content/adapters.js"></script>
+<script src="/lib/sold.js"></script>
 <script>
   // facebook.com is HTTPS-only in Chrome, so this runs on the test host and is told it is Marketplace.
   SecondLook.currentSite = () => "facebook";

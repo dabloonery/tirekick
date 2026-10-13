@@ -488,24 +488,65 @@
     u.searchParams.set("LH_Sold", "1");
     u.searchParams.set("LH_Complete", "1");
     u.searchParams.set("_ipg", "60");
+    u.searchParams.set("_sop", "13"); // most recently ended first: today's prices, not last season's
     if (condition) u.searchParams.set("LH_ItemCondition", condition);
     return u.href;
   };
 
   // Median of what buyers paid (price + shipping when the card shows it), plus the few sales
-  // closest to the median so you can see what the number is made of.
-  SL.summarizeSold = (html) => {
+  // closest to the median so you can see what the number is made of. Only sales that are the thing
+  // itself count:
+  //  - "Best offer accepted": the card shows the asking price, not what was paid (always lower), so
+  //    those would pull the median up. Left out.
+  //  - lots and bundles: not one item's price.
+  //  - for parts, not working, as is (when looking at working ones): sellers often list these under
+  //    "used" anyway.
+  //  - titles missing a model number from the search ("k1000", "ps2"): eBay matches loosely.
+  //  - outliers: far outside the rest (a box alone, a mint boxed kit), by Tukey's fences on log prices,
+  //    never nearer than 2.5x the median.
+  // confidence says how far to trust the number: "good" (15+ sales, middle half within 2x),
+  // "fair" (8+, within 3x), else "rough". ship: what buyers paid for shipping when they paid it (median),
+  // a fair guess at what sending one on would cost you.
+  const PARTSY = /\b(for parts|parts only|not working|non[- ]?working|doesn'?t work|does not work|as[- ]is|broken|untested|for repair|faulty|spares)\b/i;
+  const alnum = (x) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+  SL.summarizeSold = (html, { query = "", condition = "" } = {}) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    const sales = SL.extractEbay(doc, { strict: true }).filter((it) => it.total != null && it.total > 0);
+    const all = SL.extractEbay(doc, { strict: true }).filter((it) => it.total != null && it.total > 0);
+    const dropped = { offers: 0, lots: 0, parts: 0, unrelated: 0, outliers: 0 };
+    // Model numbers in the search must be in the title: tokens with a digit and a letter, or 3+ digits.
+    const codes = query.split(/\s+/).filter((w) => (/\d/.test(w) && /[a-z]/i.test(w)) || /^\d{3,}$/.test(w)).map(alnum).filter((w) => w.length >= 2);
+    let sales = all.filter((it) => {
+      const why = /best offer accepted/i.test(it.raw || "") ? "offers" : it.lot ? "lots" : condition !== "parts" && PARTSY.test(it.title) ? "parts" : codes.length && !codes.every((c) => alnum(it.title).includes(c)) ? "unrelated" : "";
+      if (why) dropped[why]++;
+      return !why;
+    });
+    if (sales.length >= 8) {
+      const logs = sales.map((it) => Math.log(it.total)).sort((a, b) => a - b);
+      const q1 = quantile(logs, 0.25);
+      const q3 = quantile(logs, 0.75);
+      // Never closer than 2.5x either side of the median: when prices cluster tightly, the fences alone
+      // would throw out ordinary sales.
+      const mid = quantile(logs, 0.5);
+      const lo = Math.min(q1 - 1.5 * (q3 - q1), mid - Math.log(2.5));
+      const hi = Math.max(q3 + 1.5 * (q3 - q1), mid + Math.log(2.5));
+      const kept = sales.filter((it) => Math.log(it.total) >= lo && Math.log(it.total) <= hi);
+      dropped.outliers = sales.length - kept.length;
+      sales = kept;
+    }
     if (sales.length < 5) return null; // too few sales to trust
     const totals = sales.map((it) => it.total).sort((a, b) => a - b);
     const r = (n) => Math.round(n);
     const median = quantile(totals, 0.5);
+    const p25 = quantile(totals, 0.25);
+    const p75 = quantile(totals, 0.75);
+    const spread = p25 > 0 ? p75 / p25 : Infinity;
+    const confidence = totals.length >= 15 && spread <= 2 ? "good" : totals.length >= 8 && spread <= 3 ? "fair" : "rough";
+    const ships = sales.map((it) => it.shipping).filter((x) => x > 0).sort((a, b) => a - b);
     const samples = [...sales]
       .sort((a, b) => Math.abs(a.total - median) - Math.abs(b.total - median))
       .slice(0, 5)
       .sort((a, b) => a.total - b.total)
       .map((it) => ({ title: it.title, total: it.total, url: it.url }));
-    return { n: totals.length, median: r(median), p25: r(quantile(totals, 0.25)), p75: r(quantile(totals, 0.75)), currency: "$", samples };
+    return { n: totals.length, median: r(median), p25: r(p25), p75: r(p75), confidence, ship: ships.length >= 3 ? r(quantile(ships, 0.5)) : null, dropped, currency: "$", samples };
   };
 })();

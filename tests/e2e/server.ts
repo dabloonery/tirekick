@@ -47,6 +47,23 @@ if (${churn}) setInterval(() => { const a = all(); for (let i = 0; i < 40; i++) 
 };
 // ?fixture=<name>: a saved page from tests/fixtures at the real address, with the plain scripts added (adapters.ts).
 const ROOT = new URL("../../", import.meta.url);
+// A sold search for any words, like eBay's: ten honest sales of the thing, then the ones that must not count
+// (a "best offer accepted" sale showing its asking price, a lot, a for-parts one listed as used, a far-off price,
+// an accessory without the model number). Ten kept: median $60, buyers paid $9 shipping on most.
+const soldPage = (q: string) => {
+  const t = q.replace(/[<>&"]/g, "");
+  const card = (id: number, title: string, price: number, extra = "") => ` <li class="s-card"><a href="https://www.ebay.com/itm/5000000000${id}"><div class="s-card__title">${title}</div></a><div class="s-card__price">$${price}.00</div>${extra}</li>`;
+  const ship = '<div class="s-card__attribute-row">+$9.00 delivery</div>';
+  const good = [48, 52, 55, 57, 59, 61, 63, 66, 70, 74].map((p, i) => card(i, `${t} used, working ${i}`, p - 9, i < 7 ? ship : '<div class="s-card__attribute-row">Free delivery</div>'));
+  return `<!doctype html><html><head><meta charset="utf-8"><title>sold | eBay</title></head><body><div class="srp-results"><ul>
+${good.join("\n")}
+${card(20, `${t} boxed, mint`, 140, '<div class="s-card__attribute-row">Best offer accepted</div>')}
+${card(21, `Lot of 3 ${t}`, 150)}
+${card(22, `${t} for parts, not working`, 18)}
+${card(23, `${t} museum piece`, 900)}
+${card(24, `${t.split(/\s+/)[0]} strap and cap`, 8)}
+</ul></div></body></html>`;
+};
 const fixturePage = (name: string) => {
   const html = Deno.readTextFileSync(new URL(`tests/fixtures/${name.replace(/[^\w-]/g, "")}.html`, ROOT));
   const scripts = ["lib/shared.js", "content/rules.js", "content/adapters.js"].map((f) => `<script>${Deno.readTextFileSync(new URL(f, ROOT))}</script>`).join("");
@@ -60,6 +77,7 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace"), { headers: { "content-type": "text/html" } });
   // A sold search for "blockme" is refused, like eBay's browser check.
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /blockme/.test(u.searchParams.get("_nkw") || "")) return new Response("denied", { status: 403 });
+  if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1") return new Response(soldPage(u.searchParams.get("_nkw") || "item"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/sch/")) return new Response(u.searchParams.has("empty") ? "<!doctype html><title>x</title><ul></ul>" : page("Pentax results"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/itm/")) return new Response(`<!doctype html><html><head><meta charset="utf-8"><title>Pentax K1000 | eBay</title></head><body><main>
 <h1 class="x-item-title__mainTitle"><span class="ux-textspans">Pentax K1000 35mm SLR Film Camera w 50mm PK Mount</span></h1>

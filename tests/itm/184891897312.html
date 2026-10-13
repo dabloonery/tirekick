@@ -12,6 +12,7 @@
     storage: { local: { get: async () => ({}), set: async () => {}, onChanged: { addListener() {} } } } };
 </script>
 <script src="/content/adapters.js"></script>
+<script src="/lib/sold.js"></script>
 <script>
   const it = SecondLook.extractItem(); const out = [];
   const check = (n, ok, why = "") => out.push(`${ok ? "PASS" : "FAIL"} ${n}${ok ? "" : ": " + why}`);

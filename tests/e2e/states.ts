@@ -83,6 +83,37 @@ await reset(`{anthropicKey:'sk-ant-test', monthlyBudget:0.0001, usage:{days:{[ne
   ok("the budget used up: the message is in view", await inView(p, ".view-page .statusrow"));
 }
 
+// ---- automatic scanning, on eBay and on Marketplace, without pressing Scan ----
+for (const [site, url] of [["eBay", SEARCH], ["Marketplace", "https://www.facebook.com/marketplace/albuquerque/search?query=film+camera"]]) {
+  await reset(`{anthropicKey:'sk-ant-test', autoScan:true, monthlyBudget:5}`);
+  await fetch(`${API}/calls`, { method: "DELETE" });
+  const p = await open(url); // the panel stays closed: the tags on the cards are the point
+  await c.send("Target.activateTarget", { targetId: p.targetId });
+  let tags = 0;
+  for (let i = 0; i < 24 && !tags; i++) {
+    await sleep(500);
+    tags = await p.ev(`document.querySelectorAll('.second-look-sticker').length`);
+  }
+  const calls = (await (await fetch(`${API}/calls`)).json()).length;
+  ok(`${site}: with Scan automatically on, the cards get scores without a press`, tags > 0, { tags, calls });
+  await sleep(5000);
+  const again = (await (await fetch(`${API}/calls`)).json()).length;
+  ok(`${site}: …once: nothing new, nothing sent again`, again === calls, { calls, again });
+}
+await reset(`{anthropicKey:'bad', autoScan:true}`);
+await fetch(`${API}/calls`, { method: "DELETE" });
+{
+  const p = await open(SEARCH);
+  await c.send("Target.activateTarget", { targetId: p.targetId });
+  await sleep(9000);
+  const badge = await R(p, `const b=r.querySelector('.count'); return [b.hidden, b.textContent, b.title]`);
+  ok("automatic scanning stops at a problem and says so on the closed tab", !badge[0] && badge[1] === "!" && /rejected/.test(badge[2]), badge);
+  await R(p, `r.querySelector('[data-act=tab]').click()`);
+  await sleep(400);
+  const [, err] = await status(p);
+  ok("…and the panel has the message", err);
+}
+
 // ---- a scan under way, then Stop ----
 await reset(`{anthropicKey:'slow'}`);
 {

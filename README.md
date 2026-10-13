@@ -20,11 +20,11 @@ background.
    eBay and Marketplace page; the free marks on the cards work with the panel closed. Click the tab
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
 
-The first time, the panel opens by itself with a three-step welcome (pick Buyer or Reseller, say
-what you want, press Scan); each step is a link that jumps to the right box. With no model set up
-yet, adding a key is step one, with **Open settings** as the one button, and the controls that need a
-model wait until it's done (comparing sold prices works without one). **Got it** closes it for
-good, and the **?** button in the panel header brings it back.
+The first time, the panel opens by itself with a short welcome: what Scan does, what Buyer and
+Reseller change, and that a card's tag has the reasons. With no model set up yet, adding a key comes
+first, with **Open settings** as the one button (the marks on the cards and comparing sold prices work
+without one). **Got it** closes it for good, and the **?** button in the panel header brings it back.
+Home's **Getting started** keeps track of the first few things to try.
 
 **Where it sits**: docked to the right edge (the default) or the left, in one of three widths.
 Drag the header toward a side and let go (both sides light up as you drag) to dock it there, drag the
@@ -33,10 +33,11 @@ left and right pick the side, up and down the width, Home puts it back. Double-c
 puts it back. Each site remembers its own, and the panel always fits the window. Esc tucks it away
 from anywhere on the page (except while you're typing in the site's own boxes).
 
-At the top, **Buyer** (to keep and use) or **Reseller** (to fix up and flip) says how you're shopping
-(see below). Under it, three tabs: **This page** (everything below), **Saved** (your saved listings and
-searches; what you've hidden is folded away at the bottom) and **Home** (what's worth another look, a
-few numbers, spending, which features you use). Saved and Home work on any eBay or Marketplace page.
+Under the header, three tabs: **Home** (what's worth another look, a few numbers that lead to their
+lists, and folded away, spending and which features you use), **This page** (everything below) and
+**Saved** (your saved listings and searches; what you've hidden is folded away at the bottom). Beside
+them, **Buyer** (to keep and use) or **Reseller** (to fix up and flip) says how you're shopping (see
+below). Saved and Home work on any eBay or Marketplace page.
 
 ## Home
 
@@ -101,7 +102,7 @@ scam warning stays readable.
   price, auctions ending soonest, biggest margin, or new and cheaper first.
 - **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide under
   **Filter** (Skips and scams).
-- **A row's links** (Open, Sold, Save, Not interested) appear when you point at it or Tab into it,
+- **A row's links**: **Open ↗** is always there; Sold, Save and Not interested appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
   now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Unhide.
@@ -114,7 +115,7 @@ scam warning stays readable.
 - **Right-click any photo** and choose "Check this photo with Second Look".
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
-- **The footer** shows this month's spend; click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
+- **The footer** has the quality menu and this month's spend. With Claude the menu is **Thrifty** (Haiku for everything), **Balanced** (Haiku scans, Sonnet for single listings, photos and search ideas; the default) or **Thorough** (Sonnet scans, Opus for the rest); settings has each model separately, and another pair shows as Custom. The spend: click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
 - **Esc** tucks the panel away; the sliders icon opens settings.
 
 ## Buyer and Reseller
@@ -184,7 +185,7 @@ Everything here is free, needs no API key, and runs only on pages you're looking
   for parts, no power, disc read error and the like: the "any of these words" search Marketplace
   can't do. Those words also show as a chip on cards (and moving sale, must go, estate sale:
   sellers who want it gone).
-- **Deal at ≤ $** is your price for this search (it stays when you clear the filter with ×). Listings at or under it get an "At your $60" mark,
+- **Your price ≤ $** is your price for this search (it stays when you clear the filter with ×). Listings at or under it get an "At your $60" mark,
   and the slim tab on the edge of the page counts them (★3) even with the panel closed. When sold
   prices are known it suggests 70% of the median.
 

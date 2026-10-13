@@ -11,12 +11,14 @@ await R(`r.querySelector('[data-act=tab]').click()`); await sleep(400);
 await R(`r.querySelector('[data-act=scan]').click()`); await sleep(2600);
 
 // row links: hidden until the row is pointed at
-const vis = () => R(`return getComputedStyle(r.querySelector('.list .row .row-acts > a')).visibility`);
+const vis = () => R(`return getComputedStyle(r.querySelector('.list .row .row-acts > button:not(.on)')).visibility`);
 await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 }, p.sessionId); await sleep(150);
 ok("row links hidden at rest", (await vis()) === "hidden", await vis());
 const at = await R(`const b=r.querySelector('.list .row').getBoundingClientRect(); return [b.x+b.width/2, b.y+10]`);
 await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: at[0], y: at[1] }, p.sessionId); await sleep(150);
 ok("row links show on hover", (await vis()) === "visible", await vis());
+ok("Open is under every price, at rest too", await R(`const rows=[...r.querySelectorAll('.list .row')]; return rows.length > 0 && rows.every((x)=>{const o=x.querySelector('.pr .open'); return o && getComputedStyle(o).visibility==='visible' && /\\/itm\\//.test(o.href)})`));
+ok("a title shows the card on the page (it's a button, not a link)", await R(`return r.querySelector('.list .row .title').tagName === 'BUTTON'`));
 
 // nothing new: Scan again is secondary
 ok("Scan again is secondary", (await R(`const b=r.querySelector('[data-act=scan]'); return b.className+'|'+b.textContent`)).startsWith("ghost|Scan again"), await R(`return r.querySelector('[data-act=scan]').className`));

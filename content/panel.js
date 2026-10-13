@@ -95,6 +95,9 @@
     return el;
   };
 
+  // Every row's way to the listing itself, under its price (the title shows the card on the page instead)
+  const openLink = (it) => h("a", { class: "open", href: it.url, target: "_blank", rel: "noopener", title: "Open the listing in a new tab" }, "Open \u2197");
+
   // The card tag's score: a dial like the panel's, set through CSSOM so a page's style rules can't block it
   const scoreDial = (item) => {
     const el = h("div", { class: "sl-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || ""));
@@ -249,6 +252,18 @@
     .hm .down { color:var(--v-great); font-weight:600; }
     .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px 16px; }
     .hm-tile { padding:2px 0 0 12px; border-left:2px solid var(--rule); }
+    /* a number you can act on is a button: it goes to the list behind it */
+    button.hm-tile { all:unset; box-sizing:border-box; display:flex; flex-direction:column; justify-content:flex-start; padding:2px 0 0 12px; border-left:2px solid var(--rule); cursor:pointer; transition:border-color .15s; }
+    button.hm-tile:hover { border-left-color:var(--ink); }
+    button.hm-tile:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    /* the detail sections fold: a heading you can open */
+    .hm-fold > summary { list-style:none; cursor:pointer; }
+    .hm-fold > summary::-webkit-details-marker { display:none; }
+    .hm-fold > summary h3 { margin-bottom:0; }
+    .hm-fold > summary h3::after { content:"+"; margin-left:auto; padding-left:10px; color:var(--muted); font:400 16px/1 var(--ui); }
+    .hm-fold[open] > summary h3::after { content:"\\2212"; }
+    .hm-fold[open] > summary { margin-bottom:10px; }
+    .hm-fold > summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .hm-tile span { display:block; color:var(--muted); font-size:12px; }
     .hm-tile b { display:block; font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; }
     .hm-tile small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
@@ -272,6 +287,7 @@
     .hm th, .hm td { text-align:left; padding:4px 6px; border-bottom:var(--bw) solid var(--rule); }
     .hm td.n, .hm th.n { text-align:right; font-variant-numeric:tabular-nums; }
     .hm-use { display:grid; gap:7px; margin-top:8px; }
+    .hm-fold .acts { margin-top:12px; }
     .hm-use > div { display:grid; grid-template-columns:minmax(110px, 150px) 1fr 34px; gap:10px; align-items:center; font-size:13px; }
     .hm-use .track { height:8px; }
     .hm-use .track i { display:block; height:100%; background:var(--ink); border-radius:0 2px 2px 0; min-width:2px; }
@@ -328,7 +344,7 @@
     @media (max-height: 620px) { .head { padding-top:8px; padding-bottom:0; } .nav button { padding:9px 0 8px; } }
     .hint { color:var(--muted); font-size:13px; }
     .inputs { display:grid; gap:12px; }
-    .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
+    .knows-modes .mode-hint, .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
     .wrap:not([data-workspace="reseller"]) .feewrap { display:none; }
     .feewrap { display:grid; grid-template-columns:1fr 84px; align-items:center; column-gap:12px; }
     .feewrap label { margin:0; }
@@ -340,6 +356,13 @@
     .inputs-sum button:hover { text-decoration-color:currentColor; }
     .inputs-sum button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .browse-note { margin-top:6px; }
+    /* The compare words come from the page's search: until you want them changed they're one line, not a box */
+    .q-sum { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; margin-top:-4px; color:var(--muted); font-size:12px; }
+    .q-sum b { color:var(--ink); font-weight:600; }
+    .q-sum button { all:unset; padding:3px 0; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .q-sum button:hover { text-decoration-color:currentColor; }
+    .q-sum button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .wrap:not(.q-folded) .q-sum, .q-folded .qwrap { display:none; }
     .browse-note b { color:var(--ink); font-weight:600; }
 
     .scan { min-height:42px; background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
@@ -405,21 +428,17 @@
     .welcome { display:grid; gap:8px; padding:14px 16px; border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--raise); font-size:13px; }
     .welcome > b:first-child { font:600 19px/1.2 var(--display); letter-spacing:-.01em; }
     .welcome b { font:600 15px/1.2 var(--ui); }
-    .welcome ol { margin:0; padding:0; list-style:none; display:grid; gap:4px; counter-reset:step; }
-    .welcome li { counter-increment:step; position:relative; padding-left:26px; line-height:1.45; }
-    .welcome li::before { content:counter(step); position:absolute; left:0; top:1px; width:18px; height:18px; display:grid; place-items:center; border-radius:50%; background:var(--ink); color:var(--paper); font:600 11px/1 var(--ui); }
-    .welcome li button { border:0; background:none; padding:0; color:var(--ink); font:inherit; text-align:left; cursor:pointer; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
-    .welcome li button:hover { text-decoration-color:var(--ink); }
+    .welcome .w-points { margin:0; padding-left:18px; display:grid; gap:5px; line-height:1.45; }
+    .welcome .w-points li::marker { color:var(--accent); }
+    .welcome .w-points b { font:600 13px/1.45 var(--ui); }
     .welcome .tip { color:var(--muted); }
     .welcome .go { justify-self:start; }
     /* No model yet: the key is step 1 and the only call to action; the steps after it are plain text until it's done */
-    .welcome .step-key { display:grid; gap:4px; }
-    .welcome .step-key b { font:600 13px/1.45 var(--ui); }
+    .welcome .step-key { display:grid; gap:4px; padding:10px 12px; border-radius:var(--r-sm); background:var(--paper-2); }
+    .welcome .step-key b { font:600 14px/1.4 var(--ui); }
     .welcome .step-key .setup-text { color:var(--muted); }
-    .welcome li .setup-go { justify-self:start; margin-top:6px; padding:9px 14px; background:var(--ink); color:var(--on-ink); font:600 13px/1 var(--ui); text-decoration:none; cursor:pointer; pointer-events:auto; }
-    .welcome:has(.step-key:not([hidden])) li:not(.step-key) { color:var(--muted); }
-    .welcome:has(.step-key:not([hidden])) li:not(.step-key)::before { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--line); }
-    .welcome:has(.step-key:not([hidden])) li:not(.step-key) button { color:inherit; text-decoration:none; cursor:default; pointer-events:none; }
+    .welcome .step-key .setup-go { justify-self:start; margin-top:6px; min-height:36px; padding:9px 14px; font-size:13px; }
+    .welcome:has(.step-key:not([hidden])) .w-points { color:var(--muted); }
     /* Model-only controls wait until there is a model: Compare prices against and free sold prices still work */
     .no-model .want-field, .no-model .feewrap, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
 
@@ -592,6 +611,10 @@
     /* in the list, actions stay quiet so titles and prices lead */
     .list .actions a, .list .actions button { color:var(--muted); font-weight:400; text-decoration-color:var(--line); }
     .list .actions a:hover, .list .actions button:hover:not(:disabled) { color:var(--ink); text-decoration-color:currentColor; }
+    /* Open, under the price, on every row: the title shows the card on the page, Open goes to the listing */
+    .pr .open { display:block; margin-top:4px; font:600 12px/18px var(--ui); letter-spacing:normal; color:var(--ink); text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; white-space:nowrap; }
+    .pr .open:hover { text-decoration-color:currentColor; }
+    .pr .open:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .photo { margin-top:8px; font-size:12px; padding:8px 10px; background:var(--paper-2); border-left:2px solid var(--ink); border-radius:0 var(--r-sm) var(--r-sm) 0; }
     .photo.drop { border-left-color:var(--v-suspicious); }
     [hidden] { display:none !important; }
@@ -695,14 +718,14 @@
         <div class="hint other-note">Nothing to scan on this page. Open a search, a category or a listing; your saved listings and searches are under Saved.</div>
         <div class="welcome" hidden>
           <b>Welcome to Second Look</b>
-          <ol>
-            <li class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
-              <button class="scan setup-go" data-act="open-settings">Open settings</button></li>
-            <li><button data-step="lens">Pick Buyer or Reseller</button> (top right): to keep and use, or to fix up and flip.</li>
-            <li><button data-step="want">Say what you want</button>, like "working, with charger". Optional.</li>
-            <li><button data-step="scan">Press Scan</button> and every listing gets a score and a reason.</li>
-          </ol>
-          <div class="tip">No key yet? The free marks still work: hover a card for scam checks, <i>Save</i> and <i>Sold</i> prices.</div>
+          <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
+            <button class="scan setup-go" data-act="open-settings">Open settings</button></div>
+          <ul class="w-points">
+            <li><b>Scan</b> gives every listing here a score, the reason, and its price against what sold.</li>
+            <li><b>Buyer or Reseller</b>, top right, changes what scores high.</li>
+            <li>Point at a card's tag for the reasons, <i>Save</i> and <i>Not interested</i>.</li>
+          </ul>
+          <div class="tip">No key yet? The marks on the cards already warn about scams, free.</div>
           <button class="ghost go" data-act="intro-done">Got it</button>
         </div>
         <div class="setup" hidden><b class="setup-title">Add a Claude API key to start.</b> <span class="setup-text">It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings.</span>
@@ -711,6 +734,7 @@
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
+        <div class="q-sum"><span class="q-sum-text"></span> <button data-act="edit-q" title="Compare prices against other words">Change</button></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
@@ -730,13 +754,13 @@
         <button class="qt qf-toggle" aria-expanded="false" aria-controls="qf-box" title="Filter by words and price, hide listings you've seen, set your deal price">Filter</button>
         <div class="qf" id="qf-box" role="search" aria-label="Filter this search" hidden>
           <div class="qf-row">
-            <span class="qf-wordwrap"><input class="qf-words" placeholder="Filter: dmg -case -game" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
+            <span class="qf-wordwrap"><input class="qf-words" placeholder="Words: working -parts" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
             <span class="qf-price"><input class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
           </div>
           <div class="qf-row qf-toggles">
             <button class="qt" data-q="fresh" aria-pressed="false" title="Hide every listing you've seen before">New only</button>
             <button class="qt qt-broken" aria-pressed="false"></button>
-            <label class="qf-deal" title="Your price for this search">Deal at \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
+            <label class="qf-deal" title="Listings at or under it get a star, and a saved search tells you on Home">Your price \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
           </div>
           <div class="qf-row skipwrap" title="Listings judged Skip or Suspicious, and likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
         </div>
@@ -858,11 +882,19 @@
   // Once the page is scanned (or priced, or analyzed), "What I want" and "Compare prices against" fold
   // into one line, so the results get the room. Edit opens them again until the next scan.
   let editingInputs = false;
+  let editingQ = false; // "Change" pressed: the compare box stays open on this page
   const inputsSum = $(".inputs-sum");
   const updateFold = () => {
     const type = SL.pageType();
     const done = type === "results" ? scored.size > 0 || !!lastMarket : type === "item" ? itemEl.childElementCount > 0 : false;
     const typingHere = root.activeElement && $(".inputs").contains(root.activeElement);
+    const qNow = queryEl.value.trim();
+    const qFold = (type === "results" || type === "item") && !!qNow && !editingQ && !(root.activeElement && qwrap.contains(root.activeElement));
+    wrap.classList.toggle("q-folded", qFold);
+    if (qFold && $(".q-sum").dataset.shown !== qNow) {
+      $(".q-sum").dataset.shown = qNow;
+      $(".q-sum-text").replaceChildren("Prices compared with sold ", h("b", {}, `\u201c${qNow}\u201d`));
+    }
     const fold = done && !editingInputs && !typingHere;
     wrap.classList.toggle("folded", fold);
     inputsSum.hidden = !fold;
@@ -872,10 +904,18 @@
     if (inputsSum.dataset.shown === `${q}\n${want}`) return; // runs every two seconds: only redraw a change
     inputsSum.dataset.shown = `${q}\n${want}`;
     $(".sum-text").replaceChildren(
-      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", " \u00b7 ", want ? ["wants ", h("b", {}, want)] : "no wants set"].flat()
+      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", want ? [" \u00b7 wants ", h("b", {}, want)] : []].flat()
     );
+    // Nothing in What I want: the button says what it's for, instead of the line saying what's missing
+    $('[data-act="edit-inputs"]').textContent = want ? "Edit" : "Add what you want";
     $(".sum-text").title = `${q ? `Comparing prices with eBay sales of \u201c${q}\u201d` : "No price comparison"}; ${want ? `what you want: ${want}` : "nothing in What I want"}`;
   };
+  $('[data-act="edit-q"]').addEventListener("click", () => {
+    editingQ = true;
+    updateFold();
+    queryEl.focus();
+    queryEl.select();
+  });
   $('[data-act="edit-inputs"]').addEventListener("click", () => {
     editingInputs = true;
     updateFold();
@@ -1090,19 +1130,29 @@
   let cfg = {};
   const nameOf = (id) => (MODELS.find(([, m]) => m === id)?.[2].split(" \u00b7")[0]) || OLDER[id] || id;
 
+  // With Claude the footer offers how careful to be, not a model: each choice sets both the scan model (many
+  // listings at once) and the one for a single listing, photos and search ideas. Settings has the two
+  // separately; a pair that isn't one of these shows as "Custom".
+  const QUALITY = [
+    ["thrifty", "Thrifty", "claude-haiku-5-5", "claude-haiku-5-5"],
+    ["balanced", "Balanced", "claude-haiku-5-5", "claude-sonnet-5-5"],
+    ["thorough", "Thorough", "claude-sonnet-5-5", "claude-opus-5-5"],
+  ];
+  const short = (id) => nameOf(id).replace(/ 5\.5$/, "");
+  const qualityNow = () => QUALITY.find(([, , sm, m]) => sm === cfg.scanModel && m === cfg.anthropicModel);
   const renderModels = () => {
-    const opts = [...MODELS];
-    if (cfg.anthropicModel && !opts.some(([, m]) => m === cfg.anthropicModel)) opts.push(["anthropic", cfg.anthropicModel, nameOf(cfg.anthropicModel)]);
+    const opts = QUALITY.map(([id, label, sm, m]) => ["anthropic", `q:${id}`, `${label} \u00b7 ${sm === m ? short(m) : `${short(sm)} + ${short(m)}`}`]);
+    if (cfg.anthropicModel && !qualityNow()) opts.push(["anthropic", "custom", `Custom \u00b7 ${short(cfg.scanModel || cfg.anthropicModel)} + ${short(cfg.anthropicModel)}`]);
     // Another AI service, once one is set up in settings.
     if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName} \u00b7 ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
     opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama \u00b7 ${cfg.textModel || "qwen3:4b"} \u00b7 free`]);
     modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}`, title: label }, label)));
-    // Scans use their own, cheaper model (Claude only): say so where the model is shown.
     $(".model-pick").title =
-      cfg.provider === "anthropic" && cfg.scanModel && cfg.scanModel !== cfg.anthropicModel
-        ? `This model: analysis, photos and search ideas. Scans use ${nameOf(cfg.scanModel)} (change it in settings).`
+      cfg.provider === "anthropic"
+        ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes straight away; settings has each one.`
         : "Which model judges listings. Changes straight away.";
-    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : `anthropic|${cfg.anthropicModel}`;
+    const q = qualityNow();
+    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : `anthropic|${q ? `q:${q[0]}` : "custom"}`;
   };
   const openSettings = () => send("openOptions").catch(() => {});
   $('[data-act="settings"]').addEventListener("click", openSettings);
@@ -1145,16 +1195,17 @@
 
   modelSel.addEventListener("change", async () => {
     const [provider, model] = modelSel.value.split("|");
-    await chrome.storage.local.set(provider === "anthropic" ? { provider, anthropicModel: model } : { provider });
+    const q = QUALITY.find(([id]) => model === `q:${id}`);
+    await chrome.storage.local.set(provider === "anthropic" ? (q ? { provider, anthropicScanModel: q[2], anthropicModel: q[3] } : { provider }) : { provider });
     setStatus(
       provider === "ollama"
         ? `Using ${model} on Ollama (free, on your computer).`
         : provider === "openai"
           ? `Using ${model} on ${cfg.oaiName} from now on.`
           : cfg.hasKey
-            ? cfg.anthropicScanModel && cfg.anthropicScanModel !== model
-              ? `Using ${nameOf(model)} to analyze listings, check photos and suggest searches. Scans use ${nameOf(cfg.anthropicScanModel)} (change that in settings).`
-              : `Using ${nameOf(model)} from now on. Scores already made by another model stay until you scan again.`
+            ? q
+              ? `${q[1]}: scans with ${nameOf(q[2])}, single listings with ${nameOf(q[3])}. Scores already made stay until you scan again.`
+              : "Using the models picked in settings."
             : "Add a Claude API key in the extension's settings to use Claude.",
       provider === "anthropic" && !cfg.hasKey
     );
@@ -1277,14 +1328,6 @@
     showIntro(welcome.hidden);
     if (!welcome.hidden) welcome.scrollIntoView({ block: "nearest" });
   });
-  welcome.querySelectorAll("[data-step]").forEach((b) =>
-    b.addEventListener("click", () => {
-      const step = b.dataset.step;
-      if (step === "want") wantEl.focus();
-      else if (step === "scan") (scanBtn.hidden ? analyzeBtn : scanBtn).focus();
-      else root.querySelector("button[data-mode][aria-checked='true']")?.focus();
-    })
-  );
   let introPending = false;
   let introOpened = false;
   // Called on every page change: the card only appears where there is something to try it on.
@@ -1350,10 +1393,18 @@
     (modePrefs[lens] ||= {})[key] = value;
     if (alive()) chrome.storage.local.set({ modePrefs }).catch(() => {});
   };
+  // What each mode is for: the first line of This page while you're new to it (your first few scans), and
+  // again right after you switch, until the next scan. After that it's known, and the space goes to results.
+  let scansSoFar = 0;
+  let justSwitched = false;
+  const showModeHint = () => wrap.classList.toggle("knows-modes", scansSoFar >= 3 && !justSwitched);
+  chrome.storage.local.get("stats").then(({ stats }) => ((scansSoFar = stats?.scans || 0), showModeHint())).catch(() => {});
   const setMode = (id) => {
     const next = LENS_OF[id];
     if (!next || next === lens) return;
     lens = next;
+    justSwitched = true;
+    showModeHint();
     if (next === "project") bump("flipSwitches");
     if (alive()) chrome.storage.local.set({ lens }).catch(() => {});
     applyPrefs();
@@ -1952,6 +2003,8 @@
   const homeCount = $('.nav [data-view="home"] .cnt');
   const home = SLHome.mount($(".view-home"), {
     send,
+    go: (v) => setView(v),
+    showSpend: () => showSpend(true),
     getMode: () => MODES[lens].id,
     isShown: () => view === "home" && wrap.classList.contains("open") && !document.hidden,
     onAlerts: (n) => {
@@ -2262,7 +2315,7 @@
     for (const f of facts.values()) f.vsSold = vsSoldOf(f);
     redecorateAll();
     refreshPending();
-    showQuick(); // the "Deal at" box can now suggest a price
+    showQuick(); // the "Your price" box can now suggest a price
   };
   const cachedMarket = async (query) => {
     if (!query.trim()) return null;
@@ -2463,7 +2516,7 @@
               h(
                 "div",
                 {},
-                h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
+                h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
                 likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} on the title (a scan can clear it if it's the model number)`) : null,
                 (() => {
                   // The tag already shows the price; the line adds only what it doesn't say.
@@ -2475,11 +2528,10 @@
                 })(),
                 known.length ? h("div", { class: "flags" }, known) : null
               ),
-              h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
+              h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`, openLink(it)),
               h(
                 "div",
                 { class: "actions row-acts" },
-                h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
                 h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
                 saveBtn,
                 hideBtn
@@ -2506,19 +2558,18 @@
             h(
               "div",
               {},
-              h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
+              h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
               h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""}${it.auction || it.shipping > 0 ? ` \u00b7 ${priceStr(it)}` : ""}${it.related === false ? "" : vsMarket}`),
               (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` \u00b7 ${it.fault}` : "")) : null,
               h("div", { class: "reason" }, it.reason || ""),
               // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
               known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null
             ),
-            h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
+            h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`, openLink(it)),
             // Actions and photo notes run under the price too, so the four links fit on one line.
             h(
               "div",
               { class: "actions row-acts" },
-              h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
               it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
               it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Ask the model to look at the photo (changes the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
               saveBtn,
@@ -3225,6 +3276,9 @@
       while (scanning) await sleep(100);
     }
     bump("scans");
+    scansSoFar++;
+    justSwitched = false;
+    showModeHint();
     scanning = true;
     const epoch = (scanEpoch = pageEpoch);
     // Messages from this scan only while you're still on its page.
@@ -3235,6 +3289,7 @@
     try {
       const settings = await send("getSettings");
       editingInputs = false;
+      editingQ = false;
       if (inputsChanged()) {
         restoreOff = true;
         clearStickers();
@@ -3367,7 +3422,7 @@
       }
       if (errors.length && missed.length === items.length) throw errors[0];
       setStatus(
-        `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${scams ? ` ${scams} reposted scam${scams > 1 ? "s" : ""} marked without the model.` : ""}${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
+        `${missed.length ? `Ranked ${items.length - missed.length} of ${items.length} new listings` : `Scored ${items.length} new listing${items.length === 1 ? "" : "s"}`}${fromMemory ? ` (${fromMemory} from memory)` : ""}.${scams ? ` ${scams} reposted scam${scams > 1 ? "s" : ""} marked without the model.` : ""}${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
           (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +
           (!errors.length && missed.length ? " The model skipped some; scan again, or try a smaller batch size in settings." : ""),
         errors.length > 0
@@ -3740,6 +3795,7 @@
       analyzeBtn.className = "ghost";
       analyzeBtn.replaceChildren("Analyze again", settings.provider === "anthropic" && r.cost ? h("span", { class: "cost" }, ` \u00b7 last one ${fmtCost(r.cost)}`) : "");
       editingInputs = false;
+      editingQ = false;
       setStatus("");
     } catch (e) {
       if (isStop(e)) setStatus("Stopped. Nothing was analyzed.");
@@ -3940,6 +3996,7 @@
       scanInputs = null;
       restoreOff = false;
       editingInputs = false;
+      editingQ = false;
       freeRow.hidden = true;
       analyzeBtn.textContent = "Analyze this listing";
       analyzeBtn.className = "scan";

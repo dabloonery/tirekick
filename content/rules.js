@@ -1,10 +1,10 @@
-// Second Look: the plain rules behind the panel, as functions with no page, storage or network in them.
+// Tirekick: the plain rules behind the panel, as functions with no page, storage or network in them.
 // Word matching and filters, scam signs, what counts as a fix-up project, how a photo check moves a
 // verdict, and a few small formatters. The panel (content/panel.js) holds the state and calls these;
 // tests/unit.test.mjs runs them on their own.
 
 (() => {
-  const R = (window.SLRules = {});
+  const R = (window.TKRules = {});
 
   R.clamp100 = (n) => Math.max(0, Math.min(100, n));
   R.RANK = { pass: 0, fair: 1, good: 2, great: 3 };

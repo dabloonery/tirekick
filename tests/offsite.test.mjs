@@ -4,9 +4,9 @@ globalThis.window = globalThis;
 globalThis.location = { hostname: "www.facebook.com", href: "https://www.facebook.com/" };
 globalThis.document = { querySelector: () => null, querySelectorAll: () => [] };
 (0, eval)(Deno.readTextFileSync(new URL("../content/adapters.js", import.meta.url)));
-const SL = globalThis.SecondLook;
+const TK = globalThis.Tirekick;
 const check = (name, ok, why = "") => console.log(`${ok ? "PASS" : "FAIL"} ${name}${ok ? "" : ": " + why}`);
-const sure = (t) => SL.offSite(t)?.sure === true;
+const sure = (t) => TK.offSite(t)?.sure === true;
 
 const clean = [
   "Works perfectly. Me and my wife upgraded.",
@@ -30,10 +30,10 @@ const caught = [
 ];
 const missed = caught.filter((t) => !sure(t));
 check("offSite: disguised contact is still caught", !missed.length, JSON.stringify(missed));
-const plain = SL.offSite("call or text 555 123 4567");
+const plain = TK.offSite("call or text 555 123 4567");
 check("offSite: a plain phone number is only a hint", !!plain && plain.sure === false);
-check("offSite: nothing to say about a normal listing", SL.offSite("Works great, comes with charger") === null && SL.offSite("") === null);
+check("offSite: nothing to say about a normal listing", TK.offSite("Works great, comes with charger") === null && TK.offSite("") === null);
 
 // A listing page's own shipping line can come without a "+"; cards keep needing one.
-check("shipping: a listing page's bare amount is read", SL.parseShipping("US $8.50 Standard Shipping", true) === 8.5 && SL.parseShipping("+$12.00 delivery") === 12 && SL.parseShipping("Free 2-4 day delivery") === 0);
-check("shipping: a card's price next to the words isn't taken for shipping", SL.parseShipping("$85.00 Free delivery") === 0 && SL.parseShipping("$85.00 Local pickup") === null);
+check("shipping: a listing page's bare amount is read", TK.parseShipping("US $8.50 Standard Shipping", true) === 8.5 && TK.parseShipping("+$12.00 delivery") === 12 && TK.parseShipping("Free 2-4 day delivery") === 0);
+check("shipping: a card's price next to the words isn't taken for shipping", TK.parseShipping("$85.00 Free delivery") === 0 && TK.parseShipping("$85.00 Local pickup") === null);

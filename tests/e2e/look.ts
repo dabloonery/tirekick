@@ -6,7 +6,7 @@ for (const scheme of ["dark", "light"]) {
   const p = await open(`https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`);
   await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: scheme }] }, p.sessionId);
   await sleep(1200);
-  const r = (js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host').shadowRoot; ${js}})()`);
+  const r = (js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host').shadowRoot; ${js}})()`);
   await r(`r.querySelector('[data-act=tab]').click()`); await sleep(500);
   await r(`r.querySelector('[data-act=scan]').click()`); await sleep(2500);
   await p.shot(`look_${scheme}.png`, { x: 980, y: 20, width: 420, height: 870 });

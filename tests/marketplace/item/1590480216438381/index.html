@@ -20,14 +20,14 @@
 <script src="/content/adapters.js"></script>
 <script>
   // facebook.com is HTTPS-only in Chrome, so this runs on the test host and is told it is Marketplace.
-  SecondLook.currentSite = () => "facebook";
-  const it = SecondLook.extractItem(); const out = [];
+  Tirekick.currentSite = () => "facebook";
+  const it = Tirekick.extractItem(); const out = [];
   const check = (n, ok, why = "") => out.push(`${ok ? "PASS" : "FAIL"} ${n}${ok ? "" : ": " + why}`);
   check("listing title ignores a hidden dialog", it.title === "Nintendo Game Boy Advance SP M2465", `title was "${it.title}"`);
   check("listing price read", it.price === 31, `price was ${it.price}`);
   check("disguised web address found", !!it.offSite?.sure, JSON.stringify(it.offSite));
   check("title code found", it.titleCode === "M2465", `code was "${it.titleCode}"`);
-  const cards = SecondLook.extractFacebook();
+  const cards = Tirekick.extractFacebook();
   const sw = cards.find((c) => /Bundle/.test(c.title)), plain = cards.find((c) => c.title === "Nintendo Switch");
   check("marked-down card: current price first", sw && sw.price === 165, `price was ${sw && sw.price}`);
   check("marked-down card: old price kept as wasPrice", sw && sw.wasPrice === 180, `wasPrice was ${sw && sw.wasPrice}`);

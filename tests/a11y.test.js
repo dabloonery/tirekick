@@ -7,7 +7,7 @@
   const key = (el, k) => el.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, composed: true, cancelable: true }));
   try {
     await wait(600);
-    const host = document.getElementById("second-look-host");
+    const host = document.getElementById("tirekick-host");
     if (!host) throw new Error("panel host not injected");
     const root = host.shadowRoot;
     const $ = (s) => root.querySelector(s);
@@ -67,13 +67,13 @@
     }
 
     // 3c. The marks on the page take the page's brightness; the panel and marks fall back to dark.
-    const slTheme = () => document.documentElement.dataset.slTheme;
+    const tkTheme = () => document.documentElement.dataset.tkTheme;
     document.body.style.background = "#111";
     await wait(1300);
-    check("marks go dark on a dark page", slTheme() === "dark", `theme was ${slTheme()}`);
+    check("marks go dark on a dark page", tkTheme() === "dark", `theme was ${tkTheme()}`);
     document.body.style.background = "#fff";
     await wait(1300);
-    check("marks go light on a light page", slTheme() === "light", `theme was ${slTheme()}`);
+    check("marks go light on a light page", tkTheme() === "light", `theme was ${tkTheme()}`);
     const tagBox = $(".tag") || null;
     check("panel is dark unless the browser asks for light", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === (matchMedia("(prefers-color-scheme: light)").matches ? "#FBFAF6" : "#161513"), getComputedStyle($(".wrap")).getPropertyValue("--paper"));
     $(".wrap").dataset.theme = "dark";
@@ -83,8 +83,8 @@
     delete $(".wrap").dataset.theme;
 
     // 4. Card actions that show on hover (Save, Sold, Not interested) can be reached with the keyboard.
-    const marks = document.querySelector(".second-look-marks");
-    const save = marks && [...marks.querySelectorAll(".sl-x")].find((b) => /Save/.test(b.textContent));
+    const marks = document.querySelector(".tirekick-marks");
+    const save = marks && [...marks.querySelectorAll(".tk-x")].find((b) => /Save/.test(b.textContent));
     check("card marks are on the fixture", !!save, "no hover action found");
     if (save) {
       save.focus();

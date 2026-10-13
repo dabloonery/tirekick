@@ -30,7 +30,7 @@ const seed = {
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 await o.ev(`chrome.storage.local.set(${JSON.stringify(seed)})`);
 const size = async (p: any) => { await c.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }, p.sessionId); await sleep(300); };
-const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host').shadowRoot; ${js}})()`);
+const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host').shadowRoot; ${js}})()`);
 const shot = (p: any, name: string) => p.shot(`${OUT}${name}`, { x: 0, y: 0, width: 1280, height: 800 });
 
 // 1. a scan, 4. Saved, 3. Home

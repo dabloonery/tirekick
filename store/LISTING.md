@@ -1,10 +1,10 @@
 # Chrome Web Store listing
 
-Everything the store's forms ask for. Fill in the two `<…>` placeholders, replace screenshots 1 and 2 with real captures (see below), then upload `dist/second-look-<version>.zip` from `deno task pack`.
+Everything the store's forms ask for. Fill in the two `<…>` placeholders, replace screenshots 1 and 2 with real captures (see below), then upload `dist/tirekick-<version>.zip` from `deno task pack`.
 
 ## Basics
 
-- **Name:** Second Look
+- **Name:** Tirekick
 - **Summary** (132 characters at most; this is the manifest's description, checked by `deno task pack`):
   Score tags, sold-price checks and scam warnings for eBay and Facebook Marketplace, judged by Claude, other AI or a local model.
 - **Category:** Shopping
@@ -15,7 +15,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 ## Description
 
-Second Look is for buying second-hand on eBay and Facebook Marketplace. It puts a small score tag on every listing, compares prices with what the same thing actually sold for, flags likely scams, and remembers what you've already seen.
+Tirekick is for buying second-hand on eBay and Facebook Marketplace. It puts a small score tag on every listing, compares prices with what the same thing actually sold for, flags likely scams, and remembers what you've already seen.
 
 **Free, with no account and no AI**
 • Scam marks: the same listing reposted under new codes, a code on the end of the title, and "contact me off the site" tricks
@@ -44,7 +44,7 @@ Help people buying second-hand on eBay and Facebook Marketplace judge listings t
 |---|---|
 | `storage` | Keeps the user's settings, saved and hidden listings, the memory of what they've seen, and cached scores, all in this browser. |
 | `scripting` | Registers the page script that draws the score tags and the panel on eBay and Facebook pages (and injects it on demand when the "slim tab" setting is off), and reads eBay sold-price results from an open eBay tab when the user is on Facebook. |
-| `contextMenus` | Two entries: "Check this photo with Second Look" on images, and "Open Second Look home" on the toolbar icon. |
+| `contextMenus` | Two entries: "Check this photo with Tirekick" on images, and "Open Tirekick home" on the toolbar icon. |
 | Host: `https://www.ebay.com/*`, `https://www.facebook.com/*` | The two sites it works on: reading the listings the user is viewing, and fetching eBay sold-listing pages for price comparison. |
 | Host: `https://i.ebayimg.com/*`, `https://*.fbcdn.net/*` | Fetching a listing's photo when the user asks for a photo check. |
 | Host: `https://api.anthropic.com/*`, `https://openrouter.ai/*`, `https://api.openai.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.deepseek.com/*`, `https://api.mistral.ai/*`, `https://api.x.ai/*` | The AI services the user can choose. Sent only when the user presses Scan, Analyze, Find better searches or Check photo. |
@@ -71,7 +71,7 @@ Regenerate with `tests/e2e/run.sh screenshots.ts` (the real extension on test pa
 
 ## Notes for the reviewer
 
-Scores and analysis need an API key, which the reviewer is not expected to have. Without one, everything else works: open an eBay search, open the panel (the "Second Look" tab at the right edge, or Alt+Shift+L), press "Just compare sold prices", try the filter bar, save a listing, and open the Home tab.
+Scores and analysis need an API key, which the reviewer is not expected to have. Without one, everything else works: open an eBay search, open the panel (the "Tirekick" tab at the right edge, or Alt+Shift+L), press "Just compare sold prices", try the filter bar, save a listing, and open the Home tab.
 
 ## Before you submit
 

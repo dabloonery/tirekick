@@ -3,7 +3,7 @@ const { open, c } = await start();
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 await o.ev(`chrome.storage.local.set({anthropicKey:'bad', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true})`);
 const p = await open(`https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`); await sleep(1500);
-const R = (js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host').shadowRoot; ${js}})()`);
+const R = (js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host').shadowRoot; ${js}})()`);
 await R(`r.querySelector('[data-act=tab]').click()`); await sleep(400);
 await R(`r.querySelector('[data-act=scan]').click()`); await sleep(3500);
 await p.shot(Deno.env.get("AUDIT_OUT") + "/dark_11_error.png", { x: 980, y: 20, width: 420, height: 870 });

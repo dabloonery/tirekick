@@ -184,6 +184,11 @@ document.getElementById("clearMemory").addEventListener("click", async () => {
   note("Seen listings forgotten.");
 });
 showMemory();
+document.getElementById("wipeAll").addEventListener("click", async () => {
+  if (!confirm("Delete everything Second Look keeps in this browser, API keys included? This can't be undone.")) return;
+  await chrome.storage.local.clear();
+  location.reload(); // the page comes back as on a fresh install
+});
 
 function showProvider() {
   const p = document.getElementById("provider").value;

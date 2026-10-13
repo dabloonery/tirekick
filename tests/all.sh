@@ -4,7 +4,7 @@
 cd "$(dirname "$0")" || exit 1
 out=$(./run.sh); echo "$out"
 echo "$out" | grep -q '^FAIL' && exit 1
-for t in adapters.ts features.ts ux.ts scores-persist.ts marketplace.ts; do
+for t in adapters.ts features.ts ux.ts states.ts scores-persist.ts marketplace.ts; do
   echo "== e2e/$t"
   out=$(e2e/run.sh "$t" 2>&1); echo "$out"
   echo "$out" | grep -qE '^FAIL|error: Uncaught' && exit 1

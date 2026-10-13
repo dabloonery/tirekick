@@ -8,6 +8,7 @@
 
 (() => {
   const SL = (window.SecondLook = window.SecondLook || {});
+  const Sites = window.SLSites; // lib/sites.js: names, addresses, keys and page types per site
 
   // ---------- shared helpers ----------
 
@@ -40,13 +41,7 @@
   };
 
   // One stable key per listing, used to remember what's been scored across re-scans and scrolling.
-  SL.keyOf = (url) => {
-    const ebay = url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/);
-    if (ebay) return `ebay:${ebay[1]}`;
-    const fb = url.match(/\/marketplace\/item\/(\d+)/);
-    if (fb) return `fb:${fb[1]}`;
-    return url.split("?")[0];
-  };
+  SL.keyOf = (url) => Sites.keyOf(url);
 
   // eBay thumbnails on result cards are small (s-l140 to s-l500); a photo check needs the big one.
   SL.bigImage = (u) => (/ebayimg\.com/.test(u || "") ? u.replace(/s-l\d+\./, "s-l1600.") : u || "");
@@ -247,7 +242,26 @@
     return out;
   };
 
-  SL.ebayQuery = () => new URLSearchParams(location.search).get("_nkw") || "";
+  SL.ebayQuery = () => Sites.get("ebay").queryOf(location);
+  // The links to listings in a site's result cards, per site: what the panel counts as "on the page".
+  SL.LISTING_LINKS = {
+    ebay: SL.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", "),
+    facebook: 'a[href*="/marketplace/item/"]',
+  };
+  SL.listingLinks = () => SL.LISTING_LINKS[SL.currentSite()] || SL.LISTING_LINKS.ebay;
+  // A listing's card on the page, found again from its key (per site: a new site adds its own). The first
+  // link to an item can sit outside the results (a carousel, "recently viewed"), so prefer one in a card.
+  SL.CARD_FINDERS = {
+    ebay: (key, id) => {
+      const links = [...document.querySelectorAll(`a[href*="/itm/"][href*="${id}"]`)].filter((a) => SL.keyOf(a.href) === key);
+      return links.map((a) => a.closest(SL.EBAY_CARDS)).find(Boolean) || null;
+    },
+    facebook: (key, id) => {
+      const links = [...document.querySelectorAll(`a[href*="/marketplace/item/${id}"]`)];
+      return links.find((a) => a.closest("[data-second-look-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
+    },
+  };
+  SL.cardFor = (key) => SL.CARD_FINDERS[Sites.ofKey(key).id](key, key.split(":")[1]);
 
   // ---------- Facebook Marketplace ----------
   // FB class names are generated and change constantly, so this adapter avoids
@@ -314,16 +328,21 @@
     return out;
   };
 
-  SL.facebookQuery = () => new URLSearchParams(location.search).get("query") || "";
+  SL.facebookQuery = () => Sites.get("facebook").queryOf(location);
 
   // With no search, what is this page? Marketplace addresses look like /marketplace/ (home feed),
   // /marketplace/<city>/ or /marketplace/<city>/<category> (a category such as "videogames").
   const NOT_CATEGORY = /^(search|item|you|inbox|notifications|create|selling|buying|saved|category)$/i;
-  SL.browseContext = () => {
-    if (SL.currentSite() !== "facebook") {
+  // Per site (a new site adds its own); anything not listed is read as eBay's.
+  SL.BROWSE_CONTEXT = {
+    ebay: () => {
       const cat = location.pathname.match(/^\/b\/([^/]+)/);
       return cat ? `eBay category "${decodeURIComponent(cat[1]).replace(/-/g, " ")}" (no search)` : "eBay page with no search";
-    }
+    },
+    facebook: () => facebookContext(),
+  };
+  SL.browseContext = () => (SL.BROWSE_CONTEXT[SL.currentSite()] || SL.BROWSE_CONTEXT.ebay)();
+  const facebookContext = () => {
     const parts = location.pathname.split("/").filter(Boolean).slice(1); // after "marketplace"
     const cat = parts.find((p, i) => i > 0 && !NOT_CATEGORY.test(p) && !/^\d+$/.test(p)) || "";
     const pretty = cat && cat.replace(/[-_]/g, " ").replace(/([a-z])(games|consoles|electronics)$/i, "$1 $2");
@@ -339,9 +358,11 @@
 
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];
 
-  SL.extractItem = () => {
-    const site = SL.currentSite();
-    if (site === "ebay") {
+  // One listing's page, read per site (a new site adds its own). Any page that isn't eBay's is read the
+  // Marketplace way: visible text and metadata, no class names.
+  SL.ITEM_READERS = {
+    ebay: () => {
+      const site = "ebay";
       const title = squash(firstText(document, ["h1.x-item-title__mainTitle", '[data-testid="x-item-title"]', "h1"]) || meta("og:title"), 200);
       const priceText = squash(firstText(document, [".x-price-primary", '[data-testid="x-price-primary"]']), 60);
       const imgs = [...document.querySelectorAll('.ux-image-carousel img, [data-testid="ux-image-carousel"] img')].map(
@@ -368,37 +389,40 @@
         imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(SL.bigImage).slice(0, 4),
         url: location.href.split("?")[0],
       });
-    }
-    // Facebook Marketplace: class names are useless, so lean on visible text + metadata.
-    // A listing opened from the feed is an overlay (a dialog) over the feed, with the feed still in
-    // [role=main] and the page's og: tags still the feed's; opened directly, it's the main area.
-    // Only a dialog you can see: Facebook keeps hidden ones (a "Notifications" flyout) in the page.
-    const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length).at(-1);
-    const main = dialog || document.querySelector('[role="main"]') || document.body;
-    const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
-    const priceText = priceNode ? priceNode.textContent.trim() : "";
-    const imgs = [...main.querySelectorAll("img")]
-      .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
-      .map((i) => i.src);
-    const title = squash(firstText(main, ["h1"]) || (dialog ? "" : meta("og:title")), 200);
-    const text = main.innerText || "";
-    return withTotal({
-      ...SL.cardFacts(text, title),
-      site: "facebook",
-      title,
-      priceText,
-      price: /^free$/i.test(priceText) ? 0 : SL.parsePrice(priceText),
-      shipping: null,
-      condition: "",
-      seller: "",
-      shippingText: "",
-      details: squash(dialog ? text : meta("og:description") || text, 2500),
-      imageUrls: uniq([dialog ? "" : meta("og:image"), ...imgs]).slice(0, 4),
-      url: location.href.split("?")[0],
-      titleCode: SL.titleCode(title),
-      offSite: SL.offSite(text),
-    });
+    },
+    facebook: () => {
+      // Facebook Marketplace: class names are useless, so lean on visible text + metadata.
+      // A listing opened from the feed is an overlay (a dialog) over the feed, with the feed still in
+      // [role=main] and the page's og: tags still the feed's; opened directly, it's the main area.
+      // Only a dialog you can see: Facebook keeps hidden ones (a "Notifications" flyout) in the page.
+      const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length).at(-1);
+      const main = dialog || document.querySelector('[role="main"]') || document.body;
+      const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
+      const priceText = priceNode ? priceNode.textContent.trim() : "";
+      const imgs = [...main.querySelectorAll("img")]
+        .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
+        .map((i) => i.src);
+      const title = squash(firstText(main, ["h1"]) || (dialog ? "" : meta("og:title")), 200);
+      const text = main.innerText || "";
+      return withTotal({
+        ...SL.cardFacts(text, title),
+        site: "facebook",
+        title,
+        priceText,
+        price: /^free$/i.test(priceText) ? 0 : SL.parsePrice(priceText),
+        shipping: null,
+        condition: "",
+        seller: "",
+        shippingText: "",
+        details: squash(dialog ? text : meta("og:description") || text, 2500),
+        imageUrls: uniq([dialog ? "" : meta("og:image"), ...imgs]).slice(0, 4),
+        url: location.href.split("?")[0],
+        titleCode: SL.titleCode(title),
+        offSite: SL.offSite(text),
+      });
+    },
   };
+  SL.extractItem = () => (SL.ITEM_READERS[SL.currentSite()] || SL.ITEM_READERS.facebook)();
 
   // A short search phrase for the sold-price comparison, taken from a listing title. Condition and
   // fault words ("for parts", "untested", "blinking red light") would skew the sold search, so they go.
@@ -407,7 +431,7 @@
   // On Facebook a trailing code ("... U2X503") would only make the sold search come back empty.
   SL.titleToQuery = (title) =>
     (title || "")
-      .slice(0, SL.currentSite() === "facebook" && SL.titleCode(title) ? -SL.titleCode(title).length : undefined)
+      .slice(0, SL.site()?.titleCodes && SL.titleCode(title) ? -SL.titleCode(title).length : undefined)
       .replace(NOISE, " ")
       .replace(/[^\p{L}\p{N}\s.-]/gu, " ")
       .split(/\s+/)
@@ -419,57 +443,50 @@
   // ---------- pick the adapter for this page ----------
 
   // Every eBay page and every Marketplace page get the tab; what the panel can do depends on the page.
-  SL.currentSite = () => {
-    if (location.hostname === "www.ebay.com") return "ebay";
-    if (location.hostname === "www.facebook.com" && location.pathname.startsWith("/marketplace")) return "facebook";
-    return null;
-  };
+  SL.currentSite = () => Sites.here(location)?.id ?? null;
+  // This page's site entry (lib/sites.js), or null.
+  SL.site = () => Sites.here(location);
 
   // "results" = search results or a category, "item" = one listing, "home" = eBay's front page,
   // "other" = any other eBay page (the panel still has Saved), null = not ours.
-  SL.pageType = () => {
-    const site = SL.currentSite();
-    if (site === "ebay") {
-      const path = location.pathname;
-      return path === "/" ? "home" : path.startsWith("/itm/") ? "item" : /^\/(sch|b)\//.test(path) ? "results" : "other";
-    }
-    if (site === "facebook") return location.pathname.startsWith("/marketplace/item/") ? "item" : "results";
-    return null;
-  };
+  SL.pageType = () => SL.site()?.pageType(location) ?? null;
 
+  // Each site's card reader, by site id: a new site adds its own here.
+  SL.READERS = { ebay: (root) => SL.extractEbay(root), facebook: (root) => SL.extractFacebook(root) };
   SL.extract = () => {
-    const site = SL.currentSite();
-    const items = site === "ebay" ? SL.extractEbay() : site === "facebook" ? SL.extractFacebook() : [];
+    const read = SL.READERS[SL.currentSite()];
+    const items = read ? read() : [];
     return items.map((it, i) => ({ ...it, id: i + 1 }));
   };
 
   SL.detectQuery = () => {
-    const site = SL.currentSite();
     if (SL.pageType() === "item") return SL.titleToQuery(SL.extractItem().title);
-    return site === "ebay" ? SL.ebayQuery() : site === "facebook" ? SL.facebookQuery() : "";
+    return SL.site()?.queryOf(location) ?? "";
   };
 
-  // The address for a suggested search. Both sites take the search words in the URL, which is
-  // sturdier than typing into the page's own search box. Price cap and sort are best-effort.
-  SL.searchUrl = ({ query, maxPrice, newest }) => {
-    const site = SL.currentSite();
-    if (site === "ebay") {
+  // The address for a suggested search, per site (a new site adds its own). The search words go in the
+  // URL, which is sturdier than typing into the page's own search box. Price cap and sort are best-effort.
+  SL.SEARCH_BUILDERS = {
+    ebay: ({ query, maxPrice, newest }) => {
       const u = new URL("https://www.ebay.com/sch/i.html");
       u.searchParams.set("_nkw", query);
       if (maxPrice > 0) u.searchParams.set("_udhi", String(maxPrice));
       if (newest) u.searchParams.set("_sop", "10");
       return u.href;
-    }
-    // Facebook search has no operators: drop minus terms, quotes and brackets so they aren't searched literally.
-    query = query.replace(/(^|\s)-\S+/g, " ").replace(/["()]/g, "").replace(/\s+/g, " ").trim();
-    const u = new URL(location.href); // keeps the city/location part of the Marketplace address
-    u.search = "";
-    if (!/\/search\/?$/.test(u.pathname)) u.pathname = "/marketplace/search";
-    u.searchParams.set("query", query);
-    if (maxPrice > 0) u.searchParams.set("maxPrice", String(maxPrice));
-    if (newest) u.searchParams.set("sortBy", "creation_time_descend");
-    return u.href;
+    },
+    facebook: ({ query, maxPrice, newest }) => {
+      // Facebook search has no operators: drop minus terms, quotes and brackets so they aren't searched literally.
+      query = query.replace(/(^|\s)-\S+/g, " ").replace(/["()]/g, "").replace(/\s+/g, " ").trim();
+      const u = new URL(location.href); // keeps the city/location part of the Marketplace address
+      u.search = "";
+      if (!/\/search\/?$/.test(u.pathname)) u.pathname = "/marketplace/search";
+      u.searchParams.set("query", query);
+      if (maxPrice > 0) u.searchParams.set("maxPrice", String(maxPrice));
+      if (newest) u.searchParams.set("sortBy", "creation_time_descend");
+      return u.href;
+    },
   };
+  SL.searchUrl = (opts) => (SL.SEARCH_BUILDERS[SL.currentSite()] || SL.SEARCH_BUILDERS.facebook)(opts);
 
   // ---------- market reference from eBay sold listings ----------
 

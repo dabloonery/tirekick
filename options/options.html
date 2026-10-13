@@ -100,6 +100,8 @@
   summary:hover h2 { text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:4px; }
   [hidden] { display:none !important; }
   :focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+  .legal { margin-top:40px; padding-top:14px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; }
+  .legal p { margin:0 0 6px; }
 </style>
 </head>
 <body>
@@ -296,7 +298,12 @@
       </details>
   </section>
   <div id="msg" role="status" aria-live="polite"></div>
+  <footer class="legal">
+    <p>Scores, prices, margins and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.</p>
+    <p>Not affiliated with or endorsed by eBay or Facebook. eBay and Facebook are trademarks of their owners.</p>
+  </footer>
 </main>
+<script src="../lib/sites.js"></script>
 <script src="../lib/shared.js"></script>
 <script src="options.js"></script>
 </body>

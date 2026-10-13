@@ -82,6 +82,8 @@
   .acts { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
   .homebox { margin-top:34px; }
   .homebox .hm-btn { min-height:24px; }
+  .legal { margin-top:40px; padding-top:14px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; }
+  .legal p { margin:0 0 6px; }
   [hidden] { display:none !important; }
 </style>
 <style id="home-css"></style>
@@ -100,11 +102,7 @@
       <input id="q" type="search" placeholder="e.g. Pentax K1000, Game Boy Color" aria-label="What to look up" autocomplete="off">
       <button class="primary" id="go" type="submit">What it sells for</button>
     </form>
-    <div class="sites" aria-label="Search for it">
-      <a class="btn" id="on-ebay" target="_blank" rel="noopener" href="https://www.ebay.com/">Search eBay ↗</a>
-      <a class="btn" id="on-fb" target="_blank" rel="noopener" href="https://www.facebook.com/marketplace/">Search Marketplace ↗</a>
-      <button type="button" id="on-both">Both</button>
-    </div>
+    <div class="sites" aria-label="Search for it"></div>
     <div class="answer" id="answer" aria-live="polite"></div>
   </section>
 
@@ -114,7 +112,13 @@
   </section>
 
   <div class="homebox" id="home"></div>
+
+  <footer class="legal">
+    <p>Scores, prices, margins and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.</p>
+    <p id="not-affiliated"></p>
+  </footer>
 </main>
+<script src="../lib/sites.js"></script>
 <script src="../lib/shared.js"></script>
 <script src="../content/adapters.js"></script>
 <script src="../lib/sold.js"></script>

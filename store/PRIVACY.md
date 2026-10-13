@@ -24,13 +24,14 @@ things from the panel, and save a backup file or restore one (never including yo
 ## What leaves your computer, and only when you ask
 
 Second Look does nothing on a page until you open its panel, press a button, or (for the free marks on cards) load an eBay or Marketplace
-page you are already looking at. It never browses, checks prices, or contacts anyone in the background.
+page you are already looking at. With **Scan new listings automatically** turned on (it's off until you turn it on), a search page you are
+looking at is scanned as its listings load, as if you'd pressed Scan. It never browses, checks prices, or contacts anyone in the background.
 
 | When you… | What is sent | To whom |
 |---|---|---|
-| Press **Scan**, **Analyze this listing** or **Find better searches** | Listing titles and the text visible on their cards (price, shipping, seller rating, condition, listing description), the search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: the Claude API (api.anthropic.com), OpenRouter, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, an address you entered, or Ollama / LM Studio on your own computer (which stay on your computer) |
+| Press **Scan** (or have it scan automatically), **Analyze this listing** or **Better searches** | Listing titles and the text visible on their cards (price, shipping, seller rating, condition, listing description), the search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: the Claude API (api.anthropic.com), OpenRouter, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, an address you entered, or Ollama / LM Studio on your own computer (which stay on your computer) |
 | Press **Check photo** or right-click a photo | The photo, and the listing's title | The same AI service |
-| Compare **sold prices** (a button, or as part of a scan) | The search words, in a request to ebay.com made from your browser with your own eBay session, at most a few an hour | eBay |
+| Compare **sold prices** (a button, as part of a scan, or **Look up** on Second Look's own page, including words you select on any page and choose "Look up … on eBay and Marketplace") | The search words, in a request to ebay.com made from your browser with your own eBay session, at most a few an hour | eBay |
 | Press **Find photo elsewhere** | The photo's web address, in a new tab | Google Lens (lens.google.com) |
 | Press **Test connection** in settings | Your API key, to check it | The service you picked |
 
@@ -42,7 +43,7 @@ Choosing Ollama or LM Studio keeps all of it on your computer (sold-price search
 
 - It does not send anything to the developer, and has no account, server, advertising or analytics.
 - It does not sell or share your data, and does not use it for anything other than what is described here.
-- It does not read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address).
+- It does not read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address). On other pages, the only thing it receives is text you select and choose to look up from the right-click menu.
 - It does not collect payment details or messages.
 
 ## Permissions

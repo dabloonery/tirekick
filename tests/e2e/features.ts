@@ -72,6 +72,10 @@ await scan(p);
 let cs = await calls();
 ok("scans use Haiku 5.5 by default, with effort", cs.length && cs.every((x: any) => x.model === "claude-haiku-5-5" && x.effort === "low"), cs);
 ok("Haiku gets no server-side fallback", cs.every((x: any) => !x.fallbacks), cs);
+// The mock answers "fair" at 60 and "good" at 76, outside those verdicts' ranges: the number follows the word.
+const tags = await R(p, `return [...r.querySelectorAll('.list .row .tag')].map(t=>[t.dataset.v, +t.querySelector('span').textContent])`);
+const BANDS: Record<string, number[]> = { great: [75, 100], good: [60, 74], fair: [45, 59], pass: [0, 44], suspicious: [0, 30] };
+ok("every score sits inside its verdict's range (a Fair price is never 60, a Great deal never 55)", tags.length === 6 && tags.every(([v, n]: [string, number]) => n >= BANDS[v][0] && n <= BANDS[v][1]), tags);
 await clearCalls();
 let it = await openPanel("https://www.ebay.com/itm/184891897312");
 await sleep(1200);
@@ -135,7 +139,21 @@ await sleep(300);
 ok("selling fees are the settings page's number, kept within limits", (await R(p, `return r.querySelector('#fee').value`)) === "50" && (await get("feePct")) === 50);
 await reset(`{lens:'project', sortMode:'price', skipMode:'hide', want:'parts easy'}`);
 p = await openPanel(SEARCH);
-ok("settings from before there were modes go to the mode that was in use", (await mode()) === "reseller" && (await R(p, `return [r.querySelector('#want').value, r.querySelector('.sort').value, r.querySelector('[data-skip][aria-checked=true]').dataset.skip].join('|')`)) === "parts easy|price|hide");
+ok("settings from before there were modes go to the mode that was in use (not the old wants: they applied to every search)", (await mode()) === "reseller" && (await R(p, `return [r.querySelector('#want').value, r.querySelector('.sort').value, r.querySelector('[data-skip][aria-checked=true]').dataset.skip].join('|')`)) === "|price|hide");
+
+// "What I want" belongs to its search; a listing opened from it in the same tab gets it
+await reset();
+p = await openPanel(SEARCH);
+await R(p, `const w=r.querySelector('#want'); w.value='with lens'; w.dispatchEvent(new Event('change'))`);
+await sleep(300);
+let other = await openPanel("https://www.ebay.com/sch/i.html?_nkw=game+boy");
+ok("another search starts without the first one's wants", (await R(other, `return r.querySelector('#want').value`)) === "");
+await other.close();
+p = await openPanel(SEARCH);
+ok("the first search still has its own", (await R(p, `return r.querySelector('#want').value`)) === "with lens");
+await p.ev(`location.href = "https://www.ebay.com/itm/184891897312"`);
+await sleep(2500);
+ok("a listing opened from that search in the same tab gets its wants", (await R(p, `return r.querySelector('#want').value`)) === "with lens");
 
 // ---------- searches, marks and Saved ----------
 await reset();
@@ -204,14 +222,37 @@ await sleep(500);
 ok("Home fits a narrow window without sideways scrolling", await R(p, `const b=r.querySelector('.body'); return b.scrollWidth <= b.clientWidth + 1 && r.querySelector('.panel').getBoundingClientRect().right <= innerWidth`));
 await c.send("Emulation.setDeviceMetricsOverride", { width: 1400, height: 900, deviceScaleFactor: 1, mobile: false }, p.sessionId);
 
-// openHome: on an eBay page that's already open, without another tab
-await R(p, `r.querySelector('[data-view=page]').click(); r.querySelector('[data-act=toggle]').click()`);
-await sleep(400);
+// Second Look's own page, for anywhere else: one tab, brought back rather than opened twice
 const pages = async () => (await c.send("Target.getTargets")).targetInfos.filter((t: any) => t.type === "page").length;
 const n0 = await pages();
 await o.ev(`chrome.runtime.sendMessage({type:'openHome'})`);
-await sleep(1200);
-ok("openHome shows Home on an eBay page already open, and opens no tab", (await pages()) === n0 && (await R(p, `return r.querySelector('.wrap').classList.contains('open') && !r.querySelector('.view-home').hidden`)), { n0, now: await pages() });
+await sleep(1500);
+const n1 = await pages();
+await o.ev(`chrome.runtime.sendMessage({type:'openHome'})`);
+await sleep(1000);
+ok("Open Second Look home opens its own page, and only once", n1 === n0 + 1 && (await pages()) === n1, { n0, n1, now: await pages() });
+{
+  const { targetInfos } = await c.send("Target.getTargets");
+  for (const t of targetInfos) if (t.url.includes("/hub/hub.html")) await c.send("Target.closeTarget", { targetId: t.targetId });
+  await store(`{saved:{'ebay:111':{t:'Pentax on eBay',u:'https://www.ebay.com/itm/111',p:80,p0:95,a:1,a0:1},'fb:222':{t:'Pentax on Marketplace',u:'https://www.facebook.com/marketplace/item/222/',p:60,p0:60,a:2,a0:2}}, savedSearches:{'ebay|pentax':{site:'ebay',q:'pentax',v:1},'facebook|pentax':{site:'facebook',q:'pentax',v:2}}}`);
+  const hub = await open(`chrome-extension://${EXT}/hub/hub.html?q=pentax+k1000`);
+  await sleep(9000); // a sold lookup waits its turn (lookups are spaced out)
+  const view = await hub.ev(`({
+    tags: [...document.querySelectorAll('#saved .tag')].map(t=>t.textContent),
+    ebay: document.querySelector('#on-ebay').href, fb: document.querySelector('#on-fb').href,
+    answer: document.querySelector('#answer').textContent,
+    home: !!document.querySelector('#home .hm h3'),
+  })`);
+  ok("its Saved list marks each listing and search eBay or Marketplace", ["eBay", "Marketplace"].every((x) => view.tags.filter((t: string) => t === x).length === 2), view.tags);
+  ok("looking something up links to that search on each site", /ebay\.com\/sch\/i\.html\?_nkw=pentax%20k1000/.test(view.ebay) && /facebook\.com\/marketplace\/search\?query=pentax%20k1000/.test(view.fb), [view.ebay, view.fb]);
+  ok("…and says what it sold for on eBay, and how sure that is", /Sold, used\$58/.test(view.answer) && /10 sales/.test(view.answer) && /Check a few/.test(view.answer), view.answer.slice(0, 200));
+  // what goes into that number: only the thing itself, sold
+  const sm = await hub.ev(`fetch(SecondLook.soldUrl("pentax k1000", "3000")).then(r=>r.text()).then(t=>{const m=SecondLook.summarizeSold(t,{query:"pentax k1000"}); return {n:m.n, median:m.median, ship:m.ship, confidence:m.confidence, dropped:m.dropped}})`);
+  ok("sold prices leave out best-offer sales, lots, parts, other things and far-off prices", sm.n === 10 && sm.median === 58 && JSON.stringify(sm.dropped) === JSON.stringify({ offers: 1, lots: 1, parts: 1, unrelated: 1, outliers: 1 }), sm);
+  ok("…say what buyers paid to ship, and how much to trust them", sm.ship === 9 && sm.confidence === "fair", sm);
+  ok("…with Home below, as in the panel", view.home);
+  await hub.close();
+}
 
 // the toolbar icon with something new: from tucked away, a click shows Home, a second one tucks the panel away
 await R(p, `r.querySelector('[data-act=toggle]').click()`);

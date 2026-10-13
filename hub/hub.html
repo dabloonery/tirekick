@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second Look</title>
+<link rel="icon" href="../icons/icon32.png">
+<style>
+  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-600.woff2") format("woff2"); font-weight:600; font-display:swap; }
+  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-400.woff2") format("woff2"); font-weight:400; font-display:swap; }
+  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-400-italic.woff2") format("woff2"); font-weight:400; font-style:italic; font-display:swap; }
+
+  /* the same tokens as the panel and settings */
+  :root {
+    --r:12px; --r-sm:7px; --bw:1px;
+    --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
+    --display:"SL Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --raise:#34312C; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C; --on-accent:#161513;
+    --v-great:#5FD08B; --v-suspicious:#FF8A80; --on-v:#161513;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --raise:#FFFFFF; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A; --accent:#C8461F; --on-accent:#fff; --v-great:#0A6B35; --v-suspicious:#B00020; --on-v:#fff; }
+  }
+  :root[data-theme="dark"] { color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --raise:#34312C; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C; --on-accent:#161513; --v-great:#5FD08B; --v-suspicious:#FF8A80; --on-v:#161513; }
+  :root[data-theme="light"] { color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --raise:#FFFFFF; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A; --accent:#C8461F; --on-accent:#fff; --v-great:#0A6B35; --v-suspicious:#B00020; --on-v:#fff; }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 var(--ui); -webkit-font-smoothing:antialiased; }
+  main { max-width:680px; margin:0 auto; padding:44px 24px 64px; }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:26px; }
+  .mark { width:30px; height:30px; flex:none; }
+  .mark .dot { fill:var(--accent); }
+  h1 { margin:0; flex:1; font:600 30px/1.1 var(--display); letter-spacing:-.015em; }
+  h1 em { font-style:italic; font-weight:400; }
+  header a { color:var(--muted); font-size:13px; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+  header a:hover { color:var(--ink); text-decoration-color:currentColor; }
+  h2 { margin:0 0 12px; font:600 21px/1.25 var(--display); letter-spacing:-.01em; }
+  a { color:var(--ink); }
+  button, .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:40px; padding:9px 14px; border-radius:var(--r-sm); border:var(--bw) solid var(--line); background:none; color:var(--ink); font:600 14px/1 var(--ui); text-decoration:none; cursor:pointer; }
+  button:hover, .btn:hover { background:var(--paper-2); border-color:var(--ink); }
+  button.primary { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
+  button.primary:hover { opacity:.9; background:var(--ink); }
+  button:disabled { opacity:.55; cursor:progress; }
+  :is(button, .btn, a, input, summary):focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+  .hint { color:var(--muted); font-size:13px; }
+
+  /* look something up */
+  .look { padding:20px; border:var(--bw) solid var(--rule); border-radius:var(--r); background:var(--raise); }
+  .look form { display:flex; gap:8px; flex-wrap:wrap; }
+  .look input { flex:1 1 260px; min-height:44px; padding:10px 14px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; font-size:16px; }
+  .look input::placeholder { color:var(--muted); opacity:.75; }
+  .sites { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .sites .btn { min-height:36px; font-size:13px; }
+  .answer { margin-top:16px; }
+  .answer:empty { display:none; }
+  .status { color:var(--muted); font-size:13px; }
+  .status.err { color:var(--v-suspicious); border-left:2px solid currentColor; padding-left:10px; }
+  .mgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:14px; margin-top:4px; }
+  .mcell { padding:2px 0 0 12px; border-left:2px solid var(--rule); }
+  .mcell span { display:block; color:var(--muted); font-size:12px; }
+  .mcell b { display:block; font:600 30px/1.15 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.015em; margin:2px 0; }
+  .comps { margin-top:12px; }
+  .comps summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  .comps ul { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:2px; }
+  .comps li a { display:flex; gap:12px; padding:3px 0; color:var(--ink); text-decoration:none; font-size:13px; }
+  .comps li a:hover .ct { text-decoration:underline; }
+  .comps .cp { flex:none; width:56px; font:600 14px/1.5 var(--display); font-variant-numeric:lining-nums tabular-nums; }
+  .comps .ct { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
+  .caveat { margin-top:10px; }
+
+  section.block { margin-top:34px; }
+  .rows { display:grid; }
+  .row { display:flex; gap:12px; align-items:baseline; padding:10px 0; border-top:var(--bw) solid var(--rule); }
+  .row:first-child { border-top:0; }
+  .row .t { flex:1; min-width:0; }
+  .row .t a { font-weight:600; text-decoration:none; overflow-wrap:anywhere; }
+  .row .t a:hover { text-decoration:underline; text-underline-offset:3px; }
+  .row small { display:block; color:var(--muted); font-size:12px; }
+  .row .pr { flex:none; font:600 17px/1.3 var(--display); font-variant-numeric:lining-nums tabular-nums; }
+  .tag { flex:none; min-width:94px; text-align:center; font-size:12px; font-weight:600; padding:1px 9px; border-radius:999px; background:var(--paper-2); color:var(--muted); }
+  .empty { color:var(--muted); font-size:14px; }
+  .acts { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
+  .homebox { margin-top:34px; }
+  .homebox .hm-btn { min-height:24px; }
+  [hidden] { display:none !important; }
+</style>
+<style id="home-css"></style>
+</head>
+<body>
+<main>
+  <header>
+    <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M14.8 14.8 20.5 20.5"/><circle class="dot" cx="10" cy="10" r="2" stroke="none"/></svg>
+    <h1>Second <em>Look</em></h1>
+    <a href="../options/options.html">Settings</a>
+  </header>
+
+  <section class="look" aria-labelledby="look-h">
+    <h2 id="look-h">Look something up</h2>
+    <form id="look-form">
+      <input id="q" type="search" placeholder="e.g. Pentax K1000, Game Boy Color" aria-label="What to look up" autocomplete="off">
+      <button class="primary" id="go" type="submit">What it sells for</button>
+    </form>
+    <div class="sites" aria-label="Search for it">
+      <a class="btn" id="on-ebay" target="_blank" rel="noopener" href="https://www.ebay.com/">Search eBay ↗</a>
+      <a class="btn" id="on-fb" target="_blank" rel="noopener" href="https://www.facebook.com/marketplace/">Search Marketplace ↗</a>
+      <button type="button" id="on-both">Both</button>
+    </div>
+    <div class="answer" id="answer" aria-live="polite"></div>
+  </section>
+
+  <section class="block" aria-labelledby="saved-h" id="saved">
+    <h2 id="saved-h">Saved</h2>
+    <div id="saved-body"></div>
+  </section>
+
+  <div class="homebox" id="home"></div>
+</main>
+<script src="../lib/shared.js"></script>
+<script src="../content/adapters.js"></script>
+<script src="../lib/sold.js"></script>
+<script src="../content/home.js"></script>
+<script src="hub.js"></script>
+</body>
+</html>

@@ -52,8 +52,8 @@ below). Saved and Home work on any eBay or Marketplace page.
 - **What you use**: plain counters kept in this browser (scans, sold-price comparisons, analyses,
   search ideas, photo checks, saves, hides, switches to Reseller). **Reset counts** clears them.
 - **Getting started**: four steps with a check beside each one done; **Hide** folds it away.
-- Right-click the toolbar icon for **Open Second Look home**; on a page Second Look doesn't work on,
-  the icon opens eBay with Home showing.
+- Right-click the toolbar icon for **Open Second Look home**: Second Look's own page, with a lookup,
+  your saved listings and searches, and Home. On a page Second Look doesn't work on, the icon opens it too.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Fair price,
 Skip, Suspicious) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
@@ -91,11 +91,17 @@ scam warning stays readable.
 ## Everyday use
 
 - **Buyer / Reseller**, the switch at the top right of the panel, says what you want listings for (see below). Each
-  mode remembers its own sort, skipped-listings setting and "What I want".
-- **What I want**: "working, with charger, under $80". Every scan, analysis and search idea
-  takes it into account, and a listing that misses something says so. After a scan it folds into
-  one line with the compare words (**Edit** opens them); change either and the button becomes
-  **Rescan with your changes**.
+  mode remembers its own sort and skipped-listings setting.
+- **What I want**: "working, with charger, under $80". Each search keeps its own (per site and
+  mode: what you want from a camera isn't what you want from a console), and a listing you open from
+  that search in the same tab uses it. Every scan, analysis and search idea takes it into account, and a
+  listing that misses something says so. Your general taste goes in settings ("What you're into").
+  After a scan it folds into one line with the compare words (**Edit**, or **Add what you want**);
+  change either and the button becomes **Rescan with your changes**.
+- **Scan new listings automatically** (the switch under Scan, or in settings): on an eBay or
+  Marketplace search you're looking at, listings are scored as they load, so you never press Scan.
+  Only while the page is on your screen, never twice for the same listing, and it stops at a problem
+  (shown as "!" on the tab) or at your monthly budget.
 - **Click a title** in the panel to jump to that card. If the panel would cover it, it tucks
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
@@ -113,6 +119,10 @@ scam warning stays readable.
   Save to keep it, hover for why. On eBay's front page, "Find searches for what I want" does the same
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Second Look".
+- **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
+  "…" on eBay and Marketplace**. Second Look's own page opens with what it sells for on eBay (free,
+  no AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page on any other
+  site, with your saved listings and searches (each marked eBay or Marketplace) and Home.
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
 - **The footer** has the quality menu and this month's spend. With Claude the menu is **Thrifty** (Haiku for everything), **Balanced** (Haiku scans, Sonnet for single listings, photos and search ideas; the default) or **Thorough** (Sonnet scans, Opus for the rest); settings has each model separately, and another pair shows as Custom. The spend: click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
@@ -141,7 +151,14 @@ in Reseller (for when you only want fix-ups).
 - Comparisons use what you'd actually pay (price plus shipping) against what sold listings went
   for. The used median comes from recent eBay sales; Reseller also looks up what **broken** ones
   sell for (when the page has broken or untested listings): pay less than that and the worst case is reselling it as-is. "The sales behind these"
-  lists the sales behind each number. eBay's "results matching fewer words" are left out.
+  lists the sales behind each number. eBay's "results matching fewer words" are left out, and so are
+  sales that would skew it: "best offer accepted" ones (the card shows the asking price, not what was
+  paid), lots, for-parts ones listed as used, titles missing a model number from the search, and
+  far-off prices. Each price says how far to trust it: from few sales or a wide spread it's shown as
+  "~$58 · a rough guide". See `docs/accuracy-audit.md`.
+- **Margins** (Reseller) are the sold price less eBay's fee, the shipping buyers paid on those
+  sales (what you'd pay to send it on), likely parts and the price; the hover card spells it out.
+  Before sales tax and your time.
 - The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
   "Compare prices against" if the page's search is vague.
 - **Auctions** are recognised ("3 bids · 2d 4h left"). Their price is only a current bid, so the
@@ -333,7 +350,9 @@ refresh the tab. The version number there tells you which copy is running.
 | `manifest.json` | Permissions, icon, keyboard shortcut. With "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
 | `lib/shared.js` | Small pieces shared by the worker, the pages and settings: the link and photo-host checks, settings limits (also applied to restored backups), alert rules, the spend summary, the price sparkline |
 | `content/rules.js` | The plain rules (words and filters, scam signs, photo verdicts, fix-up words) as functions with no page, storage or network |
-| `content/home.js` | The panel's Home tab |
+| `content/home.js` | Home: in the panel's tab and on Second Look's own page (with its styles) |
+| `lib/sold.js` | eBay sold-price lookups with one pace, cache and back-off for every page |
+| `hub/hub.html`, `hub/hub.js` | Second Look's own page, for anywhere: look something up, saved listings and searches, Home |
 | `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape; the sold-price median |
 | `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
 | `background.js` | Talks to Claude, other AI services or Ollama (retries, timeouts, Stop, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |

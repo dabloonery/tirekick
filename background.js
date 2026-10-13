@@ -39,6 +39,7 @@ const DEFAULTS = {
   autoMarks: true, // chips on cards before any scan: new to you, price drops, warnings
   monthlyBudget: 0, // dollars; 0 = no budget. Claude calls stop once this month's estimated spend reaches it
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
+  autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)
 };
 
 async function getSettings() {
@@ -367,7 +368,7 @@ const money = (n) => `$${Math.round(n)}`;
 
 function marketText(query, market) {
   if (!market) return `No sold-price reference for "${query || "this search"}". Judge price only from obvious cues.`;
-  let t = `Sold-price reference for "${query}" (what buyers paid, incl. shipping): working/used median ${money(market.median)} (middle half ${money(market.p25)}-${money(market.p75)}, ${market.n} sales).`;
+  let t = `Sold-price reference for "${query}" (what buyers paid, incl. shipping): working/used median ${money(market.median)} (middle half ${money(market.p25)}-${money(market.p75)}, ${market.n} sales${market.confidence === "rough" ? "; few sales or a wide spread, so treat it as rough and don't lean on small differences" : ""}).`;
   if (market.parts) t += ` For parts / not working: median ${money(market.parts.median)} (${market.parts.n} sales).`;
   return t;
 }
@@ -414,7 +415,9 @@ makes it more certain, not less.`;
 
 // This prompt is the part most worth tuning yourself. Small local models
 // follow short, concrete rules better than long abstract ones.
+const VERDICT_BANDS = "Pick the verdict first, then a score inside its range: great 75-100, good 60-74, fair 45-59, pass 0-44, suspicious 0-30.";
 const RANK_BASE = `You help a buyer skim second-hand listings. For each listing give a 0-100 score and one verdict: great, good, fair, pass or suspicious.
+${VERDICT_BANDS}
 suspicious = likely scam, counterfeit, or misleading, whatever the lens.
 related: true if the listing is what the search (or the buyer's wants) is for, false if it is a different kind of item.
 An unrelated listing is not automatically a pass: if it is a genuinely good find on its own terms, score it on its merits and set related to false.
@@ -562,6 +565,7 @@ function itemSchema(lens) {
 
 const ITEM_BASE = `You help a buyer decide whether to buy one second-hand listing.
 Give a 0-100 score for how good a buy it is for this buyer's purpose, and one verdict: great, good, fair, pass or suspicious (likely scam, counterfeit, or misleading).
+${VERDICT_BANDS}
 summary: 2-3 plain sentences on what it is, whether the price is right, and the main risk.
 flags: up to 5 short red or green flags (1-4 words each), e.g. "price far below market", "no return policy", "clear photos".
 questions: 3-5 specific questions to ask the seller before buying, based on what is missing or unclear. For a broken or untested item, ask what exactly happens when it is powered on and what has been tried.
@@ -883,6 +887,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 const MENU_ID = "second-look-photo";
 const HOME_MENU_ID = "second-look-home";
+const LOOKUP_MENU_ID = "second-look-lookup";
 
 // Before 0.32 the always-hide and only-show words were two comma-separated lists; they are one line now.
 async function migrateFilterWords() {
@@ -908,6 +913,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       documentUrlPatterns: ["https://www.ebay.com/*", "https://www.facebook.com/*"],
     });
     chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Second Look home", contexts: ["action"] });
+    // Anywhere: select a thing's name and see what it sells for, or search for it on both sites.
+    chrome.contextMenus.create({ id: LOOKUP_MENU_ID, title: "Look up \u201c%s\u201d on eBay and Marketplace", contexts: ["selection"] });
   });
   updateBadge().catch(() => {});
 });
@@ -918,7 +925,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 const AUTO_ID = "second-look-auto";
 // What a page gets, in load order: shared pieces, the plain rules, the site adapters, then the panel.
-const CONTENT_FILES = ["lib/shared.js", "content/rules.js", "content/adapters.js", "content/home.js", "content/panel.js"];
+const CONTENT_FILES = ["lib/shared.js", "content/rules.js", "content/adapters.js", "lib/sold.js", "content/home.js", "content/panel.js"];
 
 // Install and a settings change can both ask at once; run one at a time so they don't race.
 let syncing = Promise.resolve();
@@ -981,52 +988,23 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.saved || changes.savedSearches || changes.alertsAck) updateBadge().catch(() => {});
 });
 
-// Home is a tab in the panel on eBay and Facebook (alerts on saved things, numbers, spending). Show it
-// on a page you already have open there, or open eBay and show it there.
-const waitLoaded = (tabId, ms = 20000) =>
-  new Promise((resolve) => {
-    const done = () => {
-      chrome.tabs.onUpdated.removeListener(on);
-      clearTimeout(timer);
-      resolve();
-    };
-    const on = (id, info) => id === tabId && info.status === "complete" && done();
-    const timer = setTimeout(done, ms);
-    chrome.tabs.onUpdated.addListener(on);
-    chrome.tabs.get(tabId).then((t) => t.status === "complete" && done(), done); // it may have finished already
-  });
-// true when this page has the panel (a search, a category, a listing, or the eBay front page) and now shows Home.
-async function showHome(tabId) {
-  try {
-    await ensureInjected(tabId);
-    const [{ result } = {}] = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => {
-        if (!window.SecondLook?.pageType()) return false;
-        window.dispatchEvent(new CustomEvent("second-look-show", { detail: { view: "home" } }));
-        return true;
-      },
-    });
-    return !!result;
-  } catch {
-    return false;
-  }
-}
-async function openHome() {
-  const tabs = await chrome.tabs.query({ url: ["https://www.ebay.com/*", "https://www.facebook.com/*"] }).catch(() => []);
-  for (const tab of tabs.sort((a, b) => Number(b.active) - Number(a.active))) {
-    if (tab.discarded || tab.status !== "complete" || !(await showHome(tab.id))) continue;
-    await chrome.tabs.update(tab.id, { active: true });
-    await chrome.windows.update(tab.windowId, { focused: true });
+// Second Look's own page (hub/hub.html): look something up, saved listings and searches, Home. One tab:
+// an open one comes to the front (with new words, if there are any).
+async function openHome({ q = "" } = {}) {
+  const base = chrome.runtime.getURL("hub/hub.html");
+  const url = q ? `${base}?q=${encodeURIComponent(q.trim().slice(0, 200))}` : base;
+  // Our own pages are found through getContexts (tabs.query can't see extension URLs without the "tabs" permission).
+  const [open] = await chrome.runtime.getContexts({ contextTypes: ["TAB"] }).then((cs) => cs.filter((x) => x.documentUrl?.startsWith(base) && x.tabId >= 0)).catch(() => []);
+  if (open) {
+    await chrome.tabs.update(open.tabId, { active: true, ...(q ? { url } : {}) });
+    await chrome.windows.update(open.windowId, { focused: true });
     return;
   }
-  const tab = await chrome.tabs.create({ url: "https://www.ebay.com/" });
-  await waitLoaded(tab.id);
-  await showHome(tab.id);
+  await chrome.tabs.create({ url });
 }
 
 // The icon opens the panel, or tucks it away; with something new to look at it opens on Home instead.
-// On a page the panel doesn't work on (not eBay or Marketplace), it brings up Home on eBay.
+// On a page the panel doesn't work on (not eBay or Marketplace), it opens Second Look's own page.
 async function openPanel(tabId) {
   try {
     const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
@@ -1053,6 +1031,7 @@ chrome.action.onClicked.addListener((tab) => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === HOME_MENU_ID) return openHome();
+  if (info.menuItemId === LOOKUP_MENU_ID) return openHome({ q: info.selectionText || "" });
   if (info.menuItemId !== MENU_ID || !tab?.id) return;
   try {
     await ensureInjected(tab.id);

@@ -7,7 +7,8 @@
   const TKShared = window.TKShared;
   const TKRules = window.TKRules;
   const TKHome = window.TKHome;
-  if (!TK || !TKShared || !TKRules || !TKHome || window.__tirekickPanel) return;
+  const THEME = window.TKTheme; // colors, type, the tread dot and glyphs (lib/theme.js)
+  if (!TK || !TKShared || !TKRules || !TKHome || !THEME || window.__tirekickPanel) return;
   window.__tirekickPanel = true;
 
   // A tab left open across the update from Second Look (the old name) still holds that version's panel
@@ -66,24 +67,16 @@
       });
     });
 
-  // The serif ships inside the extension and is added with the FontFace API from bytes the background
-  // provides, once the page is idle. Until then (or if it fails) the --display stack falls back to
-  // a system serif, so nothing waits on it.
-  const FONTS = [
-    ["TK Fraunces", "fraunces-600.woff2", { weight: "600" }],
-    ["TK Fraunces", "fraunces-400.woff2", { weight: "400" }],
-    ["TK Fraunces", "fraunces-400-italic.woff2", { weight: "400", style: "italic" }],
-  ];
+  // The typeface ships inside the extension and is added with the FontFace API from bytes the background
+  // provides, once the page is idle: one file, registered as the UI and the display face (THEME.FONTS).
+  // Until then (or if it fails) the stacks fall back to system fonts, so nothing waits on it.
   const loadFonts = async () => {
-    for (const [family, file, desc] of FONTS) {
-      try {
-        const b64 = await send("getFont", { file });
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        document.fonts.add(await new FontFace(family, bytes.buffer, desc).load());
-      } catch (e) {
-        if (alive()) console.warn("[Tirekick] font", file, e.message);
-        return;
-      }
+    try {
+      const b64 = await send("getFont", { file: THEME.FONT_FILE });
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      for (const [family, desc] of THEME.FONTS) document.fonts.add(await new FontFace(family, bytes.buffer, desc).load());
+    } catch (e) {
+      if (alive()) console.warn("[Tirekick] font", THEME.FONT_FILE, e.message);
     }
   };
   (window.requestIdleCallback || setTimeout)(loadFonts, { timeout: 1500 });
@@ -103,13 +96,15 @@
   const tagEl = (verdict, score) => {
     const el = h("div", { class: "tag", "data-v": verdict, role: "img", "aria-label": `Score ${score}, ${SHORT[verdict] || verdict}` }, h("span", {}, String(score)), h("i", {}, SHORT[verdict] || ""));
     el.style.setProperty("--p", String(Math.max(0, Math.min(100, Number(score) || 0))));
+    el.style.setProperty("--lit", String(THEME.lit(score)));
     return el;
   };
 
-  // The card tag's score: a dial like the panel's, set through CSSOM so a page's style rules can't block it
+  // The card tag's score: a tread dot like the panel's, set through CSSOM so a page's style rules can't block it
   const scoreDial = (item) => {
     const el = h("div", { class: "tk-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || ""));
     el.style.setProperty("--p", String(Math.max(0, Math.min(100, Number(item.score) || 0))));
+    el.style.setProperty("--lit", String(THEME.lit(item.score)));
     return el;
   };
 
@@ -120,27 +115,23 @@
   // take clicks itself: only the tab and the open panel do (see .tab / .open .panel below).
   host.style.cssText = "position:fixed;right:0;bottom:20px;z-index:2147483646;pointer-events:none;";
   const root = host.attachShadow({ mode: "open" });
-  // The mark: a loupe with a vermilion dot.
-  const MARK = `<svg class="m-vec" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M14.8 14.8 20.5 20.5"/><circle class="dot" cx="10" cy="10" r="2" stroke="none"/></svg>`;
+  // The mark: an orange tread dot with a navy hub, as in the toolbar icon.
+  const MARK = `<svg class="m-vec" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="${THEME.ORANGE}"/><g fill="none" stroke="#B9692F" stroke-width="1.25" stroke-linecap="round"><path d="M12 2.4l1.3 1.75" transform="rotate(0 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(30 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(60 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(90 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(120 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(150 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(180 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(210 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(240 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(270 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(300 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(330 12 12)"/></g><circle cx="12" cy="12" r="3.7" fill="${THEME.NAVY}"/></svg>`;
 
-  // The two palettes. Contrast was measured: every text pair is 4.6:1 or better, control borders (--line) 3:1 or better.
-  // --on-v and --on-accent are the text colours that sit on a verdict or accent fill.
-  const THEME_DARK = `color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176;
-      --accent:#E2673C; --on-accent:#161513; --v-great:#5FD08B; --v-good:#B5D36A; --v-fair:#E0B050; --v-pass:#A9A59B; --v-suspicious:#FF8A80; --on-v:#161513;
-      --raise:#34312C; --shadow:0 0 0 1px rgba(255,255,255,.04), 0 18px 44px -12px rgba(0,0,0,.75);`;
-  const THEME_LIGHT = `color-scheme:light; --paper:#FBFAF6; --paper-2:#F1EEE6; --ink:#1B1A17; --on-ink:#FBFAF6; --muted:#5C5850; --rule:#DDD8CD; --line:#77736A;
-      --accent:#C8461F; --on-accent:#fff; --v-great:#0A6B35; --v-good:#4A6500; --v-fair:#85540A; --v-pass:#5C5850; --v-suspicious:#B00020; --on-v:#fff;
-      --raise:#FFFFFF; --shadow:0 1px 2px rgba(28,27,25,.06), 0 18px 44px -14px rgba(28,27,25,.32);`;
+  // The two palettes come from lib/theme.js (contrast measured there). --on-v and --on-accent are the text
+  // colors that sit on a verdict or accent fill; --btn/--on-btn the main button.
+  const THEME_DARK = THEME.vars("dark");
+  const THEME_LIGHT = THEME.vars("light");
   // Colour, type and shape. Shared by the panel and the photo-check card.
   const THEME_CSS = `
     /* ---------- tokens: dark first; the light set is used when the browser asks for it or Setup says so ---------- */
     .wrap {
       --w: min(380px, calc(100vw - 32px)); --gap: 16px; /* applyBox() sets --w from the chosen width */
       --r:12px; --r-sm:7px; --bw:1px; --press:none;
-      --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
-      /* the serif (bundled, see FONTS) is for the wordmark, headlines, scores and prices; everything you operate stays in --ui */
-      --display:"TK Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-      --mono:"Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --ui:${THEME.UI};
+      /* the display face (bundled, see loadFonts) is for the wordmark, headlines, scores and prices; everything you operate stays in --ui */
+      --display:${THEME.DISPLAY};
+      --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       font:14px/1.5 var(--ui); color:var(--ink); -webkit-font-smoothing:antialiased;
       ${THEME_DARK}
     }
@@ -236,7 +227,7 @@
     .hm a:hover { text-decoration-color:currentColor; }
     .hm-btn { display:inline-block; min-height:24px; font:600 12px/1.2 var(--ui); padding:5px 10px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:none; color:var(--ink); cursor:pointer; text-decoration:none; }
     .hm-btn:hover { border-color:var(--ink); }
-    .hm-btn.primary { background:var(--ink); color:var(--on-ink); border-color:var(--ink); }
+    .hm-btn.primary { background:var(--btn); color:var(--on-btn); border-color:var(--btn); }
     .hm-btn.small { padding:4px 8px; }
     .hm-btn:focus-visible, .hm a:focus-visible, .hm .col:focus-visible, .hm summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .hm-bar { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin:0 0 10px; }
@@ -251,9 +242,9 @@
     .hm-steps .acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
     .hm-alerts { display:grid; gap:8px; }
     .hm-alert { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:start; padding:9px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
-    .hm-alert.new { border-color:var(--v-great); }
+    .hm-alert.new { border-color:var(--rule); background:var(--raise); }
     .hm-tag { font-size:12px; font-weight:600; padding:1px 8px; border-radius:999px; background:var(--paper-2); color:var(--muted); white-space:nowrap; }
-    .hm-alert.new .hm-tag { background:var(--v-great); color:var(--on-v); }
+    .hm-alert.new .hm-tag { background:var(--new-bg); color:var(--new-fg); }
     .hm-alert .t { min-width:0; overflow-wrap:anywhere; }
     .hm-alert .t a { font-weight:600; }
     .hm-alert .t small { display:block; color:var(--muted); font-size:12px; }
@@ -307,8 +298,8 @@
     .mark svg { width:100%; height:100%; }
     .mark .dot { fill:var(--accent); }
     .grow { flex:1; min-width:0; }
-    .wordmark { font:600 19px/1.1 var(--display); letter-spacing:-.01em; }
-    .wordmark em { font-style:italic; font-weight:400; }
+    .wordmark { display:block; font:800 23px/1 var(--display); letter-spacing:-.035em; white-space:nowrap; }
+    ${THEME.wordmarkCss(".wordmark")}
     .head small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
     .icon-btn { flex:none; width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); cursor:pointer; }
     .icon-btn svg { width:16px; height:16px; }
@@ -353,7 +344,7 @@
     .browse-note { margin-top:6px; }
     .browse-note b { color:var(--ink); font-weight:600; }
 
-    .scan { min-height:42px; background:var(--ink); color:var(--on-ink); border:var(--bw) solid var(--ink); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
+    .scan { min-height:42px; background:var(--btn); color:var(--on-btn); border:var(--bw) solid var(--btn); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
       box-shadow:var(--press); cursor:pointer; transition:opacity .15s, transform .08s, box-shadow .08s; }
     .scan:hover:not(:disabled) { opacity:.88; }
     .scan .cost, .ghost .cost { font-weight:400; opacity:.75; }
@@ -427,7 +418,7 @@
     .welcome .step-key { display:grid; gap:4px; }
     .welcome .step-key b { font:600 13px/1.45 var(--ui); }
     .welcome .step-key .setup-text { color:var(--muted); }
-    .welcome li .setup-go { justify-self:start; margin-top:6px; padding:9px 14px; background:var(--ink); color:var(--on-ink); font:600 13px/1 var(--ui); text-decoration:none; cursor:pointer; pointer-events:auto; }
+    .welcome li .setup-go { justify-self:start; margin-top:6px; padding:9px 14px; background:var(--btn); color:var(--on-btn); font:600 13px/1 var(--ui); text-decoration:none; cursor:pointer; pointer-events:auto; }
     .welcome:has(.step-key:not([hidden])) li:not(.step-key) { color:var(--muted); }
     .welcome:has(.step-key:not([hidden])) li:not(.step-key)::before { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--line); }
     .welcome:has(.step-key:not([hidden])) li:not(.step-key) button { color:inherit; text-decoration:none; cursor:default; pointer-events:none; }
@@ -498,6 +489,7 @@
     .scamnote b { color:var(--v-suspicious); }
     .pi-bar { display:flex; gap:2px; height:6px; margin:8px 0 10px; }
     .pi-bar i { min-width:6px; border-radius:3px; background:var(--c); }
+    .pi-bar i[data-v="great"] { background:var(--dot-great); } .pi-bar i[data-v="good"] { background:var(--dot-good); } .pi-bar i[data-v="fair"] { background:var(--dot-fair); } .pi-bar i[data-v="pass"] { background:var(--dot-pass); } .pi-bar i[data-v="suspicious"] { background:var(--dot-suspicious); }
     @media (forced-colors: active) { .pi-bar i { forced-color-adjust:none; } }
     .pi-head { margin-bottom:3px; color:var(--ink); font:600 23px/1.2 var(--display); letter-spacing:-.015em; }
     .pi-head .mono { font-family:var(--mono); }
@@ -511,9 +503,9 @@
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .fchip { font-size:12px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
-    .fchip.k-new { background:var(--accent); color:var(--on-accent); } .fchip.k-good { background:var(--v-great); color:var(--on-v); } .fchip.k-warn { background:var(--v-suspicious); color:var(--on-v); }
-    .fchip.k-plain { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--rule); }
-    .fchip.k-deal { background:var(--accent); color:var(--on-accent); }
+    .fchip.k-new { background:var(--new-bg); color:var(--new-fg); } .fchip.k-good { background:var(--good-bg); color:var(--good-fg); } .fchip.k-warn { background:var(--warn-bg); color:var(--warn-fg); }
+    .fchip.k-plain { background:none; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line); }
+    .fchip.k-deal { background:var(--new-bg); color:var(--new-fg); }
     .count.deal { background:var(--accent); color:var(--on-accent); }
     .count.pop { animation:pop .5s cubic-bezier(.3,1.6,.5,1); }
     @keyframes pop { 0% { transform:scale(.6); } 60% { transform:scale(1.25); } 100% { transform:none; } }
@@ -554,19 +546,16 @@
     .itemout > .row:first-child { border-top:0; }
     @keyframes fade { from { opacity:0; } to { opacity:1; } }
     .view:not([hidden]) { animation:fade .16s ease both; }
-    /* the score as a dial: the ring fills to the score in the verdict's colour */
-    .tag { --c:var(--v-fair); --p:50; position:relative; width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
-      background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--rule) 0); }
-    .tag::before { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--paper); }
-    .tag span { position:relative; font:600 17px/1 var(--display); color:var(--c); font-variant-numeric:lining-nums tabular-nums; }
+    /* the score as a tread dot: filled in the verdict's color, the tread lit as far as the score (lib/theme.js) */
+    ${THEME.dotCss(".tag")}
+    .tag { width:44px; height:44px; display:grid; place-items:center; }
+    .tag span { font:800 18px/1 var(--display); letter-spacing:-.02em; font-variant-numeric:lining-nums tabular-nums; }
     .tag i { display:none; }
-    @media (forced-colors: active) { .tag { background:none; border:2px solid CanvasText; } .tag::before { display:none; } }
     .row.plain { padding:12px 0; grid-template-columns:minmax(0,1fr) auto; }
     .itemout .title { font:600 19px/1.3 var(--display); letter-spacing:-.01em; cursor:default; }
     .itemout > .row:first-child { grid-template-columns:60px minmax(0,1fr) auto; align-items:start; }
     .itemout > .row:first-child .tag { width:60px; height:60px; }
-    .itemout > .row:first-child .tag::before { inset:4px; }
-    .itemout > .row:first-child .tag span { font-size:23px; }
+    .itemout > .row:first-child .tag span { font-size:25px; }
     .itemout .title .verdict { font-weight:600; }
     .pr { text-align:right; font:600 17px/1.3 var(--display); font-variant-numeric:lining-nums tabular-nums; letter-spacing:-.01em; }
     .pr.deal { color:var(--accent); }
@@ -579,7 +568,8 @@
     [data-v="pass"] { --c:var(--v-pass); } [data-v="suspicious"] { --c:var(--v-suspicious); }
     .title { display:block; background:none; border:0; padding:2px 0; margin:-2px 0; color:var(--ink); font:600 15px/1.35 var(--ui); text-align:left; cursor:pointer; }
     button.title:hover { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
-    .verdict { color:var(--c); font-weight:600; }
+    .verdict { color:var(--c); font-weight:600; white-space:nowrap; }
+    ${THEME.glyphCss(".verdict")}
     .meta { color:var(--muted); font-size:13px; margin-top:3px; }
     .lensinfo { margin-top:4px; font-size:12px; font-weight:600; }
     .lensinfo.neg { color:var(--v-suspicious); }
@@ -684,7 +674,7 @@
       <div class="rz rz-w" data-edge="w" aria-hidden="true" title="Drag to change the width"></div><div class="rz rz-e" data-edge="e" aria-hidden="true" title="Drag to change the width"></div>
       <div class="head" tabindex="0" role="group" aria-label="Panel position: left and right arrow keys pick the side, up and down the width" title="Drag to the left or right edge to dock it there; double-click to put it back">
         <span class="mark">${MARK}</span>
-        <div class="grow"><div class="wordmark">Tirekick</div></div>
+        <div class="grow"><div class="wordmark-slot"></div></div>
         <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
         <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
         <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
@@ -774,6 +764,7 @@
   </div>`;
 
   const $ = (sel) => root.querySelector(sel);
+  $(".wordmark-slot").replaceWith(THEME.wordmark(h));
   const wrap = $(".wrap");
   // Theme: Setup's Match (the default) follows the browser, falling back to dark; Dark and Light force one.
   let themePref = "";
@@ -1468,44 +1459,40 @@
     const st = document.createElement("style");
     st.id = "tirekick-styles";
     // The marks wear the page's own brightness (see syncPageTheme): dark tokens on a dark page, light on a light one.
-    const DK = "--tk-paper:#161513; --tk-ink:#ECE9E2; --tk-muted:#A9A59B; --tk-rule:rgba(255,255,255,.14); --tk-line:#858176; --tk-accent:#E2673C; --tk-on-accent:#161513; --tk-on-v:#161513; --tk-shadow:0 6px 18px -6px rgba(0,0,0,.7); --v-great:#5FD08B; --v-good:#B5D36A; --v-fair:#E0B050; --v-pass:#A9A59B; --v-suspicious:#FF8A80;";
-    const LT = "--tk-paper:#FBFAF6; --tk-ink:#1B1A17; --tk-muted:#5C5850; --tk-rule:rgba(28,27,25,.14); --tk-line:#77736A; --tk-accent:#C8461F; --tk-on-accent:#fff; --tk-on-v:#fff; --tk-shadow:0 6px 18px -6px rgba(28,27,25,.38); --v-great:#0A6B35; --v-good:#4A6500; --v-fair:#85540A; --v-pass:#5C5850; --v-suspicious:#B00020;";
+    // Same palette as the panel (lib/theme.js), as --tk-* so a page's own variables can't collide.
+    const TAG_TOKENS = ["paper", "ink", "muted", "rule", "line", "accent", "on-accent", "good-bg", "good-fg", "warn-bg", "warn-fg", "new-bg", "new-fg",
+      "v-great", "v-good", "v-fair", "v-pass", "v-suspicious", "on-v", "dot-great", "dot-good", "dot-fair", "dot-pass", "dot-suspicious"];
+    const TAG_KEEP = /^(v-|on-v$)/; // the verdict text colors keep their names; the dot fills become --tk-dot-*
+    const DK = `${THEME.vars("dark", { prefix: "--tk-", keep: TAG_KEEP, pick: TAG_TOKENS })} --tk-shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 16px -6px rgba(0,0,0,.6);`;
+    const LT = `${THEME.vars("light", { prefix: "--tk-", keep: TAG_KEEP, pick: TAG_TOKENS })} --tk-shadow:0 1px 2px rgba(10,20,40,.16), 0 6px 16px -6px rgba(10,20,40,.42);`;
+    const UI = THEME.UI.replace(/\s*,\s*/g, ",");
+    const DISPLAY = THEME.DISPLAY.replace(/\s*,\s*/g, ",");
     st.textContent = `
       html[data-tk-theme="dark"] :is(.tirekick-sticker, .tirekick-marks) { ${DK} }
       html:not([data-tk-theme="dark"]) :is(.tirekick-sticker, .tirekick-marks) { ${LT} }
       .tirekick-sticker { --c:var(--v-fair);
         position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--tk-fit, calc(100% - 20px));
-        background:var(--tk-paper); color:var(--tk-ink); border-radius:999px; box-shadow:0 0 0 1px var(--tk-rule), var(--tk-shadow);
-        font:400 12px/1.2 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; text-align:left; letter-spacing:normal; cursor:help;
+        background:var(--tk-paper); color:var(--tk-ink); border-radius:999px; box-shadow:var(--tk-shadow);
+        font:400 12px/1.2 ${UI}; text-align:left; letter-spacing:normal; cursor:help;
         } /* no fade-in: tags appear as cards load, and animating hundreds of them on a long feed cost frames */
       .tirekick-sticker[data-v="great"] { --c:var(--v-great); } .tirekick-sticker[data-v="good"] { --c:var(--v-good); }
       .tirekick-sticker[data-v="pass"] { --c:var(--v-pass); } .tirekick-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
-      /* the score: a dial whose ring fills to the score (as in the panel) */
-      .tirekick-sticker .tk-score { --p:50; position:relative; flex:none; width:44px; height:44px; box-sizing:border-box; border-radius:50%; color:var(--c);
-        display:grid; place-content:center; text-align:center; line-height:1; background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--tk-rule) 0); }
-      .tirekick-sticker .tk-score::before { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--tk-paper); }
-      .tirekick-sticker .tk-score > * { position:relative; }
-      .tirekick-sticker .tk-score b { display:block; font:600 17px/1 "TK Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; font-variant-numeric:lining-nums tabular-nums; }
-      .tirekick-sticker .tk-score i { display:block; margin-top:3px; font-weight:700; font-size:10px; line-height:1; font-family:inherit; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
+      /* the score: a tread dot, filled in the verdict's color, its tread lit as far as the score (as in the panel) */
+      ${THEME.dotCss(".tk-score", { paper: "var(--tk-paper)", muted: "var(--tk-muted)" }).replace(/var\(--dot-/g, "var(--tk-dot-")}
+      .tirekick-sticker .tk-score { flex:none; width:38px; height:38px; box-sizing:border-box; display:grid; place-content:center; text-align:center; line-height:1; }
+      .tirekick-sticker .tk-score b { display:block; font:800 16px/1 ${DISPLAY}; letter-spacing:-.02em; font-variant-numeric:lining-nums tabular-nums; }
+      .tirekick-sticker .tk-score i { display:none; }
       .tirekick-sticker .tk-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
-      .tirekick-sticker .tk-verdict { font:600 15px/1.15 "TK Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.005em; white-space:nowrap; }
+      .tirekick-sticker .tk-verdict { color:var(--c); font:700 14px/1.15 ${UI}; white-space:nowrap; }
+      ${THEME.glyphCss(".tk-verdict")}
       .tirekick-sticker.tk-compact .tk-verdict { display:none; }
       /* The verdict is written beside the score, so the box needn't say it again and can cover less of the photo.
-         On a narrow card the verdict hides, and the short word comes back under the score. */
-      .tirekick-sticker:not(.tk-compact) .tk-score { width:38px; height:38px; }
-      .tirekick-sticker:not(.tk-compact) .tk-score b { font-size:16px; }
-      /* narrow cards keep the short word under the number: the dial grows to hold both */
-      .tirekick-sticker.tk-compact { border-radius:26px; }
-      .tirekick-sticker.tk-compact .tk-score { width:48px; height:48px; }
-      .tirekick-sticker.tk-compact .tk-score b { font-size:16px; }
-      .tirekick-sticker.tk-compact .tk-score i { font-size:8px; margin-top:2px; }
-      @media (forced-colors: active) {
-        .tirekick-sticker .tk-score { background:none; border:2px solid CanvasText; }
-        .tirekick-sticker .tk-score::before { display:none; }
-      }
-      .tirekick-sticker:not(.tk-compact) .tk-score i { display:none; }
+         On a narrow card the dot stands alone on the photo (the verdict is in its label and on hover). */
+      .tirekick-sticker.tk-compact { padding:0; background:none; box-shadow:none; }
+      .tirekick-sticker.tk-compact .tk-score { width:44px; height:44px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3)) drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
+      .tirekick-sticker.tk-compact .tk-score b { font-size:17px; }
       .tirekick-sticker.tk-compact .tk-text:not(:has(.tk-sub)) { display:none; }
-      .tirekick-sticker.tk-compact { padding-right:4px; }
+      .tirekick-sticker.tk-compact .tk-text { padding:4px 10px; border-radius:999px; background:var(--tk-paper); box-shadow:var(--tk-shadow); }
       .tirekick-sticker .tk-sub { font-size:12px; color:var(--tk-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       /* small chips: under a sticker, or on their own on a card that hasn't been scored */
       .tirekick-sticker .tk-below { position:absolute; left:4px; top:100%; padding-top:5px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
@@ -1515,12 +1502,12 @@
       .tirekick-sticker.tk-right .tk-below { left:auto; right:4px; align-items:flex-end; }
       .tirekick-sticker.tk-right .tk-under { justify-content:flex-end; }
       .tirekick-sticker .tk-under { display:flex; flex-wrap:wrap; gap:4px; width:max-content; max-width:var(--tk-fit, 320px); }
-      .tk-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--tk-ink); color:var(--tk-paper);
-        font:600 12px/1.35 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:nowrap; letter-spacing:normal; text-transform:none; }
+      .tk-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--tk-paper); color:var(--tk-ink);
+        font:600 12px/1.35 ${UI}; white-space:nowrap; letter-spacing:normal; text-transform:none; box-shadow:0 2px 6px -2px rgba(0,0,0,.35); }
       .tk-chip svg { width:11px; height:11px; }
-      .tk-chip.k-new { background:var(--tk-accent); color:var(--tk-on-accent); } .tk-chip.k-good { background:var(--v-great); color:var(--tk-on-v); } .tk-chip.k-warn { background:var(--v-suspicious); color:var(--tk-on-v); }
-      .tk-chip.k-plain { background:var(--tk-paper); color:var(--tk-ink); box-shadow:inset 0 0 0 1px var(--tk-line); }
-      .tk-chip.k-deal { background:var(--tk-accent); color:var(--tk-on-accent); font-size:12px; padding:3px 9px; box-shadow:0 0 0 2px var(--tk-paper); }
+      .tk-chip.k-new, .tk-chip.k-deal { background:var(--tk-new-bg); color:var(--tk-new-fg); } .tk-chip.k-good { background:var(--tk-good-bg); color:var(--tk-good-fg); }
+      .tk-chip.k-warn { background:var(--tk-warn-bg); color:var(--tk-warn-fg); }
+      .tk-chip.k-plain { box-shadow:inset 0 0 0 1px var(--tk-line), 0 2px 6px -2px rgba(0,0,0,.3); }
       .tirekick-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:var(--tk-fit, calc(100% - 20px));
         filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); pointer-events:auto; }
       .tirekick-marks button, .tirekick-sticker .tk-under button { cursor:pointer; border:0; }
@@ -1545,14 +1532,15 @@
       .tirekick-sticker .tk-acts :is(button, a):hover { text-decoration-color:currentColor; }
       .tirekick-sticker .tk-pop { display:none; width:264px; max-width:min(264px, 80vw); padding:12px 14px;
         background:var(--tk-paper); color:var(--tk-ink); border-radius:12px; box-shadow:0 0 0 1px var(--tk-line), var(--tk-shadow);
-        font:400 13px/1.5 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:normal; text-transform:none; cursor:auto; }
+        font:400 13px/1.5 ${UI}; white-space:normal; text-transform:none; cursor:auto; }
       .tirekick-sticker:hover .tk-pop, .tirekick-sticker:focus-within .tk-pop { display:block; }
       .tirekick-sticker:focus-visible { outline:2px solid var(--tk-ink); outline-offset:3px; }
-      .tirekick-sticker .tk-pop b { display:block; margin-bottom:4px; font:600 17px/1.25 "TK Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.01em; }
-      .tirekick-sticker .tk-pop b span { color:var(--c); }
+      .tirekick-sticker .tk-pop b { display:block; margin-bottom:4px; font:800 17px/1.25 ${DISPLAY}; letter-spacing:-.01em; }
+      .tirekick-sticker .tk-pop b .tk-pw { color:var(--c); font:700 15px/1.25 ${UI}; letter-spacing:normal; }
+      ${THEME.glyphCss(".tk-pw")}
       .tirekick-sticker .tk-flags { margin-top:6px; color:var(--tk-muted); }
-      .tirekick-flash { outline:2px solid #C8461F !important; outline-offset:4px; animation:tk-flash 2s ease-out both; }
-      @keyframes tk-flash { 0%, 60% { outline-color:#C8461F; } 100% { outline-color:transparent; } }`;
+      .tirekick-flash { outline:2px solid ${THEME.ORANGE} !important; outline-offset:4px; animation:tk-flash 2s ease-out both; }
+      @keyframes tk-flash { 0%, 60% { outline-color:${THEME.ORANGE}; } 100% { outline-color:transparent; } }`;
     document.head.append(st);
   };
 
@@ -2359,7 +2347,7 @@
         h(
         "div",
         { class: "tk-pop" },
-        h("b", {}, h("span", {}, String(item.score)), ` · ${v.label}`),
+        h("b", {}, String(item.score), " · ", h("span", { class: "tk-pw" }, v.label)),
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,

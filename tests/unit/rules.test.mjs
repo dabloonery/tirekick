@@ -160,3 +160,21 @@ test("otherCodes: the same scam title under other codes", () => {
   assert.deepEqual(R.otherCodes(stem, "fb:1", "M2465"), ["K7731"], "codes on the same listing don't count");
   assert.deepEqual(R.otherCodes(undefined, "fb:1", "M2465"), []);
 });
+
+test("words: accents don't matter, and other alphabets have word edges", () => {
+  assert.equal(R.hasWord("Pokémon Red cartridge", "pokemon"), true);
+  assert.equal(R.hasWord("Pokemon Red cartridge", "pokémon"), true);
+  assert.equal(R.hasWord("Cámara Canon AE-1", "mara"), false, "not a word inside an accented word");
+  assert.equal(R.hasWord("Cámara Canon AE-1", "camara"), true);
+  assert.equal(R.hasWord("ファミコン カセット", "カセット"), true);
+  assert.equal(R.hasWord("Game Boy", 5), false, "a word that isn't text matches nothing, without throwing");
+  assert.equal(R.normTitle("Pokémon  RED!!"), "pokemon red");
+  assert.equal(R.termsReason("Pokémon Red", "-pokemon"), "“pokemon”");
+});
+
+test("quickTerms: a quote left open, and words that aren't text", () => {
+  assert.deepEqual(R.quickTerms('"must go'), [{ not: false, w: "must" }, { not: false, w: "go" }]);
+  assert.deepEqual(R.quickTerms('-"box'), [{ not: true, w: "box" }]);
+  assert.deepEqual(R.quickTerms(12), []);
+  assert.equal(R.termsReason("Nintendo DMG", '"dmg'), "", "a stray quote doesn't filter everything out");
+});

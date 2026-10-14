@@ -48,7 +48,8 @@ await R(p, `r.querySelector('[data-act=tab]').click()`); await sleep(400);
 await R(p, `r.querySelector('[data-act=analyze]').click()`); await sleep(2800);
 await shot(p, "2-listing.png");
 // 5. settings
-await size(o); await o.ev(`location.reload()`); await sleep(1200);
-await shot(o, "5-settings.png");
+// a fresh tab, so it shows the seeded settings (reloading the first one could hang the DevTools call)
+const so = await open(`chrome-extension://${EXT}/options/options.html`); await size(so); await sleep(1200);
+await shot(so, "5-settings.png");
 console.log(`wrote ${[...Deno.readDirSync(OUT)].length} screenshots to store/screenshots`);
 c.close();

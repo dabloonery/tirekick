@@ -16,7 +16,7 @@ All of this is kept in your browser's extension storage and never sent to the de
 - **Listings and searches you saved, and listings you hid**, with the prices you saw.
 - **Listings you've seen** (title, price, when), so it can say "new to you" and show price drops and history. Kept for 90 days.
 - **Scores** for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and **sold-price results**, kept for six hours.
-- **Small preferences**: each mode's sort and "what I want", each search's filter, and where the panel sits on each site.
+- **Small preferences**: each mode's sort, each search's "what I want" and filter, and where the panel sits on each site.
 - **A spending estimate** for paid AI, worked out from token counts at list price.
 - **Simple counters** of which features you use, shown on the Home tab.
 
@@ -49,7 +49,7 @@ so read the one for the service you pick. Ollama and LM Studio keep everything o
 
 - Send anything to the developer. There's no account, server, advertising or analytics.
 - Sell or share your data, or use it for anything not described here.
-- Read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address). On other pages, the only thing it receives is text you select and choose to look up from the right-click menu.
+- Read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address). Its page script is present across facebook.com so it can follow you into Marketplace, but it only reads Marketplace pages. On other pages, the only thing it receives is text you select and choose to look up from the right-click menu.
 - Collect payment details or messages.
 
 ## Permissions

@@ -75,7 +75,7 @@
         market = await soldMarket(q, "any");
         any = true;
       }
-      chrome.storage.local.get("stats").then(({ stats = {} }) => chrome.storage.local.set({ stats: { ...stats, soldLookups: (stats.soldLookups || 0) + 1, since: stats.since || Date.now() } }));
+      send("storeEdit", { name: "stats", edit: { inc: { soldLookups: 1 }, add: { since: Date.now() } } }).catch(() => {});
       if (!market) return say(`Not enough eBay sales of “${q}” to give a price. Try fewer or more general words.`);
       answer.replaceChildren(
         h("div", { class: "mgrid" }, cell(any ? "Sold, any condition" : "Sold, used", market)),

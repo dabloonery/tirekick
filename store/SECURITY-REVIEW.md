@@ -78,7 +78,8 @@ there would run in the web page's own context, not the extension's, so the worst
 attacking itself.
 
 **Recommendation (later, low priority):** wrap them in `TKShared.safeUrl(...)` like the saved-item
-links, for consistency. One-line change each, after the in-flight work merges.
+links, for consistency. One-line change each. Not done yet as of 0.36.0; line numbers have drifted, so search
+for `it.url` and `x.url` in `content/panel.js`.
 
 ### L2. A web page can open or close the panel
 

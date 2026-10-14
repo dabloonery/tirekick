@@ -1,5 +1,5 @@
 // Accessibility pass: the browser's own accessibility tree (unnamed controls), the keyboard tab order
-// (every stop shows a focus ring), forced colours (Windows high contrast) and 200% zoom.
+// (every stop shows a focus ring), forced colors (Windows high contrast) and 200% zoom.
 // Writes screenshots and a11y.json to A11Y_OUT. Usage: A11Y_OUT=/tmp/x tests/e2e/run.sh a11y.ts
 import { start, EXT, sleep } from "./lib.ts";
 const { open, c } = await start();
@@ -89,9 +89,9 @@ report.zoom_settings = await zs.ev(`({hScroll: document.documentElement.scrollWi
 await zs.shot(`${OUT}/zoom_settings.png`, { x: 0, y: 0, width: 700, height: 450 });
 
 await Deno.writeTextFile(`${OUT}/a11y.json`, JSON.stringify(report, null, 1));
-// ---- forced colours (Windows high contrast), dark and light ----
+// ---- forced colors (Windows high contrast), dark and light ----
 for (const scheme of ["dark", "light"]) {
-  step('forced colours ' + scheme);
+  step('forced colors ' + scheme);
   await media(p, [{ name: "forced-colors", value: "active" }, { name: "prefers-color-scheme", value: scheme }]);
   await R(p, `r.querySelector('[data-view=page]').click()`); await sleep(500);
   await panel(p, `fc_${scheme}_page`);

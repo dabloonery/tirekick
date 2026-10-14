@@ -120,7 +120,7 @@ const anthropicMessage = (opts) => withBudget(() => anthropicMessageOnce(opts));
 async function anthropicMessageOnce({ system, content, schema, maxTokens = 16000, signal, model }) {
   const { anthropicKey, anthropicModel, anthropicUrl } = await getSettings();
   model ||= anthropicModel;
-  if (!anthropicKey) throw new Error("No Claude API key yet. Open the extension options and paste one in.");
+  if (!anthropicKey) throw new Error("No Claude API key yet. Paste one in Tirekick's settings.");
   const body = {
     model,
     max_tokens: maxTokens,
@@ -163,18 +163,18 @@ async function anthropicMessageOnce({ system, content, schema, maxTokens = 16000
     const after = Number(res.headers.get("retry-after"));
     await sleep(Math.min(20, after > 0 ? after : 2 * 2 ** attempt) * 1000);
   }
-  if (res.status === 401) throw new Error("The Claude API key was rejected. Check it in the extension options.");
-  if (res.status === 429) throw new Error("Claude API rate limit hit. Wait a moment and scan again.");
+  if (res.status === 401) throw new Error("The Claude API didn't accept that key. Check it in settings.");
+  if (res.status === 429) throw new Error("The Claude API needs a short break. Wait a moment and scan again.");
   if (res.status === 529) throw new Error("The Claude API is overloaded right now. Try again in a minute.");
   if (!res.ok) {
     const text = await res.text();
-    if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognise the model "${model}". Check it in the extension options.`);
+    if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognize the model "${model}". Check it in the extension options.`);
     throw new Error(`Claude API error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
   // Billed whatever the answer turns out to be (cut off, declined), so count it first.
   const cost = await addSpend(data.model || model, data.usage);
-  if (data.stop_reason === "refusal") throw new Error("Claude declined this request.");
+  if (data.stop_reason === "refusal") throw new Error("Claude declined this request. Try again, or switch models in the panel.");
   if (data.stop_reason === "max_tokens") throw new Error("Claude's answer was cut off. Lower \"Listings per request\" in settings and try again.");
   const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
   return { text, cost };
@@ -255,11 +255,11 @@ async function openaiChatOnce({ messages, schema, model, signal }) {
     break;
   }
   if (res.status === 401 || res.status === 403) throw new Error(`${name} rejected the key. Check it in settings.`);
-  if (res.status === 429) throw new Error(`${name} rate limit hit. Wait a moment and try again.`);
+  if (res.status === 429) throw new Error(`${name} needs a short break. Wait a moment and try again.`);
   if (res.status === 402) throw new Error(`${name} says the account is out of credit.`);
   if (!res.ok) {
     text ??= await res.text();
-    if (res.status === 404 && /model/i.test(text)) throw new Error(`${name} doesn't recognise the model "${model}". Pick one in settings (Test connection lists them).`);
+    if (res.status === 404 && /model/i.test(text)) throw new Error(`${name} doesn't recognize the model "${model}". Pick one in settings (Test connection lists them).`);
     throw new Error(`${name} error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
@@ -458,7 +458,7 @@ function parseModelJson(content) {
         return JSON.parse(content.slice(a, b + 1));
       } catch {}
     }
-    throw new Error("The model returned something unreadable. Try again, or lower \"Listings per request\" in settings.");
+    throw new Error("The AI's answer didn't make sense. Try again, or lower \"Listings per request\" in settings.");
   }
 }
 
@@ -846,7 +846,7 @@ async function openTabs({ urls }) {
 // ---------- Message router ----------
 
 // ---------- Stopping ----------
-// A request the page tags with a reqId can be cancelled: Stop sends those ids here and each one's
+// A request the page tags with a reqId can be canceled: Stop sends those ids here and each one's
 // fetch is aborted. (A model may still bill for what it had already read.)
 const inflight = new Map(); // reqId -> AbortController
 async function abort({ ids }) {

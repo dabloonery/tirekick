@@ -12,7 +12,11 @@
   const store = { introDone: true }; // welcome card already seen, so the panel starts tucked away
   const pick = (k) => (k == null ? { ...store } : typeof k === "string" ? { [k]: store[k] } :
     Array.isArray(k) ? Object.fromEntries(k.map((x) => [x, store[x]])) : Object.fromEntries(Object.entries(k).map(([x, d]) => [x, store[x] ?? d])));
-  window.chrome = { runtime: { id: "test", lastError: null, onMessage: { addListener() {} }, sendMessage: (m, cb) => cb({ ok: true, data: m.type === "getSettings" ? {} : "" }) },
+  window.chrome = { runtime: { id: "test", lastError: null, onMessage: { addListener() {} }, sendMessage: (m, cb) => {
+      // Shared records are changed by the background script; here the same edit is applied to the stand-in store.
+      if (m.type === "storeEdit") return cb({ ok: true, data: (store[m.payload.name] = TKShared.applyEdit(store[m.payload.name], m.payload.edit)) });
+      cb({ ok: true, data: m.type === "getSettings" ? {} : "" });
+    } },
     storage: { local: { get: async (k) => pick(k), set: async (o) => Object.assign(store, o) }, onChanged: { addListener() {} } } };
 </script>
 <script src="/lib/sites.js"></script>

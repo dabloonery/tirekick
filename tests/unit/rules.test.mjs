@@ -97,3 +97,25 @@ test("small formatters", () => {
   assert.equal(R.hash("abc"), R.hash("abc"));
   assert.notEqual(R.hash("abc"), R.hash("abd"));
 });
+
+test("readHealth: notices when the page reader stops keeping up with a site", () => {
+  const lvl = (counts, opts) => R.readHealth(counts, opts).level;
+  assert.equal(lvl({ links: 48, items: 48, priced: 48 }), "ok");
+  assert.equal(lvl({ links: 52, items: 48, priced: 47 }), "ok", "a few links outside the cards are normal");
+  assert.equal(lvl({ links: 3, items: 0, priced: 0 }), "few", "too few listings to judge");
+  assert.equal(lvl({ links: 0, items: 0, priced: 0 }), "few", "an empty search is not a broken page");
+  assert.equal(lvl({ links: 48, items: 0, priced: 0 }), "broken");
+  assert.equal(lvl({ links: 48, items: 0, priced: 0 }, { partialOk: true }), "broken", "nothing read is broken anywhere");
+  assert.equal(lvl({ links: 48, items: 10, priced: 10 }), "partial");
+  assert.equal(lvl({ links: 48, items: 10, priced: 10 }, { partialOk: true }), "ok", "a category page's carousels don't count against it");
+  assert.equal(lvl({ links: 48, items: 48, priced: 5 }), "prices");
+  assert.equal(lvl({ links: 48, items: 48, priced: 24 }), "ok", "half priced is enough (Free and auctions without a bid exist)");
+});
+
+test("healthNote says what changed, and nothing when all is well", () => {
+  assert.equal(R.healthNote({ level: "ok" }, "eBay"), "");
+  assert.equal(R.healthNote({ level: "few" }, "eBay"), "");
+  assert.match(R.healthNote({ level: "broken", links: 48, items: 0 }, "eBay"), /^eBay changed this page.*48 on the page, none read/);
+  assert.match(R.healthNote({ level: "partial", links: 48, items: 10 }, "Marketplace"), /read 10 of the 48 listings/);
+  assert.match(R.healthNote({ level: "prices", items: 48, priced: 5 }, "eBay"), /price on only 5/);
+});

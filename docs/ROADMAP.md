@@ -66,9 +66,17 @@ Before it goes public:
 - [x] Scrub personal paths from the docs (the home-folder path in REFERENCE's rename notes, removed in 0.37.0).
 - [ ] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL).
 - [ ] Know that the commit history carries Myer's personal email address on about 25 commits. Either accept it, or
-      rewrite history before publishing (a one-time, force-pushed change that Myer must OK), and set GitHub's
+      rewrite history before publishing (a one-time, force-pushed change; Myer's call), and set GitHub's
       "Keep my email address private" for future commits.
 - [ ] Check again that no keys, tokens or private details are in the files or the history.
+
+The name, alongside it:
+
+- [ ] Use "Tirekick™" where the name first appears in the README, the store listing and the website (™ needs no
+      registration).
+- [ ] Before launch, run a clearance search for "Tirekick" and "Tire Kick" in software: USPTO (classes 9 and 42),
+      the Chrome Web Store, and app stores.
+- [ ] Around the open-source launch, file a USPTO registration in class 9 (Myer).
 
 ---
 
@@ -109,6 +117,8 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 *Status 2026-10-14: the redesign fixes and the ux-spec port (0.36.0) are on `main`, plus the robustness PRs #14 to #21. Nothing below is done yet.*
 
 - [ ] **Myer:** rename the GitHub repo to `tirekick` (Settings, General). GitHub redirects the old address.
+- [ ] **Claude, at 1.0.0:** Apache-2.0 `LICENSE` and README license section; then the repo goes public (see
+      [Open source at 1.0.0](#open-source-at-100-decided-2026-10-14) for what to do first).
 - [ ] **Claude:** set `homepage_url` to `https://tirekick.app`, update README and listing links, and
       replace the contact placeholders. Small PR.
 - [x] **Claude (optional):** the L1 hardening from the security review (links through `safeUrl`). Done in 0.37.0.

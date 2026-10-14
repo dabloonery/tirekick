@@ -481,7 +481,7 @@ The old script's own guard (`alive()`) already stops it doing anything once the 
 
 **D. Context menus.** No work needed: `onInstalled` already calls `chrome.contextMenus.removeAll()` before creating the menus (`background.js:903`), so the old `second-look-*` menu ids are cleared on update.
 
-**E. Local unpacked install (dabloonery's machine).** An unpacked extension's id comes from its folder path. Renaming the local folder (`~/Second-Look`) or re-cloning under a new name gives Chrome a new id, and the saved listings, searches, settings and API keys stay behind with the old id. Before renaming the folder: make a backup in Settings, then restore it into the new install (which migration A makes possible). Renaming the GitHub repo alone does not move the local folder.
+**E. Local unpacked install (dabloonery's machine).** An unpacked extension's id comes from its folder path. Renaming the local folder (`Second-Look` in your home folder) or re-cloning under a new name gives Chrome a new id, and the saved listings, searches, settings and API keys stay behind with the old id. Before renaming the folder: make a backup in Settings, then restore it into the new install (which migration A makes possible). Renaming the GitHub repo alone does not move the local folder.
 
 **F. Chrome Web Store.** Not submitted yet (placeholders in `store/LISTING.md`), so the rename is free there. Once published, the name can still change, but the id cannot.
 

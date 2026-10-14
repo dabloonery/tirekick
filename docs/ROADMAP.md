@@ -58,6 +58,18 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    domain such as tirekick.app is optional (dabloonery to decide). Then the contact address, `homepage_url` and 1.0.0.
 6. **Brief 5, more stores** (Craigslist first), after 1.0 is in the store.
 
+### Open source at 1.0.0 (decided 2026-10-14)
+
+dabloonery agreed: license Tirekick under **Apache-2.0** and make the repository public at the 1.0.0 store launch.
+Before it goes public:
+
+- [x] Scrub personal paths from the docs (the home-folder path in REFERENCE's rename notes, removed in 0.37.0).
+- [ ] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL).
+- [ ] Know that the commit history carries dabloonery's personal email address on about 25 commits. Either accept it, or
+      rewrite history before publishing (a one-time, force-pushed change that dabloonery must OK), and set GitHub's
+      "Keep my email address private" for future commits.
+- [ ] Check again that no keys, tokens or private details are in the files or the history.
+
 ---
 
 <!-- merged from store-prep/SUBMISSION-CHECKLIST.md -->

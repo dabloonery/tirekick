@@ -15,9 +15,12 @@ ul{list-style:none;margin:0;padding:20px 24px;display:grid;grid-template-columns
 </ul></body></html>`;
 // Facebook nests each card's link a dozen boxes inside its grid cell, and a card can link to its listing twice.
 const deep = (inner: string) => "<div>".repeat(14) + inner + "</div>".repeat(14);
-const fbPage = (title: string) => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+// ?dark: laid out like Marketplace in dark mode (a sidebar, a grid that clips at its edges, square photos), for look checks.
+const FB_DARK = `body{background:#18191a;color:#e4e6eb}div[role=main]{margin-left:360px;overflow:hidden}main{grid-template-columns:repeat(4,240px);gap:8px 16px}
+main a:not(.dup){border:0}.ph{height:240px;background:linear-gradient(135deg,#7a5c3c,#3d2f22)}`;
+const fbPage = (title: string, dark = false) => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
 <style>body{font:14px system-ui;margin:0}main{display:grid;grid-template-columns:repeat(4,200px);gap:16px;padding:20px}a{display:block;color:inherit;}a.dup{display:none}main a:not(.dup){text-decoration:none;border:1px solid #ddd;border-radius:8px;overflow:hidden}
-.ph{height:140px;background:#ccc}a div{padding:2px 10px}</style></head><body><div role="main"><main>
+.ph{height:140px;background:#ccc}a div{padding:2px 10px}${dark ? FB_DARK : ""}</style></head><body><div role="main"><main>
 ${deep(`<a href="/marketplace/item/111/"><div class="ph"></div><div>$85</div><div>Pentax K1000 35mm film camera</div><div>Albuquerque, NM</div></a><a href="/marketplace/item/111/" class="dup" aria-hidden="true" tabindex="-1"></a>`)}
 ${deep(`<a href="/marketplace/item/222/"><div class="ph"></div><div>$120</div><div>Nintendo Game Boy Advance SP M2465</div><div>Albuquerque, NM</div></a>`)}
 ${deep(`<a href="/marketplace/item/333/"><div class="ph"></div><div>$30</div><div>Nintendo Game Boy Advance SP K7731</div><div>Rio Rancho, NM</div></a>`)}
@@ -74,7 +77,7 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   if (u.searchParams.has("fixture")) return fixturePage(u.searchParams.get("fixture")!);
   if (u.hostname === "www.facebook.com" && u.searchParams.has("bench")) return new Response(benchPage(+u.searchParams.get("bench")!, u.searchParams.get("churn") !== "0"), { headers: { "content-type": "text/html" } });
   if (/\.jpg$/.test(u.pathname)) return new Response(Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (x) => x.charCodeAt(0)), { headers: { "content-type": "image/gif" } });
-  if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace"), { headers: { "content-type": "text/html" } });
+  if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace", u.searchParams.has("dark")), { headers: { "content-type": "text/html" } });
   // A sold search for "blockme" is refused, like eBay's browser check.
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /blockme/.test(u.searchParams.get("_nkw") || "")) return new Response("denied", { status: 403 });
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1") return new Response(soldPage(u.searchParams.get("_nkw") || "item"), { headers: { "content-type": "text/html" } });

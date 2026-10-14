@@ -2,7 +2,7 @@
 
 Dated 2026-10-12, version 0.34.x; brought up to date with the Tirekick name and the Tread Dot look in 0.36.0. This spec describes the extension as built and the rules future changes keep to. Evidence labels: **Verified** means an automated check observed it on the real extension (headless Chrome 153.0.8010.52, Linux, synthetic eBay and Marketplace pages from `tests/fixtures` and `tests/e2e/server.ts`, a mock Claude API); **Implemented** means the code does it but no check watches it; **Not run** means nobody has looked yet.
 
-The design direction is set: *minimal and elegant*, in the Tread Dot look from 0.35.0 (navy and white, hairlines, color only for verdicts and one orange accent, Bricolage Grotesque throughout, and a score dot ringed with tread marks).
+The design direction is set: *minimal and elegant*, in the Tread Dot look (graphite dark and white light, hairlines, color only for verdicts, navy and orange kept to the tread-dot logo and small accents, Bricolage Grotesque throughout, and a score dot ringed with tread marks).
 
 ## 1. The job
 
@@ -96,18 +96,18 @@ Defined once in `lib/theme.js` (`TKTheme.palette`, the type, the tread dot and t
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--paper` | #FFFFFF | #1A2B4C | Surfaces |
-| `--paper-2` | #F4F6F9 | #13223F | Tracks, tints, hover |
-| `--raise` | #FFFFFF | #20345A | The chosen segment, the welcome card |
-| `--ink` | #1A2B4C | #EEF2F8 | Text |
-| `--muted` | #5B6780 | #A9B5CB | Secondary text (≥ 4.5:1 on paper) |
-| `--rule` | #E3E8F0 | #2C3E63 | Hairlines |
-| `--line` | #7A879E | #7D8BA6 | Control borders (≥ 3:1) |
-| `--btn` | #1A2B4C | #FF8F3A | The one primary button (orange on dark, navy on light) |
+| `--paper` | #FFFFFF | #1E2024 | Surfaces |
+| `--paper-2` | #F4F6F9 | #18191C | Tracks, tints, hover |
+| `--raise` | #FFFFFF | #26292E | The chosen segment, the welcome card |
+| `--ink` | #1A2B4C | #ECEEF1 | Text |
+| `--muted` | #5B6780 | #A6ABB4 | Secondary text (≥ 4.5:1 on paper) |
+| `--rule` | #E3E8F0 | #303339 | Hairlines |
+| `--line` | #7A879E | #73787F | Control borders (≥ 3:1) |
+| `--btn` | #1A2B4C | #ECEEF1 | The one primary button and switches that are on (light on graphite, navy on white) |
 | `--accent` | #B04E0E | #FF8F3A | The chosen tab's line, alerts, the chart's peak. Nothing else |
 | `--danger` | #B42318 | #FF8A80 | Errors and things that clear data |
-| `--v-great` / `good` / `fair` / `pass` / `suspicious` | #12703C / #4D6B05 / #7D5C00 / #5B6780 / #B42318 | #5FE39A / #C3EA6E / #FFE16B / #A9B5CB / #FF8A80 | Verdict words |
-| `--dot-great` … `--dot-suspicious` | #7CD3A2 / #C2DC86 / #F2D472 / #AEB8C9 / #F28B81 | #3BDB7E / #B6E35A / #FFE04A / #7D8BA6 / #FF6A5E | The score dot's fill |
+| `--v-great` / `good` / `fair` / `pass` / `suspicious` | #12703C / #4D6B05 / #7D5C00 / #5B6780 / #B42318 | #6ED9A0 / #BFE07F / #F0D46A / #A6ABB4 / #F59088 | Verdict words |
+| `--dot-great` … `--dot-suspicious` | #7CD3A2 / #C2DC86 / #F2D472 / #AEB8C9 / #F28B81 | #45C985 / #A8D65E / #EBCF55 / #73787F / #EE7468 | The score dot's fill |
 
 | Type | Face | Sizes |
 |---|---|---|

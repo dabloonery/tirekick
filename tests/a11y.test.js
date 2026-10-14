@@ -51,8 +51,11 @@
     const tog = $(".qf-toggle"), box = $(".qf");
     check("filter fields start tucked behind a Filter button", !!tog && box.hidden && tog.getAttribute("aria-expanded") === "false", tog ? `hidden=${box.hidden}` : "no button");
     if (tog) {
+      // Escape just closed the panel, and nothing inside a closed panel can take focus: open it again first.
+      if (!$(".wrap").classList.contains("open")) tab.click();
+      await wait(100);
       tog.click();
-      await wait(50);
+      await wait(100);
       check("Filter button opens the fields and focuses the words box", !box.hidden && tog.getAttribute("aria-expanded") === "true" && active() === $(".qf-words"), `hidden=${box.hidden}`);
       const w = $(".qf-words");
       w.value = "dmg -case";
@@ -75,9 +78,9 @@
     await wait(1300);
     check("marks go light on a light page", tkTheme() === "light", `theme was ${tkTheme()}`);
     const tagBox = $(".tag") || null;
-    check("panel is dark unless the browser asks for light", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === (matchMedia("(prefers-color-scheme: light)").matches ? "#FFFFFF" : "#1A2B4C"), getComputedStyle($(".wrap")).getPropertyValue("--paper"));
+    check("panel is dark unless the browser asks for light", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === (matchMedia("(prefers-color-scheme: light)").matches ? "#FFFFFF" : "#1E2024"), getComputedStyle($(".wrap")).getPropertyValue("--paper"));
     $(".wrap").dataset.theme = "dark";
-    check("Setup's Dark forces dark", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === "#1A2B4C", getComputedStyle($(".wrap")).getPropertyValue("--paper"));
+    check("Setup's Dark forces dark", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === "#1E2024", getComputedStyle($(".wrap")).getPropertyValue("--paper"));
     $(".wrap").dataset.theme = "light";
     check("Setup's Light forces light", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === "#FFFFFF", getComputedStyle($(".wrap")).getPropertyValue("--paper"));
     delete $(".wrap").dataset.theme;

@@ -74,6 +74,22 @@ await reset();
   await o.ev(`chrome.storage.local.remove("bigTest")`);
 }
 
+// ---------- several tabs at once ----------
+await reset();
+{
+  const o2 = await open(`chrome-extension://${EXT}/options/options.html`);
+  const burst = (page: any, tag: string) =>
+    page.ev(`Promise.all(Array.from({ length: 25 }, (_, i) => chrome.runtime.sendMessage({ type: "storeEdit", payload: { name: "saved", edit: { set: { ["ebay:${tag}" + i]: { t: "x", a: Date.now() } } } } })))`);
+  await Promise.all([burst(o, "1"), burst(o2, "2")]);
+  const saved = await get("saved");
+  ok("two tabs saving 25 listings each at the same moment keep all 50", Object.keys(saved || {}).length === 50, Object.keys(saved || {}).length);
+  const slots = await Promise.all([o, o2].map((page) =>
+    page.ev(`Promise.all(Array.from({ length: 6 }, () => chrome.runtime.sendMessage({ type: "soldSlot", payload: { perHour: 8, gap: 0 } }).then((r) => r.data)))`)));
+  const granted = slots.flat().filter((s: any) => s && !s.full).length;
+  ok("two tabs asking for 12 sold-price lookups at once get 8, the hourly limit", granted === 8, slots);
+  await o2.close();
+}
+
 ok("no page errors", !errors.length, errors);
 console.log(fails ? `${fails} failed` : "all passed");
 Deno.exit(fails ? 1 : 0);

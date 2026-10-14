@@ -122,3 +122,17 @@ test("leftOutSold names what a sold summary left out", () => {
   assert.deepEqual(TK.leftOutSold({ offers: 1, lots: 2, foreign: 3, ranges: 1, parts: 0 }), ["1 best-offer sale (the real price isn't shown)", "2 lots", "3 in another currency", "1 with a price range"]);
   assert.deepEqual(TK.leftOutSold(undefined), []);
 });
+
+test("joinedYear and listedDaysAgo read what a listing page says", () => {
+  assert.equal(TK.joinedYear("Seller details Joined Facebook in 2019"), 2019);
+  assert.equal(TK.joinedYear("Joined in 2024"), 2024);
+  assert.equal(TK.joinedYear("joined facebook in 1999"), null);
+  assert.equal(TK.joinedYear("nothing here"), null);
+  assert.equal(TK.listedDaysAgo("Listed 3 weeks ago in Albuquerque, NM"), 21);
+  assert.equal(TK.listedDaysAgo("Listed a day ago"), 1);
+  assert.equal(TK.listedDaysAgo("Listed over a year ago"), 365);
+  assert.equal(TK.listedDaysAgo("Listed 5 hours ago"), 0.2);
+  const now = Date.parse("2026-10-14T12:00:00");
+  assert.equal(TK.listedDaysAgo("Listed on Oct 3, 2026", now), 11);
+  assert.equal(TK.listedDaysAgo("no date"), null);
+});

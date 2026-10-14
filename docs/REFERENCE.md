@@ -481,7 +481,7 @@ The old script's own guard (`alive()`) already stops it doing anything once the 
 
 **D. Context menus.** No work needed: `onInstalled` already calls `chrome.contextMenus.removeAll()` before creating the menus (`background.js:903`), so the old `second-look-*` menu ids are cleared on update.
 
-**E. Local unpacked install (dabloonery's machine).** An unpacked extension's id comes from its folder path. Renaming the local folder (`~/Second-Look`) or re-cloning under a new name gives Chrome a new id, and the saved listings, searches, settings and API keys stay behind with the old id. Before renaming the folder: make a backup in Settings, then restore it into the new install (which migration A makes possible). Renaming the GitHub repo alone does not move the local folder.
+**E. Local unpacked install (dabloonery's machine).** An unpacked extension's id comes from its folder path. Renaming the local folder (`Second-Look` in your home folder) or re-cloning under a new name gives Chrome a new id, and the saved listings, searches, settings and API keys stay behind with the old id. Before renaming the folder: make a backup in Settings, then restore it into the new install (which migration A makes possible). Renaming the GitHub repo alone does not move the local folder.
 
 **F. Chrome Web Store.** Not submitted yet (placeholders in `store/LISTING.md`), so the rename is free there. Once published, the name can still change, but the id cannot.
 
@@ -502,7 +502,7 @@ Steps 2 and 4 can be combined into one PR if you would rather ship one release, 
 
 ## Tirekick: security and permissions review
 
-*2026-10-14, against `main` at 0.35.0 (commit 381f758). Review only: no extension code was changed.* Status as of 0.36.0: no blockers; the optional L1 hardening is not done yet.
+*2026-10-14, against `main` at 0.35.0 (commit 381f758). Review only: no extension code was changed.* Status as of 0.37.0: no blockers; L1 is done.
 
 **Verdict: nothing blocks submission.** No remote code, no `eval`, no web-accessible resources, no
 `externally_connectable`, and every network destination is either declared or approved by the user one
@@ -520,6 +520,7 @@ ideas for a later release.
 | Rendering page and AI text | The panel builds elements with `textContent` (the `h()` helper). The three `innerHTML` uses are static CSS or fixed words and numbers. | `content/panel.js:85`, `:143`, `:3017`, `:3756` |
 | Links to stored addresses | Saved listings and searches (which a restored backup can fill) only become links when they point at `https://www.ebay.com` or `https://www.facebook.com`; anything else falls back to a rebuilt address. | `lib/shared.js:10` |
 | Photos sent to AI | Only eBay and Facebook image hosts or inline `data:` images, checked again after redirects, capped at 3.5 MB. A listing can't make the extension fetch a local or internal address. | `background.js:707` |
+| Photo fingerprints (0.38.0) | `photoHashes` fetches only eBay and Facebook image hosts (`TKShared.isListingImage`, checked again after redirects), without cookies, at most 8 per message and 6 every 0.6 s from the panel, only cards scrolled into view, under 3 MB. The picture is shrunk to 9×8 gray pixels and only a 16-hex-digit hash is kept. | `background.js`, `photoHashes` |
 | Sold-price fetches | Only `https://www.ebay.com/sch/i.html?...LH_Sold=1` is fetched; anything else is refused. | `background.js:766` |
 | Opening tabs | Only eBay search or browse pages and Marketplace pages, at most 12. | `background.js:833` |
 | Custom AI addresses | Each one needs the user's OK through `chrome.permissions.request` before any request goes out; a restored backup can't skip that. | `options/options.js:21`, `background.js:74`, `:225` |
@@ -578,7 +579,7 @@ there would run in the web page's own context, not the extension's, so the worst
 attacking itself.
 
 **Recommendation (later, low priority):** wrap them in `TKShared.safeUrl(...)` like the saved-item
-links, for consistency. One-line change each, after the in-flight work merges.
+links, for consistency. One-line change each. **Done in 0.37.0:** the row's Open link and the sold-sales lists in the panel and the hub go through `TKShared.safeUrl`.
 
 #### L2. A web page can open or close the panel
 

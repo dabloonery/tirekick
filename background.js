@@ -476,7 +476,11 @@ const priceLine = (it) => {
 
 // Scam signals read off the page, spelled out so the model can't miss them.
 const scamNotes = (it) =>
-  [it.titleCode && `title ends with the code "${it.titleCode}"`, it.offSite?.why?.length && `off-site contact: ${it.offSite.why.join("; ")}`].filter(Boolean);
+  [
+    it.titleCode && `title ends with the code "${it.titleCode}"`,
+    it.offSite?.why?.length && `off-site contact: ${it.offSite.why.join("; ")}`,
+    it.photoTwins > 0 && `the same photo is on ${it.photoTwins} other listing${it.photoTwins > 1 ? "s" : ""} under other titles (a stolen or stock photo)`,
+  ].filter(Boolean);
 
 async function rankBatch({ items, query, market, lens = "use", want = "", browse = "", signal }) {
   const { interests } = await getSettings();
@@ -590,6 +594,7 @@ async function analyzeListing({ listing, query, market, lens = "use", want = "",
     listing.seller && `seller: ${listing.seller}`,
     listing.shippingText && `shipping: ${listing.shippingText}`,
     listing.marginBeforeRepair != null && `margin before repairs: $${listing.marginBeforeRepair}`,
+    listing.offerPlan?.open > 0 && `offer plan from sold prices: open at $${listing.offerPlan.open}, walk away above $${listing.offerPlan.walkAway}. Keep offerLow / offerHigh near it; move them only for something you read in this listing (condition, missing parts, a fair price already)`,
     ...scamNotes(listing).map((n) => `SCAM SIGNAL: ${n}`),
     listing.details && `details: ${listing.details}`,
   ].filter(Boolean);
@@ -706,6 +711,40 @@ function photoAdjust(p) {
   else if (p.condition === "fair") (adjust -= 5), why.push("normal wear");
   else if (p.condition === "good" && p.photoType === "real") (adjust += 5), why.push("real photo, looks clean");
   return { adjust: Math.max(-40, Math.min(10, adjust)), why };
+}
+
+// ---------- Photo fingerprints (no model) ----------
+// The thumbnails of listings on screen, shrunk to 9×8 gray pixels and hashed (TKShared.dHash), so the panel can
+// spot the same picture on other listings. Only the sites' own image hosts, without cookies, a few at a time;
+// nothing leaves this computer but the image request the page already made.
+const photoHashCache = new Map(); // image address -> hash ("" when it couldn't be read), while the worker is awake
+async function photoHashes({ urls = [] }) {
+  const hashes = {};
+  for (const u of urls.slice(0, 8)) {
+    if (photoHashCache.has(u)) {
+      hashes[u] = photoHashCache.get(u);
+      continue;
+    }
+    let h = "";
+    if (TKShared.isListingImage(u)) {
+      try {
+        const res = await fetchWithTimeout(u, { credentials: "omit" }, 10 * 1000, "slow");
+        const blob = res.ok && TKShared.isListingImage(res.url) ? await res.blob() : null;
+        if (blob && blob.size < 3 * 1024 * 1024) {
+          const bmp = await createImageBitmap(blob, { resizeWidth: 9, resizeHeight: 8, resizeQuality: "high" });
+          const ctx = new OffscreenCanvas(9, 8).getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(bmp, 0, 0);
+          bmp.close();
+          const d = ctx.getImageData(0, 0, 9, 8).data;
+          h = TKShared.dHash(Array.from({ length: 72 }, (_, i) => d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114));
+        }
+      } catch {}
+    }
+    if (photoHashCache.size > 3000) photoHashCache.clear();
+    photoHashCache.set(u, h);
+    hashes[u] = h;
+  }
+  return { hashes };
 }
 
 async function checkPhoto({ imageUrl, title, signal }) {
@@ -861,7 +900,7 @@ async function abort({ ids }) {
 // ---------- One writer for what tabs share ----------
 // Tabs send changes to shared records here (see TKShared.applyEdit) and they're applied one at a time,
 // so two tabs saving, hiding or filtering at the same moment can't undo each other.
-const SHARED = new Set(["saved", "savedSearches", "stats", "notInterested", "codeStems", "quickFilters", "panelBox", "siteHealth", "soldCache", "searchWants", "modePrefs"]);
+const SHARED = new Set(["saved", "savedSearches", "stats", "notInterested", "codeStems", "quickFilters", "panelBox", "siteHealth", "soldCache", "searchWants", "modePrefs", "photoSeen"]);
 let editQueue = Promise.resolve();
 const oneAtATime = (fn) => {
   const run = editQueue.then(fn);
@@ -886,7 +925,7 @@ function soldSlot({ perHour, gap }) {
   });
 }
 
-const HANDLERS = { storeEdit, soldSlot, rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, soldWorkerBlocked, getFont, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
+const HANDLERS = { storeEdit, soldSlot, rankBatch, analyzeListing, suggestSearches, checkPhoto, photoHashes, fetchSoldHtml, soldWorkerBlocked, getFont, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];

@@ -6,6 +6,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
 
 ## Contents
 
+- [Next steps](#next-steps) (2026-10-14: the order of work, and what waits on dabloonery)
 - [Tirekick: Chrome Web Store submission checklist](#tirekick-chrome-web-store-submission-checklist)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
 - [Tirekick feature briefs](#tirekick-feature-briefs)
@@ -15,6 +16,105 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 4: Stronger scam checks](#brief-4-stronger-scam-checks)
   - [Brief 5: More stores](#brief-5-more-stores)
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
+  - [Brief 7: Built-in browser AI](#brief-7-built-in-browser-ai) (first after the 1.0.0 launch)
+
+---
+
+## Next steps
+
+*2026-10-14, against `main` at 0.36.0 plus this PR. The order of work across the plans below. dabloonery added one
+direction on 2026-10-14: "sturdier non-AI features should also mean they're more useful, accurate and
+plentiful; fill gaps". So the free parts of the feature briefs come before anything else that needs a model.*
+
+### Where each plan stands
+
+| Plan | State |
+|---|---|
+| Store checklist | The writing is done. Accounts, a public privacy-policy page and screenshots 1 and 2 wait on dabloonery. Not submitted, and won't be without dabloonery's OK |
+| Sturdier no-AI features | All 8 items shipped (#14 to #21). Still open: real saved eBay and Marketplace pages in place of the hand-made fixtures |
+| Security review | No blockers. L1 done in 0.37.0 |
+| US English fixes (REFERENCE §5) | Done |
+| Feature briefs | See "Order" below |
+| Live checks | Never done: the extension on real eBay and Marketplace pages, **eBay sold-price lookups on real sold pages**, the Vivaldi checks, a screen reader |
+
+### Version numbers
+
+PRs #13 to #22 all shipped as 0.36.0, and an older pre-rename build (`second-look-0.36.1.zip`) carries a higher
+number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (`deno task version-check`).
+
+### Order
+
+1. **0.37.0 housekeeping**: the version check, L1, test docs, this section.
+2. **More free features, and better ones.** Done in 0.37.0 and 0.38.0, from the briefs' parts that need no model:
+   - Brief 4: "Likely scam? 32% of sold price" and "Too cheap?" marks from a trusted sold median; Marketplace's
+     "Joined Facebook in …" warns on an account made this year. 0.38.0: **Same photo as 2 other listings** on
+     Marketplace, from fingerprints (dHash) of thumbnails on screen, kept 90 days; the same file or the same title
+     doesn't count, and scans are told. *Still open:* eBay, which needs the seller on each card first (sellers there
+     reuse their own photos).
+   - Brief 3: an opening offer and walk-away price from sold prices, with the reason shown, and three message
+     templates to pick, edit and copy, before any analysis. 0.38.0: **They said $…** answers take it, meet in the
+     middle or a last offer, and rewrites the message; Analyze gets the plan and its range is kept near it.
+   - Brief 2: how long a listing has been up, how a saved one moved since you saved it, "the seller may take less",
+     and saved listings' history kept past the 90-day prune. *Still open:* relists.
+   - Brief 6, part 1: saved listings as a spreadsheet (CSV), from Saved and from settings. *Still open:* sync.
+3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
+   listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
+4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far
+   under sold), not only from a model's "Great".
+5. **Store, when dabloonery is ready.** A public privacy-policy page is required; a free GitHub Pages site works, and a
+   domain such as tirekick.app is optional (dabloonery to decide). Then the contact address, `homepage_url` and 1.0.0.
+6. **Brief 7, built-in browser AI**, the first feature after the 1.0.0 launch (dabloonery: "let's make that a
+   priority"). A free model with no key, where the browser has one.
+7. **Brief 5, more stores** (Craigslist first).
+
+### For dabloonery, in order (2026-10-14)
+
+1. **Review and merge PR #24** (0.38.0) on GitHub: open it and press **Merge pull request**.
+2. **Install 0.38.0 in Vivaldi.** Unzip `tirekick-0.38.0.zip` into the folder Vivaldi already loads Tirekick from,
+   replacing its files (same folder name and place, so your saved data stays), then press the reload arrow on
+   Tirekick in `vivaldi://extensions`. The card there should say 0.38.0.
+3. **The live check, about 20 minutes.** Each one is something the tests can't reach:
+   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "% of sold"
+     on the cards? Any "Too cheap?" chips look right?
+   - Press **Scan** once with your key. Tags on the cards, and the ranked list?
+   - Open a listing from that search: is there an **Offer** box with a message you can copy? Type a price under
+     **They said $**: does the advice make sense?
+   - A Marketplace search, then one listing: does it say how long ago it was listed, and warn if the seller joined
+     Facebook this year? Scroll a while: any **Same photo as … other listings** marks, and do they look right?
+   - Saved: **Download (CSV)** opens in a spreadsheet.
+   - Vivaldi: the toolbar icon and its number, Alt+Shift+L, right-click a photo ("Check this photo"), right-click
+     selected text ("Look up").
+   - Tell Claude what broke, with a screenshot if you can.
+4. **Save real pages for the tests** while you're there (right-click the page, **Save as**, "Webpage, HTML only"):
+   an eBay search, an eBay sold search, an eBay listing, a Marketplace search and a Marketplace listing. Put them in
+   your Second-Look folder under `tests/fixtures/real/` and say so.
+5. **Decide on a domain.** Not required: a free GitHub Pages address works for the privacy policy. If you want
+   tirekick.app, register it; either way, set up a contact email address for the store listing.
+6. **Store accounts, when you're ready to launch:** a Chrome Web Store developer account (one-time fee, needs a
+   Google account with 2-Step Verification) and trader or non-trader status.
+7. **Screenshots 1 and 2** from real eBay pages (steps in the store checklist below).
+8. **Before going public:** decide whether to rewrite history to remove your email from old commits, and turn on
+   GitHub's "Keep my email address private".
+
+### Open source at 1.0.0 (decided 2026-10-14)
+
+dabloonery agreed: license Tirekick under **Apache-2.0** and make the repository public at the 1.0.0 store launch.
+Before it goes public:
+
+- [x] Scrub personal paths from the docs (the home-folder path in REFERENCE's rename notes, removed in 0.37.0).
+- [ ] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL).
+- [ ] Know that the commit history carries dabloonery's personal email address on about 25 commits. Either accept it, or
+      rewrite history before publishing (a one-time, force-pushed change; dabloonery's call), and set GitHub's
+      "Keep my email address private" for future commits.
+- [ ] Check again that no keys, tokens or private details are in the files or the history.
+
+The name, alongside it:
+
+- [ ] Use "Tirekick™" where the name first appears in the README, the store listing and the website (™ needs no
+      registration).
+- [ ] Before launch, run a clearance search for "Tirekick" and "Tire Kick" in software: USPTO (classes 9 and 42),
+      the Chrome Web Store, and app stores.
+- [ ] Around the open-source launch, file a USPTO registration in class 9 (dabloonery).
 
 ---
 
@@ -55,9 +155,11 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 *Status 2026-10-14: the redesign fixes and the ux-spec port (0.36.0) are on `main`, plus the robustness PRs #14 to #21. Nothing below is done yet.*
 
 - [ ] **dabloonery:** rename the GitHub repo to `tirekick` (Settings, General). GitHub redirects the old address.
+- [ ] **Claude, at 1.0.0:** Apache-2.0 `LICENSE` and README license section; then the repo goes public (see
+      [Open source at 1.0.0](#open-source-at-100-decided-2026-10-14) for what to do first).
 - [ ] **Claude:** set `homepage_url` to `https://tirekick.app`, update README and listing links, and
       replace the contact placeholders. Small PR.
-- [ ] **Claude (optional):** the L1 hardening from the security review (three links through `safeUrl`).
+- [x] **Claude (optional):** the L1 hardening from the security review (links through `safeUrl`). Done in 0.37.0.
 - [ ] **Claude:** bump the version for the store build (suggest **1.0.0** for the first public release).
 - [ ] Run `deno task test`, then `deno task pack`. Unzip `dist/tirekick-<version>.zip` into a fresh folder,
       load it with **Load unpacked**, and click through: an eBay search, the panel, a scan with your key,
@@ -237,6 +339,7 @@ Six briefs, one per file, written 2026-10-14 so another agent can pick one up co
 | 4 | [Stronger scam checks](#brief-4-stronger-scam-checks) | Medium | Nothing new |
 | 5 | [More stores](#brief-5-more-stores) | Large (one PR per store) | 0.36.0 port (site table) |
 | 6 | [Sync and export](#brief-6-sync-and-export) | Small (export) to medium (sync) | Nothing new |
+| 7 | [Built-in browser AI](#brief-7-built-in-browser-ai) | Medium | Nothing new. First after the 1.0.0 launch (dabloonery, 2026-10-14) |
 
 Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
@@ -609,3 +712,53 @@ Two things, shippable separately:
 - **Sync:** with the switch on in two profiles, saving a listing or search on one appears on the other; removing it stays removed; settings follow; keys don't unless opted in; the size shown stays under the limit with 200 saved listings. Off by default, and turning it off stops writes.
 - Vivaldi result reported to dabloonery before Part 2 is built, and the chosen route works in Vivaldi.
 - Privacy page updated. `tests/all.sh` green.
+
+---
+
+### Brief 7: Built-in browser AI
+
+Read [the briefs intro](#read-this-before-any-brief) first (ground rules, Vivaldi, copy, tests). Decided with dabloonery
+on 2026-10-14: a priority, first in line after the 1.0.0 launch, and it should cover any browser that ships a model.
+
+#### Goal
+
+A free AI model with no key and no setup, wherever the browser has one built in, so scoring works the moment
+Tirekick is installed. The API key and Ollama stay, as the choice for deeper analysis and for browsers without a
+model.
+
+#### What browsers have (check again before building)
+
+| Browser | What it has | Notes |
+|---|---|---|
+| Chrome | The Prompt API (`LanguageModel`) with Gemini Nano, for extensions since Chrome 138 | Needs about 22 GB of free disk and a decent graphics card or 16 GB of RAM; downloads the model on first use; can take images |
+| Edge | The same API, with Microsoft's own model | One piece of code covers both |
+| Firefox | A different, experimental API | Later, if Tirekick goes to Firefox |
+| Vivaldi | None | dabloonery's browser: Claude or Ollama as now |
+
+Sources: [Chrome's Prompt API](https://developer.chrome.com/docs/ai/prompt-api),
+[Edge's Prompt API](https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api).
+
+#### How it would fit
+
+- **A model choice, "Built into this browser (free)"**, offered only when a feature check finds one
+  (`LanguageModel.availability()` is "available" or "downloadable"). Any browser that adds the same API gets it with
+  no change. Where there's none, settings says so in one line and offers the other choices.
+- **New installs start on it** when it's there, so the welcome card asks for nothing; the key becomes optional.
+  Existing installs keep their model and see it offered.
+- **Quick scoring with it; deep analysis with a bigger model when one is set up.** Scans send short batches and ask
+  for the scan's JSON shape through `responseConstraint`. Analyze and photo checks use it only when nothing else is
+  set up, and say it's a small model.
+- **The download**: when availability is "downloadable", one button starts it, with its size, and progress in the
+  status line. Nothing downloads without a click.
+- **Where it runs**: check which extension contexts can call it (the background worker, or an offscreen page) and
+  keep one queue, like the paid services. It costs nothing, so spend stays at $0 and the footer says "free, on this
+  computer".
+- **Privacy**: nothing leaves the computer, the same as Ollama; the privacy page and listing say so.
+
+#### How to know it's done
+
+- With the API present (a stub in the tests, the real thing in Chrome by hand), the choice appears, scans run
+  through it, and spend stays at $0. Without it, the choice doesn't appear and nothing changes.
+- A batch of the mock scans scored by Gemini Nano in Chrome is compared with Haiku's on the same listings, and the
+  README says honestly how they differ.
+- dabloonery has tried it in Chrome; in Vivaldi the choice doesn't appear and nothing breaks.

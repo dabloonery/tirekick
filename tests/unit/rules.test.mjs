@@ -178,3 +178,132 @@ test("quickTerms: a quote left open, and words that aren't text", () => {
   assert.deepEqual(R.quickTerms(12), []);
   assert.equal(R.termsReason("Nintendo DMG", '"dmg'), "", "a stray quote doesn't filter everything out");
 });
+
+test("sellerWarning flags an account made this year", () => {
+  const prefs = { minSellerRatings: 5, minSellerPct: 97 };
+  const now = Date.parse("2026-10-14");
+  assert.equal(R.sellerWarning({ sellerJoined: 2026 }, prefs, now), "Account made in 2026");
+  assert.equal(R.sellerWarning({ sellerJoined: 2015 }, prefs, now), "");
+  assert.equal(R.sellerWarning({}, prefs, now), "");
+  assert.equal(R.sellerWarning({ sellerCount: 0, sellerJoined: 2026 }, prefs, now), "New seller", "ratings come first");
+});
+
+test("tooCheap: far under a trusted sold median, not for auctions, lots, broken ones or a rough reference", () => {
+  const m = { median: 200, p25: 170, p75: 230, n: 20, confidence: "good" };
+  assert.deepEqual(R.tooCheap({ total: 60 }, m), { level: "far", pct: 30 });
+  assert.deepEqual(R.tooCheap({ total: 100 }, m), { level: "low", pct: 50 });
+  assert.equal(R.tooCheap({ total: 120 }, m), null);
+  assert.equal(R.tooCheap({ total: 60, project: "for parts" }, m), null);
+  assert.equal(R.tooCheap({ total: 60, auction: true }, m), null);
+  assert.equal(R.tooCheap({ total: 60, lot: 3 }, m), null);
+  assert.equal(R.tooCheap({ total: 60 }, { ...m, confidence: "rough" }), null);
+  assert.equal(R.tooCheap({ total: 0 }, m), null, "free isn't a price");
+  assert.equal(R.tooCheap({ total: 60 }, null), null);
+});
+
+test("softSeller counts the signs of room to haggle", () => {
+  assert.deepEqual(R.softSeller({}), { level: "none", why: [] });
+  assert.equal(R.softSeller({ drops: 1 }).level, "some");
+  const s = R.softSeller({ drops: 2, days: 45, motivated: "moving sale", bestOffer: true });
+  assert.equal(s.level, "likely");
+  assert.deepEqual(s.why, ["the price dropped 2 times", "listed for 45 days", "“moving sale”", "takes offers"]);
+  assert.deepEqual(R.softSeller({ days: 90 }).why, ["listed for 3 months"]);
+  assert.equal(R.softSeller({ days: 10 }).level, "none");
+});
+
+test("offerPlan opens between the cheaper quarter and the median, walks away at the median", () => {
+  const m = { median: 100, p25: 80, p75: 120, n: 24, confidence: "good" };
+  const p = R.offerPlan({ price: 120 }, m);
+  assert.equal(p.open, 90);
+  assert.equal(p.walkAway, 100);
+  assert.match(p.reasons[0], /\$80–\$120 \(24 sales\)/);
+  // a soft seller opens at the cheaper quarter
+  assert.equal(R.offerPlan({ price: 120, soft: "likely" }, m).open, 80);
+  // shipping comes off: the offer is for the item
+  const s = R.offerPlan({ price: 110, shipping: 10 }, m);
+  assert.deepEqual([s.open, s.walkAway], [80, 90]);
+  // never under 60% of asking, never above the walk-away
+  assert.equal(R.offerPlan({ price: 400 }, m).open, 100);
+  assert.equal(R.offerPlan({ price: 400 }, m).walkAway, 100);
+  // already cheap: no haggling advice
+  assert.equal(R.offerPlan({ price: 75 }, m).cheap, true);
+  // nothing solid to go on
+  for (const bad of [{ price: 120, auction: true }, { price: 120, lot: 4 }, { price: 120, project: "for parts" }, { price: null }]) assert.equal(R.offerPlan(bad, m), null);
+  assert.equal(R.offerPlan({ price: 120 }, null), null);
+});
+
+test("counterOffer: take it, meet in the middle, or a last offer at the walk-away price", () => {
+  const plan = { open: 240, walkAway: 300 };
+  assert.deepEqual(R.counterOffer(plan, 230), { action: "accept", amount: 230, why: "that's at or under your opening offer" });
+  assert.equal(R.counterOffer(plan, 250).action, "accept"); // too close to haggle over
+  assert.deepEqual(R.counterOffer(plan, 290), { action: "counter", amount: 260, why: "it's under your walk-away price, and meeting in the middle saves $30" });
+  assert.deepEqual(R.counterOffer(plan, 320), { action: "last", amount: 300, why: "it's over your walk-away price of $300" });
+  // a few dollars apart isn't worth another round
+  assert.equal(R.counterOffer({ open: 90, walkAway: 100 }, 98).action, "accept");
+  // the same price to open and walk away at: anything over it gets that price once
+  assert.deepEqual(R.counterOffer({ open: 100, walkAway: 100 }, 110), { action: "last", amount: 100, why: "it's over your walk-away price of $100" });
+  for (const [p, t] of [[null, 100], [plan, 0], [plan, "abc"], [{ open: 0 }, 50]]) assert.equal(R.counterOffer(p, t), null);
+  assert.equal(R.counterOffer(plan, "290").amount, 260); // straight from a text field
+});
+
+test("fitOffer keeps the analysis's range near the plan from sold prices", () => {
+  const plan = { open: 240, walkAway: 300, confidence: "good" };
+  assert.deepEqual(R.fitOffer(250, 280, plan), [250, 280]); // inside: as the model said
+  assert.deepEqual(R.fitOffer(150, 200, plan), [210, 210]); // far under: up to 90% of the opening offer
+  assert.deepEqual(R.fitOffer(280, 400, plan), [280, 300]); // never past the walk-away price
+  assert.deepEqual(R.fitOffer(0, 0, plan), [0, 0]); // no haggling: left alone
+  assert.deepEqual(R.fitOffer(150, 200, { ...plan, confidence: "rough" }), [150, 200]);
+  assert.deepEqual(R.fitOffer(150, 200, null), [150, 200]);
+  assert.deepEqual(R.fitOffer(150, 200, { cheap: true }), [150, 200]);
+});
+
+test("counterMessage: what to send back, per site", () => {
+  assert.equal(R.counterMessage({ action: "accept", amount: 250 }, { local: true }), "Deal, $250 works for me. When can I pick it up?");
+  assert.equal(R.counterMessage({ action: "counter", amount: 260 }), "Thanks! Could we meet in the middle at $260?");
+  assert.equal(R.counterMessage({ action: "last", amount: 300 }), "Thanks, but $300 is the most I can do. Let me know if that works.");
+  assert.equal(R.counterMessage({ action: "counter", amount: 260 }, { site: "ebay", bestOffer: true }), "Counter with $260 on eBay's offer page.");
+  assert.equal(R.counterMessage(null), "");
+});
+
+test("roundOffer rounds down to friendly amounts", () => {
+  assert.deepEqual([12.7, 47, 99, 101, 249].map(R.roundOffer), [12, 45, 95, 100, 240]);
+});
+
+test("offerMessages: templates per site", () => {
+  const local = R.offerMessages(80, { local: true });
+  assert.equal(local.length, 3);
+  assert.match(local[0].text, /^Hi! Is this still available\? Would you take \$80\? I can pick up/);
+  assert.equal(R.offerMessages(80, { site: "ebay", bestOffer: true })[0].button, true);
+  assert.doesNotMatch(R.offerMessages(80, { site: "ebay" })[0].text, /pick up/);
+  assert.deepEqual(R.offerMessages(0), []);
+});
+
+test("hashDistance counts the bits two photo fingerprints differ in", () => {
+  assert.equal(R.hashDistance("00ff00ff00ff00ff", "00ff00ff00ff00ff"), 0);
+  assert.equal(R.hashDistance("00ff00ff00ff00ff", "01ff00ff00ff00fe"), 2);
+  assert.equal(R.hashDistance("ffffffffffffffff", "0000000000000000"), 64);
+  assert.equal(R.hashDistance("", "00ff00ff00ff00ff"), 64);
+  assert.equal(R.hashDistance("not a hash at all", "00ff00ff00ff00ff"), 64);
+});
+
+test("photoTwins: the same picture under other titles counts; the same file or the same title doesn't", () => {
+  const seen = {
+    "fb:1": { h: "00ff00ff00ff00ff", f: "111_n", t: "pentax k1000 film camera" },
+    "fb:2": { h: "00ff00ff00ff00fe", f: "222_n", t: "canon ae 1 slr" }, // the same picture, re-uploaded, another title
+    "fb:3": { h: "00ff00ff00ff00ff", f: "111_n", t: "pentax k1000 working" }, // the same file: the seller's own relist
+    "fb:4": { h: "00ff00ff00ff00ff", f: "444_n", t: "pentax k1000 film camera" }, // the same title: a repost, marked elsewhere
+    "fb:5": { h: "ff00ff00ff00ff00", f: "555_n", t: "yashica fx 3" }, // another picture
+    "fb:6": { h: "0fff00ff00ff00f0", f: "666_n", t: "minolta x 700" }, // 8 bits off: not the same
+  };
+  assert.deepEqual(R.photoTwins("fb:1", seen), ["fb:2"]);
+  assert.deepEqual(R.photoTwins("fb:2", seen), ["fb:1", "fb:3", "fb:4"]);
+  assert.deepEqual(R.photoTwins("fb:5", seen), []);
+  assert.deepEqual(R.photoTwins("fb:9", seen), []);
+});
+
+test("photoFile: one name for a photo across its sizes", () => {
+  assert.equal(R.photoFile("https://i.ebayimg.com/images/g/AbC123/s-l500.jpg"), "AbC123");
+  assert.equal(R.photoFile("https://i.ebayimg.com/images/g/AbC123/s-l1600.webp"), "AbC123");
+  assert.equal(R.photoFile("https://scontent-den2-1.xx.fbcdn.net/v/t45.5328-4/4567_8910_n.jpg?stp=c0.43&_nc_cat=1"), "4567_8910_n");
+  assert.equal(R.photoFile("not a url"), "");
+});

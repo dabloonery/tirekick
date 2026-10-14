@@ -17,7 +17,9 @@
   window.chrome = { runtime: { id: "test", lastError: null, onMessage: { addListener() {} }, sendMessage: (m, cb) => cb({ ok: true, data: "" }) },
     storage: { local: { get: async () => ({}), set: async () => {}, onChanged: { addListener() {} } } } };
 </script>
+<script src="/lib/sites.js"></script>
 <script src="/content/adapters.js"></script>
+<script src="/lib/sold.js"></script>
 <script>
   // facebook.com is HTTPS-only in Chrome, so this runs on the test host and is told it is Marketplace.
   Tirekick.currentSite = () => "facebook";

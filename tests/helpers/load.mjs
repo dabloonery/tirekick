@@ -12,7 +12,7 @@ export function loadScripts() {
     // The adapters only look at the page when asked; these let them load outside one.
     globalThis.location ??= { hostname: "www.ebay.com", href: "https://www.ebay.com/", pathname: "/" };
     globalThis.document ??= { querySelector: () => null, querySelectorAll: () => [] };
-    for (const f of ["lib/shared.js", "content/rules.js", "content/adapters.js"]) await import(pathToFileURL(path.join(ROOT, f)).href);
+    for (const f of ["lib/sites.js", "lib/shared.js", "content/rules.js", "content/adapters.js"]) await import(pathToFileURL(path.join(ROOT, f)).href);
     return { S: globalThis.TKShared, R: globalThis.TKRules, TK: globalThis.Tirekick };
   })();
   return loaded;

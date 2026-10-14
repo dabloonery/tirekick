@@ -2,6 +2,8 @@
 
 *2026-10-14, against `main` at 0.35.0 (commit 381f758). Review only: no extension code was changed.*
 
+*0.36.0 adds automatic scanning (off until turned on), Tirekick's own page (`hub/`) and a right-click "Look up" on selected text. It asks for no new permissions; the menu item is under `contextMenus` below, and the privacy policy covers both.*
+
 **Verdict: nothing blocks submission.** No remote code, no `eval`, no web-accessible resources, no
 `externally_connectable`, and every network destination is either declared or approved by the user one
 address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 269 KB, no tests or
@@ -36,7 +38,7 @@ Every permission is used, and none can be dropped without losing a feature:
 |---|---|
 | `storage` | settings, saved items, seen-listing memory, score cache |
 | `scripting` | registering the page script on eBay and Facebook, injecting it on click, reading sold results through an open eBay tab |
-| `contextMenus` | "Check this photo" and "Open Tirekick home" |
+| `contextMenus` | "Check this photo", "Open Tirekick home" and, on selected text, "Look up … on eBay and Marketplace" |
 | eBay, Facebook, image CDNs | the two sites it works on, and photo checks |
 | AI service hosts | the services a user can pick in settings |
 | localhost `:11434`, `:1234` | Ollama and LM Studio |
@@ -124,6 +126,7 @@ A few things that are Vivaldi's own UI rather than the extension, worth a look i
 | Alt+Shift+L shortcut | Vivaldi has its own shortcut system, and a Vivaldi shortcut on the same keys would win | Does the shortcut open the panel? If not, set it at vivaldi://extensions/shortcuts |
 | "Open Tirekick home" on the icon's right-click menu | That entry uses the `action` menu context, which depends on how Vivaldi draws extension icons | Right-click the icon and look for it. The same thing is reachable by clicking the icon on any non-eBay page |
 | "Check this photo with Tirekick" | Standard page right-click menu | Right-click a listing photo on eBay |
+| "Look up … on eBay and Marketplace" | Standard right-click menu on selected text | Select a product name on any site and right-click |
 
 This part wasn't tested in Vivaldi here; the automated tests run in Chromium. Myer's daily use of the
 unpacked build already covers most of it. The checklist has a step to repeat these checks on the store

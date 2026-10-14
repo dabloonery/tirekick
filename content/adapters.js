@@ -249,6 +249,18 @@
     facebook: 'a[href*="/marketplace/item/"]',
   };
   TK.listingLinks = () => TK.LISTING_LINKS[TK.currentSite()] || TK.LISTING_LINKS.ebay;
+  // Every listing linked from the results, whatever card it sits in, counted once: what a page reader that
+  // kept up with the site would find. Looks in the results area when there is one (eBay's "recently viewed"
+  // and other carousels sit outside it), else the whole page. Used only to notice when the cards change.
+  TK.linkedListings = (root = document) => {
+    const area = ["#srp-river-results", ".srp-results", '[role="main"]'].map((s) => root.querySelector(s)).find(Boolean) || root;
+    const keys = new Set();
+    for (const a of area.querySelectorAll('a[href*="/itm/"], a[href*="/marketplace/item/"]')) {
+      const key = Sites.keyOf(a.getAttribute("href") || "");
+      if (/^\w+:\d+$/.test(key)) keys.add(key);
+    }
+    return keys.size;
+  };
   // A listing's card on the page, found again from its key (per site: a new site adds its own). The first
   // link to an item can sit outside the results (a carousel, "recently viewed"), so prefer one in a card.
   TK.CARD_FINDERS = {

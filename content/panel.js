@@ -22,15 +22,15 @@
     document.documentElement.removeAttribute("data-sl-theme");
   }
 
-  // Verdict colours come from the theme (--v-great etc.), keyed by data-v.
-  // A word always sits beside the score: the verdict colours are too close in lightness to tell apart on their own.
+  // Verdict colors come from the theme (--v-great etc.), keyed by data-v.
+  // A word always sits beside the score: the verdict colors are too close in lightness to tell apart on their own.
   const SHORT = { great: "Great", good: "Good", fair: "Fair", pass: "Skip", suspicious: "Scam?" };
   const VERDICT = {
     great: { label: "Great deal" },
     good: { label: "Worth a look" },
     fair: { label: "Fair price" },
     pass: { label: "Skip" },
-    suspicious: { label: "Suspicious" },
+    suspicious: { label: "Likely scam" },
   };
 
   // ---------- photo checks change the rating ----------
@@ -122,7 +122,7 @@
   // colors that sit on a verdict or accent fill; --btn/--on-btn the main button.
   const THEME_DARK = THEME.vars("dark");
   const THEME_LIGHT = THEME.vars("light");
-  // Colour, type and shape. Shared by the panel and the photo-check card.
+  // Color, type and shape. Shared by the panel and the photo-check card.
   const THEME_CSS = `
     /* ---------- tokens: dark first; the light set is used when the browser asks for it or Setup says so ---------- */
     .wrap {
@@ -435,7 +435,7 @@
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 6px) 55%, calc(100% - 2px) 55%; background-size:4px 4px; background-repeat:no-repeat; }
     .sort:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    /* The Sort and model menus open in the panel's own colours. Where the menu itself can't be styled,
+    /* The Sort and model menus open in the panel's own colors. Where the menu itself can't be styled,
        the options at least get the panel's paper and ink, so they never come out light-on-white. */
     .sort option, .model option { background:var(--paper); color:var(--ink); }
     @supports (appearance: base-select) {
@@ -693,7 +693,7 @@
       <div class="body">
       <div class="view view-page">
       <div class="controls">
-        <div class="hint other-note">Nothing to scan on this page. Open a search, a category or a listing; your saved listings and searches are under Saved.</div>
+        <div class="hint other-note">Nothing to look over here. Open a search, a category or a listing. Your saved listings and searches are under Saved.</div>
         <div class="welcome" hidden>
           <b>Welcome to Tirekick</b>
           <ol>
@@ -703,17 +703,17 @@
             <li><button data-step="want">Say what you want</button>, like "working, with charger". Optional.</li>
             <li><button data-step="scan">Press Scan</button> and every listing gets a score and a reason.</li>
           </ol>
-          <div class="tip">No key yet? The free marks still work: hover a card for scam checks, <i>Save</i> and <i>Sold</i> prices.</div>
+          <div class="tip">No key yet? The free marks already work: hover a card for scam checks, <i>Save</i> and <i>Sold</i> prices.</div>
           <button class="ghost go" data-act="intro-done">Got it</button>
         </div>
-        <div class="setup" hidden><b class="setup-title">Add a Claude API key to start.</b> <span class="setup-text">It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings.</span>
+        <div class="setup" hidden><b class="setup-title">Add an AI to start scoring.</b> <span class="setup-text">A Claude API key takes a minute at console.anthropic.com. Or pick another service, or Ollama on your own computer, in settings.</span>
           <button class="scan" data-act="open-settings">Open settings</button></div>
         <div class="hint mode-hint"></div>
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
-          <div class="hint browse-note" hidden>No search on this page: Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
+          <div class="hint browse-note" hidden>No search on this page, so Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
@@ -723,7 +723,7 @@
           <button class="ghost freeprices" data-act="prices" hidden title="The eBay sold-price lookup on its own: free, no AI">Sold prices <span class="cost">free</span></button>
         </div>
         <div class="market"></div>
-        <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are cancelled">Stop</button></div>
+        <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
         <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
         <div class="ideas-inline" hidden><div class="status ideas-status" role="status"></div><div class="ideas-list"></div></div>
       </div>
@@ -739,7 +739,7 @@
             <button class="qt qt-broken" aria-pressed="false"></button>
             <label class="qf-deal" title="Your price for this search">Deal at \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
           </div>
-          <div class="qf-row skipwrap" title="Listings judged Skip or Suspicious, and likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
+          <div class="qf-row skipwrap" title="Listings judged Skip or Likely scam, and other likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
         </div>
         <label class="sortpick">Sort <select class="sort">
           <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest under sold price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest margin</option><option value="new">new or cheaper first</option>
@@ -1237,7 +1237,7 @@
     const keyless = /LM Studio/.test(cfg.oaiName || "");
     const missing =
       cfg.provider === "anthropic" && !cfg.hasKey
-        ? ["Add a Claude API key to start.", "It takes a minute at console.anthropic.com. Or pick another AI service, or Ollama on your computer, in settings."]
+        ? ["Add an AI to start scoring.", "A Claude API key takes a minute at console.anthropic.com. Or pick another service, or Ollama on your own computer, in settings."]
         : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
@@ -1335,7 +1335,7 @@
     const p = modePrefs[lens] || {};
     sortMode = SORTS[p.sort] && !(p.sort === "margin" && lens === "use") ? p.sort : MODES[lens].sort;
     sortSel.value = sortMode;
-    skipMode = ["show", "dim", "hide"].includes(p.skip) ? p.skip : "dim"; // greyed out unless you choose otherwise
+    skipMode = ["show", "dim", "hide"].includes(p.skip) ? p.skip : "dim"; // grayed out unless you choose otherwise
     document.documentElement.dataset.tkSkip = wrap.dataset.skipmode = skipMode;
     root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
     wantEl.value = p.want || "";
@@ -1425,7 +1425,7 @@
   // ---------- stickers on the listing cards ----------
 
   // Stickers live in the page, so their CSS goes into the page once. They read as a small paper tag
-  // whatever the site's own colours are.
+  // whatever the site's own colors are.
   // The marks sit on the site's page, so they take its brightness: its real background (so a site's dark mode or
   // a dark-mode extension counts), else the browser's setting, else dark.
   const pageIsDark = () => {
@@ -1446,7 +1446,7 @@
   const syncPageTheme = () => {
     const t = pageIsDark() ? "dark" : "light";
     if (document.documentElement.dataset.tkTheme !== t) document.documentElement.dataset.tkTheme = t;
-    if (wrap.dataset.pageTheme !== t) wrap.dataset.pageTheme = t; // the closed tab takes the page's colours, like the marks on the cards
+    if (wrap.dataset.pageTheme !== t) wrap.dataset.pageTheme = t; // the closed tab takes the page's colors, like the marks on the cards
   };
   syncPageTheme();
   let stylesIn = false;
@@ -1875,14 +1875,14 @@
     for (let n = host; n !== cell && n.parentElement; n = n.parentElement) for (const sib of n.parentElement.children) if (sib !== n) sib.setAttribute("data-tk-faded", "");
   };
   // "✕ Not interested", shown on any card while you hover it.
-  const hideChip = (key) => h("button", { class: "tk-chip k-plain tk-x", title: "Hide this listing everywhere (undo from the panel)", onclick: own(() => setInterested(key, false)) }, "Not interested");
+  const hideChip = (key) => h("button", { class: "tk-chip k-plain tk-x", title: "Hide this listing everywhere (undo it under Saved)", onclick: own(() => setInterested(key, false)) }, "Not interested");
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
   // What every card offers on hover. A saved listing keeps its star showing.
   const hoverChips = (key, f) => [
     saved[key]
       ? h("button", { class: "tk-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
-      : h("button", { class: "tk-chip k-plain tk-x", title: "Keep it under Saved in the panel", onclick: own(() => toggleSave(key)) }, "Save"),
+      : h("button", { class: "tk-chip k-plain tk-x", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
     f.title ? h("button", { class: "tk-chip k-plain tk-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ];
@@ -2030,7 +2030,7 @@
     $(".saved-body").replaceChildren(
       ...[
             !items.length && !searches.length
-              ? h("div", { class: "hint" }, "Hover any card and press Save to keep it here, or save a search from the actions under the Scan button. Both sites, kept in this browser. Prices update whenever the listing is on your screen again.")
+              ? h("div", { class: "hint" }, "Nothing saved yet. Hover any card and press Save, or save a search from under the Scan button. Prices update whenever a saved listing is on your screen again.")
               : null,
             items.length ? h("b", { class: "sub" }, `Saved listings \u00b7 ${items.length}`) : null,
             ...items.map(([k, r]) =>
@@ -2455,7 +2455,7 @@
                 "div",
                 {},
                 h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
-                likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} on the title (a scan can clear it if it's the model number)`) : null,
+                likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
                 (() => {
                   // The tag already shows the price; the line adds only what it doesn't say.
                   const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]
@@ -2511,7 +2511,7 @@
               { class: "actions row-acts" },
               h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
               it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
-              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Ask the model to look at the photo (changes the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
+              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Have the AI look at the photo (can change the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
               saveBtn,
               hideBtn
             ),
@@ -2539,7 +2539,7 @@
     const key = keyOf(it.url);
     const el = it.el?.isConnected ? it.el : elFor(key) || document.querySelector(`[data-tirekick-key="${CSS.escape(key)}"]`);
     if (!el) {
-      setStatus("That listing isn't on this page any more (scrolled away or the page changed).", false, { label: "Open it", fn: () => window.open(it.url, "_blank", "noopener") });
+      setStatus("That listing isn't on the page anymore. It scrolled away or the page changed.", false, { label: "Open it", fn: () => window.open(it.url, "_blank", "noopener") });
       return;
     }
     const card = stickerHost(el);
@@ -3249,7 +3249,7 @@
         setStatus(
           scored.size || leftOut
             ? `Nothing new to score${leftOut ? ` (${leftOut} hidden by you or your filters)` : ""}. Scroll down to load more listings.`
-            : "No listings found on this page. Scroll so results load, or the site layout may have changed (README: When it breaks).",
+            : "No listings found on this page. Scroll so results load. If they're there, the site's layout may have changed (README: When it breaks).",
           !scored.size,
           !scored.size && !leftOut ? { label: "Check this page", fn: checkPage } : null
         );
@@ -3843,7 +3843,7 @@
         titles,
         market: want ? null : lastMarket,
       });
-      if (!ideas.length) throw new Error("No ideas this time. Try describing what you want.");
+      if (!ideas.length) throw new Error("No new searches this time. Try saying more about what you want.");
       ideas.slice(0, 6).forEach((idea) => {
         const extra = [idea.maxPrice > 0 && `up to $${idea.maxPrice}`, idea.newest && "newest first"].filter(Boolean).join(", ");
         const star = h("button", { class: "srow-act", title: "Keep this search under Saved" }, "Save");

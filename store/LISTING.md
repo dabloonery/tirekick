@@ -6,7 +6,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 - **Name:** Tirekick
 - **Summary** (132 characters at most; this is the manifest's description, checked by `deno task pack`):
-  Score tags, sold-price checks and scam warnings for eBay and Facebook Marketplace, judged by Claude, other AI or a local model.
+  Deal scores, sold-price checks and scam warnings for second-hand listings, starting with eBay and Facebook Marketplace.
 - **Category:** Shopping
 - **Language:** English
 - **Privacy policy URL:** the public address of `store/PRIVACY.md` (for example its page on GitHub once it is on the default branch)
@@ -15,28 +15,29 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 ## Description
 
-Tirekick is for buying second-hand on eBay and Facebook Marketplace. It puts a small score tag on every listing, compares prices with what the same thing actually sold for, flags likely scams, and remembers what you've already seen.
+**Kick the tires before you buy.**
 
-**Free, with no account and no AI**
-• Scam marks: the same listing reposted under new codes, a code on the end of the title, and "contact me off the site" tricks
-• "% of sold" on every card once sold prices are known, price drops, "new to you", auctions ending soon
-• Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones; save listings and searches
-• A Home tab in the panel: saved things that got cheaper, what you've spent, and what you use
+Tirekick looks over second-hand listings with you, on the stores where you shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what the same thing actually sold for, likely scams are marked, and it remembers what you've already seen.
+
+**Free, no account, no AI needed**
+• Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
+• "% of sold" on every card once sold prices are in, plus price drops, "new to you" and auctions ending soon
+• Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
+• Save listings and searches; the Home tab shows what got cheaper and what you've spent
 • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
 
-**With a model you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI or another OpenAI-style service, or Ollama / LM Studio on your own computer)
-• A score and verdict for each listing, one line on the price, and the reasons on hover
-• Analyze one listing: red flags, questions to ask the seller, a suggested offer and a ready-to-send message, and a photo check
-• Reseller mode for people who repair and resell: the likely fault, difficulty, parts, and the margin after eBay fees
+**Add an AI you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
+• A score and verdict for every listing, one line on the price, and the reasons on hover
+• Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
+• Reseller mode for people who fix and flip: the likely fault, how hard it is, parts, and your margin after eBay fees
 • Better searches: the misspellings sellers make, other model names, tighter or looser words
 
-It works only on pages you're looking at, when you ask. Nothing browses or checks prices in the background. Everything it keeps stays in your browser; the only things sent anywhere go to the AI service you picked, because you pressed a button. Bring your own API key (scans use Claude Haiku 5.5 by default: a scan of 50 listings costs less than a cent).
+**It only looks when you do.** Tirekick works on the page in front of you, when you ask. Nothing browses or checks prices in the background. Everything it keeps stays in your browser, and the only things sent anywhere go to the AI service you picked, because you pressed a button. Bring your own API key: a scan of 50 listings with the default model costs less than a cent.
 
-Not affiliated with or endorsed by eBay or Meta.
-
+Not affiliated with or endorsed by eBay or Meta. 
 ## Single purpose
 
-Help people buying second-hand on eBay and Facebook Marketplace judge listings they are viewing: scoring them, comparing prices with recent sales, and warning about likely scams.
+Help people buying second-hand online judge the listings they are viewing on supported marketplaces (currently eBay and Facebook Marketplace): scoring them, comparing prices with recent sales, and warning about likely scams.
 
 ## Permission justifications
 

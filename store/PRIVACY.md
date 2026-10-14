@@ -47,7 +47,7 @@ so read the one for the service you pick. Ollama and LM Studio keep everything o
 
 - Send anything to the developer. There's no account, server, advertising or analytics.
 - Sell or share your data, or use it for anything not described here.
-- Read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address).
+- Read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address). Its page script is present across facebook.com so it can follow you into Marketplace, but it only reads Marketplace pages.
 - Collect payment details or messages.
 
 ## Permissions

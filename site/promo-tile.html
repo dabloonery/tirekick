@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en-US"><head><meta charset="utf-8"><title>Tirekick promo tile</title>
+<link rel="stylesheet" href="style.css">
+<!-- The store's small promo tile (440 × 280). Rendered to store/promo-small.png; not linked from the site. -->
+<style>
+  :root { color-scheme: dark; --paper:#1A2B4C; --paper-2:#13223F; --ink:#EEF2F8; --muted:#A9B5CB; --rule:#2C3E63;
+    --dot-great:#3BDB7E; --dot-good:#B6E35A; --dot-fair:#FFE04A; --dot-pass:#7D8BA6; --dot-suspicious:#FF6A5E; }
+  body { margin:0; }
+  .tile { width:440px; height:280px; background:#1A2B4C; color:#EEF2F8; padding:34px 36px; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; position:relative; }
+  .tile .wordmark { font-size:58px; }
+  .tile p { font:800 25px/1.12 var(--display); margin:0; max-width:9.5em; }
+  .tile p em { font-style:normal; color:#FF8F3A; }
+  .dots { position:absolute; right:30px; bottom:30px; display:grid; grid-template-columns:repeat(2, 56px); gap:12px; }
+  .dots > div { width:56px; height:56px; }
+  .dots .dot { width:56px; height:56px; font-size:19px; }
+  [data-v="pass"] .dot { background:#1A2B4C; }
+  [data-v="suspicious"] .dot::after { box-shadow:0 0 0 2px #1A2B4C; }
+</style></head>
+<body><div class="tile">
+  <span class="wordmark" role="img" aria-label="Tirekick">t<span class="wm-i">ı</span>rek<span class="wm-i">ı</span>ck</span>
+  <p>Kick the tires<br><em>before you buy.</em></p>
+  <div class="dots">
+    <div data-v="great"><div class="dot" style="--lit:20"><span>91</span></div></div>
+    <div data-v="good"><div class="dot" style="--lit:16"><span>74</span></div></div>
+    <div data-v="fair"><div class="dot" style="--lit:12"><span>55</span></div></div>
+    <div data-v="suspicious"><div class="dot" style="--lit:2"><span>8</span></div></div>
+  </div>
+</div></body></html>

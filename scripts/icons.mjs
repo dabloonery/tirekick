@@ -2,7 +2,8 @@
 // tread change there can be carried to the icons too. Each size is drawn for its size, not scaled:
 //   16  an orange dot with a navy hub (a tire at a glance, no detail to blur)
 //   32  the dot with 12 tread marks and the hub
-//   48+ the dot with 22 tread marks and "tk" in the display face, on a navy tile
+//   48+ the dot with 22 tread marks and the hub, on a navy tile
+// The same mark as the panel header and the settings page: one logo everywhere.
 // Needs Playwright and a Chromium (not a dependency of the extension):
 //   node scripts/icons.mjs [path to playwright's index.mjs] [path to chromium]
 
@@ -30,7 +31,7 @@ const ICON = {
   128: svg(
     128,
     `<rect width="128" height="128" rx="28" fill="${T.NAVY}"/><circle cx="64" cy="64" r="47" fill="${T.ORANGE}"/>${tread(64, 47, 22, 47 * 0.065, 47 * 0.1)}` +
-      `<text x="64" y="80" text-anchor="middle" font-family="TK Display" font-weight="800" font-size="44" letter-spacing="-2" fill="${T.NAVY}">tk</text>`
+      `<circle cx="64" cy="64" r="16" fill="${T.NAVY}"/>`
   ),
 };
 ICON[48] = ICON[128];

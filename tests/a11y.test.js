@@ -51,8 +51,11 @@
     const tog = $(".qf-toggle"), box = $(".qf");
     check("filter fields start tucked behind a Filter button", !!tog && box.hidden && tog.getAttribute("aria-expanded") === "false", tog ? `hidden=${box.hidden}` : "no button");
     if (tog) {
+      // Escape just closed the panel, and nothing inside a closed panel can take focus: open it again first.
+      if (!$(".wrap").classList.contains("open")) tab.click();
+      await wait(100);
       tog.click();
-      await wait(50);
+      await wait(100);
       check("Filter button opens the fields and focuses the words box", !box.hidden && tog.getAttribute("aria-expanded") === "true" && active() === $(".qf-words"), `hidden=${box.hidden}`);
       const w = $(".qf-words");
       w.value = "dmg -case";

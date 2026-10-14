@@ -297,8 +297,8 @@
     .autoscan[hidden] { display:none; }
     .autoscan input { appearance:none; -webkit-appearance:none; flex:none; position:relative; width:30px; height:18px; margin:0; border-radius:999px; background:var(--rule); cursor:pointer; transition:background .15s; }
     .autoscan input::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--raise); box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s; }
-    .autoscan input:checked { background:var(--ink); }
-    .autoscan input:checked::after { transform:translateX(12px); }
+    .autoscan input:checked { background:var(--btn); }
+    .autoscan input:checked::after { transform:translateX(12px); background:var(--on-btn); }
     .autoscan input:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .autoscan:has(input:checked) { color:var(--ink); }
     @media (forced-colors: active) { .autoscan input { appearance:auto; } .autoscan input::after { display:none; } }
@@ -1502,6 +1502,8 @@
         background:var(--tk-paper); color:var(--tk-ink); border-radius:999px; box-shadow:var(--tk-shadow);
         font:400 12px/1.2 ${UI}; text-align:left; letter-spacing:normal; cursor:help;
         } /* no fade-in: tags appear as cards load, and animating hundreds of them on a long feed cost frames */
+      /* the page's own rules for its boxes (a card's "a div { padding }") stay off ours */
+      .tirekick-sticker div { padding:0; margin:0; }
       .tirekick-sticker[data-v="great"] { --c:var(--v-great); } .tirekick-sticker[data-v="good"] { --c:var(--v-good); }
       .tirekick-sticker[data-v="pass"] { --c:var(--v-pass); } .tirekick-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
       /* the score: a tread dot, filled in the verdict's color, its tread lit as far as the score (as in the panel) */
@@ -1518,8 +1520,9 @@
       .tirekick-sticker.tk-compact { padding:0; background:none; box-shadow:none; }
       .tirekick-sticker.tk-compact .tk-score { width:44px; height:44px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3)) drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
       .tirekick-sticker.tk-compact .tk-score b { font-size:17px; }
-      .tirekick-sticker.tk-compact .tk-text:not(:has(.tk-sub)) { display:none; }
-      .tirekick-sticker.tk-compact .tk-text { padding:4px 10px; border-radius:999px; background:var(--tk-paper); box-shadow:var(--tk-shadow); }
+      /* ...and its one line about the listing ("82% of sold price") becomes the first chip under it, in full */
+      .tirekick-sticker.tk-compact .tk-text { display:none; }
+      .tirekick-sticker:not(.tk-compact) .tk-subchip { display:none; }
       .tirekick-sticker .tk-sub { font-size:12px; color:var(--tk-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       /* small chips: under a sticker, or on their own on a card that hasn't been scored */
       .tirekick-sticker .tk-below { position:absolute; left:4px; top:100%; padding-top:5px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
@@ -1557,7 +1560,9 @@
       .tirekick-sticker .tk-acts button, .tirekick-sticker .tk-acts a { all:unset; cursor:pointer; color:var(--tk-ink); font-weight:600; font-size:13px;
         text-decoration:underline; text-decoration-color:var(--tk-rule); text-underline-offset:3px; }
       .tirekick-sticker .tk-acts :is(button, a):hover { text-decoration-color:currentColor; }
-      .tirekick-sticker .tk-pop { display:none; width:264px; max-width:min(264px, 80vw); padding:12px 14px;
+      /* The card with the reasons is no wider than the listing's own card, and keepInView nudges it back when the
+         page would clip it (Marketplace cuts off anything past the edge of its grid). */
+      .tirekick-sticker .tk-pop { display:none; width:264px; max-width:min(var(--tk-popw, 264px), 80vw); box-sizing:border-box; padding:12px 14px; transform:translateX(var(--tk-nudge, 0px));
         background:var(--tk-paper); color:var(--tk-ink); border-radius:12px; box-shadow:0 0 0 1px var(--tk-line), var(--tk-shadow);
         font:400 13px/1.5 ${UI}; white-space:normal; text-transform:none; cursor:auto; }
       .tirekick-sticker:hover .tk-pop, .tirekick-sticker:focus-within .tk-pop { display:block; }
@@ -1863,14 +1868,19 @@
     // go top-right.
     const fit = (node) => {
       const w = m.imgW;
+      const cards = cardsHere();
       if (w > 80 && w < m.hostW - 40) {
         node.style.setProperty("--tk-fit", `${Math.round(w - 20)}px`);
         if (w - 20 < 150) node.classList.add("tk-compact"); // a small photo: the score alone fits, the rest is on hover
       }
-      const cards = cardsHere();
+      // Photos that fill the card (Marketplace): the chips wrap at the card's width instead of running past its left edge.
+      else if (!cards.fitToPhoto && m.hostW > 80) node.style.setProperty("--tk-fit", `${Math.round((w > 80 ? Math.min(w, m.hostW) : m.hostW) - 20)}px`);
       if (cards.corner === "right") node.classList.add("tk-right");
       // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
       if (cards.compactUnder && m.hostW < cards.compactUnder) node.classList.add("tk-compact");
+      if (m.hostW > 0) node.style.setProperty("--tk-popw", `${Math.max(220, Math.round(m.hostW - 8))}px`);
+      node.addEventListener("pointerenter", () => keepInView(node));
+      node.addEventListener("focusin", () => keepInView(node));
       if (cards.overlaps) {
         node.addEventListener("pointerenter", () => cell.setAttribute("data-tk-lift", ""));
         node.addEventListener("pointerleave", () => cell.removeAttribute("data-tk-lift"));
@@ -1894,6 +1904,25 @@
     host.dataset.tkHas = "1";
   };
   const stick = (item) => decorate(keyOf(item.url), item.el);
+  // Slide the hover card sideways when a box around the card (or the window) would cut part of it off.
+  const keepInView = (node) => {
+    const pop = node.querySelector(".tk-pop");
+    if (!pop) return;
+    node.style.removeProperty("--tk-nudge");
+    requestAnimationFrame(() => {
+      const r = pop.getBoundingClientRect();
+      if (!r.width) return;
+      let lo = 0, hi = document.documentElement.clientWidth;
+      for (let n = node.parentElement; n && n !== document.body; n = n.parentElement) {
+        if (getComputedStyle(n).overflowX === "visible") continue;
+        const b = n.getBoundingClientRect();
+        lo = Math.max(lo, b.left);
+        hi = Math.min(hi, b.right);
+      }
+      const nudge = r.left < lo + 6 ? lo + 6 - r.left : r.right > hi - 6 ? hi - 6 - r.right : 0;
+      if (nudge) node.style.setProperty("--tk-nudge", `${Math.round(nudge)}px`);
+    });
+  };
   // What fades when a card is dimmed: everything in it except our tag and chips. From the box that holds
   // the tag up to the grid cell, each level's other children fade, and so does everything in that box
   // but the tag, so nothing fades twice.
@@ -2373,7 +2402,7 @@
       h(
         "div",
         { class: "tk-below" },
-        h("div", { class: "tk-under" }, under.slice(0, 3), hoverChips(key, { ...item, ...f })),
+        h("div", { class: "tk-under" }, sub ? h("span", { class: "tk-chip k-plain tk-subchip" }, sub) : null, under.slice(0, 3), hoverChips(key, { ...item, ...f })),
         h(
         "div",
         { class: "tk-pop" },

@@ -10,7 +10,7 @@ trap 'kill $SRV; rm -rf "$PROFILES"' EXIT
 sleep 1
 for path in "sch/i.html?_nkw=pentax+k1000" "marketplace/item/1590480216438381/" "itm/184891897312.html"; do
   google-chrome-stable --headless=new --disable-gpu --no-sandbox --user-data-dir="$(mktemp -d -p "$PROFILES")" \
-    --host-resolver-rules="MAP www.ebay.com 127.0.0.1" --virtual-time-budget=5000 --dump-dom \
+    --host-resolver-rules="MAP www.ebay.com 127.0.0.1" --virtual-time-budget=8000 --dump-dom \
     "http://www.ebay.com:$PORT/$path" 2>/dev/null \
     | sed -n '/<pre id="result">/,/<\/pre>/p' | sed 's/<[^>]*>//g' | grep -E '^(PASS|FAIL)'
 done

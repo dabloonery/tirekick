@@ -13,7 +13,7 @@ const problems = [];
 const fail = (msg) => problems.push(msg);
 
 // ---------- what ships ----------
-const SHIP = ["manifest.json", "background.js", "content", "options", "lib", "icons", "fonts"];
+const SHIP = ["manifest.json", "LICENSE", "background.js", "content", "options", "hub", "lib", "icons", "fonts"];
 const files = [];
 const walk = (rel) => {
   const full = path.join(ROOT, rel);

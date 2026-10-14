@@ -35,7 +35,7 @@
 
   // ---------- photo checks change the rating ----------
   // The plain rules (photo verdicts, words, filters, scam signs, small formatters) live in content/rules.js.
-  const { clamp100, signed, adjustedVerdict, dollars, shortDate, normTitle, hash, likelyScam, PROJECT, MOTIVATED, clueOf } = TKRules;
+  const { clamp100, fitScore, signed, adjustedVerdict, dollars, shortDate, normTitle, hash, likelyScam, PROJECT, MOTIVATED, clueOf } = TKRules;
 
   // obj is a scored listing (or the single-listing result): has score + verdict.
   const applyPhotos = (obj, photos) => {
@@ -99,6 +99,9 @@
     el.style.setProperty("--lit", String(THEME.lit(score)));
     return el;
   };
+
+  // Every row's way to the listing itself, under its price (the title shows the card on the page instead)
+  const openLink = (it) => h("a", { class: "open", href: it.url, target: "_blank", rel: "noopener", title: "Open the listing in a new tab" }, "Open \u2197");
 
   // The card tag's score: a tread dot like the panel's, set through CSSOM so a page's style rules can't block it
   const scoreDial = (item) => {
@@ -213,74 +216,7 @@
 
     /* ---------- Home: alerts on saved things, numbers, spending, what you use ---------- */
     .view-home { padding:4px 16px 16px; }
-    .hm { display:grid; gap:2px; }
-    .hm-sec { padding:14px 0 8px; border-top:var(--bw) solid var(--rule); }
-    .hm-sec:first-child { border-top:0; padding-top:10px; }
-    .hm h3 { margin:0 0 10px; display:flex; align-items:baseline; gap:8px; color:var(--ink); font:600 17px/1.3 var(--display); letter-spacing:-.01em; }
-    .hm h3 .hm-count, .hm h3 .hm-btn { font-family:var(--ui); letter-spacing:normal; }
-    .hm .hm-grow { flex:1; }
-    .hm .hm-count { font-size:12px; font-weight:400; font-variant-numeric:tabular-nums; }
-    .hm .hm-hint { display:block; color:var(--muted); font-size:12px; }
-    .hm p.hm-hint { margin:8px 0 0; }
-    .hm .hm-empty { color:var(--muted); font-size:13px; padding:2px 0 8px; }
-    .hm a { color:var(--ink); text-underline-offset:3px; text-decoration-color:var(--line); }
-    .hm a:hover { text-decoration-color:currentColor; }
-    .hm-btn { display:inline-block; min-height:24px; font:600 12px/1.2 var(--ui); padding:5px 10px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:none; color:var(--ink); cursor:pointer; text-decoration:none; }
-    .hm-btn:hover { border-color:var(--ink); }
-    .hm-btn.primary { background:var(--btn); color:var(--on-btn); border-color:var(--btn); }
-    .hm-btn.small { padding:4px 8px; }
-    .hm-btn:focus-visible, .hm a:focus-visible, .hm .col:focus-visible, .hm summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    .hm-bar { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin:0 0 10px; }
-    .hm-bar i { display:block; height:100%; background:var(--v-great); }
-    .hm-steps { list-style:none; margin:0 0 8px; padding:0; display:grid; gap:8px; }
-    .hm-steps li { display:grid; grid-template-columns:22px 1fr; gap:10px; align-items:start; padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
-    .hm-steps li:not(.done) { background:var(--raise); }
-    .hm-steps .num { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font:600 12px/1 var(--ui); box-shadow:inset 0 0 0 1px var(--line); color:var(--muted); }
-    .hm-steps li.done .num { background:var(--v-great); box-shadow:none; color:var(--on-v); }
-    .hm-steps li.done b { color:var(--muted); font-weight:400; text-decoration:line-through; text-decoration-color:var(--line); }
-    .hm-steps b { display:block; font-weight:600; }
-    .hm-steps .acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-    .hm-alerts { display:grid; gap:8px; }
-    .hm-alert { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:start; padding:9px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
-    .hm-alert.new { border-color:var(--rule); background:var(--raise); }
-    .hm-tag { font-size:12px; font-weight:600; padding:1px 8px; border-radius:999px; background:var(--paper-2); color:var(--muted); white-space:nowrap; }
-    .hm-alert.new .hm-tag { background:var(--new-bg); color:var(--new-fg); }
-    .hm-alert .t { min-width:0; overflow-wrap:anywhere; }
-    .hm-alert .t a { font-weight:600; }
-    .hm-alert .t small { display:block; color:var(--muted); font-size:12px; }
-    .hm .down { color:var(--v-great); font-weight:600; }
-    .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px 16px; }
-    .hm-tile { padding:2px 0 0 12px; border-left:2px solid var(--rule); }
-    .hm-tile span { display:block; color:var(--muted); font-size:12px; }
-    .hm-tile b { display:block; font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; }
-    .hm-tile small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
-    .hm-meter { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin-top:7px; }
-    .hm-meter i { display:block; height:100%; background:var(--ink); }
-    .hm-meter.hot i { background:var(--accent); }
-    .hm-chart { position:relative; padding:20px 0 0 44px; }
-    .hm .plot { position:relative; height:96px; display:flex; align-items:flex-end; gap:2px; border-bottom:var(--bw) solid var(--rule); }
-    .hm .grid { position:absolute; left:0; right:0; height:0; border-top:var(--bw) solid var(--rule); pointer-events:none; }
-    .hm .ylab { position:absolute; left:-44px; width:38px; text-align:right; font-size:12px; color:var(--muted); transform:translateY(-50%); font-variant-numeric:tabular-nums; }
-    .hm .col { flex:1; min-width:0; height:100%; display:flex; align-items:flex-end; justify-content:center; background:none; border:0; padding:0; cursor:default; position:relative; }
-    .hm .col i { display:block; width:100%; max-width:14px; border-radius:3px 3px 0 0; background:var(--muted); opacity:.45; transition:opacity .12s; }
-    .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--accent); }
-    .hm .xaxis { display:flex; justify-content:space-between; gap:6px; font-size:12px; color:var(--muted); margin-top:5px; }
-    .hm-tip { position:absolute; z-index:5; pointer-events:none; background:var(--ink); color:var(--on-ink); padding:5px 9px; border-radius:var(--r-sm); font-size:12px; opacity:0; transform:translate(-50%, -100%); transition:opacity .1s; white-space:nowrap; }
-    .hm-tip b { font:600 15px/1.2 var(--display); display:block; }
-    .hm-tip.show { opacity:1; }
-    .hm-table { margin-top:10px; }
-    .hm-table summary { cursor:pointer; color:var(--muted); font-size:12px; padding:3px 0; }
-    .hm table { border-collapse:collapse; width:100%; font-size:12px; margin-top:6px; }
-    .hm th, .hm td { text-align:left; padding:4px 6px; border-bottom:var(--bw) solid var(--rule); }
-    .hm td.n, .hm th.n { text-align:right; font-variant-numeric:tabular-nums; }
-    .hm-use { display:grid; gap:7px; margin-top:8px; }
-    .hm-use > div { display:grid; grid-template-columns:minmax(110px, 150px) 1fr 34px; gap:10px; align-items:center; font-size:13px; }
-    .hm-use .track { height:8px; }
-    .hm-use .track i { display:block; height:100%; background:var(--ink); border-radius:0 2px 2px 0; min-width:2px; }
-    .hm-use .track i.zero { background:var(--rule); }
-    .hm-use b { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
-    .hm-foot { margin-top:14px; padding-top:12px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
-    @media (prefers-reduced-motion: reduce) { .hm .col i, .hm-tip { transition:none; } }
+    ${TKHome.CSS}
     /* how far a scan has got, as a hairline under the tabs (the status says it in words) */
     .progress { height:2px; margin-top:-2px; position:relative; z-index:3; }
     .progress i { display:block; height:100%; width:0; background:var(--accent); transition:width .3s ease; }
@@ -330,7 +266,7 @@
     @media (max-height: 620px) { .head { padding-top:8px; padding-bottom:0; } .nav button { padding:9px 0 8px; } }
     .hint { color:var(--muted); font-size:13px; }
     .inputs { display:grid; gap:12px; }
-    .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
+    .knows-modes .mode-hint, .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
     .wrap:not([data-workspace="reseller"]) .feewrap { display:none; }
     .feewrap { display:grid; grid-template-columns:1fr 84px; align-items:center; column-gap:12px; }
     .feewrap label { margin:0; }
@@ -342,6 +278,13 @@
     .inputs-sum button:hover { text-decoration-color:currentColor; }
     .inputs-sum button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .browse-note { margin-top:6px; }
+    /* The compare words come from the page's search: until you want them changed they're one line, not a box */
+    .q-sum { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; margin-top:-4px; color:var(--muted); font-size:12px; }
+    .q-sum b { color:var(--ink); font-weight:600; }
+    .q-sum button { all:unset; padding:3px 0; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .q-sum button:hover { text-decoration-color:currentColor; }
+    .q-sum button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .wrap:not(.q-folded) .q-sum, .q-folded .qwrap { display:none; }
     .browse-note b { color:var(--ink); font-weight:600; }
 
     .scan { min-height:42px; background:var(--btn); color:var(--on-btn); border:var(--bw) solid var(--btn); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
@@ -349,6 +292,16 @@
     .scan:hover:not(:disabled) { opacity:.88; }
     .scan .cost, .ghost .cost { font-weight:400; opacity:.75; }
     .scan:disabled { opacity:.55; cursor:progress; }
+    /* Auto: a switch under Scan. On, new listings are scored as they load and Scan is only for a redo */
+    .autoscan { display:flex; align-items:center; gap:8px; margin:-4px 0 0; color:var(--muted); font:400 12px/1.3 var(--ui); letter-spacing:normal; text-transform:none; cursor:pointer; }
+    .autoscan[hidden] { display:none; }
+    .autoscan input { appearance:none; -webkit-appearance:none; flex:none; position:relative; width:30px; height:18px; margin:0; border-radius:999px; background:var(--rule); cursor:pointer; transition:background .15s; }
+    .autoscan input::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--raise); box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s; }
+    .autoscan input:checked { background:var(--btn); }
+    .autoscan input:checked::after { transform:translateX(12px); background:var(--on-btn); }
+    .autoscan input:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .autoscan:has(input:checked) { color:var(--ink); }
+    @media (forced-colors: active) { .autoscan input { appearance:auto; } .autoscan input::after { display:none; } }
     /* the other two ways to use a search, side by side under Scan */
     .alts { display:flex; gap:8px; margin-top:-4px; }
     .alts > * { flex:1 1 0; min-width:0; }
@@ -407,21 +360,18 @@
     .welcome { display:grid; gap:8px; padding:14px 16px; border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--raise); font-size:13px; }
     .welcome > b:first-child { font:600 19px/1.2 var(--display); letter-spacing:-.01em; }
     .welcome b { font:600 15px/1.2 var(--ui); }
-    .welcome ol { margin:0; padding:0; list-style:none; display:grid; gap:4px; counter-reset:step; }
-    .welcome li { counter-increment:step; position:relative; padding-left:26px; line-height:1.45; }
-    .welcome li::before { content:counter(step); position:absolute; left:0; top:1px; width:18px; height:18px; display:grid; place-items:center; border-radius:50%; background:var(--ink); color:var(--paper); font:600 11px/1 var(--ui); }
-    .welcome li button { border:0; background:none; padding:0; color:var(--ink); font:inherit; text-align:left; cursor:pointer; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
-    .welcome li button:hover { text-decoration-color:var(--ink); }
+    .welcome .w-points { margin:0; padding-left:18px; display:grid; gap:5px; line-height:1.45; }
+    .welcome .w-points li::marker { color:var(--accent); }
+    .welcome .w-points b { font:600 13px/1.45 var(--ui); }
     .welcome .tip { color:var(--muted); }
+    .welcome .w-note { font-size:12px; }
     .welcome .go { justify-self:start; }
     /* No model yet: the key is step 1 and the only call to action; the steps after it are plain text until it's done */
-    .welcome .step-key { display:grid; gap:4px; }
-    .welcome .step-key b { font:600 13px/1.45 var(--ui); }
+    .welcome .step-key { display:grid; gap:4px; padding:10px 12px; border-radius:var(--r-sm); background:var(--paper-2); }
+    .welcome .step-key b { font:600 14px/1.4 var(--ui); }
     .welcome .step-key .setup-text { color:var(--muted); }
-    .welcome li .setup-go { justify-self:start; margin-top:6px; padding:9px 14px; background:var(--btn); color:var(--on-btn); font:600 13px/1 var(--ui); text-decoration:none; cursor:pointer; pointer-events:auto; }
-    .welcome:has(.step-key:not([hidden])) li:not(.step-key) { color:var(--muted); }
-    .welcome:has(.step-key:not([hidden])) li:not(.step-key)::before { background:none; color:var(--muted); box-shadow:inset 0 0 0 1px var(--line); }
-    .welcome:has(.step-key:not([hidden])) li:not(.step-key) button { color:inherit; text-decoration:none; cursor:default; pointer-events:none; }
+    .welcome .step-key .setup-go { justify-self:start; margin-top:6px; min-height:36px; padding:9px 14px; font:600 13px/1 var(--ui); }
+    .welcome:has(.step-key:not([hidden])) .w-points { color:var(--muted); }
     /* Model-only controls wait until there is a model: Compare prices against and free sold prices still work */
     .no-model .want-field, .no-model .feewrap, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
 
@@ -593,6 +543,10 @@
     /* in the list, actions stay quiet so titles and prices lead */
     .list .actions a, .list .actions button { color:var(--muted); font-weight:400; text-decoration-color:var(--line); }
     .list .actions a:hover, .list .actions button:hover:not(:disabled) { color:var(--ink); text-decoration-color:currentColor; }
+    /* Open, under the price, on every row: the title shows the card on the page, Open goes to the listing */
+    .pr .open { display:block; margin-top:4px; font:600 12px/18px var(--ui); letter-spacing:normal; color:var(--ink); text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; white-space:nowrap; }
+    .pr .open:hover { text-decoration-color:currentColor; }
+    .pr .open:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .photo { margin-top:8px; font-size:12px; padding:8px 10px; background:var(--paper-2); border-left:2px solid var(--ink); border-radius:0 var(--r-sm) var(--r-sm) 0; }
     .photo.drop { border-left-color:var(--v-suspicious); }
     [hidden] { display:none !important; }
@@ -696,14 +650,15 @@
         <div class="hint other-note">Nothing to look over here. Open a search, a category or a listing. Your saved listings and searches are under Saved.</div>
         <div class="welcome" hidden>
           <b>Welcome to Tirekick</b>
-          <ol>
-            <li class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
-              <button class="scan setup-go" data-act="open-settings">Open settings</button></li>
-            <li><button data-step="lens">Pick Buyer or Reseller</button> (top right): to keep and use, or to fix up and flip.</li>
-            <li><button data-step="want">Say what you want</button>, like "working, with charger". Optional.</li>
-            <li><button data-step="scan">Press Scan</button> and every listing gets a score and a reason.</li>
-          </ol>
-          <div class="tip">No key yet? The free marks already work: hover a card for scam checks, <i>Save</i> and <i>Sold</i> prices.</div>
+          <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
+            <button class="scan setup-go" data-act="open-settings">Open settings</button></div>
+          <ul class="w-points">
+            <li><b>Scan</b> gives every listing here a score, the reason, and its price against what sold.</li>
+            <li><b>Buyer or Reseller</b>, top right, changes what scores high.</li>
+            <li>Point at a card's tag for the reasons, <i>Save</i> and <i>Not interested</i>.</li>
+          </ul>
+          <div class="tip">No key yet? The free marks on the cards already flag likely scams.</div>
+          <div class="hint w-note">Scores, prices and warnings are estimates to help you decide, not a guarantee: check the listing and the seller yourself.</div>
           <button class="ghost go" data-act="intro-done">Got it</button>
         </div>
         <div class="setup" hidden><b class="setup-title">Add an AI to start scoring.</b> <span class="setup-text">A Claude API key takes a minute at console.anthropic.com. Or pick another service, or Ollama on your own computer, in settings.</span>
@@ -712,12 +667,14 @@
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
+        <div class="q-sum"><span class="q-sum-text"></span> <button data-act="edit-q" title="Compare prices against other words">Change</button></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page, so Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
+        <label class="autoscan" hidden><input type="checkbox" class="auto-in" role="switch"><span>Scan new listings automatically</span></label>
         <div class="alts">
           <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
           <button class="ghost freeprices" data-act="prices" hidden title="The eBay sold-price lookup on its own: free, no AI">Sold prices <span class="cost">free</span></button>
@@ -731,13 +688,13 @@
         <button class="qt qf-toggle" aria-expanded="false" aria-controls="qf-box" title="Filter by words and price, hide listings you've seen, set your deal price">Filter</button>
         <div class="qf" id="qf-box" role="search" aria-label="Filter this search" hidden>
           <div class="qf-row">
-            <span class="qf-wordwrap"><input class="qf-words" placeholder="Filter: dmg -case -game" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
+            <span class="qf-wordwrap"><input class="qf-words" placeholder="Words: working -parts" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
             <span class="qf-price"><input class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
           </div>
           <div class="qf-row qf-toggles">
             <button class="qt" data-q="fresh" aria-pressed="false" title="Hide every listing you've seen before">New only</button>
             <button class="qt qt-broken" aria-pressed="false"></button>
-            <label class="qf-deal" title="Your price for this search">Deal at \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
+            <label class="qf-deal" title="Listings at or under it get a star, and a saved search tells you on Home">Your price \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
           </div>
           <div class="qf-row skipwrap" title="Listings judged Skip or Likely scam, and other likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
         </div>
@@ -808,7 +765,15 @@
   const freeRow = $(".freeprices");
 
   // action: an optional { label, fn } shown after the text, e.g. Undo.
+  // An error that says where the fix is gets a button that goes there.
+  const fixFor = (text) =>
+    text === STALE
+      ? { label: "Reload the page", fn: () => location.reload() }
+      : /\b(settings|extension options)\b/.test(text)
+        ? { label: "Open settings", fn: () => send("openOptions").catch(() => {}) }
+        : null;
   const setStatusNow = (text, isErr = false, action = null) => {
+    if (isErr && !action) action = fixFor(text);
     statusEl.textContent = text;
     if (action) statusEl.append(h("button", { onclick: action.fn }, action.label));
     statusEl.classList.toggle("err", isErr);
@@ -852,11 +817,19 @@
   // Once the page is scanned (or priced, or analyzed), "What I want" and "Compare prices against" fold
   // into one line, so the results get the room. Edit opens them again until the next scan.
   let editingInputs = false;
+  let editingQ = false; // "Change" pressed: the compare box stays open on this page
   const inputsSum = $(".inputs-sum");
   const updateFold = () => {
     const type = TK.pageType();
     const done = type === "results" ? scored.size > 0 || !!lastMarket : type === "item" ? itemEl.childElementCount > 0 : false;
     const typingHere = root.activeElement && $(".inputs").contains(root.activeElement);
+    const qNow = queryEl.value.trim();
+    const qFold = (type === "results" || type === "item") && !!qNow && !editingQ && !(root.activeElement && qwrap.contains(root.activeElement));
+    wrap.classList.toggle("q-folded", qFold);
+    if (qFold && $(".q-sum").dataset.shown !== qNow) {
+      $(".q-sum").dataset.shown = qNow;
+      $(".q-sum-text").replaceChildren("Prices compared with sold ", h("b", {}, `\u201c${qNow}\u201d`));
+    }
     const fold = done && !editingInputs && !typingHere;
     wrap.classList.toggle("folded", fold);
     inputsSum.hidden = !fold;
@@ -866,10 +839,18 @@
     if (inputsSum.dataset.shown === `${q}\n${want}`) return; // runs every two seconds: only redraw a change
     inputsSum.dataset.shown = `${q}\n${want}`;
     $(".sum-text").replaceChildren(
-      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", " \u00b7 ", want ? ["wants ", h("b", {}, want)] : "no wants set"].flat()
+      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", want ? [" \u00b7 wants ", h("b", {}, want)] : []].flat()
     );
+    // Nothing in What I want: the button says what it's for, instead of the line saying what's missing
+    $('[data-act="edit-inputs"]').textContent = want ? "Edit" : "Add what you want";
     $(".sum-text").title = `${q ? `Comparing prices with eBay sales of \u201c${q}\u201d` : "No price comparison"}; ${want ? `what you want: ${want}` : "nothing in What I want"}`;
   };
+  $('[data-act="edit-q"]').addEventListener("click", () => {
+    editingQ = true;
+    updateFold();
+    queryEl.focus();
+    queryEl.select();
+  });
   $('[data-act="edit-inputs"]').addEventListener("click", () => {
     editingInputs = true;
     updateFold();
@@ -1084,19 +1065,29 @@
   let cfg = {};
   const nameOf = (id) => (MODELS.find(([, m]) => m === id)?.[2].split(" \u00b7")[0]) || OLDER[id] || id;
 
+  // With Claude the footer offers how careful to be, not a model: each choice sets both the scan model (many
+  // listings at once) and the one for a single listing, photos and search ideas. Settings has the two
+  // separately; a pair that isn't one of these shows as "Custom".
+  const QUALITY = [
+    ["thrifty", "Thrifty", "claude-haiku-5-5", "claude-haiku-5-5"],
+    ["balanced", "Balanced", "claude-haiku-5-5", "claude-sonnet-5-5"],
+    ["thorough", "Thorough", "claude-sonnet-5-5", "claude-opus-5-5"],
+  ];
+  const short = (id) => nameOf(id).replace(/ 5\.5$/, "");
+  const qualityNow = () => QUALITY.find(([, , sm, m]) => sm === cfg.scanModel && m === cfg.anthropicModel);
   const renderModels = () => {
-    const opts = [...MODELS];
-    if (cfg.anthropicModel && !opts.some(([, m]) => m === cfg.anthropicModel)) opts.push(["anthropic", cfg.anthropicModel, nameOf(cfg.anthropicModel)]);
+    const opts = QUALITY.map(([id, label, sm, m]) => ["anthropic", `q:${id}`, `${label} \u00b7 ${sm === m ? short(m) : `${short(sm)} + ${short(m)}`}`]);
+    if (cfg.anthropicModel && !qualityNow()) opts.push(["anthropic", "custom", `Custom \u00b7 ${short(cfg.scanModel || cfg.anthropicModel)} + ${short(cfg.anthropicModel)}`]);
     // Another AI service, once one is set up in settings.
     if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName} \u00b7 ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
     opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama \u00b7 ${cfg.textModel || "qwen3:4b"} \u00b7 free`]);
     modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}`, title: label }, label)));
-    // Scans use their own, cheaper model (Claude only): say so where the model is shown.
     $(".model-pick").title =
-      cfg.provider === "anthropic" && cfg.scanModel && cfg.scanModel !== cfg.anthropicModel
-        ? `This model: analysis, photos and search ideas. Scans use ${nameOf(cfg.scanModel)} (change it in settings).`
+      cfg.provider === "anthropic"
+        ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes straight away; settings has each one.`
         : "Which model judges listings. Changes straight away.";
-    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : `anthropic|${cfg.anthropicModel}`;
+    const q = qualityNow();
+    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : `anthropic|${q ? `q:${q[0]}` : "custom"}`;
   };
   const openSettings = () => send("openOptions").catch(() => {});
   $('[data-act="settings"]').addEventListener("click", openSettings);
@@ -1139,16 +1130,17 @@
 
   modelSel.addEventListener("change", async () => {
     const [provider, model] = modelSel.value.split("|");
-    await chrome.storage.local.set(provider === "anthropic" ? { provider, anthropicModel: model } : { provider });
+    const q = QUALITY.find(([id]) => model === `q:${id}`);
+    await chrome.storage.local.set(provider === "anthropic" ? (q ? { provider, anthropicScanModel: q[2], anthropicModel: q[3] } : { provider }) : { provider });
     setStatus(
       provider === "ollama"
         ? `Using ${model} on Ollama (free, on your computer).`
         : provider === "openai"
           ? `Using ${model} on ${cfg.oaiName} from now on.`
           : cfg.hasKey
-            ? cfg.anthropicScanModel && cfg.anthropicScanModel !== model
-              ? `Using ${nameOf(model)} to analyze listings, check photos and suggest searches. Scans use ${nameOf(cfg.anthropicScanModel)} (change that in settings).`
-              : `Using ${nameOf(model)} from now on. Scores already made by another model stay until you scan again.`
+            ? q
+              ? `${q[1]}: scans with ${nameOf(q[2])}, single listings with ${nameOf(q[3])}. Scores already made stay until you scan again.`
+              : "Using the models picked in settings."
             : "Add a Claude API key in the extension's settings to use Claude.",
       provider === "anthropic" && !cfg.hasKey
     );
@@ -1249,7 +1241,7 @@
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
     if (changes.usage) renderSpend(changes.usage.newValue);
-    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize"].some((k) => changes[k])) loadFooter().then(refreshPending);
+    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize", "autoScan"].some((k) => changes[k])) loadFooter().then(refreshPending);
   });
 
 
@@ -1267,18 +1259,10 @@
     if (alive()) chrome.storage.local.set({ introDone: true }).catch(() => {});
   });
   $('[data-act="help"]').addEventListener("click", () => {
-    if (TK.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved.");
+    if (TK.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved, and what changed is on Home.");
     showIntro(welcome.hidden);
     if (!welcome.hidden) welcome.scrollIntoView({ block: "nearest" });
   });
-  welcome.querySelectorAll("[data-step]").forEach((b) =>
-    b.addEventListener("click", () => {
-      const step = b.dataset.step;
-      if (step === "want") wantEl.focus();
-      else if (step === "scan") (scanBtn.hidden ? analyzeBtn : scanBtn).focus();
-      else root.querySelector("button[data-mode][aria-checked='true']")?.focus();
-    })
-  );
   let introPending = false;
   let introOpened = false;
   // Called on every page change: the card only appears where there is something to try it on.
@@ -1319,7 +1303,40 @@
   let lens = "use";
   let onLensShown = () => {}; // the filter bar's broken-listing toggle follows the mode (set up further down)
   let onModeChanged = () => {}; // Home redraws for the mode (set up further down)
-  let modePrefs = { use: {}, project: {} }; // per mode: { sort, skip, want }
+  let modePrefs = { use: {}, project: {} }; // per mode: { sort, skip }
+  // "What I want" belongs to a search: what you want from a camera isn't what you want from a console.
+  // Each search keeps its own, per mode; a listing opened from a search in the same tab gets that search's.
+  // (Your general taste is "What you're into" in settings.)
+  let searchWants = {};
+  const WANTS_MAX = 300;
+  const wantKey = () => {
+    const q = TK.pageType() === "results" ? pageSearch().toLowerCase() : "";
+    return q ? `${lens}|${TK.currentSite()}|${q}` : null;
+  };
+  const tabWant = (v) => {
+    try {
+      if (v === undefined) return sessionStorage.getItem(`tirekick-want-${lens}`) || "";
+      sessionStorage.setItem(`tirekick-want-${lens}`, v);
+    } catch {
+      return "";
+    }
+  };
+  const applyWant = () => {
+    const k = wantKey();
+    const w = k ? searchWants[k] || "" : TK.pageType() === "item" ? tabWant() : "";
+    if (k) tabWant(w);
+    if (root.activeElement !== wantEl) wantEl.value = w;
+  };
+  const setWant = (v) => {
+    const k = wantKey();
+    tabWant(v);
+    if (!k) return;
+    if (v) searchWants[k] = v;
+    else delete searchWants[k];
+    const keys = Object.keys(searchWants);
+    if (keys.length > WANTS_MAX) keys.slice(0, keys.length - WANTS_MAX).forEach((x) => delete searchWants[x]);
+    if (alive()) chrome.storage.local.set({ searchWants }).catch(() => {});
+  };
   const feeEl = $("#fee");
   const showMode = () => {
     const m = MODES[lens];
@@ -1338,16 +1355,24 @@
     skipMode = ["show", "dim", "hide"].includes(p.skip) ? p.skip : "dim"; // grayed out unless you choose otherwise
     document.documentElement.dataset.tkSkip = wrap.dataset.skipmode = skipMode;
     root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
-    wantEl.value = p.want || "";
+    applyWant();
   };
   const setPref = (key, value) => {
     (modePrefs[lens] ||= {})[key] = value;
     if (alive()) chrome.storage.local.set({ modePrefs }).catch(() => {});
   };
+  // What each mode is for: the first line of This page while you're new to it (your first few scans), and
+  // again right after you switch, until the next scan. After that it's known, and the space goes to results.
+  let scansSoFar = 0;
+  let justSwitched = false;
+  const showModeHint = () => wrap.classList.toggle("knows-modes", scansSoFar >= 3 && !justSwitched);
+  chrome.storage.local.get("stats").then(({ stats }) => ((scansSoFar = stats?.scans || 0), showModeHint())).catch(() => {});
   const setMode = (id) => {
     const next = LENS_OF[id];
     if (!next || next === lens) return;
     lens = next;
+    justSwitched = true;
+    showModeHint();
     if (next === "project") bump("flipSwitches");
     if (alive()) chrome.storage.local.set({ lens }).catch(() => {});
     applyPrefs();
@@ -1370,7 +1395,7 @@
     refreshPending();
   };
   root.querySelectorAll("button[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-  wantEl.addEventListener("change", () => setPref("want", wantEl.value.trim()));
+  wantEl.addEventListener("change", () => setWant(wantEl.value.trim()));
   // The scan button says when your edits mean a rescan (refreshPending is defined further down).
   for (const el of [wantEl, queryEl, feeEl]) el.addEventListener("input", () => refreshPending());
   // Selling fees: one number for the margins; it's the same setting as on the settings page.
@@ -1382,11 +1407,13 @@
     refreshPending();
   });
   showFee();
-  const modeReady = chrome.storage.local.get({ lens: "use", modePrefs: null, sortMode: "score", skipMode: "dim", want: "" }).then((v) => {
+  const modeReady = chrome.storage.local.get({ lens: "use", modePrefs: null, sortMode: "score", skipMode: "dim", searchWants: {} }).then((v) => {
     lens = v.lens === "fix" || v.lens === "flip" ? "project" : MODES[v.lens] ? v.lens : "use"; // older Fix and Flip are one mode now
     modePrefs = v.modePrefs || { use: {}, project: {} };
-    // From before there were modes: the one sort, skipped setting and wants go to the mode that was in use.
-    if (!v.modePrefs) modePrefs[lens] = { sort: v.sortMode, skip: v.skipMode, want: v.want };
+    searchWants = v.searchWants || {};
+    // From before there were modes: the one sort and skipped setting go to the mode that was in use.
+    // (Wants from then, and from when they were per mode, aren't carried over: they applied to every search.)
+    if (!v.modePrefs) modePrefs[lens] = { sort: v.sortMode, skip: v.skipMode };
     applyPrefs();
     showMode();
   });
@@ -1403,14 +1430,14 @@
     if (it.lot && it.total != null) return `Lot of ${it.lot} \u00b7 ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
     // Fix & flip: how hard the fix is (when there is one) and what it should make; whichever is known.
     if (it.lens === "project") {
-      const margin = it.margin != null ? `\u2248 ${money(it.margin)} margin${it.refIsEstimate ? " (est.)" : ""}` : "";
+      const margin = it.margin != null ? `\u2248 ${money(it.margin)} margin${it.refIsEstimate || it.refRough ? " (est.)" : ""}` : "";
       const broken = it.fault && !/^none$/i.test(it.fault);
       if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`)].filter(Boolean).join(" \u00b7 ");
       if (margin) return margin;
       if (broken && it.partsCost > 0) return `~$${it.partsCost} parts`;
     }
     if (it.vsWorking == null) return "";
-    return it.refIsEstimate ? `~${Math.round(it.vsWorking * 100)}% of typical price (est.)` : `${Math.round(it.vsWorking * 100)}% of sold price`;
+    return it.refIsEstimate ? `~${Math.round(it.vsWorking * 100)}% of typical price (est.)` : `${it.refRough ? "~" : ""}${Math.round(it.vsWorking * 100)}% of sold price`;
   };
 
   const priceStr = (it) =>
@@ -1700,7 +1727,7 @@
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
-    if (f.vsSold != null) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${Math.round(f.vsSold * 100)}% of sold`]);
+    if (f.vsSold != null) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold`]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
     if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
@@ -1725,8 +1752,9 @@
 
   // Where the sticker goes. eBay cards are fine as they are. A Facebook card is a link that may be
   // inline or zero-height, so climb to the nearest real box that still holds only this one listing.
+  const cardsHere = () => TK.site()?.cards || {}; // how this site's cards behave (lib/sites.js)
   const stickerHost = (el) => {
-    if (TK.currentSite() !== "facebook") return el;
+    if (!cardsHere().nested) return el;
     let node = el;
     for (let i = 0; i < 6 && node; i++) {
       const r = node.getBoundingClientRect();
@@ -1748,7 +1776,7 @@
       ? !!box.querySelector(`${ITEM_LINK}:not([href*="/item/${id}/"]):not([href$="/item/${id}"]):not([href*="/item/${id}?"])`)
       : [...box.querySelectorAll(ITEM_LINK)].some((a) => itemIdOf(a) !== id);
   const cellOf = (el) => {
-    if (TK.currentSite() !== "facebook") return el;
+    if (!cardsHere().nested) return el;
     const id = itemIdOf(el.closest(ITEM_LINK) || el.querySelector(ITEM_LINK) || el);
     let node = el;
     for (let i = 0; i < 40; i++) {
@@ -1786,7 +1814,7 @@
   // measured first and dressed after (decorateAll).
   const measure = (linkEl) => {
     const host = stickerHost(linkEl);
-    const img = TK.currentSite() === "ebay" ? host.querySelector("img") : null;
+    const img = cardsHere().fitToPhoto ? host.querySelector("img") : null;
     return { host, cell: cellOf(linkEl), isStatic: getComputedStyle(host).position === "static", imgW: img ? img.getBoundingClientRect().width : 0, hostW: host.getBoundingClientRect().width };
   };
   // What a card's dressing depends on, as a string: when it hasn't changed, the card is left as it is.
@@ -1840,19 +1868,20 @@
     // go top-right.
     const fit = (node) => {
       const w = m.imgW;
+      const cards = cardsHere();
       if (w > 80 && w < m.hostW - 40) {
         node.style.setProperty("--tk-fit", `${Math.round(w - 20)}px`);
         if (w - 20 < 150) node.classList.add("tk-compact"); // a small photo: the score alone fits, the rest is on hover
       }
-      // Marketplace photos fill the card: the chips wrap at the card's width instead of running past its left edge.
-      else if (TK.currentSite() === "facebook" && m.hostW > 80) node.style.setProperty("--tk-fit", `${Math.round((w > 80 ? Math.min(w, m.hostW) : m.hostW) - 20)}px`);
-      if (TK.currentSite() === "facebook") node.classList.add("tk-right");
+      // Photos that fill the card (Marketplace): the chips wrap at the card's width instead of running past its left edge.
+      else if (!cards.fitToPhoto && m.hostW > 80) node.style.setProperty("--tk-fit", `${Math.round((w > 80 ? Math.min(w, m.hostW) : m.hostW) - 20)}px`);
+      if (cards.corner === "right") node.classList.add("tk-right");
       // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
-      if (TK.currentSite() === "facebook" && m.hostW < 250) node.classList.add("tk-compact");
+      if (cards.compactUnder && m.hostW < cards.compactUnder) node.classList.add("tk-compact");
       if (m.hostW > 0) node.style.setProperty("--tk-popw", `${Math.max(220, Math.round(m.hostW - 8))}px`);
       node.addEventListener("pointerenter", () => keepInView(node));
       node.addEventListener("focusin", () => keepInView(node));
-      if (TK.currentSite() === "facebook") {
+      if (cards.overlaps) {
         node.addEventListener("pointerenter", () => cell.setAttribute("data-tk-lift", ""));
         node.addEventListener("pointerleave", () => cell.removeAttribute("data-tk-lift"));
       }
@@ -1943,7 +1972,7 @@
     setStatus(was ? "Removed from Saved." : `Saved \u201c${(f.title || "listing").slice(0, 50)}\u201d. It's under Saved at the bottom of the panel.`, false, { label: "Undo", fn: () => toggleSave(key) });
   };
   const searchKey = (q) => `${TK.currentSite()}|${q.trim().toLowerCase()}`;
-  const pageSearch = () => (TK.currentSite() === "ebay" ? TK.ebayQuery() : TK.facebookQuery()).trim();
+  const pageSearch = () => (TK.site()?.queryOf(location) || "").trim();
   const toggleSearch = async (q) => {
     const k = searchKey(q);
     const was = !!savedSearches[k];
@@ -1972,6 +2001,8 @@
   const homeCount = $('.nav [data-view="home"] .cnt');
   const home = TKHome.mount($(".view-home"), {
     send,
+    go: (v) => setView(v),
+    showSpend: () => showSpend(true),
     getMode: () => MODES[lens].id,
     isShown: () => view === "home" && wrap.classList.contains("open") && !document.hidden,
     onAlerts: (n) => {
@@ -1992,7 +2023,7 @@
     setView(e.detail?.view === "home" ? "home" : view);
     setOpen(true);
   });
-  const siteName = (k) => (k.startsWith("fb") ? "Marketplace" : "eBay");
+  const siteName = (k) => TKSites.nameOf(k);
   const removeStored = async (name, k) => {
     const next = await writeStored(name, (s) => delete s[k]);
     if (name === "saved") saved = next;
@@ -2001,19 +2032,18 @@
   };
   // The Saved view: listings with the price you saved them at and the latest you've seen, searches
   // with when you last looked, and what you've hidden (each one can come back). Built when shown.
-  const itemUrl = (k) => (k.startsWith("fb:") ? `https://www.facebook.com/marketplace/item/${k.slice(3)}/` : `https://www.ebay.com/itm/${k.slice(5)}`);
+  const itemUrl = (k) => TKSites.itemUrl(k);
   // Where a saved listing or search leads. Stored addresses are checked first (a restored backup can hold
-  // anything): only eBay and Facebook over https; anything else is rebuilt from the key or the search words.
+  // anything): only the sites this works on, over https; anything else is rebuilt from the key or the search words.
   const safeUrl = (u, fallback) => {
     try {
       const x = new URL(u);
-      return x.protocol === "https:" && /^(?:www\.)?(?:ebay\.com|facebook\.com)$/.test(x.hostname) ? x.href : fallback;
+      return x.protocol === "https:" && (TKSites.isSiteHost(x.hostname) || TKSites.isSiteHost(`www.${x.hostname}`)) ? x.href : fallback;
     } catch {
       return fallback;
     }
   };
-  const savedSearchUrl = (r) =>
-    safeUrl(r.url, r.site === "facebook" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(r.q || "")}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(r.q || "")}`);
+  const savedSearchUrl = (r) => safeUrl(r.url, (TKSites.get(r.site) || TKSites.get("ebay")).searchUrl(r.q || ""));
   // A small line of the prices seen for a saved listing, when there's more than one.
   const priceHistory = (k, r) => {
     const mem = memory[k];
@@ -2087,7 +2117,7 @@
                   {},
                   h("a", { href: savedSearchUrl(r), title: "Run this search again" }, `\u201c${r.q}\u201d`),
                   h("div", { class: "meta" }, [
-                    `${r.site === "ebay" ? "eBay" : "Marketplace"} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`,
+                    `${(TKSites.get(r.site) || TKSites.get("facebook")).name} \u00b7 looked ${shortDate(r.v)}${r.n ? ` \u00b7 ${r.n} listings` : ""}${r.fresh ? `, ${r.fresh} new then` : ""}`,
                     r.deal ? h("span", { class: r.deals ? "down" : "" }, ` \u00b7 ${r.deals || "none"} at your $${r.deal}`) : "",
                     h("button", { class: "srow-act", title: "Remove this search", onclick: () => removeStored("savedSearches", k) }, "Remove"),
                   ])
@@ -2157,13 +2187,13 @@
   });
   memoryReady.then(renderSaved);
 
-  // The same words on the other site, in a new tab.
-  const otherSiteUrl = (q) =>
-    TK.currentSite() === "ebay" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(q)}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`;
+  // The same words on the other site, in a new tab (with more sites, the first of the others).
+  const otherSite = () => TKSites.others(TK.currentSite())[0];
+  const otherSiteUrl = (q) => otherSite().searchUrl(q);
 
 
   const reapplyFacebook = () => {
-    if ((!scored.size && !facts.size) || TK.currentSite() !== "facebook") return;
+    if ((!scored.size && !facts.size) || !cardsHere().recycles) return;
     const todo = [];
     document.querySelectorAll(ITEM_LINK).forEach((a) => {
       const key = keyOf(a.href);
@@ -2282,12 +2312,12 @@
     for (const f of facts.values()) f.vsSold = vsSoldOf(f);
     redecorateAll();
     refreshPending();
-    showQuick(); // the "Deal at" box can now suggest a price
+    showQuick(); // the "Your price" box can now suggest a price
   };
   const cachedMarket = async (query) => {
     if (!query.trim()) return null;
     const { soldCache = {} } = await chrome.storage.local.get("soldCache");
-    const hit = soldCache[`used:${query.trim().toLowerCase()}`];
+    const hit = soldCache[`v2:used:${query.trim().toLowerCase()}`];
     return hit?.market && Date.now() - hit.at < SOLD_TTL_MS ? { ...hit.market, condition: "used" } : null;
   };
 
@@ -2381,7 +2411,12 @@
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,
         item.reason || "",
-        item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}.`) : null,
+        item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}${item.scannedKind === "scan" || !item.scannedKind ? ", from the card's title, price and text (not the photos or the description)" : ", from the listing's page"}.`) : null,
+        // How the numbers were made, and how far to trust them
+        item.margin != null && item.lens === "project"
+          ? line(`Margin: resold at ${item.refIsEstimate ? "the estimated" : "the sold"} ${dollars(item.refWorking)}, less ${item.feePct}% + $0.40 fees${item.shipOut ? `, ~${dollars(item.shipOut)} shipping` : " (shipping not known: take it off)"}${item.partsCost ? `, ~${dollars(item.partsCost)} parts` : ""} and the ${dollars(item.total)} price. Before sales tax and your time.`)
+          : null,
+        item.refRough && !item.refIsEstimate ? line("The sold price comes from few sales or a wide spread: a rough guide.") : null,
         f.auction ? line(`Auction: ${f.bids || 0} bid${f.bids === 1 ? "" : "s"}${f.timeLeft ? `, ${f.timeLeft} left` : ""}. The price is only the current bid.${item.bidCap > 0 ? ` Worth bidding up to about ${dollars(item.bidCap)}${item.lens === "project" ? " to break even" : ""}.` : ""}`) : null,
         item.browse && item.sold ? line(`eBay sold \u201c${item.query}\u201d: median ${dollars(item.sold.median)}, middle half ${dollars(item.sold.p25)}\u2013${dollars(item.sold.p75)} (${item.sold.n} sales).`) : null,
         item.browse && !item.sold && item.est ? line(`Typical used price est. ${dollars(item.est.lo)}\u2013${dollars(item.est.hi)}: the model's estimate, not sales data.${item.query ? " Check sold prices in the panel for real numbers." : ""}`) : null,
@@ -2474,7 +2509,7 @@
         const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
         // Not scored (yet): the price is the headline, with what's known for free.
         if (it.score == null) {
-          const vs = f.vsSold != null ? ` \u00b7 ${Math.round(f.vsSold * 100)}% of sold median` : "";
+          const vs = f.vsSold != null ? ` \u00b7 ${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold median` : "";
           const each = it.lot && it.total != null ? ` \u00b7 lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
           listEl.append(
             h(
@@ -2483,7 +2518,7 @@
               h(
                 "div",
                 {},
-                h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
+                h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
                 likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
                 (() => {
                   // The tag already shows the price; the line adds only what it doesn't say.
@@ -2495,11 +2530,10 @@
                 })(),
                 known.length ? h("div", { class: "flags" }, known) : null
               ),
-              h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
+              h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`, openLink(it)),
               h(
                 "div",
                 { class: "actions row-acts" },
-                h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
                 h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
                 saveBtn,
                 hideBtn
@@ -2514,7 +2548,7 @@
           it.vsWorking != null && !it.auction && !it.lot
             ? it.refIsEstimate
               ? ` \u00b7 ~${Math.round(it.vsWorking * 100)}% of typical (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-              : ` \u00b7 ${Math.round(it.vsWorking * 100)}% of sold median${it.sold ? ` (${it.sold.n} sales)` : ""}`
+              : ` \u00b7 ${it.refRough ? "~" : ""}${Math.round(it.vsWorking * 100)}% of sold median${it.sold ? ` (${it.sold.n} sales)` : ""}`
             : "";
         const line = lensLine(it);
         const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
@@ -2526,19 +2560,18 @@
             h(
               "div",
               {},
-              h("button", { class: "title", onclick: () => focusCard(it) }, it.title),
+              h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
               h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""}${it.auction || it.shipping > 0 ? ` \u00b7 ${priceStr(it)}` : ""}${it.related === false ? "" : vsMarket}`),
               (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` \u00b7 ${it.fault}` : "")) : null,
               h("div", { class: "reason" }, it.reason || ""),
               // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
               known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null
             ),
-            h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`),
+            h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`, openLink(it)),
             // Actions and photo notes run under the price too, so the four links fit on one line.
             h(
               "div",
               { class: "actions row-acts" },
-              h("a", { href: it.url, target: "_blank", rel: "noopener" }, "Open"),
               it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
               it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Have the AI look at the photo (can change the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
               saveBtn,
@@ -2555,15 +2588,7 @@
   // The card for a listing, found again from the page: the element kept from the scan can be gone
   // (sites re-render), and the first link to the item can sit outside the results (a carousel,
   // "recently viewed"), so prefer one inside a result card.
-  const elFor = (key) => {
-    const id = key.split(":")[1];
-    if (key.startsWith("fb:")) {
-      const links = [...document.querySelectorAll(`a[href*="/marketplace/item/${id}"]`)];
-      return links.find((a) => a.closest("[data-tirekick-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
-    }
-    const links = [...document.querySelectorAll(`a[href*="/itm/"][href*="${id}"]`)].filter((a) => keyOf(a.href) === key);
-    return links.map((a) => a.closest(TK.EBAY_CARDS)).find(Boolean) || null;
-  };
+  const elFor = (key) => TK.cardFor(key);
   const focusCard = (it) => {
     const key = keyOf(it.url);
     const el = it.el?.isConnected ? it.el : elFor(key) || document.querySelector(`[data-tirekick-key="${CSS.escape(key)}"]`);
@@ -2636,11 +2661,11 @@
     const { soldCooldownUntil = 0, soldLog = [], soldCache = {} } = await chrome.storage.local.get(["soldCooldownUntil", "soldLog", "soldCache"]);
     const lines = [
       `Tirekick ${chrome.runtime.getManifest().version} on ${TK.currentSite()} (${type}), ${location.origin}${location.pathname}`,
-      type === "results" && `Cards on the page: ${TK.currentSite() === "facebook" ? document.querySelectorAll(ITEM_LINK).length : document.querySelectorAll(TK.EBAY_CARDS).length}; read as listings: ${items.length}`,
+      type === "results" && `Cards on the page: ${document.querySelectorAll(TK.currentSite() === "ebay" ? TK.EBAY_CARDS : TK.listingLinks()).length}; read as listings: ${items.length}`,
       type === "results" && items.length && `With a title ${n((i) => i.title)}, price ${n((i) => i.price != null)}, photo ${n((i) => i.imageUrl)}, shipping known ${n((i) => i.shipping != null)}, seller rating ${n((i) => i.sellerPct != null)}`,
       type === "results" && items.length && `First titles: ${items.slice(0, 3).map((i) => `\u201c${i.title.slice(0, 40)}\u201d`).join(", ")}`,
       type === "item" && (() => { const l = TK.extractItem(); return `Listing read: title ${l.title ? "yes" : "NO"}, price ${l.price != null ? "yes" : "NO"}, photos ${l.imageUrls?.length || 0}, seller ${l.seller ? "yes" : "no"}`; })(),
-      `Sold prices: ${Date.now() < soldCooldownUntil ? `paused ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min (eBay asked for a browser check)` : "not paused"}; ${soldLog.filter((t) => Date.now() - t < 36e5).length} of ${PER_HOUR} lookups used this hour; ${Object.keys(soldCache).length} searches remembered`,
+      `Sold prices: ${Date.now() < soldCooldownUntil ? `paused ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min (eBay asked for a browser check)` : "not paused"}; ${soldLog.filter((t) => Date.now() - t < 36e5).length} of ${TKSold.PER_HOUR} lookups used this hour; ${Object.keys(soldCache).length} searches remembered`,
       `Scores kept: ${Object.keys(scansCache || {}).length} listings`,
     ].filter(Boolean);
     const text = lines.join("\n");
@@ -2661,76 +2686,29 @@
   const inputsNow = () => [lens, wantEl.value.trim(), queryEl.value.trim(), lens === "project" ? feeEl.value : ""].join("|");
   const inputsChanged = () => scanInputs !== null && scored.size > 0 && scanInputs !== inputsNow();
 
-  // On eBay the sold-listings search is made from the eBay page itself (same site, your cookies,
-  // normal browser headers), like any request eBay's own pages make. From Facebook it has to go
-  // through the background script. Either way the answer (just the summary, not the page) is
-  // remembered for a few hours across pages, and lookups pause for 30 minutes if eBay pushes back.
-  const SOLD_TTL_MS = 6 * 60 * 60 * 1000;
-  // eBay answers fast scripted traffic with a browser check ("Checking your browser before you
-  // access eBay", "Pardon Our Interruption"), and once that trips, your ordinary page loads get it
-  // too until it clears. So: few lookups, well spaced, and a long stop at the first sign of it.
-  const COOLDOWN_MS = 60 * 60 * 1000;
-  const GAP_MS = 5000; // between lookups, across all tabs
-  const PER_HOUR = 8;
-  const CHALLENGE = /checking your browser|pardon our interruption|verify yourself|captcha|security measure|access denied|unusual (traffic|activity)/i;
-  const RESULTS = /s-card|s-item|srp-results|srp-river|no exact matches|\b0 results\b/i;
-  // A real results page (even an empty one) is large and has the results markup; a check page is small and doesn't.
-  const blockedPage = (html) => (CHALLENGE.test(html.slice(0, 30000)) && !RESULTS.test(html)) || (!RESULTS.test(html) && html.length < 150000);
-
+  // Sold-price lookups (lib/sold.js) keep their pace, cache and back-off in one place for every page.
+  // On eBay the request is made from the eBay page itself (same site, your cookies, normal browser
+  // headers); from Facebook it goes through the background script, which prefers an open eBay tab.
+  const SOLD_TTL_MS = TKSold.TTL_MS;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const fetchSoldHtml = async (query, condition) => {
     const url = TK.soldUrl(query, TK.SOLD_CONDITION[condition]);
-    if (location.hostname !== "www.ebay.com") return send("fetchSoldHtml", { url });
+    if (!TKSites.soldSite().hosts.includes(location.hostname)) return send("fetchSoldHtml", { url }); // from eBay's own page when on it
     const res = await fetch(url, { credentials: "include", signal: AbortSignal.timeout(30000) });
     return { status: res.status, html: res.ok ? await res.text() : "" };
   };
+  const soldMarket = TKSold.create({ fetchHtml: fetchSoldHtml, send, isStopped: () => stopRequested });
 
-  const pausedMsg = (until) => `Price lookups paused ${Math.ceil((until - Date.now()) / 60000)} min (eBay asked for a browser check).`;
-
-  // Resolves to a market summary, or null when there were too few sales to trust.
-  const soldMarket = async (query, condition) => {
-    const key = `${condition}:${query.trim().toLowerCase()}`;
-    const { soldCache = {}, soldCooldownUntil = 0, soldLog = [] } = await chrome.storage.local.get(["soldCache", "soldCooldownUntil", "soldLog"]);
-    const hit = soldCache[key];
-    if (hit && Date.now() - hit.at < SOLD_TTL_MS) return hit.market;
-    if (Date.now() < soldCooldownUntil) throw new Error(pausedMsg(soldCooldownUntil));
-    const recent = soldLog.filter((t) => Date.now() - t < 60 * 60 * 1000);
-    if (recent.length >= PER_HOUR) {
-      throw new Error(`Price lookups resting: ${PER_HOUR} this hour is plenty for eBay.`);
-    }
-    const wait = (recent.at(-1) || 0) + GAP_MS - Date.now();
-    if (wait > 0) await sleep(wait);
-    if (stopRequested) throw new Error("Stopped.");
-    await chrome.storage.local.set({ soldLog: [...recent, Date.now()] });
-
-    const pause = async () => {
-      const until = Date.now() + COOLDOWN_MS;
-      await chrome.storage.local.set({ soldCooldownUntil: until });
-      throw new Error(pausedMsg(until));
-    };
-    const { status, html, via, pausedUntil } = await fetchSoldHtml(query, condition);
-    // From Facebook with no eBay tab open, the request goes out from the background script, which eBay
-    // trusts less. A refusal there pauses only that route (open eBay in a tab and it works again),
-    // not lookups made from eBay's own pages.
-    const workerMsg = (until) => `Price lookups from Facebook paused ${Math.ceil((until - Date.now()) / 60000)} min: eBay asked for a browser check. Open eBay in another tab and they work again.`;
-    if (pausedUntil) throw new Error(workerMsg(pausedUntil));
-    const refused = async () => {
-      if (via !== "worker") return pause();
-      await send("soldWorkerBlocked");
-      throw new Error(workerMsg(Date.now() + 30 * 60 * 1000));
-    };
-    if (status === 403 || status === 429 || status === 503) return refused();
-    if (!html) throw new Error(`eBay sold search failed (${status}).`);
-    if (blockedPage(html)) return refused(); // never cache a check page as "no sales"
-    const market = TK.summarizeSold(html);
-    // Keep the cache small: drop expired entries, cap at 100 searches.
-    const fresh = Object.entries(soldCache).filter(([, v]) => Date.now() - v.at < SOLD_TTL_MS).slice(-99);
-    await chrome.storage.local.set({ soldCache: Object.fromEntries([...fresh, [key, { at: Date.now(), market }]]) });
-    return market;
-  };
-
+  // What the number rests on: how many sales, and when it's a rough guide (few sales, or a wide spread).
+  const leftOut = (d) => (d ? [d.offers && `${d.offers} best-offer ${d.offers === 1 ? "sale" : "sales"} (the real price isn't shown)`, d.lots && `${d.lots} ${d.lots === 1 ? "lot" : "lots"}`, d.parts && `${d.parts} for parts`, d.unrelated && `${d.unrelated} without the model number`, d.outliers && `${d.outliers} far-off ${d.outliers === 1 ? "price" : "prices"}`].filter(Boolean) : []);
   const priceCell = (label, m) =>
-    h("div", {}, h("span", { class: "mlabel" }, label), h("span", { class: "mval" }, `$${m.median}`), h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75} \u00b7 ${m.n} sales`));
+    h(
+      "div",
+      { title: [`The middle of ${m.n} recent eBay sales, shipping included where shown.`, leftOut(m.dropped).length && `Left out: ${leftOut(m.dropped).join(", ")}.`].filter(Boolean).join(" ") },
+      h("span", { class: "mlabel" }, label),
+      h("span", { class: "mval" }, `${m.confidence === "rough" ? "~" : ""}$${m.median}`),
+      h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75} \u00b7 ${m.n} sales${m.confidence === "rough" ? " \u00b7 a rough guide" : ""}`)
+    );
   const renderMarket = (market) => {
     if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a market price.");
     const groups = [
@@ -2803,15 +2781,21 @@
   // How each listing's total compares with the sold prices; for Fix & flip, the margin before repairs.
   // Lots aren't compared with a single item's price, and an auction's price is only the current bid,
   // so neither gets a margin; auctions get a sensible maximum bid instead (set once the score is in).
+  // The resale side of a margin: buyers' totals include shipping, which you then pay to send it on, so
+  // that comes off too (the shipping buyers paid on these sales, when enough of them paid it).
+  // Before sales tax and before your own time.
+  const resaleNet = (it) => it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - (it.shipOut || 0);
   const priceNotes = (it, market, forLens, feePct) => {
     const w = market?.median;
+    it.shipOut = market?.ship ?? null;
+    it.refRough = market?.confidence === "rough";
     const pm = market?.parts?.median;
     it.refWorking = w > 0 ? w : null;
     it.refParts = pm > 0 ? pm : null;
     it.feePct = feePct;
     it.vsWorking = it.total != null && w > 0 && !it.lot ? it.total / w : null;
     it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
-    it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(w * (1 - feePct / 100) - 0.4 - it.total) : null;
+    it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
   };
   // The most an auction is worth bidding, shipping included: the market price (Use); break-even after
   // fees and parts, or what broken ones sell for when there's no working price (Fix & flip).
@@ -2819,7 +2803,7 @@
     const ship = it.shipping || 0;
     const base =
       // Fix & flip: break even at the working price after fees and parts; without one, what broken ones fetch.
-      it.lens === "project" ? (it.refWorking ? it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - (it.partsCost || 0) : it.refParts)
+      it.lens === "project" ? (it.refWorking ? resaleNet(it) - (it.partsCost || 0) : it.refParts)
       : it.refWorking;
     return base != null ? Math.max(0, Math.floor(base - ship)) : null;
   };
@@ -2835,7 +2819,7 @@
   // only brought back while the price is the one it was judged at.
   const SCAN_DAYS = 60;
   const SCAN_MAX = 3000;
-  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "baseScore", "baseVerdict", "photoAdjust", "photos"];
+  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "refRough", "shipOut", "baseScore", "baseVerdict", "photoAdjust", "photos"];
   const priceOf = (it) => it.total ?? it.price ?? null;
   // Which model made a score: a scan's is the scan model, an analysis's the main one.
   const modelNow = (kind = "scan") => (kind === "scan" ? cfg.scanModel : cfg.provider === "ollama" ? cfg.textModel : cfg.provider === "openai" ? cfg.oaiModel : cfg.anthropicModel) || "";
@@ -2851,6 +2835,7 @@
     if (summary) snap.reason = summary;
     it.scannedAt = snap.at;
     it.scannedWith = snap.m;
+    it.scannedKind = kind;
     pendingScans.set(`${key}|${snap.lens}`, [key, snap]);
     clearTimeout(scanSaveTimer);
     scanSaveTimer = setTimeout(flushScans, 1000); // soon: opening the listing right after a scan must find it (leaving or hiding the tab saves at once)
@@ -2885,7 +2870,7 @@
       if (scored.has(key) || seen.has(key)) continue;
       const s = storedScan(key);
       if (!s || s.p !== priceOf(it)) continue;
-      Object.assign(it, Object.fromEntries(SNAP.filter((f) => s[f] !== undefined).map((f) => [f, s[f]])), { scannedAt: s.at, scannedWith: s.m, restored: true });
+      Object.assign(it, Object.fromEntries(SNAP.filter((f) => s[f] !== undefined).map((f) => [f, s[f]])), { scannedAt: s.at, scannedWith: s.m, scannedKind: s.kind, restored: true });
       scored.set(key, it);
       seen.add(key);
       const f = facts.get(key);
@@ -2910,7 +2895,7 @@
     it.vsWorking = it.refWorking && it.total != null && !it.lot ? it.total / it.refWorking : null;
     it.margin =
       it.lens === "project" && it.refWorking && it.total != null && !it.lot && !it.auction && it.related
-        ? Math.round(it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - it.total - (it.partsCost || 0))
+        ? Math.round(resaleNet(it) - it.total - (it.partsCost || 0))
         : it.margin;
     it.bidCap = it.auction && it.related ? bidCapFor(it) : null;
   };
@@ -2918,7 +2903,7 @@
   const applyResult = (it, r, forLens) => {
     Object.assign(it, {
       lens: forLens,
-      score: clamp100(r.score | 0),
+      score: fitScore(VERDICT[r.verdict] ? r.verdict : "fair", r.score),
       verdict: VERDICT[r.verdict] ? r.verdict : "fair",
       related: r.related !== false,
       flags: (r.flags || []).slice(0, 4),
@@ -2955,7 +2940,7 @@
   // ---------- listings that loaded after the last scan ----------
 
   const currentKeys = () => {
-    const sel = TK.currentSite() === "facebook" ? ITEM_LINK : TK.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", ");
+    const sel = TK.listingLinks();
     const keys = new Set();
     document.querySelectorAll(sel).forEach((a) => keys.add(keyOf(a.href)));
     return keys;
@@ -2985,6 +2970,16 @@
     // Nothing new to score: the button stays, but steps back so the results lead.
     setIf(scanBtn, "className", label === "Scan again" ? "ghost" : "scan");
     setIf(scanBtn, "title", est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "");
+    autoTick(n, toScore, changed);
+    if (autoOn() && autoHold && autoHold !== "stopped") {
+      // Automatic scanning hit a problem (a key, the budget, the connection): say so on the closed tab too.
+      setIf(countEl, "textContent", "!");
+      setIf(countEl, "title", `Automatic scanning stopped: ${autoHold}`);
+      countEl.classList.add("new");
+      countEl.hidden = false;
+      resetBtn.hidden = !seen.size;
+      return;
+    }
     // The tab's badge, most useful first: listings at your price, then new ones to scan, then scored.
     const deals = dealCount();
     countEl.classList.toggle("deal", deals > 0);
@@ -3058,7 +3053,7 @@
       ...(q
         ? [
             h("button", { class: savedSearches[searchKey(q)] ? "on" : null, onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "Saved search" : "Save search"),
-            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, TK.currentSite() === "ebay" ? "Try on Marketplace \u2197" : "Try on eBay \u2197"),
+            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, `Try on ${otherSite().name} \u2197`),
           ]
         : []),
       resetBtn
@@ -3237,7 +3232,48 @@
   };
 
   let scanEpoch = -1;
-  const scan = async () => {
+  // ---------- automatic scanning ----------
+  // With the switch on, a search page you're looking at is scored as its listings load: once when it
+  // opens, then each time scrolling brings more. It waits until the page has stopped loading listings
+  // (two checks two seconds apart agree), never while you're typing in the panel, never in a background
+  // tab, and not after a problem or a Stop on this page until you press Scan yourself.
+  const autoRow = $(".autoscan");
+  const autoIn = $(".auto-in");
+  let autoHold = ""; // why it stopped on this page; a Scan you press, or a new page, clears it
+  let autoSig = null;
+  const autoSkip = new Set(); // listings the model passed over: offered again by Scan, not retried automatically
+  const autoOn = () => !!cfg.autoScan;
+  autoIn.addEventListener("change", async () => {
+    const on = autoIn.checked;
+    cfg.autoScan = on;
+    autoHold = "";
+    if (alive()) await chrome.storage.local.set({ autoScan: on }).catch(() => {});
+    if (!on) setStatus("Automatic scanning is off: press Scan when you want scores.");
+    else if (cfg.monthlyBudget > 0 || cfg.provider === "ollama")
+      setStatus(`Scanning automatically: new listings are scored as they load${cfg.provider === "ollama" ? " (free with Ollama)" : `, up to your $${cfg.monthlyBudget} monthly budget`}.`);
+    else
+      setStatus("Scanning automatically: new listings are scored as they load. There's no monthly budget to stop it.", false, {
+        label: "Set a $5 monthly budget",
+        fn: () => chrome.storage.local.set({ monthlyBudget: 5 }).then(() => setStatus("Monthly budget: $5. Change it in settings.")).catch(() => {}),
+      });
+    refreshPending();
+  });
+  const autoTick = (n, toScore, changed) => {
+    setIf(autoIn, "checked", autoOn());
+    autoRow.hidden = scanBtn.hidden || !!modelMissing;
+    const typing = root.activeElement && $(".inputs").contains(root.activeElement);
+    if (autoSkip.size && seen.size) n = [...currentKeys()].filter((k) => !seen.has(k) && !autoSkip.has(k)).length;
+    const due = autoOn() && !autoHold && !modelMissing && !changed && !typing && !document.hidden && (seen.size ? n : toScore) > 0;
+    if (!due) return void (autoSig = null);
+    const sig = `${seen.size}|${n}|${toScore}`;
+    if (autoSig !== sig) return void (autoSig = sig); // listings may still be loading: look again next time
+    autoSig = null;
+    scan({ auto: true });
+  };
+
+  const scan = async (opts) => {
+    const auto = opts?.auto === true; // a click passes its event: that's you
+    if (!auto) autoHold = "";
     if (scanning) {
       if (scanEpoch === pageEpoch) return;
       // A scan from a page you've left is still going: stop it, then start this page's.
@@ -3245,6 +3281,9 @@
       while (scanning) await sleep(100);
     }
     bump("scans");
+    scansSoFar++;
+    justSwitched = false;
+    showModeHint();
     scanning = true;
     const epoch = (scanEpoch = pageEpoch);
     // Messages from this scan only while you're still on its page.
@@ -3255,6 +3294,7 @@
     try {
       const settings = await send("getSettings");
       editingInputs = false;
+      editingQ = false;
       if (inputsChanged()) {
         restoreOff = true;
         clearStickers();
@@ -3379,15 +3419,17 @@
       if (scored !== session) return; // you've moved on to another page
       // Anything not scored (failed batch, or the model skipped it) is offered again next scan.
       const missed = items.filter((it) => it.score == null);
-      missed.forEach((it) => seen.delete(keyOf(it.url)));
+      missed.forEach((it) => (seen.delete(keyOf(it.url)), autoSkip.add(keyOf(it.url))));
+      if (errors.length) autoHold = errors[0].message; // some requests failed: don't keep trying on its own
       setCount(scored.size);
       const costNote = toRank.length && cost > 0 ? ` Cost ${fmtCost(cost)}.` : "";
       if (stopRequested) {
+        autoHold = "stopped";
         return setStatus(`Stopped. Ranked ${items.length - missed.length} of ${items.length}; the other ${missed.length} are offered again.${costNote}`);
       }
       if (errors.length && missed.length === items.length) throw errors[0];
       setStatus(
-        `Ranked ${items.length - missed.length} of ${items.length} new listings${fromMemory ? ` (${fromMemory} from memory)` : ""}.${scams ? ` ${scams} reposted scam${scams > 1 ? "s" : ""} marked without the model.` : ""}${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
+        `${missed.length ? `Ranked ${items.length - missed.length} of ${items.length} new listings` : `Scored ${items.length} new listing${items.length === 1 ? "" : "s"}`}${fromMemory ? ` (${fromMemory} from memory)` : ""}.${scams ? ` ${scams} reposted scam${scams > 1 ? "s" : ""} marked without the model.` : ""}${leftOut ? ` Skipped ${leftOut} you've hidden or filtered out.` : ""}${costNote}` +
           (errors.length ? ` Some requests failed (${errors[0].message}) Scan again to retry the rest.` : "") +
           (!errors.length && missed.length ? " The model skipped some; scan again, or try a smaller batch size in settings." : ""),
         errors.length > 0
@@ -3395,6 +3437,7 @@
     } catch (e) {
       if (isStop(e)) setStatus("Stopped.");
       else setStatus(e.message, true);
+      autoHold = isStop(e) ? "stopped" : e.message || "an error";
     } finally {
       scanning = false;
       showProgress(null);
@@ -3402,7 +3445,7 @@
       scanBtn.disabled = false;
       refreshPending();
       renderPageInfo(); // the skipped-listings control appears once something is scored
-      requestAnimationFrame(showResults);
+      if (!auto) requestAnimationFrame(showResults); // an automatic scan never moves what you're reading
     }
   };
 
@@ -3526,7 +3569,7 @@
     f.campaign
       ? `This title has been posted under other codes too (${f.campaign.join(", ")}): one fake listing copied many times.`
       : f.offSite?.sure
-        ? `It asks you to get in touch outside ${f.site === "ebay" ? "eBay" : "Facebook"} (${f.offSite.why.join("; ")}). That's how these scams take payment.`
+        ? `It asks you to get in touch outside ${(TKSites.get(f.site) || TKSites.get("facebook")).owner} (${f.offSite.why.join("; ")}). That's how these scams take payment.`
         : "";
   const renderItemInfo = () => {
     const f = itemFacts;
@@ -3575,7 +3618,7 @@
     const v = VERDICT[r.verdict] || VERDICT.fair;
     const score = clamp100(r.score | 0);
     const vs =
-      (listing.vsWorking != null ? ` · ${Math.round(listing.vsWorking * 100)}% of sold median` : "") +
+      (listing.vsWorking != null ? ` · ${listing.refRough ? "~" : ""}${Math.round(listing.vsWorking * 100)}% of sold median` : "") +
       (listing.vsParts != null ? ` · ${Math.round(listing.vsParts * 100)}% of for-parts median` : "");
     const rep = r.repair;
     const margin = listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (rep?.partsCost || 0) : null;
@@ -3610,7 +3653,7 @@
       );
     } else if (r.offerHigh > 0) {
       // A first message you can paste to the seller, opening at the low end of the range.
-      const message = `Hi! Is this still available? Would you take $${r.offerLow}?${listing.site === "facebook" ? " I can pick up whenever suits you." : ""}`;
+      const message = `Hi! Is this still available? Would you take $${r.offerLow}?${TKSites.get(listing.site)?.local ? " I can pick up whenever suits you." : ""}`;
       const copy = h("button", {
         onclick: async () => {
           try {
@@ -3742,6 +3785,8 @@
       priceNotes(listing, market, forLens, settings.feePct);
       setStatus(`Analyzing this listing as ${MODES[forLens].as}…`);
       const r = await sendAI("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
+      if (!VERDICT[r.verdict]) r.verdict = "fair";
+      r.score = fitScore(r.verdict, r.score); // the number agrees with the word
       // Certain scam signs (see scamWarning) overrule whatever the model made of the listing.
       if (itemFacts?.key === keyOf(location.href)) {
         itemFacts.offSite = listing.offSite; // the description may have loaded since the first look
@@ -3760,6 +3805,7 @@
       analyzeBtn.className = "ghost";
       analyzeBtn.replaceChildren("Analyze again", settings.provider === "anthropic" && r.cost ? h("span", { class: "cost" }, ` \u00b7 last one ${fmtCost(r.cost)}`) : "");
       editingInputs = false;
+      editingQ = false;
       setStatus("");
     } catch (e) {
       if (isStop(e)) setStatus("Stopped. Nothing was analyzed.");
@@ -3940,6 +3986,10 @@
     if (lastType === "results") saveScan(lastHref);
     lastHref = location.href;
     pageEpoch++; // work still running for the page you left finishes quietly (see scan)
+    applyWant();
+    autoHold = "";
+    autoSig = null;
+    autoSkip.clear();
     const type = (lastType = TK.pageType());
     const onResults = !!type;
     if (onResults && !host.isConnected) document.documentElement.append(host);
@@ -3951,7 +4001,7 @@
       showIdeasBtn();
       ideasBox.hidden = true;
       wrap.dataset.page = type;
-      setView(type === "other" ? "saved" : "page");
+      setView(type === "other" ? "home" : "page"); // nothing to do here: the overview
       applyIntro();
       ideasList.replaceChildren();
       ideasStatus.textContent = "";
@@ -3960,6 +4010,7 @@
       scanInputs = null;
       restoreOff = false;
       editingInputs = false;
+      editingQ = false;
       freeRow.hidden = true;
       analyzeBtn.textContent = "Analyze this listing";
       analyzeBtn.className = "scan";

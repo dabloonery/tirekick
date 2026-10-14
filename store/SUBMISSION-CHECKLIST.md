@@ -77,8 +77,8 @@ Taking screenshots 1 and 2 (**dabloonery**, since it needs your eBay session and
 
 - [ ] Put the store link on the website's "Add to Chrome" button (Claude).
 - [ ] Install from the store on a clean Chrome profile and check the first-run settings page opens.
-- [ ] Install the store build in **Vivaldi** too and run the four checks in the security review's
-      Vivaldi section (icon and badge, shortcut, the two right-click entries).
+- [ ] Install the store build in **Vivaldi** too and run the five checks in the security review's
+      Vivaldi section (icon and badge, shortcut, the three right-click entries).
 - [ ] Keep the unpacked copy you use day to day separate from the store install: they have different
       extension IDs, so saved data doesn't move between them. Use **Save a backup** and **Restore**
       in settings to carry it across.

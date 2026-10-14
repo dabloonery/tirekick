@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "filterWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab", "theme"];
+  "filterWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab", "autoScan", "theme"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicScanModel", "anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "filterWords"];
 
@@ -184,6 +184,11 @@ document.getElementById("clearMemory").addEventListener("click", async () => {
   note("Seen listings forgotten.");
 });
 showMemory();
+document.getElementById("wipeAll").addEventListener("click", async () => {
+  if (!confirm("Delete everything Tirekick keeps in this browser, API keys included? This can't be undone.")) return;
+  await chrome.storage.local.clear();
+  location.reload(); // the page comes back as on a fresh install
+});
 
 function showProvider() {
   const p = document.getElementById("provider").value;
@@ -350,7 +355,7 @@ load().then(showStatus);
 // Collections are merged on restore (a backup never deletes anything here); settings come from the backup.
 // What a backup file says it is. New backups write the first; "second-look" is from before the rename to Tirekick.
 const BACKUP_APPS = ["tirekick", "second-look"];
-const BACKUP_SETS = ["saved", "savedSearches", "quickFilters", "notInterested", "listingMemory", "codeStems", "usage", "stats", "modePrefs"];
+const BACKUP_SETS = ["saved", "savedSearches", "quickFilters", "notInterested", "listingMemory", "codeStems", "usage", "stats", "modePrefs", "searchWants"];
 const SECRET = ["anthropicKey", "oaiKey"];
 
 // A backup file can hold anything, and saved addresses become links on eBay and Facebook pages. Keep
@@ -421,6 +426,10 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
     } else if (k === "stats") {
       const counts = Object.fromEntries(Object.entries(data.stats).filter(([, n]) => Number.isFinite(n) && n >= 0));
       out.stats = { ...counts, ...(here.stats || {}) };
+    } else if (k === "searchWants") {
+      // Each search's "What I want": short text only, what's here wins.
+      const w = Object.fromEntries(Object.entries(data.searchWants).filter(([key, v]) => typeof v === "string" && v.length <= 300 && key.length <= 400).map(([key, v]) => [key, v.trim()]));
+      out.searchWants = { ...w, ...(here.searchWants || {}) };
     } else if (k === "listingMemory") {
       const m = { ...(here.listingMemory || {}) };
       for (const [key, r] of Object.entries(data.listingMemory)) if (!m[key] || (r?.a || 0) > (m[key].a || 0)) m[key] = r;

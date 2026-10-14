@@ -3,7 +3,7 @@ const { open, c } = await start();
 const OUT = Deno.env.get("AUDIT_OUT")!;
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 const setStore = (js: string) => o.ev(`chrome.storage.local.set(${js})`);
-const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
+const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
 const panelShot = (p: any, name: string) => p.shot(`${OUT}/${name}.png`, { x: 980, y: 20, width: 420, height: 870 });
 const scheme = async (p: any, s: string) => c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: s }] }, p.sessionId);
 
@@ -20,7 +20,7 @@ const METRICS = `(root)=>{
   const r=el.getBoundingClientRect(); if(!r.width||!r.height)continue;
   const label=(el.getAttribute('aria-label')||el.textContent||'').trim().replace(/\\s+/g,' ').slice(0,28);
   const interactive=el.matches('button,a[href],input,select,textarea,summary,[role=tab],[role=radio],[tabindex="0"]');
-  if(interactive&&(r.width<24||r.height<24)&&cs.opacity!=='0'&&!el.classList.contains('sl-x')) out.small.push(el.tagName.toLowerCase()+'.'+(el.className||'').toString().split(' ')[0]+' "'+label+'" '+Math.round(r.width)+'x'+Math.round(r.height));
+  if(interactive&&(r.width<24||r.height<24)&&cs.opacity!=='0'&&!el.classList.contains('tk-x')) out.small.push(el.tagName.toLowerCase()+'.'+(el.className||'').toString().split(' ')[0]+' "'+label+'" '+Math.round(r.width)+'x'+Math.round(r.height));
   const txt=[...el.childNodes].some(n=>n.nodeType===3&&n.nodeValue.trim());
   if(txt){
    const fs=Math.round(parseFloat(cs.fontSize)*10)/10; out.sizes[fs]=(out.sizes[fs]||0)+1; out.weights[cs.fontWeight]=(out.weights[cs.fontWeight]||0)+1;
@@ -58,8 +58,8 @@ for (const mode of ["dark", "light"]) {
   await panelShot(p, `${mode}_04_scanned`);
   report[mode + "_scanned"] = await R(p, `return (${METRICS})(r)`);
   await p.shot(`${OUT}/${mode}_05_cards.png`, { x: 0, y: 0, width: 980, height: 660 });
-  report[mode + "_cards_page"] = await p.ev(`(${METRICS})(document)`).then((x: any) => ({ contrast: x.contrast.filter((s: string) => /sl-|second/.test(s)) }));
-  await p.ev(`document.querySelector('.second-look-sticker').focus()`); await sleep(300);
+  report[mode + "_cards_page"] = await p.ev(`(${METRICS})(document)`).then((x: any) => ({ contrast: x.contrast.filter((s: string) => /tk-|second/.test(s)) }));
+  await p.ev(`document.querySelector('.tirekick-sticker').focus()`); await sleep(300);
   await p.shot(`${OUT}/${mode}_06_hovercard.png`, { x: 0, y: 80, width: 500, height: 400 });
   await R(p, `r.querySelector('.qf-toggle').click(); r.querySelector('.spend').click()`); await sleep(400);
   await panelShot(p, `${mode}_07_filter_spend`);

@@ -1,14 +1,25 @@
-// Second Look — on-page panel and scan flow.
+// Tirekick — on-page panel and scan flow.
 // Flow: extract listings -> (optional) get eBay sold prices -> rank in batches
 // with the chosen model -> show ranked list + stickers on the cards themselves.
 
 (() => {
-  const SL = window.SecondLook;
-  const SLShared = window.SLShared;
-  const SLRules = window.SLRules;
-  const SLHome = window.SLHome;
-  if (!SL || !SLShared || !SLRules || !SLHome || window.__secondLookPanel) return;
-  window.__secondLookPanel = true;
+  const TK = window.Tirekick;
+  const TKShared = window.TKShared;
+  const TKRules = window.TKRules;
+  const TKHome = window.TKHome;
+  if (!TK || !TKShared || !TKRules || !TKHome || window.__tirekickPanel) return;
+  window.__tirekickPanel = true;
+
+  // A tab left open across the update from Second Look (the old name) still holds that version's panel
+  // and card tags. Its script is cut off from the extension (it removes its own panel, not the tags),
+  // so clear what it drew before drawing ours.
+  if (document.querySelector("#second-look-host, #second-look-styles, .second-look-sticker, .second-look-marks, [data-second-look-key]")) {
+    document.querySelectorAll("#second-look-host, #second-look-styles, #second-look-toast, .second-look-sticker, .second-look-marks").forEach((n) => n.remove());
+    document.querySelectorAll("[data-second-look-pos]").forEach((n) => (n.style.position = ""));
+    const OLD = ["data-second-look", "data-second-look-key", "data-second-look-pos", "data-sl-hide", "data-sl-v", "data-sl-cell", "data-sl-sig", "data-sl-has", "data-sl-faded", "data-sl-lift", "data-sl-skip", "data-sl-showhidden"];
+    document.querySelectorAll(OLD.map((a) => `[${a}]`).join(",")).forEach((n) => OLD.forEach((a) => n.removeAttribute(a)));
+    document.documentElement.removeAttribute("data-sl-theme");
+  }
 
   // Verdict colours come from the theme (--v-great etc.), keyed by data-v.
   // A word always sits beside the score: the verdict colours are too close in lightness to tell apart on their own.
@@ -23,7 +34,7 @@
 
   // ---------- photo checks change the rating ----------
   // The plain rules (photo verdicts, words, filters, scam signs, small formatters) live in content/rules.js.
-  const { clamp100, signed, adjustedVerdict, dollars, shortDate, normTitle, hash, likelyScam, PROJECT, MOTIVATED, clueOf } = SLRules;
+  const { clamp100, signed, adjustedVerdict, dollars, shortDate, normTitle, hash, likelyScam, PROJECT, MOTIVATED, clueOf } = TKRules;
 
   // obj is a scored listing (or the single-listing result): has score + verdict.
   const applyPhotos = (obj, photos) => {
@@ -44,7 +55,7 @@
 
   // After the extension is reloaded or updated, this copy of the script is cut off from it.
   const alive = () => !!chrome.runtime?.id;
-  const STALE = "Second Look was updated. Reload this page to keep using it.";
+  const STALE = "Tirekick was updated. Reload this page to keep using it.";
 
   const send = (type, payload) =>
     new Promise((resolve, reject) => {
@@ -59,9 +70,9 @@
   // provides, once the page is idle. Until then (or if it fails) the --display stack falls back to
   // a system serif, so nothing waits on it.
   const FONTS = [
-    ["SL Fraunces", "fraunces-600.woff2", { weight: "600" }],
-    ["SL Fraunces", "fraunces-400.woff2", { weight: "400" }],
-    ["SL Fraunces", "fraunces-400-italic.woff2", { weight: "400", style: "italic" }],
+    ["TK Fraunces", "fraunces-600.woff2", { weight: "600" }],
+    ["TK Fraunces", "fraunces-400.woff2", { weight: "400" }],
+    ["TK Fraunces", "fraunces-400-italic.woff2", { weight: "400", style: "italic" }],
   ];
   const loadFonts = async () => {
     for (const [family, file, desc] of FONTS) {
@@ -70,7 +81,7 @@
         const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
         document.fonts.add(await new FontFace(family, bytes.buffer, desc).load());
       } catch (e) {
-        if (alive()) console.warn("[Second Look] font", file, e.message);
+        if (alive()) console.warn("[Tirekick] font", file, e.message);
         return;
       }
     }
@@ -97,14 +108,14 @@
 
   // The card tag's score: a dial like the panel's, set through CSSOM so a page's style rules can't block it
   const scoreDial = (item) => {
-    const el = h("div", { class: "sl-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || ""));
+    const el = h("div", { class: "tk-score" }, h("b", {}, String(item.score)), h("i", {}, SHORT[item.verdict] || ""));
     el.style.setProperty("--p", String(Math.max(0, Math.min(100, Number(item.score) || 0))));
     return el;
   };
 
   // ---------- panel shell (shadow DOM keeps site CSS out) ----------
 
-  const host = h("div", { id: "second-look-host" });
+  const host = h("div", { id: "tirekick-host" });
   // The host's box covers the whole drawer area even when the panel is tucked away, so it must not
   // take clicks itself: only the tab and the open panel do (see .tab / .open .panel below).
   host.style.cssText = "position:fixed;right:0;bottom:20px;z-index:2147483646;pointer-events:none;";
@@ -128,7 +139,7 @@
       --r:12px; --r-sm:7px; --bw:1px; --press:none;
       --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
       /* the serif (bundled, see FONTS) is for the wordmark, headlines, scores and prices; everything you operate stays in --ui */
-      --display:"SL Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --display:"TK Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
       --mono:"Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       font:14px/1.5 var(--ui); color:var(--ink); -webkit-font-smoothing:antialiased;
       ${THEME_DARK}
@@ -665,15 +676,15 @@
   <div class="wrap">
    <div class="zones" aria-hidden="true"><div class="zone" data-side="left"></div><div class="zone" data-side="right"></div></div>
    <div class="drawer">
-    <button class="tab" data-act="tab" aria-label="Open Second Look" title="Second Look">
+    <button class="tab" data-act="tab" aria-label="Open Tirekick" title="Tirekick">
       <span class="mark">${MARK}</span>
-      <span class="tab-label">Second Look</span><i class="count" hidden></i>
+      <span class="tab-label">Tirekick</span><i class="count" hidden></i>
     </button>
-    <div class="panel" role="complementary" aria-label="Second Look" tabindex="-1">
+    <div class="panel" role="complementary" aria-label="Tirekick" tabindex="-1">
       <div class="rz rz-w" data-edge="w" aria-hidden="true" title="Drag to change the width"></div><div class="rz rz-e" data-edge="e" aria-hidden="true" title="Drag to change the width"></div>
       <div class="head" tabindex="0" role="group" aria-label="Panel position: left and right arrow keys pick the side, up and down the width" title="Drag to the left or right edge to dock it there; double-click to put it back">
         <span class="mark">${MARK}</span>
-        <div class="grow"><div class="wordmark">Second <em>Look</em></div></div>
+        <div class="grow"><div class="wordmark">Tirekick</div></div>
         <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
         <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
         <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
@@ -694,7 +705,7 @@
       <div class="controls">
         <div class="hint other-note">Nothing to scan on this page. Open a search, a category or a listing; your saved listings and searches are under Saved.</div>
         <div class="welcome" hidden>
-          <b>Welcome to Second Look</b>
+          <b>Welcome to Tirekick</b>
           <ol>
             <li class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
               <button class="scan setup-go" data-act="open-settings">Open settings</button></li>
@@ -712,7 +723,7 @@
         <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
-          <div class="hint browse-note" hidden>No search on this page: Second Look goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
+          <div class="hint browse-note" hidden>No search on this page: Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
@@ -754,7 +765,7 @@
         <div class="spend-detail" hidden></div>
         <div class="foot-row">
           <label class="model-pick" title="Which model judges listings. Changes straight away."><span class="sr">Model</span><select class="model"></select></label>
-          <button class="spend" aria-expanded="false" title="What Second Look has spent on paid AI services"></button>
+          <button class="spend" aria-expanded="false" title="What Tirekick has spent on paid AI services"></button>
         </div>
         <div class="budget" hidden><i></i></div>
       </div>
@@ -792,7 +803,7 @@
   const qwrap = $(".qwrap");
   const browseNote = $(".browse-note");
   // Browse mode: a results page with nothing to compare against (e.g. the Marketplace home feed).
-  const showBrowseNote = () => (browseNote.hidden = SL.pageType() !== "results" || !!queryEl.value.trim());
+  const showBrowseNote = () => (browseNote.hidden = TK.pageType() !== "results" || !!queryEl.value.trim());
   queryEl.addEventListener("input", showBrowseNote);
   const itemEl = $(".itemout");
   const pageInfo = $(".pageinfo");
@@ -852,7 +863,7 @@
   let editingInputs = false;
   const inputsSum = $(".inputs-sum");
   const updateFold = () => {
-    const type = SL.pageType();
+    const type = TK.pageType();
     const done = type === "results" ? scored.size > 0 || !!lastMarket : type === "item" ? itemEl.childElementCount > 0 : false;
     const typingHere = root.activeElement && $(".inputs").contains(root.activeElement);
     const fold = done && !editingInputs && !typingHere;
@@ -888,7 +899,7 @@
     wrap.classList.toggle("open", open);
     if (open && listStale) render();
     if (open && view === "home") setTimeout(() => home.wake().catch(() => {}), 0); // drawn if it changed out of sight; counts as seen once on screen
-    $('[data-act="tab"]').setAttribute("aria-label", open ? "Tuck Second Look away" : "Open Second Look");
+    $('[data-act="tab"]').setAttribute("aria-label", open ? "Tuck Tirekick away" : "Open Tirekick");
   };
   // Keyboard users: opening puts focus in the panel and closing puts it back on the tab, so it is
   // never left on a control that just disappeared. Only when focus was in the panel does closing move it.
@@ -961,7 +972,7 @@
     panel.style.translate = "";
     setTimeout(() => (panel.style.transition = ""), 300);
   };
-  const boxSite = SL.currentSite();
+  const boxSite = TK.currentSite();
   let boxTimer = 0;
   const saveBox = () => {
     clearTimeout(boxTimer);
@@ -1265,7 +1276,7 @@
     if (alive()) chrome.storage.local.set({ introDone: true }).catch(() => {});
   });
   $('[data-act="help"]').addEventListener("click", () => {
-    if (SL.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved.");
+    if (TK.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved.");
     showIntro(welcome.hidden);
     if (!welcome.hidden) welcome.scrollIntoView({ block: "nearest" });
   });
@@ -1281,7 +1292,7 @@
   let introOpened = false;
   // Called on every page change: the card only appears where there is something to try it on.
   const applyIntro = () => {
-    if (!introPending || SL.pageType() === "other") return;
+    if (!introPending || TK.pageType() === "other") return;
     showIntro(true);
     if (!touched && !introOpened) showOpen(true);
     introOpened = true;
@@ -1334,7 +1345,7 @@
     sortMode = SORTS[p.sort] && !(p.sort === "margin" && lens === "use") ? p.sort : MODES[lens].sort;
     sortSel.value = sortMode;
     skipMode = ["show", "dim", "hide"].includes(p.skip) ? p.skip : "dim"; // greyed out unless you choose otherwise
-    document.documentElement.dataset.slSkip = wrap.dataset.skipmode = skipMode;
+    document.documentElement.dataset.tkSkip = wrap.dataset.skipmode = skipMode;
     root.querySelectorAll("[data-skip]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.skip === skipMode)));
     wantEl.value = p.want || "";
   };
@@ -1361,7 +1372,7 @@
     render();
     if (had)
       setStatus(
-        SL.pageType() === "item"
+        TK.pageType() === "item"
           ? `${MODES[lens].name}. Press Analyze to judge this listing as ${MODES[lens].as}.`
           : `${MODES[lens].name}. Scan again to judge these listings as ${MODES[lens].as} (anything already judged this way comes back free).`
       );
@@ -1374,7 +1385,7 @@
   // Selling fees: one number for the margins; it's the same setting as on the settings page.
   const showFee = () => send("getSettings").then((s) => root.activeElement !== feeEl && (feeEl.value = String(s.feePct))).catch(() => {});
   feeEl.addEventListener("change", () => {
-    const n = SLShared.clampSetting("feePct", Number(feeEl.value));
+    const n = TKShared.clampSetting("feePct", Number(feeEl.value));
     feeEl.value = String(n);
     if (alive()) chrome.storage.local.set({ feePct: n }).catch(() => {});
     refreshPending();
@@ -1443,105 +1454,105 @@
   };
   const syncPageTheme = () => {
     const t = pageIsDark() ? "dark" : "light";
-    if (document.documentElement.dataset.slTheme !== t) document.documentElement.dataset.slTheme = t;
+    if (document.documentElement.dataset.tkTheme !== t) document.documentElement.dataset.tkTheme = t;
     if (wrap.dataset.pageTheme !== t) wrap.dataset.pageTheme = t; // the closed tab takes the page's colours, like the marks on the cards
   };
   syncPageTheme();
   let stylesIn = false;
   const ensureStickerStyles = () => {
     // Checked once per batch of cards: cheap after the first time (the theme is kept current by the tick).
-    if (stylesIn && document.getElementById("second-look-styles")) return;
+    if (stylesIn && document.getElementById("tirekick-styles")) return;
     stylesIn = true;
     syncPageTheme();
-    if (document.getElementById("second-look-styles")) return;
+    if (document.getElementById("tirekick-styles")) return;
     const st = document.createElement("style");
-    st.id = "second-look-styles";
+    st.id = "tirekick-styles";
     // The marks wear the page's own brightness (see syncPageTheme): dark tokens on a dark page, light on a light one.
-    const DK = "--sl-paper:#161513; --sl-ink:#ECE9E2; --sl-muted:#A9A59B; --sl-rule:rgba(255,255,255,.14); --sl-line:#858176; --sl-accent:#E2673C; --sl-on-accent:#161513; --sl-on-v:#161513; --sl-shadow:0 6px 18px -6px rgba(0,0,0,.7); --v-great:#5FD08B; --v-good:#B5D36A; --v-fair:#E0B050; --v-pass:#A9A59B; --v-suspicious:#FF8A80;";
-    const LT = "--sl-paper:#FBFAF6; --sl-ink:#1B1A17; --sl-muted:#5C5850; --sl-rule:rgba(28,27,25,.14); --sl-line:#77736A; --sl-accent:#C8461F; --sl-on-accent:#fff; --sl-on-v:#fff; --sl-shadow:0 6px 18px -6px rgba(28,27,25,.38); --v-great:#0A6B35; --v-good:#4A6500; --v-fair:#85540A; --v-pass:#5C5850; --v-suspicious:#B00020;";
+    const DK = "--tk-paper:#161513; --tk-ink:#ECE9E2; --tk-muted:#A9A59B; --tk-rule:rgba(255,255,255,.14); --tk-line:#858176; --tk-accent:#E2673C; --tk-on-accent:#161513; --tk-on-v:#161513; --tk-shadow:0 6px 18px -6px rgba(0,0,0,.7); --v-great:#5FD08B; --v-good:#B5D36A; --v-fair:#E0B050; --v-pass:#A9A59B; --v-suspicious:#FF8A80;";
+    const LT = "--tk-paper:#FBFAF6; --tk-ink:#1B1A17; --tk-muted:#5C5850; --tk-rule:rgba(28,27,25,.14); --tk-line:#77736A; --tk-accent:#C8461F; --tk-on-accent:#fff; --tk-on-v:#fff; --tk-shadow:0 6px 18px -6px rgba(28,27,25,.38); --v-great:#0A6B35; --v-good:#4A6500; --v-fair:#85540A; --v-pass:#5C5850; --v-suspicious:#B00020;";
     st.textContent = `
-      html[data-sl-theme="dark"] :is(.second-look-sticker, .second-look-marks) { ${DK} }
-      html:not([data-sl-theme="dark"]) :is(.second-look-sticker, .second-look-marks) { ${LT} }
-      .second-look-sticker { --c:var(--v-fair);
-        position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--sl-fit, calc(100% - 20px));
-        background:var(--sl-paper); color:var(--sl-ink); border-radius:999px; box-shadow:0 0 0 1px var(--sl-rule), var(--sl-shadow);
+      html[data-tk-theme="dark"] :is(.tirekick-sticker, .tirekick-marks) { ${DK} }
+      html:not([data-tk-theme="dark"]) :is(.tirekick-sticker, .tirekick-marks) { ${LT} }
+      .tirekick-sticker { --c:var(--v-fair);
+        position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--tk-fit, calc(100% - 20px));
+        background:var(--tk-paper); color:var(--tk-ink); border-radius:999px; box-shadow:0 0 0 1px var(--tk-rule), var(--tk-shadow);
         font:400 12px/1.2 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; text-align:left; letter-spacing:normal; cursor:help;
         } /* no fade-in: tags appear as cards load, and animating hundreds of them on a long feed cost frames */
-      .second-look-sticker[data-v="great"] { --c:var(--v-great); } .second-look-sticker[data-v="good"] { --c:var(--v-good); }
-      .second-look-sticker[data-v="pass"] { --c:var(--v-pass); } .second-look-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
+      .tirekick-sticker[data-v="great"] { --c:var(--v-great); } .tirekick-sticker[data-v="good"] { --c:var(--v-good); }
+      .tirekick-sticker[data-v="pass"] { --c:var(--v-pass); } .tirekick-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
       /* the score: a dial whose ring fills to the score (as in the panel) */
-      .second-look-sticker .sl-score { --p:50; position:relative; flex:none; width:44px; height:44px; box-sizing:border-box; border-radius:50%; color:var(--c);
-        display:grid; place-content:center; text-align:center; line-height:1; background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--sl-rule) 0); }
-      .second-look-sticker .sl-score::before { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--sl-paper); }
-      .second-look-sticker .sl-score > * { position:relative; }
-      .second-look-sticker .sl-score b { display:block; font:600 17px/1 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; font-variant-numeric:lining-nums tabular-nums; }
-      .second-look-sticker .sl-score i { display:block; margin-top:3px; font-weight:700; font-size:10px; line-height:1; font-family:inherit; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
-      .second-look-sticker .sl-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
-      .second-look-sticker .sl-verdict { font:600 15px/1.15 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.005em; white-space:nowrap; }
-      .second-look-sticker.sl-compact .sl-verdict { display:none; }
+      .tirekick-sticker .tk-score { --p:50; position:relative; flex:none; width:44px; height:44px; box-sizing:border-box; border-radius:50%; color:var(--c);
+        display:grid; place-content:center; text-align:center; line-height:1; background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--tk-rule) 0); }
+      .tirekick-sticker .tk-score::before { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--tk-paper); }
+      .tirekick-sticker .tk-score > * { position:relative; }
+      .tirekick-sticker .tk-score b { display:block; font:600 17px/1 "TK Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; font-variant-numeric:lining-nums tabular-nums; }
+      .tirekick-sticker .tk-score i { display:block; margin-top:3px; font-weight:700; font-size:10px; line-height:1; font-family:inherit; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
+      .tirekick-sticker .tk-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
+      .tirekick-sticker .tk-verdict { font:600 15px/1.15 "TK Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.005em; white-space:nowrap; }
+      .tirekick-sticker.tk-compact .tk-verdict { display:none; }
       /* The verdict is written beside the score, so the box needn't say it again and can cover less of the photo.
          On a narrow card the verdict hides, and the short word comes back under the score. */
-      .second-look-sticker:not(.sl-compact) .sl-score { width:38px; height:38px; }
-      .second-look-sticker:not(.sl-compact) .sl-score b { font-size:16px; }
+      .tirekick-sticker:not(.tk-compact) .tk-score { width:38px; height:38px; }
+      .tirekick-sticker:not(.tk-compact) .tk-score b { font-size:16px; }
       /* narrow cards keep the short word under the number: the dial grows to hold both */
-      .second-look-sticker.sl-compact { border-radius:26px; }
-      .second-look-sticker.sl-compact .sl-score { width:48px; height:48px; }
-      .second-look-sticker.sl-compact .sl-score b { font-size:16px; }
-      .second-look-sticker.sl-compact .sl-score i { font-size:8px; margin-top:2px; }
+      .tirekick-sticker.tk-compact { border-radius:26px; }
+      .tirekick-sticker.tk-compact .tk-score { width:48px; height:48px; }
+      .tirekick-sticker.tk-compact .tk-score b { font-size:16px; }
+      .tirekick-sticker.tk-compact .tk-score i { font-size:8px; margin-top:2px; }
       @media (forced-colors: active) {
-        .second-look-sticker .sl-score { background:none; border:2px solid CanvasText; }
-        .second-look-sticker .sl-score::before { display:none; }
+        .tirekick-sticker .tk-score { background:none; border:2px solid CanvasText; }
+        .tirekick-sticker .tk-score::before { display:none; }
       }
-      .second-look-sticker:not(.sl-compact) .sl-score i { display:none; }
-      .second-look-sticker.sl-compact .sl-text:not(:has(.sl-sub)) { display:none; }
-      .second-look-sticker.sl-compact { padding-right:4px; }
-      .second-look-sticker .sl-sub { font-size:12px; color:var(--sl-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .tirekick-sticker:not(.tk-compact) .tk-score i { display:none; }
+      .tirekick-sticker.tk-compact .tk-text:not(:has(.tk-sub)) { display:none; }
+      .tirekick-sticker.tk-compact { padding-right:4px; }
+      .tirekick-sticker .tk-sub { font-size:12px; color:var(--tk-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       /* small chips: under a sticker, or on their own on a card that hasn't been scored */
-      .second-look-sticker .sl-below { position:absolute; left:4px; top:100%; padding-top:5px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+      .tirekick-sticker .tk-below { position:absolute; left:4px; top:100%; padding-top:5px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
       /* Marketplace: top-right, and never into the top-left corner where Facebook puts "Just listed" */
-      .second-look-sticker.sl-right, .second-look-marks.sl-right { left:auto; right:10px; max-width:max(120px, calc(100% - 110px)); }
-      .second-look-marks.sl-right { justify-content:flex-end; }
-      .second-look-sticker.sl-right .sl-below { left:auto; right:4px; align-items:flex-end; }
-      .second-look-sticker.sl-right .sl-under { justify-content:flex-end; }
-      .second-look-sticker .sl-under { display:flex; flex-wrap:wrap; gap:4px; width:max-content; max-width:var(--sl-fit, 320px); }
-      .sl-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--sl-ink); color:var(--sl-paper);
+      .tirekick-sticker.tk-right, .tirekick-marks.tk-right { left:auto; right:10px; max-width:max(120px, calc(100% - 110px)); }
+      .tirekick-marks.tk-right { justify-content:flex-end; }
+      .tirekick-sticker.tk-right .tk-below { left:auto; right:4px; align-items:flex-end; }
+      .tirekick-sticker.tk-right .tk-under { justify-content:flex-end; }
+      .tirekick-sticker .tk-under { display:flex; flex-wrap:wrap; gap:4px; width:max-content; max-width:var(--tk-fit, 320px); }
+      .tk-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--tk-ink); color:var(--tk-paper);
         font:600 12px/1.35 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:nowrap; letter-spacing:normal; text-transform:none; }
-      .sl-chip svg { width:11px; height:11px; }
-      .sl-chip.k-new { background:var(--sl-accent); color:var(--sl-on-accent); } .sl-chip.k-good { background:var(--v-great); color:var(--sl-on-v); } .sl-chip.k-warn { background:var(--v-suspicious); color:var(--sl-on-v); }
-      .sl-chip.k-plain { background:var(--sl-paper); color:var(--sl-ink); box-shadow:inset 0 0 0 1px var(--sl-line); }
-      .sl-chip.k-deal { background:var(--sl-accent); color:var(--sl-on-accent); font-size:12px; padding:3px 9px; box-shadow:0 0 0 2px var(--sl-paper); }
-      .second-look-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:var(--sl-fit, calc(100% - 20px));
+      .tk-chip svg { width:11px; height:11px; }
+      .tk-chip.k-new { background:var(--tk-accent); color:var(--tk-on-accent); } .tk-chip.k-good { background:var(--v-great); color:var(--tk-on-v); } .tk-chip.k-warn { background:var(--v-suspicious); color:var(--tk-on-v); }
+      .tk-chip.k-plain { background:var(--tk-paper); color:var(--tk-ink); box-shadow:inset 0 0 0 1px var(--tk-line); }
+      .tk-chip.k-deal { background:var(--tk-accent); color:var(--tk-on-accent); font-size:12px; padding:3px 9px; box-shadow:0 0 0 2px var(--tk-paper); }
+      .tirekick-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:var(--tk-fit, calc(100% - 20px));
         filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); pointer-events:auto; }
-      .second-look-marks button, .second-look-sticker .sl-under button { cursor:pointer; border:0; }
+      .tirekick-marks button, .tirekick-sticker .tk-under button { cursor:pointer; border:0; }
       /* Hover-only actions stay in the DOM (clipped, not display:none) so the keyboard can reach them; they show on hover or focus. */
-      .sl-x { position:absolute !important; width:1px !important; height:1px !important; margin:-1px !important; padding:0 !important; overflow:hidden !important; clip-path:inset(50%) !important; }
-      [data-second-look-key]:hover .sl-x, .second-look-marks:focus-within .sl-x, .second-look-sticker:focus-within .sl-x, .sl-x:focus-visible
+      .tk-x { position:absolute !important; width:1px !important; height:1px !important; margin:-1px !important; padding:0 !important; overflow:hidden !important; clip-path:inset(50%) !important; }
+      [data-tirekick-key]:hover .tk-x, .tirekick-marks:focus-within .tk-x, .tirekick-sticker:focus-within .tk-x, .tk-x:focus-visible
         { position:static !important; width:auto !important; height:auto !important; margin:0 !important; padding:2px 7px !important; overflow:visible !important; clip-path:none !important; }
       /* listings you've hidden, filtered out, or (by choice) skipped */
-      html:not([data-sl-showhidden]) [data-sl-hide] { display:none !important; }
-      html[data-sl-showhidden] [data-sl-hide] { opacity:.45; }
+      html:not([data-tk-showhidden]) [data-tk-hide] { display:none !important; }
+      html[data-tk-showhidden] [data-tk-hide] { opacity:.45; }
       /* Dim fades the card but not its tag or chips: a scam warning stays the most legible thing on it.
          The parts to fade are marked once per card (fadeParts): no :has() here, which on a page that changes
          as constantly as Facebook's made the browser re-check every card on every change and froze it. */
-      html[data-sl-skip="dim"] [data-sl-faded] { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
-      html[data-sl-skip="dim"] [data-sl-v]:hover [data-sl-faded] { opacity:1; filter:none; }
-      html[data-sl-skip="hide"] :is([data-sl-v="pass"], [data-sl-v="suspicious"]) { display:none !important; }
+      html[data-tk-skip="dim"] [data-tk-faded] { opacity:.38; filter:grayscale(1); transition:opacity .2s, filter .2s; }
+      html[data-tk-skip="dim"] [data-tk-v]:hover [data-tk-faded] { opacity:1; filter:none; }
+      html[data-tk-skip="hide"] :is([data-tk-v="pass"], [data-tk-v="suspicious"]) { display:none !important; }
       /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering (set by fit()) */
-      [data-sl-lift] { position:relative; z-index:2147483000 !important; }
-      .second-look-sticker .sl-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--sl-rule); }
-      .second-look-sticker .sl-acts button, .second-look-sticker .sl-acts a { all:unset; cursor:pointer; color:var(--sl-ink); font-weight:600; font-size:13px;
-        text-decoration:underline; text-decoration-color:var(--sl-rule); text-underline-offset:3px; }
-      .second-look-sticker .sl-acts :is(button, a):hover { text-decoration-color:currentColor; }
-      .second-look-sticker .sl-pop { display:none; width:264px; max-width:min(264px, 80vw); padding:12px 14px;
-        background:var(--sl-paper); color:var(--sl-ink); border-radius:12px; box-shadow:0 0 0 1px var(--sl-line), var(--sl-shadow);
+      [data-tk-lift] { position:relative; z-index:2147483000 !important; }
+      .tirekick-sticker .tk-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--tk-rule); }
+      .tirekick-sticker .tk-acts button, .tirekick-sticker .tk-acts a { all:unset; cursor:pointer; color:var(--tk-ink); font-weight:600; font-size:13px;
+        text-decoration:underline; text-decoration-color:var(--tk-rule); text-underline-offset:3px; }
+      .tirekick-sticker .tk-acts :is(button, a):hover { text-decoration-color:currentColor; }
+      .tirekick-sticker .tk-pop { display:none; width:264px; max-width:min(264px, 80vw); padding:12px 14px;
+        background:var(--tk-paper); color:var(--tk-ink); border-radius:12px; box-shadow:0 0 0 1px var(--tk-line), var(--tk-shadow);
         font:400 13px/1.5 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; white-space:normal; text-transform:none; cursor:auto; }
-      .second-look-sticker:hover .sl-pop, .second-look-sticker:focus-within .sl-pop { display:block; }
-      .second-look-sticker:focus-visible { outline:2px solid var(--sl-ink); outline-offset:3px; }
-      .second-look-sticker .sl-pop b { display:block; margin-bottom:4px; font:600 17px/1.25 "SL Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.01em; }
-      .second-look-sticker .sl-pop b span { color:var(--c); }
-      .second-look-sticker .sl-flags { margin-top:6px; color:var(--sl-muted); }
-      .second-look-flash { outline:2px solid #C8461F !important; outline-offset:4px; animation:sl-flash 2s ease-out both; }
-      @keyframes sl-flash { 0%, 60% { outline-color:#C8461F; } 100% { outline-color:transparent; } }`;
+      .tirekick-sticker:hover .tk-pop, .tirekick-sticker:focus-within .tk-pop { display:block; }
+      .tirekick-sticker:focus-visible { outline:2px solid var(--tk-ink); outline-offset:3px; }
+      .tirekick-sticker .tk-pop b { display:block; margin-bottom:4px; font:600 17px/1.25 "TK Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif; letter-spacing:-.01em; }
+      .tirekick-sticker .tk-pop b span { color:var(--c); }
+      .tirekick-sticker .tk-flags { margin-top:6px; color:var(--tk-muted); }
+      .tirekick-flash { outline:2px solid #C8461F !important; outline-offset:4px; animation:tk-flash 2s ease-out both; }
+      @keyframes tk-flash { 0%, 60% { outline-color:#C8461F; } 100% { outline-color:transparent; } }`;
     document.head.append(st);
   };
 
@@ -1549,7 +1560,7 @@
   // listing by its URL and put the decoration back when its card reappears.
   let scored = new Map(); // key -> scored item
   let seen = new Set(); // keys already sent for scoring (or being scored), so a re-scan only does what's new
-  const keyOf = SL.keyOf;
+  const keyOf = TK.keyOf;
   const ITEM_LINK = 'a[href*="/marketplace/item/"]';
 
   // ---------- what's known about each listing without asking a model ----------
@@ -1622,7 +1633,7 @@
   const STEM_DAYS = 30;
   let stemTimer = 0;
   const noteCode = (key, title, code) => {
-    const stem = SL.titleStem(title, code);
+    const stem = TK.titleStem(title, code);
     if (stem.split(" ").length < 4) return ""; // short titles ("Nikon camera") collide by chance
     const rec = (codeStems[stem] ||= { c: {}, a: 0 });
     if (rec.c[code] === key) return stem; // nothing new: no write
@@ -1662,7 +1673,7 @@
 
   // Why a listing is filtered out ("" if it isn't): the words in your settings (matched against the title),
   // then this search's filter bar.
-  const filterReason = (f) => SLRules.termsReason(f.title || "", prefs.filterWords) || quickReason(f);
+  const filterReason = (f) => TKRules.termsReason(f.title || "", prefs.filterWords) || quickReason(f);
 
   // ---------- the filter bar: per search, remembered, no AI ----------
   // Words work like an eBay search: "dmg -case -game" needs dmg and drops anything with case or game;
@@ -1674,14 +1685,14 @@
   const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", deal: 0 };
   let quick = { ...NO_QUICK };
   let quickReady = Promise.resolve(); // this search's saved filter, loaded on each page change
-  const quickReason = (f) => SLRules.quickReason(f, quick);
+  const quickReason = (f) => TKRules.quickReason(f, quick);
   const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken);
-  const isDeal = (f) => SLRules.isDeal(f, quick.deal);
+  const isDeal = (f) => TKRules.isDeal(f, quick.deal);
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
-  const sellerWarning = (f) => SLRules.sellerWarning(f, prefs);
+  const sellerWarning = (f) => TKRules.sellerWarning(f, prefs);
   const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed", "wasPrice"];
-  const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(SL.bigImage(img))}`;
+  const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(TK.bigImage(img))}`;
 
 
   // The chips a card wears: most useful first, three at most.
@@ -1710,7 +1721,7 @@
     if (f.bestOffer) c.push(["plain", "Offers"]);
     return c.slice(0, 3);
   };
-  const chipEls = (f) => chipsFor(f).map(([kind, text]) => h("span", { class: `sl-chip k-${kind}` }, text));
+  const chipEls = (f) => chipsFor(f).map(([kind, text]) => h("span", { class: `tk-chip k-${kind}` }, text));
 
   // Our own buttons sit inside the site's card (on Facebook, inside the link): keep the click ours.
   const own = (fn) => (e) => {
@@ -1722,7 +1733,7 @@
   // Where the sticker goes. eBay cards are fine as they are. A Facebook card is a link that may be
   // inline or zero-height, so climb to the nearest real box that still holds only this one listing.
   const stickerHost = (el) => {
-    if (SL.currentSite() !== "facebook") return el;
+    if (TK.currentSite() !== "facebook") return el;
     let node = el;
     for (let i = 0; i < 6 && node; i++) {
       const r = node.getBoundingClientRect();
@@ -1744,7 +1755,7 @@
       ? !!box.querySelector(`${ITEM_LINK}:not([href*="/item/${id}/"]):not([href$="/item/${id}"]):not([href*="/item/${id}?"])`)
       : [...box.querySelectorAll(ITEM_LINK)].some((a) => itemIdOf(a) !== id);
   const cellOf = (el) => {
-    if (SL.currentSite() !== "facebook") return el;
+    if (TK.currentSite() !== "facebook") return el;
     const id = itemIdOf(el.closest(ITEM_LINK) || el.querySelector(ITEM_LINK) || el);
     let node = el;
     for (let i = 0; i < 40; i++) {
@@ -1756,12 +1767,12 @@
   };
 
   const undecorate = (host) => {
-    if (host.dataset.secondLookPos) host.style.position = "";
-    for (const a of ["data-second-look", "data-second-look-key", "data-second-look-pos", "data-sl-hide", "data-sl-v", "data-sl-cell", "data-sl-sig", "data-sl-has"]) host.removeAttribute(a);
-    host.querySelectorAll(":scope > .second-look-sticker, :scope > .second-look-marks").forEach((n) => n.remove());
-    const cell = host.closest("[data-sl-hide], [data-sl-v], [data-sl-cell]");
-    for (const a of ["data-sl-hide", "data-sl-v", "data-sl-cell", "data-sl-lift"]) cell?.removeAttribute(a);
-    cell?.querySelectorAll("[data-sl-faded]").forEach((n) => n.removeAttribute("data-sl-faded"));
+    if (host.dataset.tirekickPos) host.style.position = "";
+    for (const a of ["data-tirekick", "data-tirekick-key", "data-tirekick-pos", "data-tk-hide", "data-tk-v", "data-tk-cell", "data-tk-sig", "data-tk-has"]) host.removeAttribute(a);
+    host.querySelectorAll(":scope > .tirekick-sticker, :scope > .tirekick-marks").forEach((n) => n.remove());
+    const cell = host.closest("[data-tk-hide], [data-tk-v], [data-tk-cell]");
+    for (const a of ["data-tk-hide", "data-tk-v", "data-tk-cell", "data-tk-lift"]) cell?.removeAttribute(a);
+    cell?.querySelectorAll("[data-tk-faded]").forEach((n) => n.removeAttribute("data-tk-faded"));
   };
 
   // Dress one card: a sticker if it's been scored, otherwise just its chips; hidden if you said so.
@@ -1770,11 +1781,11 @@
   const decorate = (key, linkEl, m) => {
     if (!linkEl?.isConnected) return;
     m ||= measure(linkEl);
-    const marks = m.cell.querySelector(".second-look-sticker, .second-look-marks");
+    const marks = m.cell.querySelector(".tirekick-sticker, .tirekick-marks");
     const at = marks && marks.contains(document.activeElement) ? [...marks.querySelectorAll("button")].indexOf(document.activeElement) : null;
     redecorate(key, linkEl, m);
     if (at == null) return;
-    const now = m.cell.querySelector(".second-look-sticker, .second-look-marks");
+    const now = m.cell.querySelector(".tirekick-sticker, .tirekick-marks");
     (now?.querySelectorAll("button")[at] || now)?.focus({ preventScroll: true });
   };
   // Everything a card's dressing needs to read from the page, read in one go. Reading a size right after
@@ -1782,14 +1793,14 @@
   // measured first and dressed after (decorateAll).
   const measure = (linkEl) => {
     const host = stickerHost(linkEl);
-    const img = SL.currentSite() === "ebay" ? host.querySelector("img") : null;
+    const img = TK.currentSite() === "ebay" ? host.querySelector("img") : null;
     return { host, cell: cellOf(linkEl), isStatic: getComputedStyle(host).position === "static", imgW: img ? img.getBoundingClientRect().width : 0, hostW: host.getBoundingClientRect().width };
   };
   // What a card's dressing depends on, as a string: when it hasn't changed, the card is left as it is.
   const sigOf = (key) => JSON.stringify([facts.get(key) || {}, scored.get(key), !!saved[key], showHidden, prefs.autoMarks, lens], (k, v) => (k === "el" ? undefined : v));
   const isDressed = (key, el, base) => {
-    const tagged = el.closest("[data-second-look-key]");
-    return !!tagged && tagged.dataset.secondLookKey === key && !!tagged.dataset.slSig?.startsWith(base) && (tagged.dataset.slHas !== "1" || !!tagged.querySelector(":scope > .second-look-sticker, :scope > .second-look-marks"));
+    const tagged = el.closest("[data-tirekick-key]");
+    return !!tagged && tagged.dataset.tirekickKey === key && !!tagged.dataset.tkSig?.startsWith(base) && (tagged.dataset.tkHas !== "1" || !!tagged.querySelector(":scope > .tirekick-sticker, :scope > .tirekick-marks"));
   };
   const decorateAll = (pairs) => {
     ensureStickerStyles();
@@ -1813,23 +1824,23 @@
     // Nothing it shows has changed (the page pass runs whenever more listings load): leave the card alone.
     // Rebuilding every tag on every pass made long feeds lag.
     const sig = `${m.base ?? sigOf(key)}|${m.hostW < 250}|${Math.round(m.imgW)}`;
-    if (host.dataset.slSig === sig && host.dataset.secondLookKey === key && cell.hasAttribute("data-sl-cell") && (host.dataset.slHas !== "1" || host.querySelector(":scope > .second-look-sticker, :scope > .second-look-marks"))) return;
-    host.dataset.slSig = sig;
-    host.dataset.slHas = ""; // set when a tag or chips go on below
-    host.setAttribute("data-second-look-key", key);
-    cell.setAttribute("data-sl-cell", "");
-    if (m.isStatic && !host.dataset.secondLookPos) {
+    if (host.dataset.tkSig === sig && host.dataset.tirekickKey === key && cell.hasAttribute("data-tk-cell") && (host.dataset.tkHas !== "1" || host.querySelector(":scope > .tirekick-sticker, :scope > .tirekick-marks"))) return;
+    host.dataset.tkSig = sig;
+    host.dataset.tkHas = ""; // set when a tag or chips go on below
+    host.setAttribute("data-tirekick-key", key);
+    cell.setAttribute("data-tk-cell", "");
+    if (m.isStatic && !host.dataset.tirekickPos) {
       host.style.position = "relative";
-      host.setAttribute("data-second-look-pos", "1");
+      host.setAttribute("data-tirekick-pos", "1");
     }
-    if (f.hidden || f.filtered) cell.setAttribute("data-sl-hide", f.hidden ? "not-interested" : "filter");
-    else cell.removeAttribute("data-sl-hide");
-    if (it || likelyScam(f)) cell.setAttribute("data-sl-v", it ? it.verdict : "suspicious");
-    else cell.removeAttribute("data-sl-v");
+    if (f.hidden || f.filtered) cell.setAttribute("data-tk-hide", f.hidden ? "not-interested" : "filter");
+    else cell.removeAttribute("data-tk-hide");
+    if (it || likelyScam(f)) cell.setAttribute("data-tk-v", it ? it.verdict : "suspicious");
+    else cell.removeAttribute("data-tk-v");
     // Clear the whole cell, not just this host: on Facebook the host can be a different box than
     // last time (layout settles after load), and old marks left on the other one made two layers.
-    cell.querySelectorAll(".second-look-sticker, .second-look-marks").forEach((n) => n.remove());
-    cell.querySelectorAll("[data-second-look-key]").forEach((n) => n !== host && n.removeAttribute("data-second-look-key"));
+    cell.querySelectorAll(".tirekick-sticker, .tirekick-marks").forEach((n) => n.remove());
+    cell.querySelectorAll("[data-tirekick-key]").forEach((n) => n !== host && n.removeAttribute("data-tirekick-key"));
     // On eBay the card holds photo and text side by side (list view) or stacked (grid); either way the
     // tag and chips stay on the photo instead of running over the title.
     // On Marketplace, Facebook puts its own labels ("Just listed") at the photo's top-left, so ours
@@ -1837,54 +1848,54 @@
     const fit = (node) => {
       const w = m.imgW;
       if (w > 80 && w < m.hostW - 40) {
-        node.style.setProperty("--sl-fit", `${Math.round(w - 20)}px`);
-        if (w - 20 < 150) node.classList.add("sl-compact"); // a small photo: the score alone fits, the rest is on hover
+        node.style.setProperty("--tk-fit", `${Math.round(w - 20)}px`);
+        if (w - 20 < 150) node.classList.add("tk-compact"); // a small photo: the score alone fits, the rest is on hover
       }
-      if (SL.currentSite() === "facebook") node.classList.add("sl-right");
+      if (TK.currentSite() === "facebook") node.classList.add("tk-right");
       // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
-      if (SL.currentSite() === "facebook" && m.hostW < 250) node.classList.add("sl-compact");
-      if (SL.currentSite() === "facebook") {
-        node.addEventListener("pointerenter", () => cell.setAttribute("data-sl-lift", ""));
-        node.addEventListener("pointerleave", () => cell.removeAttribute("data-sl-lift"));
+      if (TK.currentSite() === "facebook" && m.hostW < 250) node.classList.add("tk-compact");
+      if (TK.currentSite() === "facebook") {
+        node.addEventListener("pointerenter", () => cell.setAttribute("data-tk-lift", ""));
+        node.addEventListener("pointerleave", () => cell.removeAttribute("data-tk-lift"));
       }
       return node;
     };
     fadeParts(cell, host, it ? it.verdict === "pass" || it.verdict === "suspicious" : likelyScam(f));
     if (it) {
       it.el = linkEl;
-      host.setAttribute("data-second-look", it.verdict);
+      host.setAttribute("data-tirekick", it.verdict);
       host.append(fit(stickerEl(it, f, key)));
-      host.dataset.slHas = "1";
+      host.dataset.tkHas = "1";
       return;
     }
-    host.removeAttribute("data-second-look");
+    host.removeAttribute("data-tirekick");
     if (!prefs.autoMarks && !(showHidden && (f.hidden || f.filtered))) return;
     const chips = chipEls(f);
-    if (showHidden && f.hidden) chips.push(h("button", { class: "sl-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
+    if (showHidden && f.hidden) chips.push(h("button", { class: "tk-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
     else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Sold / Not interested appear when you hover the card
-    host.append(fit(h("div", { class: `second-look-marks` }, chips)));
-    host.dataset.slHas = "1";
+    host.append(fit(h("div", { class: `tirekick-marks` }, chips)));
+    host.dataset.tkHas = "1";
   };
   const stick = (item) => decorate(keyOf(item.url), item.el);
   // What fades when a card is dimmed: everything in it except our tag and chips. From the box that holds
   // the tag up to the grid cell, each level's other children fade, and so does everything in that box
   // but the tag, so nothing fades twice.
   const fadeParts = (cell, host, dim) => {
-    cell.querySelectorAll("[data-sl-faded]").forEach((n) => n.removeAttribute("data-sl-faded"));
+    cell.querySelectorAll("[data-tk-faded]").forEach((n) => n.removeAttribute("data-tk-faded"));
     if (!dim) return;
-    for (const kid of host.children) if (!kid.matches(".second-look-sticker, .second-look-marks")) kid.setAttribute("data-sl-faded", "");
-    for (let n = host; n !== cell && n.parentElement; n = n.parentElement) for (const sib of n.parentElement.children) if (sib !== n) sib.setAttribute("data-sl-faded", "");
+    for (const kid of host.children) if (!kid.matches(".tirekick-sticker, .tirekick-marks")) kid.setAttribute("data-tk-faded", "");
+    for (let n = host; n !== cell && n.parentElement; n = n.parentElement) for (const sib of n.parentElement.children) if (sib !== n) sib.setAttribute("data-tk-faded", "");
   };
   // "✕ Not interested", shown on any card while you hover it.
-  const hideChip = (key) => h("button", { class: "sl-chip k-plain sl-x", title: "Hide this listing everywhere (undo from the panel)", onclick: own(() => setInterested(key, false)) }, "Not interested");
+  const hideChip = (key) => h("button", { class: "tk-chip k-plain tk-x", title: "Hide this listing everywhere (undo from the panel)", onclick: own(() => setInterested(key, false)) }, "Not interested");
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
-  const soldLink = (title) => SL.soldUrl(SL.titleToQuery(title), SL.SOLD_CONDITION.used);
+  const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
   // What every card offers on hover. A saved listing keeps its star showing.
   const hoverChips = (key, f) => [
     saved[key]
-      ? h("button", { class: "sl-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
-      : h("button", { class: "sl-chip k-plain sl-x", title: "Keep it under Saved in the panel", onclick: own(() => toggleSave(key)) }, "Save"),
-    f.title ? h("button", { class: "sl-chip k-plain sl-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
+      ? h("button", { class: "tk-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
+      : h("button", { class: "tk-chip k-plain tk-x", title: "Keep it under Saved in the panel", onclick: own(() => toggleSave(key)) }, "Save"),
+    f.title ? h("button", { class: "tk-chip k-plain tk-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ];
 
@@ -1914,14 +1925,14 @@
     afterSavedChange();
     setStatus(was ? "Removed from Saved." : `Saved \u201c${(f.title || "listing").slice(0, 50)}\u201d. It's under Saved at the bottom of the panel.`, false, { label: "Undo", fn: () => toggleSave(key) });
   };
-  const searchKey = (q) => `${SL.currentSite()}|${q.trim().toLowerCase()}`;
-  const pageSearch = () => (SL.currentSite() === "ebay" ? SL.ebayQuery() : SL.facebookQuery()).trim();
+  const searchKey = (q) => `${TK.currentSite()}|${q.trim().toLowerCase()}`;
+  const pageSearch = () => (TK.currentSite() === "ebay" ? TK.ebayQuery() : TK.facebookQuery()).trim();
   const toggleSearch = async (q) => {
     const k = searchKey(q);
     const was = !!savedSearches[k];
     savedSearches = await writeStored("savedSearches", (s) => {
       if (was) delete s[k];
-      else s[k] = { site: SL.currentSite(), q, url: location.href, a0: Date.now(), v: Date.now(), n: facts.size, fresh: 0, deal: quick.deal || 0, deals: dealCount() };
+      else s[k] = { site: TK.currentSite(), q, url: location.href, a0: Date.now(), v: Date.now(), n: facts.size, fresh: 0, deal: quick.deal || 0, deals: dealCount() };
     });
     afterSavedChange();
     setStatus(was ? "Search removed from Saved." : `Saved the search \u201c${q}\u201d. Open it again from Saved; new listings will say "New to you".`);
@@ -1942,7 +1953,7 @@
   root.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
   // Home: alerts on saved things, a few numbers, spending, what you use. Looking at it marks the alerts seen.
   const homeCount = $('.nav [data-view="home"] .cnt');
-  const home = SLHome.mount($(".view-home"), {
+  const home = TKHome.mount($(".view-home"), {
     send,
     getMode: () => MODES[lens].id,
     isShown: () => view === "home" && wrap.classList.contains("open") && !document.hidden,
@@ -1959,7 +1970,7 @@
   document.addEventListener("visibilitychange", () => home.seen());
   // The toolbar icon (and its right-click menu) can bring up a particular tab.
   // From the toolbar icon (detail.toggle): with Home already on screen, the click tucks the panel away as usual.
-  window.addEventListener("second-look-show", (e) => {
+  window.addEventListener("tirekick-show", (e) => {
     if (e.detail?.toggle && view === "home" && wrap.classList.contains("open")) return setOpen(false);
     setView(e.detail?.view === "home" ? "home" : view);
     setOpen(true);
@@ -1991,7 +2002,7 @@
     const mem = memory[k];
     let pts = mem ? [...(mem.h || []).map(([p, t]) => ({ v: p, t })), { v: mem.p ?? r.p, t: mem.a ?? r.a }] : [];
     if (pts.length < 2 && r.p0 != null && r.p != null && r.p0 !== r.p) pts = [{ v: r.p0, t: r.a0 }, { v: r.p, t: r.a }];
-    const line = SLShared.spark(pts, { w: 76, h: 24, label: `Price history: ${pts.map((p) => dollars(p.v)).join(" \u2192 ")}` });
+    const line = TKShared.spark(pts, { w: 76, h: 24, label: `Price history: ${pts.map((p) => dollars(p.v)).join(" \u2192 ")}` });
     return line ? h("div", { class: "spark" }, line) : null;
   };
   let hiddenOpen = false; // the folded "Hidden" section stays as you left it while the list redraws
@@ -2118,8 +2129,8 @@
   // After any change to Saved (here, or in another tab): the section, the cards' stars, the listing view.
   const afterSavedChange = () => {
     renderSaved();
-    if (SL.pageType() === "results" && facts.size) redecorateAll();
-    if (SL.pageType() === "item") renderItemInfo();
+    if (TK.pageType() === "results" && facts.size) redecorateAll();
+    if (TK.pageType() === "item") renderItemInfo();
   };
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive() || !(changes.saved || changes.savedSearches)) return;
@@ -2131,17 +2142,17 @@
 
   // The same words on the other site, in a new tab.
   const otherSiteUrl = (q) =>
-    SL.currentSite() === "ebay" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(q)}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`;
+    TK.currentSite() === "ebay" ? `https://www.facebook.com/marketplace/search?query=${encodeURIComponent(q)}` : `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`;
 
 
   const reapplyFacebook = () => {
-    if ((!scored.size && !facts.size) || SL.currentSite() !== "facebook") return;
+    if ((!scored.size && !facts.size) || TK.currentSite() !== "facebook") return;
     const todo = [];
     document.querySelectorAll(ITEM_LINK).forEach((a) => {
       const key = keyOf(a.href);
       // Cheap check first (no layout reads): is this card still dressed for this listing?
-      const tagged = a.closest("[data-second-look-key]");
-      if (tagged?.dataset.secondLookKey === key && (tagged.querySelector(":scope > .second-look-sticker, :scope > .second-look-marks") || !scored.has(key))) return;
+      const tagged = a.closest("[data-tirekick-key]");
+      if (tagged?.dataset.tirekickKey === key && (tagged.querySelector(":scope > .tirekick-sticker, :scope > .tirekick-marks") || !scored.has(key))) return;
       if (scored.has(key) || facts.has(key)) todo.push([key, a]);
       else if (tagged && (tagged === a || tagged.querySelectorAll(ITEM_LINK).length === 1)) undecorate(tagged); // recycled for a listing we know nothing about
     });
@@ -2151,11 +2162,11 @@
   const clearStickers = () => {
     scored = new Map();
     seen = new Set();
-    document.querySelectorAll("[data-second-look-key]").forEach(undecorate);
-    document.querySelectorAll("[data-sl-hide], [data-sl-v], [data-sl-cell], [data-sl-faded], [data-sl-lift]").forEach((n) => {
-      for (const a of ["data-sl-hide", "data-sl-v", "data-sl-cell", "data-sl-faded", "data-sl-lift"]) n.removeAttribute(a);
+    document.querySelectorAll("[data-tirekick-key]").forEach(undecorate);
+    document.querySelectorAll("[data-tk-hide], [data-tk-v], [data-tk-cell], [data-tk-faded], [data-tk-lift]").forEach((n) => {
+      for (const a of ["data-tk-hide", "data-tk-v", "data-tk-cell", "data-tk-faded", "data-tk-lift"]) n.removeAttribute(a);
     });
-    document.querySelectorAll(".second-look-sticker, .second-look-marks").forEach((s) => s.remove());
+    document.querySelectorAll(".tirekick-sticker, .tirekick-marks").forEach((s) => s.remove());
   };
 
   // ---------- the page pass: runs when listings appear, no model involved ----------
@@ -2163,13 +2174,13 @@
   let pageHadKnown = null; // first visit to a search: nothing is "new to you" yet
   let passing = false;
   const pagePass = async (force = false) => {
-    if (SL.pageType() !== "results" || passing) return;
+    if (TK.pageType() !== "results" || passing) return;
     const keysNow = currentKeys();
     if (!force && keysNow.size === passKeys.size && [...keysNow].every((k) => passKeys.has(k))) return;
     passing = true;
     try {
       await Promise.all([memoryReady, prefsReady, quickReady, modeReady]);
-      const items = SL.extract();
+      const items = TK.extract();
       passKeys = keysNow;
       if (pageHadKnown === null && items.length) pageHadKnown = items.some((it) => memory[keyOf(it.url)]);
       // Same title (or same photo) on several listings: reposts, or one seller with several.
@@ -2177,7 +2188,7 @@
       for (const it of items) {
         const t = normTitle(it.title);
         if (t.split(" ").length >= 4) groups.set(`t:${t}`, [...(groups.get(`t:${t}`) || []), it]);
-        if (it.imageUrl && !SL.isPlaceholder(it.imageUrl)) groups.set(`i:${it.imageUrl}`, [...(groups.get(`i:${it.imageUrl}`) || []), it]);
+        if (it.imageUrl && !TK.isPlaceholder(it.imageUrl)) groups.set(`i:${it.imageUrl}`, [...(groups.get(`i:${it.imageUrl}`) || []), it]);
       }
       const dup = new Map();
       for (const list of groups.values()) if (list.length > 1) list.forEach((it) => dup.set(it, Math.max(dup.get(it) || 0, list.length)));
@@ -2222,7 +2233,7 @@
       // "New to you" only helps on a search you come back to, and only when it picks out a few:
       // on a feed, or when most of the page is new anyway, every card would wear it.
       const all = [...facts.values()];
-      const showNew = !!(SL.facebookQuery() || SL.ebayQuery()) && all.filter((f) => f.fresh).length <= all.length * 0.4;
+      const showNew = !!(TK.facebookQuery() || TK.ebayQuery()) && all.filter((f) => f.fresh).length <= all.length * 0.4;
       all.forEach((f) => (f.isNew = showNew && !!f.fresh));
       decorateAll(items.map((it) => [keyOf(it.url), it.el]));
       await noteSearchVisit(all);
@@ -2327,27 +2338,27 @@
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
       .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !/% of sold$/.test(t))
-      .map(([kind, text]) => h("span", { class: `sl-chip k-${kind}` }, text));
+      .map(([kind, text]) => h("span", { class: `tk-chip k-${kind}` }, text));
     if (item.photoAdjust) {
-      const chip = h("span", { class: "sl-chip", title: "Photo check" }, signed(item.photoAdjust));
+      const chip = h("span", { class: "tk-chip", title: "Photo check" }, signed(item.photoAdjust));
       chip.insertAdjacentHTML("afterbegin", CAMERA); // static markup, no page text involved
       under.unshift(chip);
     }
-    const line = (text) => (text ? h("div", { class: "sl-flags" }, text) : null);
+    const line = (text) => (text ? h("div", { class: "tk-flags" }, text) : null);
     return h(
       "div",
-      { class: "second-look-sticker", "data-v": item.verdict, tabindex: "0", role: "group", "aria-label": `Second Look: score ${item.score}, ${v.label}. Tab to the reasons and actions.` },
+      { class: "tirekick-sticker", "data-v": item.verdict, tabindex: "0", role: "group", "aria-label": `Tirekick: score ${item.score}, ${v.label}. Tab to the reasons and actions.` },
       scoreDial(item),
-      h("div", { class: "sl-text" }, h("div", { class: "sl-verdict" }, v.label), sub ? h("div", { class: "sl-sub" }, sub) : null),
+      h("div", { class: "tk-text" }, h("div", { class: "tk-verdict" }, v.label), sub ? h("div", { class: "tk-sub" }, sub) : null),
       // Below the tag, in one column: the chip row, then (on hover) the card with the reasons. However
       // many rows the chips wrap to, the card sits under them.
       h(
         "div",
-        { class: "sl-below" },
-        h("div", { class: "sl-under" }, under.slice(0, 3), hoverChips(key, { ...item, ...f })),
+        { class: "tk-below" },
+        h("div", { class: "tk-under" }, under.slice(0, 3), hoverChips(key, { ...item, ...f })),
         h(
         "div",
-        { class: "sl-pop" },
+        { class: "tk-pop" },
         h("b", {}, h("span", {}, String(item.score)), ` · ${v.label}`),
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
@@ -2367,7 +2378,7 @@
         item.imageUrl &&
         h(
           "div",
-          { class: "sl-acts" },
+          { class: "tk-acts" },
           // Save, Sold and Not interested sit just above as chips; this adds what they don't.
           item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation(), title: "Reverse image search: is this photo used elsewhere?" }, "Find this photo elsewhere \u2197") : null
         )
@@ -2429,7 +2440,7 @@
     if (!wrap.classList.contains("open") || view !== "page") return void (listStale = true);
     listStale = false;
     listEl.replaceChildren();
-    if (SL.pageType() !== "results") return;
+    if (TK.pageType() !== "results") return;
     const by = SORTS[sortMode] || SORTS.score;
     pageItems()
       .filter((it) => !isHidden(it) && !(skipMode === "hide" && isSkip(it)))
@@ -2531,14 +2542,14 @@
     const id = key.split(":")[1];
     if (key.startsWith("fb:")) {
       const links = [...document.querySelectorAll(`a[href*="/marketplace/item/${id}"]`)];
-      return links.find((a) => a.closest("[data-second-look-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
+      return links.find((a) => a.closest("[data-tirekick-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
     }
     const links = [...document.querySelectorAll(`a[href*="/itm/"][href*="${id}"]`)].filter((a) => keyOf(a.href) === key);
-    return links.map((a) => a.closest(SL.EBAY_CARDS)).find(Boolean) || null;
+    return links.map((a) => a.closest(TK.EBAY_CARDS)).find(Boolean) || null;
   };
   const focusCard = (it) => {
     const key = keyOf(it.url);
-    const el = it.el?.isConnected ? it.el : elFor(key) || document.querySelector(`[data-second-look-key="${CSS.escape(key)}"]`);
+    const el = it.el?.isConnected ? it.el : elFor(key) || document.querySelector(`[data-tirekick-key="${CSS.escape(key)}"]`);
     if (!el) {
       setStatus("That listing isn't on this page any more (scrolled away or the page changed).", false, { label: "Open it", fn: () => window.open(it.url, "_blank", "noopener") });
       return;
@@ -2548,10 +2559,10 @@
     const c = card.getBoundingClientRect();
     if (wrap.classList.contains("open") && c.right > panel.getBoundingClientRect().left) showOpen(false);
     ensureStickerStyles();
-    card.classList.remove("second-look-flash");
+    card.classList.remove("tirekick-flash");
     void card.offsetWidth; // restart the animation if it's still running
-    card.classList.add("second-look-flash");
-    setTimeout(() => card.classList.remove("second-look-flash"), 2200);
+    card.classList.add("tirekick-flash");
+    setTimeout(() => card.classList.remove("tirekick-flash"), 2200);
   };
 
   // Browsing: one real eBay sold-price check for one listing, using the search the model wrote for it.
@@ -2586,7 +2597,7 @@
     box.replaceChildren(h("div", { class: "photo" }, "Looking at the photo…"));
     setBusy(true);
     try {
-      applyPhotos(it, [await sendAI("checkPhoto", { imageUrl: SL.bigImage(it.imageUrl), title: it.title })]);
+      applyPhotos(it, [await sendAI("checkPhoto", { imageUrl: TK.bigImage(it.imageUrl), title: it.title })]);
       rememberScan(it);
       stick(it);
       render(); // the score may have changed, so the order may too
@@ -2602,16 +2613,16 @@
   // ---------- "Check this page": what the page reader can see, for when a site changes its layout ----------
   // Counts only, plus a few public listing titles; nothing is sent anywhere, the report is copied on request.
   const checkPage = async () => {
-    const type = SL.pageType();
-    const items = type === "results" ? SL.extract() : [];
+    const type = TK.pageType();
+    const items = type === "results" ? TK.extract() : [];
     const n = (fn) => items.filter(fn).length;
     const { soldCooldownUntil = 0, soldLog = [], soldCache = {} } = await chrome.storage.local.get(["soldCooldownUntil", "soldLog", "soldCache"]);
     const lines = [
-      `Second Look ${chrome.runtime.getManifest().version} on ${SL.currentSite()} (${type}), ${location.origin}${location.pathname}`,
-      type === "results" && `Cards on the page: ${SL.currentSite() === "facebook" ? document.querySelectorAll(ITEM_LINK).length : document.querySelectorAll(SL.EBAY_CARDS).length}; read as listings: ${items.length}`,
+      `Tirekick ${chrome.runtime.getManifest().version} on ${TK.currentSite()} (${type}), ${location.origin}${location.pathname}`,
+      type === "results" && `Cards on the page: ${TK.currentSite() === "facebook" ? document.querySelectorAll(ITEM_LINK).length : document.querySelectorAll(TK.EBAY_CARDS).length}; read as listings: ${items.length}`,
       type === "results" && items.length && `With a title ${n((i) => i.title)}, price ${n((i) => i.price != null)}, photo ${n((i) => i.imageUrl)}, shipping known ${n((i) => i.shipping != null)}, seller rating ${n((i) => i.sellerPct != null)}`,
       type === "results" && items.length && `First titles: ${items.slice(0, 3).map((i) => `\u201c${i.title.slice(0, 40)}\u201d`).join(", ")}`,
-      type === "item" && (() => { const l = SL.extractItem(); return `Listing read: title ${l.title ? "yes" : "NO"}, price ${l.price != null ? "yes" : "NO"}, photos ${l.imageUrls?.length || 0}, seller ${l.seller ? "yes" : "no"}`; })(),
+      type === "item" && (() => { const l = TK.extractItem(); return `Listing read: title ${l.title ? "yes" : "NO"}, price ${l.price != null ? "yes" : "NO"}, photos ${l.imageUrls?.length || 0}, seller ${l.seller ? "yes" : "no"}`; })(),
       `Sold prices: ${Date.now() < soldCooldownUntil ? `paused ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min (eBay asked for a browser check)` : "not paused"}; ${soldLog.filter((t) => Date.now() - t < 36e5).length} of ${PER_HOUR} lookups used this hour; ${Object.keys(soldCache).length} searches remembered`,
       `Scores kept: ${Object.keys(scansCache || {}).length} listings`,
     ].filter(Boolean);
@@ -2651,7 +2662,7 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const fetchSoldHtml = async (query, condition) => {
-    const url = SL.soldUrl(query, SL.SOLD_CONDITION[condition]);
+    const url = TK.soldUrl(query, TK.SOLD_CONDITION[condition]);
     if (location.hostname !== "www.ebay.com") return send("fetchSoldHtml", { url });
     const res = await fetch(url, { credentials: "include", signal: AbortSignal.timeout(30000) });
     return { status: res.status, html: res.ok ? await res.text() : "" };
@@ -2694,7 +2705,7 @@
     if (status === 403 || status === 429 || status === 503) return refused();
     if (!html) throw new Error(`eBay sold search failed (${status}).`);
     if (blockedPage(html)) return refused(); // never cache a check page as "no sales"
-    const market = SL.summarizeSold(html);
+    const market = TK.summarizeSold(html);
     // Keep the cache small: drop expired entries, cap at 100 searches.
     const fresh = Object.entries(soldCache).filter(([, v]) => Date.now() - v.at < SOLD_TTL_MS).slice(-99);
     await chrome.storage.local.set({ soldCache: Object.fromEntries([...fresh, [key, { at: Date.now(), market }]]) });
@@ -2744,7 +2755,7 @@
       // something broken to compare (a listing page, or a results page with broken/untested listings).
       const used = await soldMarket(query, "used");
       const working = used && { ...used, condition: "used" };
-      const needParts = forLens !== "use" && (SL.pageType() === "item" || [...facts.values()].some((f) => f.project));
+      const needParts = forLens !== "use" && (TK.pageType() === "item" || [...facts.values()].some((f) => f.project));
       let parts = null;
       if (needParts) {
         try {
@@ -2757,11 +2768,11 @@
       }
       market = working || parts ? { ...(working || { median: null }), parts } : null;
     } catch (e) {
-      console.debug("[Second Look] sold comps failed:", e.message); // shown in the panel; not an extension error
+      console.debug("[Tirekick] sold comps failed:", e.message); // shown in the panel; not an extension error
       if (epoch !== pageEpoch) return null;
       // You can still look yourself: eBay's own sold search, in a normal tab.
       marketEl.replaceChildren(
-        h("div", { class: "mnote" }, `${e.message} `, h("a", { href: SL.soldUrl(query, SL.SOLD_CONDITION.used), target: "_blank", rel: "noopener" }, "See sold listings on eBay"))
+        h("div", { class: "mnote" }, `${e.message} `, h("a", { href: TK.soldUrl(query, TK.SOLD_CONDITION.used), target: "_blank", rel: "noopener" }, "See sold listings on eBay"))
       );
       return null;
     }
@@ -2870,7 +2881,7 @@
     if (!alive() || !changes.scans) return;
     scansCache = changes.scans.newValue || {};
     for (const [key, snap] of pendingScans.values()) (scansCache[key] = { ...(scansCache[key] || {}) })[snap.lens] = snap; // not saved yet here
-    if (SL.pageType() === "item") renderItemInfo();
+    if (TK.pageType() === "item") renderItemInfo();
   });
   loadScans().catch(() => {});
 
@@ -2927,7 +2938,7 @@
   // ---------- listings that loaded after the last scan ----------
 
   const currentKeys = () => {
-    const sel = SL.currentSite() === "facebook" ? ITEM_LINK : SL.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", ");
+    const sel = TK.currentSite() === "facebook" ? ITEM_LINK : TK.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", ");
     const keys = new Set();
     document.querySelectorAll(sel).forEach((a) => keys.add(keyOf(a.href)));
     return keys;
@@ -2938,8 +2949,8 @@
   const refreshPending = () => {
     updateFold();
     showIdeasBtn();
-    freeRow.hidden = scanning || SL.pageType() !== "results" || !queryEl.value.trim() || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
-    if (scanning || SL.pageType() !== "results") return;
+    freeRow.hidden = scanning || TK.pageType() !== "results" || !queryEl.value.trim() || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
+    if (scanning || TK.pageType() !== "results") return;
     let n = 0;
     if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);
     // What a press would cost (Claude only): the listings it would send, at what scoring has cost
@@ -2981,7 +2992,7 @@
 
   // One line about the page: what's new, cheaper, flagged, hidden. Plus the skipped-listings control.
   const renderPageInfo = () => {
-    if (SL.pageType() !== "results" || !facts.size) return (pageInfo.hidden = true);
+    if (TK.pageType() !== "results" || !facts.size) return (pageInfo.hidden = true);
     const all = [...facts.values()];
     const n = (fn) => all.filter(fn).length;
     const newN = n((f) => f.isNew);
@@ -3030,7 +3041,7 @@
       ...(q
         ? [
             h("button", { class: savedSearches[searchKey(q)] ? "on" : null, onclick: () => toggleSearch(q), title: "Keep this search under Saved" }, savedSearches[searchKey(q)] ? "Saved search" : "Save search"),
-            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, SL.currentSite() === "ebay" ? "Try on Marketplace \u2197" : "Try on eBay \u2197"),
+            h("a", { href: otherSiteUrl(q), target: "_blank", rel: "noopener" }, TK.currentSite() === "ebay" ? "Try on Marketplace \u2197" : "Try on eBay \u2197"),
           ]
         : []),
       resetBtn
@@ -3040,7 +3051,7 @@
   };
   const setShowHidden = (on) => {
     showHidden = on;
-    document.documentElement.toggleAttribute("data-sl-showhidden", on);
+    document.documentElement.toggleAttribute("data-tk-showhidden", on);
     redecorateAll();
   };
   // The filter bar: each search keeps its own, so a saved search comes back filtered the same way.
@@ -3049,7 +3060,7 @@
   const qfMin = $(".qf-min");
   const qfMax = $(".qf-max");
   const qfDeal = $(".qf-dealin");
-  const quickKey = () => `${SL.currentSite()}|${(pageSearch() || location.pathname).toLowerCase()}`;
+  const quickKey = () => `${TK.currentSite()}|${(pageSearch() || location.pathname).toLowerCase()}`;
   // fill: also write the boxes (on load and Clear). Otherwise they're yours: never overwritten mid-edit.
   const showQuick = (fill = false) => {
     if (fill) {
@@ -3173,7 +3184,7 @@
   root.querySelectorAll("[data-skip]").forEach((b) =>
     b.addEventListener("click", () => {
       skipMode = b.dataset.skip;
-      document.documentElement.dataset.slSkip = wrap.dataset.skipmode = skipMode;
+      document.documentElement.dataset.tkSkip = wrap.dataset.skipmode = skipMode;
       setPref("skip", skipMode);
       render();
       renderPageInfo();
@@ -3240,7 +3251,7 @@
       // Cards the adapter skips (ads, "Shop on eBay") count as seen so they don't show as new.
       // Listings you've hidden or filtered out never go to the model.
       const skipped = currentKeys();
-      const fresh0 = SL.extract().filter((it) => !seen.has(keyOf(it.url)));
+      const fresh0 = TK.extract().filter((it) => !seen.has(keyOf(it.url)));
       const left = fresh0.filter((it) => !notInterested[keyOf(it.url)] && !facts.get(keyOf(it.url))?.filtered);
       const leftOut = fresh0.length - left.length;
       const items = left.map((it) => Object.assign(it, facts.get(keyOf(it.url)) ? { isNew: facts.get(keyOf(it.url)).isNew, drop: facts.get(keyOf(it.url)).drop } : {}));
@@ -3261,7 +3272,7 @@
       const query = queryEl.value.trim();
       const want = wantEl.value.trim();
       const forLens = lens;
-      const browse = query ? "" : SL.browseContext(); // no search: interests guide, prices are estimates
+      const browse = query ? "" : TK.browseContext(); // no search: interests guide, prices are estimates
       items.forEach((it) => (it.browse = !!browse));
       const market = await getMarket(settings, query, forLens);
       if (stopRequested) {
@@ -3453,10 +3464,10 @@
   let itemFacts = null;
   let itemTries = 0;
   const itemPass = async () => {
-    if (SL.pageType() !== "item") return;
+    if (TK.pageType() !== "item") return;
     await Promise.all([memoryReady, prefsReady]);
-    const listing = SL.extractItem();
-    if (SL.pageType() !== "item") return;
+    const listing = TK.extractItem();
+    if (TK.pageType() !== "item") return;
     if (!listing.title) {
       // Not rendered yet (Facebook can take a while): look again shortly, for up to about 15 seconds.
       if (itemTries++ < 30) setTimeout(itemPass, 500);
@@ -3502,7 +3513,7 @@
         : "";
   const renderItemInfo = () => {
     const f = itemFacts;
-    if (!f || SL.pageType() !== "item") return;
+    if (!f || TK.pageType() !== "item") return;
     const chips = chipsFor(f).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
     const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
     const scam = scamWarning(f);
@@ -3532,7 +3543,7 @@
       scam ? h("div", { class: "scamnote" }, h("b", {}, "Likely scam. "), scam) : "",
       when || f.drop ? h("div", {}, `${when || "Seen before"}${f.drop ? `; it was ${dollars(f.drop.from)} then` : ""}.`) : "",
       history ? h("div", {}, history) : "",
-      history ? h("div", { class: "spark" }, SLShared.spark([...f.history.map(([p, t]) => ({ v: p, t })), { v: f.price, t: Date.now() }], { label: history })) : "",
+      history ? h("div", { class: "spark" }, TKShared.spark([...f.history.map(([p, t]) => ({ v: p, t })), { v: f.price, t: Date.now() }], { label: history })) : "",
       sv?.p0 != null && f.price != null && f.price !== sv.p0 ? h("div", {}, `Saved on ${shortDate(sv.a0)} at ${dollars(sv.p0)}.`) : "",
       chips.length ? h("div", { class: "chips" }, chips) : "",
       slot ? "" : acts
@@ -3702,12 +3713,12 @@
     marketEl.textContent = "";
     try {
       const settings = await send("getSettings");
-      const listing = SL.extractItem();
+      const listing = TK.extractItem();
       if (!listing.title) {
         setStatus("Couldn't read this listing. Let it finish loading and try again, or the layout may have changed (README: When it breaks).", true, { label: "Check this page", fn: checkPage });
         return;
       }
-      if (!queryEl.value.trim()) queryEl.value = SL.titleToQuery(listing.title);
+      if (!queryEl.value.trim()) queryEl.value = TK.titleToQuery(listing.title);
       const query = queryEl.value.trim();
       const forLens = lens;
       const market = await getMarket(settings, query, forLens);
@@ -3751,7 +3762,7 @@
   let toastRoot = null;
   const toast = (imageUrl) => {
     if (!toastRoot) {
-      const host = h("div", { id: "second-look-toast" });
+      const host = h("div", { id: "tirekick-toast" });
       host.style.cssText = "position:fixed;left:16px;bottom:16px;z-index:2147483647;";
       toastRoot = host.attachShadow({ mode: "open" });
       toastRoot.innerHTML = `<style>
@@ -3781,11 +3792,11 @@
     const say = toast(imageUrl);
     say("Looking at the photo…");
     try {
-      const title = SL.pageType() === "item" ? SL.extractItem().title : "";
-      const p = await sendAI("checkPhoto", { imageUrl: SL.bigImage(imageUrl), title });
+      const title = TK.pageType() === "item" ? TK.extractItem().title : "";
+      const p = await sendAI("checkPhoto", { imageUrl: TK.bigImage(imageUrl), title });
       // If this photo belongs to a listing we've scored, the check counts toward its rating.
-      const big = SL.bigImage(imageUrl);
-      const hit = [...scored.values()].find((it) => it.imageUrl && SL.bigImage(it.imageUrl) === big);
+      const big = TK.bigImage(imageUrl);
+      const hit = [...scored.values()].find((it) => it.imageUrl && TK.bigImage(it.imageUrl) === big);
       if (hit) {
         applyPhotos(hit, [p]);
         rememberScan(hit);
@@ -3799,7 +3810,7 @@
   };
 
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === "second-look-check-photo" && msg.imageUrl) checkPhotoFromMenu(msg.imageUrl);
+    if (msg?.type === "tirekick-check-photo" && msg.imageUrl) checkPhotoFromMenu(msg.imageUrl);
   });
 
   // ---------- search ideas ----------
@@ -3812,7 +3823,7 @@
   const saveIdea = async (idea, btn) => {
     const k = searchKey(idea.query);
     savedSearches = await writeStored("savedSearches", (st) => {
-      st[k] ||= { site: SL.currentSite(), q: idea.query, url: SL.searchUrl(idea), a0: Date.now(), v: 0, n: 0, fresh: 0 };
+      st[k] ||= { site: TK.currentSite(), q: idea.query, url: TK.searchUrl(idea), a0: Date.now(), v: 0, n: 0, fresh: 0 };
     });
     btn.textContent = "Saved";
     btn.classList.add("on");
@@ -3833,11 +3844,11 @@
       let titles = [];
       if (!want) {
         titles = [...scored.values()].filter((it) => !isHidden(it)).map((it) => it.title);
-        if (!titles.length && SL.pageType() === "results") titles = SL.extract().map((it) => it.title);
+        if (!titles.length && TK.pageType() === "results") titles = TK.extract().map((it) => it.title);
         titles = titles.slice(0, 30);
       }
       const ideas = await sendAI("suggestSearches", {
-        site: SL.currentSite(),
+        site: TK.currentSite(),
         query: queryEl.value.trim(),
         intent: want,
         lens,
@@ -3855,7 +3866,7 @@
             "div",
             { class: "idea-row" },
             h("span", { class: `kind k-${idea.kind}` }, KIND[idea.kind] || "Idea"),
-            h("a", { href: SL.searchUrl(idea), title: `${idea.why}${extra ? ` (${extra})` : ""}` }, idea.query),
+            h("a", { href: TK.searchUrl(idea), title: `${idea.why}${extra ? ` (${extra})` : ""}` }, idea.query),
             star
           )
         );
@@ -3874,13 +3885,13 @@
   ideasBtn.addEventListener("click", getIdeas);
   // On eBay's front page there's no search yet and ideas start one; on a search they're other ways to search it.
   const showIdeasBtn = () => {
-    const type = SL.pageType();
+    const type = TK.pageType();
     ideasBtn.hidden = !(type === "home" || (type === "results" && queryEl.value.trim()));
     setIf(ideasBtn, "textContent", type === "home" ? "Find searches for what I want" : "Better searches");
     setIf(ideasBtn, "title", type === "home" ? "" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)");
   };
   queryEl.addEventListener("input", showIdeasBtn);
-  wantEl.addEventListener("keydown", (e) => e.key === "Enter" && SL.pageType() === "home" && getIdeas());
+  wantEl.addEventListener("keydown", (e) => e.key === "Enter" && TK.pageType() === "home" && getIdeas());
 
   // ---------- show only on results pages (FB is a single-page app) ----------
 
@@ -3906,13 +3917,13 @@
 
   let lastHref = "";
   let lastType = null;
-  window.addEventListener("second-look-toggle", toggleOpen); // toolbar icon, if you use it
+  window.addEventListener("tirekick-toggle", toggleOpen); // toolbar icon, if you use it
   const sync = () => {
     if (location.href === lastHref) return;
     if (lastType === "results") saveScan(lastHref);
     lastHref = location.href;
     pageEpoch++; // work still running for the page you left finishes quietly (see scan)
-    const type = (lastType = SL.pageType());
+    const type = (lastType = TK.pageType());
     const onResults = !!type;
     if (onResults && !host.isConnected) document.documentElement.append(host);
     if (!onResults && host.isConnected) host.remove();
@@ -3945,7 +3956,7 @@
       marketEl.textContent = "";
       setCount(0);
       setStatus("");
-      if (type !== "results" || !restoreScan(lastHref)) queryEl.value = SL.detectQuery();
+      if (type !== "results" || !restoreScan(lastHref)) queryEl.value = TK.detectQuery();
       if (type === "results") quickReady = loadQuick();
       showBrowseNote();
       updateFold();
@@ -3972,8 +3983,8 @@
     clearInterval(timer);
     host.remove();
     toastRoot?.host.remove();
-    window.removeEventListener("second-look-toggle", toggleOpen);
-    window.__secondLookPanel = false;
+    window.removeEventListener("tirekick-toggle", toggleOpen);
+    window.__tirekickPanel = false;
   };
   sync();
 })();

@@ -5,7 +5,7 @@ cd "$(dirname "$0")" || exit 1
 export NO_COLOR=1 # deno colors "error: Uncaught", which the checks below look for
 out=$(./run.sh); echo "$out"
 echo "$out" | grep -q '^FAIL' && exit 1
-for t in adapters.ts features.ts ux.ts first-run.ts scores-persist.ts marketplace.ts; do
+for t in adapters.ts features.ts ux.ts first-run.ts scores-persist.ts marketplace.ts rename.ts; do
   echo "== e2e/$t"
   out=$(e2e/run.sh "$t" 2>&1); echo "$out"
   echo "$out" | grep -qE '^FAIL|error: Uncaught' && exit 1

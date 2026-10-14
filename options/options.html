@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Second Look settings</title>
+<title>Tirekick settings</title>
 <link rel="icon" href="../icons/icon32.png">
 <style>
   /* the serif from the panel: wordmark, section titles and the big numbers */
-  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-600.woff2") format("woff2"); font-weight:600; font-display:swap; }
-  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-400.woff2") format("woff2"); font-weight:400; font-display:swap; }
-  @font-face { font-family:"SL Fraunces"; src:url("../fonts/fraunces-400-italic.woff2") format("woff2"); font-weight:400; font-style:italic; font-display:swap; }
+  @font-face { font-family:"TK Fraunces"; src:url("../fonts/fraunces-600.woff2") format("woff2"); font-weight:600; font-display:swap; }
+  @font-face { font-family:"TK Fraunces"; src:url("../fonts/fraunces-400.woff2") format("woff2"); font-weight:400; font-display:swap; }
+  @font-face { font-family:"TK Fraunces"; src:url("../fonts/fraunces-400-italic.woff2") format("woff2"); font-weight:400; font-style:italic; font-display:swap; }
 
   :root {
     --r:12px; --r-sm:7px; --bw:1px; --press:none;
     --ui:"Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
-    --display:"SL Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --display:"TK Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
     color-scheme:dark; --paper:#161513; --paper-2:#2B2925; --ink:#ECE9E2; --on-ink:#161513; --muted:#A9A59B; --rule:#34322D; --line:#858176; --accent:#E2673C; --danger:#FF8A80;
   }
   @media (prefers-color-scheme: light) {
@@ -106,7 +106,7 @@
 <main>
   <header>
     <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M14.8 14.8 20.5 20.5"/><circle class="dot" cx="10" cy="10" r="2" stroke="none"/></svg>
-    <h1>Second <em>Look</em><small>settings</small></h1>
+    <h1>Tirekick<small>settings</small></h1>
   </header>
   <p class="lede">Changes save as you make them and apply to open eBay and Facebook tabs straight away.</p>
 
@@ -278,14 +278,14 @@
     </div>
     <div class="field check">
       <input id="showTab" type="checkbox">
-      <label for="showTab">Show a slim tab on eBay and Facebook Marketplace<span class="hint">Pull it out to open the panel. If eBay ever misbehaves, turn this off: Second Look then loads only when you click its toolbar icon. Reload open eBay tabs after changing it.</span></label>
+      <label for="showTab">Show a slim tab on eBay and Facebook Marketplace<span class="hint">Pull it out to open the panel. If eBay ever misbehaves, turn this off: Tirekick then loads only when you click its toolbar icon. Reload open eBay tabs after changing it.</span></label>
     </div>
   </section>
 
   <section id="sec-backup">
     <details>
     <summary><h2>Backup</h2><span class="hint">Save or restore everything but your keys</span></summary>
-    <p class="hint">Everything Second Look keeps lives only in this browser. A backup file holds your saved listings and searches, each search's filter and price, what you've hidden, what you've seen, spending and these settings, but never your API keys. Restoring adds to what's here and takes the backup's settings.</p>
+    <p class="hint">Everything Tirekick keeps lives only in this browser. A backup file holds your saved listings and searches, each search's filter and price, what you've hidden, what you've seen, spending and these settings, but never your API keys. Restoring adds to what's here and takes the backup's settings.</p>
     <div class="row-btns"><button type="button" class="small" id="backup">Save a backup</button><button type="button" class="small" id="restore">Restore from a backup…</button><input type="file" id="restoreFile" accept="application/json,.json" hidden></div>
       </details>
   </section>

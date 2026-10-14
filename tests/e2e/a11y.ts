@@ -6,7 +6,7 @@ const { open, c } = await start();
 const OUT = Deno.env.get("A11Y_OUT")!;
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 const setStore = (js: string) => o.ev(`chrome.storage.local.set(${js})`);
-const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
+const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
 const media = (p: any, features: any[]) => c.send("Emulation.setEmulatedMedia", { features }, p.sessionId);
 const report: any = {};
 const front = (p: any) => c.send("Target.activateTarget", { targetId: p.targetId });

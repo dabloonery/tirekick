@@ -17,7 +17,7 @@ const PRESETS = {
 const showPreset = () => {
   document.getElementById("oaiPresetHint").textContent = PRESETS[document.getElementById("oaiPreset").value]?.hint || "";
 };
-// Second Look may reach the listed services already; any other address needs your OK once.
+// Tirekick may reach the listed services already; any other address needs your OK once.
 async function allowOrigin(url) {
   let origin;
   try {
@@ -124,7 +124,7 @@ const NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5"
 const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
 async function showSpend() {
   const { usage } = await chrome.storage.local.get("usage");
-  const { today: t, month: m, last: l, models } = SLShared.usageSummary(usage);
+  const { today: t, month: m, last: l, models } = TKShared.usageSummary(usage);
   const grid = document.getElementById("spendGrid");
   grid.replaceChildren(
     ...[["Today", t], ["This month", m], ["Last month", l]].map(([label, v]) => {
@@ -145,7 +145,7 @@ async function showSpend() {
   document.getElementById("spendModels").textContent = parts.length ? "This month: " + parts.join(" \u00b7 ") : "Nothing spent on paid AI this month.";
 }
 document.getElementById("resetSpend").addEventListener("click", async () => {
-  if (!confirm("Reset the spending counter? This only clears Second Look's own estimate, not anything at Anthropic.")) return;
+  if (!confirm("Reset the spending counter? This only clears Tirekick's own estimate, not anything at Anthropic.")) return;
   await chrome.storage.local.remove(["usage", "spend"]);
   showSpend();
   note("Spending counter reset.");
@@ -211,7 +211,7 @@ const valueOf = (f) => {
   const el = document.getElementById(f);
   if (el.type === "checkbox") return el.checked;
   // The same limits a restored backup goes through (lib/shared.js).
-  if (SLShared.isNumberSetting(f)) return SLShared.clampSetting(f, Number(el.value));
+  if (TKShared.isNumberSetting(f)) return TKShared.clampSetting(f, Number(el.value));
   return f === "ollamaUrl" || f === "oaiUrl" ? el.value.trim().replace(/\/+$/, "") : el.value.trim();
 };
 async function saveField(f) {
@@ -299,7 +299,7 @@ async function testOpenAI() {
   const url = document.getElementById("oaiUrl").value.trim().replace(/\/+$/, "");
   const key = document.getElementById("oaiKey").value.trim();
   if (!url) return (testMsg.textContent = "Pick a service, or enter its address.");
-  if (!(await allowOrigin(url))) return (testMsg.textContent = "Second Look needs your permission to reach that address.");
+  if (!(await allowOrigin(url))) return (testMsg.textContent = "Tirekick needs your permission to reach that address.");
   testMsg.textContent = "Testing…";
   try {
     const res = await fetch(`${url}/models`, { headers: key ? { Authorization: `Bearer ${key}` } : {} });
@@ -324,7 +324,7 @@ document.getElementById("test").addEventListener("click", async () => {
   if (document.getElementById("provider").value === "anthropic") return testClaude();
   if (document.getElementById("provider").value === "openai") return testOpenAI();
   const url = document.getElementById("ollamaUrl").value.trim().replace(/\/+$/, "");
-  if (!(await allowOrigin(url))) return (testMsg.textContent = "Second Look needs your permission to reach that address.");
+  if (!(await allowOrigin(url))) return (testMsg.textContent = "Tirekick needs your permission to reach that address.");
   testMsg.textContent = "Testing…";
   try {
     const res = await fetch(`${url}/api/tags`);
@@ -348,18 +348,20 @@ load().then(showStatus);
 
 // ---------- Backup ----------
 // Collections are merged on restore (a backup never deletes anything here); settings come from the backup.
+// What a backup file says it is. New backups write the first; "second-look" is from before the rename to Tirekick.
+const BACKUP_APPS = ["tirekick", "second-look"];
 const BACKUP_SETS = ["saved", "savedSearches", "quickFilters", "notInterested", "listingMemory", "codeStems", "usage", "stats", "modePrefs"];
 const SECRET = ["anthropicKey", "oaiKey"];
 
 // A backup file can hold anything, and saved addresses become links on eBay and Facebook pages. Keep
-// only addresses on those two sites (SLShared.safeUrl in lib/shared.js); a bad one is
+// only addresses on those two sites (TKShared.safeUrl in lib/shared.js); a bad one is
 // rebuilt from the listing's key or the search words, and counted so the note can say so.
 const isRecord = (v) => v && typeof v === "object" && !Array.isArray(v);
 function cleanSaved(saved, fixed) {
   const out = {};
   for (const [k, r] of Object.entries(saved)) {
     if (!isRecord(r) || !/^(ebay|fb):[\w-]+$/.test(k)) continue;
-    const u = SLShared.savedItemUrl(k, r);
+    const u = TKShared.savedItemUrl(k, r);
     if (u !== r.u && r.u) fixed.n++;
     out[k] = { ...r, u };
   }
@@ -369,7 +371,7 @@ function cleanSearches(searches, fixed) {
   const out = {};
   for (const [k, r] of Object.entries(searches)) {
     if (!isRecord(r) || typeof r.q !== "string") continue;
-    const url = SLShared.searchUrl(r);
+    const url = TKShared.searchUrl(r);
     if (url !== r.url) fixed.n++;
     out[k] = { ...r, url };
   }
@@ -378,11 +380,11 @@ function cleanSearches(searches, fixed) {
 document.getElementById("backup").addEventListener("click", async () => {
   const all = await chrome.storage.local.get([...FIELDS, ...BACKUP_SETS]);
   const settings = Object.fromEntries(FIELDS.filter((f) => !SECRET.includes(f) && all[f] !== undefined).map((f) => [f, all[f]]));
-  const data = { app: "second-look", version: chrome.runtime.getManifest().version, at: new Date().toISOString(), settings };
+  const data = { app: BACKUP_APPS[0], version: chrome.runtime.getManifest().version, at: new Date().toISOString(), settings };
   for (const k of BACKUP_SETS) if (all[k]) data[k] = all[k];
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-  a.download = `second-look-backup-${new Date().toLocaleDateString("en-CA")}.json`;
+  a.download = `tirekick-backup-${new Date().toLocaleDateString("en-CA")}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   const n = Object.keys(data.saved || {}).length;
@@ -398,9 +400,9 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   try {
     data = JSON.parse(await file.text());
   } catch {
-    return note("That file isn't a Second Look backup.");
+    return note("That file isn't a Tirekick backup.");
   }
-  if (data?.app !== "second-look") return note("That file isn't a Second Look backup.");
+  if (!BACKUP_APPS.includes(data?.app)) return note("That file isn't a Tirekick backup.");
   const here = await chrome.storage.local.get(BACKUP_SETS);
   const out = {};
   const fixed = { n: 0 };
@@ -430,13 +432,13 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   let skipped = 0;
   for (const [f, v] of Object.entries(isRecord(data.settings) ? data.settings : {})) {
     if (!FIELDS.includes(f) || SECRET.includes(f)) continue;
-    const clean = SLShared.cleanSetting(f, v);
+    const clean = TKShared.cleanSetting(f, v);
     if (clean === undefined) skipped++;
     else settings[f] = clean;
   }
   // A backup from before the two word lists became one.
   if (settings.filterWords === undefined && (data.settings?.hideWords !== undefined || data.settings?.needWords !== undefined)) {
-    settings.filterWords = SLShared.filterFromLists(String(data.settings.hideWords ?? ""), String(data.settings.needWords ?? ""));
+    settings.filterWords = TKShared.filterFromLists(String(data.settings.hideWords ?? ""), String(data.settings.needWords ?? ""));
   }
   await chrome.storage.local.set({ ...out, ...settings });
   await load();

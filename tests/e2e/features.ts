@@ -28,7 +28,7 @@ c.on((m: any) => {
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 const store = (js: string) => o.ev(`chrome.storage.local.set(${js})`);
 const get = (k: string) => o.ev(`chrome.storage.local.get(${JSON.stringify(k)}).then(v=>v[${JSON.stringify(k)}])`);
-const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
+const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
 const calls = async () => (await fetch(`${API}/calls`)).json();
 const clearCalls = () => fetch(`${API}/calls`, { method: "DELETE" });
 const closeAll = async (re: RegExp) => {
@@ -94,7 +94,7 @@ await clearCalls();
 p = await openPanel(SEARCH);
 await scan(p);
 cs = await calls();
-ok("Haiku 4.5 is sent no effort (it would refuse it)", cs.length && cs.every((x: any) => x.effort === undefined), { cs, status: await R(p, `return r.querySelector('.statusrow .status').textContent`), tags: await p.ev(`document.querySelectorAll('.second-look-sticker').length`) });
+ok("Haiku 4.5 is sent no effort (it would refuse it)", cs.length && cs.every((x: any) => x.effort === undefined), { cs, status: await R(p, `return r.querySelector('.statusrow .status').textContent`), tags: await p.ev(`document.querySelectorAll('.tirekick-sticker').length`) });
 const ps = (await o.ev(`chrome.runtime.sendMessage({type:'getSettings'})`)).data;
 ok("pages are told which model scans, and never get an API key", ps.scanModel === "claude-haiku-4-5" && !("anthropicKey" in ps) && !("oaiKey" in ps) && ps.hasKey === true, ps.scanModel);
 
@@ -147,10 +147,10 @@ ok("a listing page doesn't", await R(it, `return r.querySelector('[data-act=idea
 await scan(p);
 await R(p, `[...r.querySelector('.list .row').querySelectorAll('button')].find(b=>/Not interested/.test(b.textContent)).click()`);
 await sleep(400);
-const before = await p.ev(`[document.querySelectorAll('[data-sl-hide]').length, document.querySelectorAll('.second-look-marks, .second-look-sticker').length]`);
+const before = await p.ev(`[document.querySelectorAll('[data-tk-hide]').length, document.querySelectorAll('.tirekick-marks, .tirekick-sticker').length]`);
 await R(p, `r.querySelector('[data-mode=reseller]').click()`);
 await sleep(500);
-const after = await p.ev(`[document.querySelectorAll('[data-sl-hide]').length, document.querySelectorAll('.second-look-marks').length]`);
+const after = await p.ev(`[document.querySelectorAll('[data-tk-hide]').length, document.querySelectorAll('.tirekick-marks').length]`);
 ok("switching mode keeps the free marks and what you hid", before[0] === 1 && after[0] === 1 && after[1] > 0, { before, after });
 await R(p, `r.querySelector('[data-view=saved]').click()`);
 await sleep(300);
@@ -216,17 +216,17 @@ ok("openHome shows Home on an eBay page already open, and opens no tab", (await 
 // the toolbar icon with something new: from tucked away, a click shows Home, a second one tucks the panel away
 await R(p, `r.querySelector('[data-act=toggle]').click()`);
 await sleep(400);
-await p.ev(`window.dispatchEvent(new CustomEvent('second-look-show', { detail: { view: 'home', toggle: true } }))`);
+await p.ev(`window.dispatchEvent(new CustomEvent('tirekick-show', { detail: { view: 'home', toggle: true } }))`);
 await sleep(400);
 const shownHome = await R(p, `return r.querySelector('.wrap').classList.contains('open') && !r.querySelector('.view-home').hidden`);
-await p.ev(`window.dispatchEvent(new CustomEvent('second-look-show', { detail: { view: 'home', toggle: true } }))`);
+await p.ev(`window.dispatchEvent(new CustomEvent('tirekick-show', { detail: { view: 'home', toggle: true } }))`);
 await sleep(400);
 ok("the toolbar icon opens on Home, and a second click tucks it away", shownHome && !(await R(p, `return r.querySelector('.wrap').classList.contains('open')`)));
 
 // ---------- backups and settings ----------
 await reset(`{batchSize:10, provider:'anthropic'}`);
 const backup = {
-  app: "second-look", version: "0.20.0",
+  app: "second-look", version: "0.20.0", // from before the rename: must still restore
   settings: { batchSize: 999, provider: "bogus", hideWords: "repro, box only", needWords: "working", feePct: "lots" },
   saved: { "ebay:123": { t: "ok", u: "javascript:alert(1)", p0: 5, a0: 1, p: 5, a: 1 }, "not a key": { t: "junk" } },
   savedSearches: { "ebay|x": { site: "ebay", q: "x", url: "https://evil.example/" } },

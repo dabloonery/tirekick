@@ -5,7 +5,7 @@ const { open, c } = await start();
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true})`);
 const p = await open(`https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`); await sleep(1500);
-const R = (js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host').shadowRoot; ${js}})()`);
+const R = (js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host').shadowRoot; ${js}})()`);
 const ok = (name: string, cond: boolean, why = "") => console.log(`${cond ? "PASS" : "FAIL"} ${name}${cond ? "" : ": " + why}`);
 await R(`r.querySelector('[data-act=tab]').click()`); await sleep(400);
 await R(`r.querySelector('[data-act=scan]').click()`); await sleep(2600);

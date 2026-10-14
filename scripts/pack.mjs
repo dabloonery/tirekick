@@ -1,4 +1,4 @@
-// Builds dist/second-look-<version>.zip: only what the extension needs, checked first.
+// Builds dist/tirekick-<version>.zip: only what the extension needs, checked first.
 //   deno task pack     (or: node scripts/pack.mjs)
 // No dependencies: it writes the zip itself (deflate, fixed timestamps, so the same files give the same zip).
 
@@ -107,6 +107,6 @@ end.writeUInt32LE(offset, 16);
 const zip = Buffer.concat([...parts, centralBuf, end]);
 
 fs.mkdirSync(path.join(ROOT, "dist"), { recursive: true });
-const out = path.join(ROOT, "dist", `second-look-${manifest.version}.zip`);
+const out = path.join(ROOT, "dist", `tirekick-${manifest.version}.zip`);
 fs.writeFileSync(out, zip);
 console.log(`${files.length} files, ${(zip.length / 1024).toFixed(0)} KB → ${path.relative(ROOT, out)}`);

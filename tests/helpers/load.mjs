@@ -13,7 +13,7 @@ export function loadScripts() {
     globalThis.location ??= { hostname: "www.ebay.com", href: "https://www.ebay.com/", pathname: "/" };
     globalThis.document ??= { querySelector: () => null, querySelectorAll: () => [] };
     for (const f of ["lib/shared.js", "content/rules.js", "content/adapters.js"]) await import(pathToFileURL(path.join(ROOT, f)).href);
-    return { S: globalThis.SLShared, R: globalThis.SLRules, SL: globalThis.SecondLook };
+    return { S: globalThis.TKShared, R: globalThis.TKRules, TK: globalThis.Tirekick };
   })();
   return loaded;
 }

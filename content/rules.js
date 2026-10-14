@@ -87,4 +87,30 @@
     /\b(for parts(?: or repair| only)?|parts only|parts or repair|not working|non[- ]?working|untested|as[- ]is|broken|no power|won'?t (?:turn|power) on|doesn'?t (?:work|turn on|power on)|needs (?:repair|work|fixing|a new \w+)|faulty|for repair|disc read error|no (?:display|video|sound|picture)|red ring|yellow light|cracked screen|water damage)\b/i;
   R.MOTIVATED = /\b(moving(?: sale)?|must go|need(?:s)? (?:it )?gone|estate sale|cleaning out|garage sale|downsizing|first come first served|priced to sell|quick sale)\b/i;
   R.clueOf = (re, text) => (text.match(re)?.[1] || "").toLowerCase().replace(/\s+/g, " ");
+
+  // ---------- did the page reader keep up with the site? ----------
+  // links: listings linked on the page (any link to a listing, counted once each), items: listings the
+  // adapter read, priced: how many of those came with a price. Sites change their markup without notice,
+  // and when the adapter misses, the panel would otherwise just show fewer listings, or none.
+  // partialOk: a page where many links sit outside the results (carousels on a category page) can't be
+  // judged by the share read, only by nothing read at all.
+  // level: "ok", "few" (too few listings to tell), "broken" (none read), "partial" (under a third read),
+  // "prices" (read, but most without a price).
+  R.readHealth = ({ links = 0, items = 0, priced = 0 }, { partialOk = false } = {}) => {
+    const out = { links, items, priced };
+    if (links < 6 && items < 6) return { ...out, level: "few" };
+    if (!items) return { ...out, level: "broken" };
+    if (!partialOk && links >= 10 && items < links / 3) return { ...out, level: "partial" };
+    if (items >= 6 && priced < items / 2) return { ...out, level: "prices" };
+    return { ...out, level: "ok" };
+  };
+  // What to tell you about it, in a sentence ("" when there's nothing to say).
+  R.healthNote = (hl, siteName) =>
+    hl.level === "broken"
+      ? `${siteName} changed this page and Tirekick can't read its listings (${hl.links} on the page, none read). Scores, marks and filters won't work here until it's fixed.`
+      : hl.level === "partial"
+        ? `${siteName} may have changed this page: Tirekick read ${hl.items} of the ${hl.links} listings on it. The rest get no marks, filters or scores.`
+        : hl.level === "prices"
+          ? `${siteName} may have changed this page: Tirekick read ${hl.items} listings but found a price on only ${hl.priced}. Deals, price filters and sold-price comparisons need it.`
+          : "";
 })();

@@ -135,3 +135,43 @@ test("soldSlot: one booking for every tab, spaced, capped and paused", () => {
   assert.deepEqual(S.soldSlot({ log: [now - 2 * 3600e3, now - 3600e3 - 1] }, now, opts), { wait: 0, log: [now] }, "older than an hour doesn't count");
   assert.deepEqual(S.soldSlot({ log: "junk" }, now, opts), { wait: 0, log: [now] });
 });
+
+test("cleanBackup: a damaged or hostile backup can't leave anything that breaks the panel", () => {
+  const { sets, dropped, links } = S.cleanBackup({
+    saved: {
+      "ebay:123456789": { t: "Camera", u: "javascript:alert(1)", img: "http://192.168.1.1/x.png", p0: 50, p: "cheap", a0: 1, a: 2, extra: { huge: true } },
+      "fb:42": { t: 7, u: "https://www.facebook.com/marketplace/item/42/", img: "https://scontent.fbcdn.net/x.jpg", p0: -1, p: 10, a: 5 },
+      "<img onerror>": { t: "bad key" },
+      "ebay:999999999": "not a record",
+    },
+    savedSearches: { "ebay|psp": { q: "psp", site: "mars", url: "https://evil.example/", n: "many" }, "ebay|": { q: "  " }, x: { q: 5 } },
+    quickFilters: { "ebay|psp": { words: 12, min: "5", max: 100, fresh: "yes", broken: "sometimes", a: 9 }, "old": { projects: true } },
+    notInterested: { "ebay:111111111": { t: "x", a: 3 }, "ebay:222222222": null },
+    listingMemory: { "ebay:333333333": { p: 20, pa: 1, f: 1, a: 4, h: [[25, 1], ["x", 2], 7] }, "ebay:444444444": { p: 3 } },
+    codeStems: { "game boy advance sp": { c: { M2465: "fb:1", "<b>": "fb:2", K7731: "javascript:x" }, a: 6 }, empty: { c: {} } },
+    modePrefs: { use: { sort: "price", skip: "everything" }, evil: { sort: "x" } },
+    searchWants: { "ebay|psp": " working ", long: "x".repeat(400) },
+    usage: { days: { "2026-10-01": { usd: 1.5, calls: 3, models: { haiku: { usd: 1.5, calls: 3 }, bad: { usd: -1 } } }, "yesterday": { usd: 1, calls: 1 }, "2026-10-02": { usd: Infinity, calls: 1 } } },
+    stats: { scans: 4, saves: -2, junk: "x" },
+  });
+  assert.deepEqual(sets.saved["ebay:123456789"], { t: "Camera", u: "https://www.ebay.com/itm/123456789", img: "", p0: 50, a0: 1, p: null, a: 2 }, "a bad link is rebuilt, a photo from elsewhere dropped, a price that isn't a number cleared, extra fields gone");
+  assert.deepEqual(sets.saved["fb:42"], { t: "", u: "https://www.facebook.com/marketplace/item/42/", img: "https://scontent.fbcdn.net/x.jpg", p0: null, a0: 0, p: 10, a: 5 });
+  assert.deepEqual(Object.keys(sets.saved).sort(), ["ebay:123456789", "fb:42"]);
+  assert.deepEqual(sets.savedSearches, { "ebay|psp": { site: "ebay", q: "psp", url: "https://www.ebay.com/sch/i.html?_nkw=psp", a0: 0, v: 0, n: 0, fresh: 0, deal: 0, deals: 0 } });
+  assert.deepEqual(sets.quickFilters["ebay|psp"], { words: "", min: 0, max: 100, fresh: false, broken: "", deal: 0, a: 9 });
+  assert.equal(sets.quickFilters.old.broken, "only", "the older Projects only still means broken ones only");
+  assert.deepEqual(sets.notInterested, { "ebay:111111111": { t: "x", a: 3 } });
+  assert.deepEqual(sets.listingMemory, { "ebay:333333333": { p: 20, pa: 1, f: 1, a: 4, h: [[25, 1]] } });
+  assert.deepEqual(sets.codeStems, { "game boy advance sp": { c: { M2465: "fb:1" }, a: 6 } });
+  assert.deepEqual(sets.modePrefs, { use: { sort: "price" } });
+  assert.deepEqual(sets.searchWants, { "ebay|psp": "working" });
+  assert.deepEqual(sets.usage, { days: { "2026-10-01": { usd: 1.5, calls: 3, models: { haiku: { usd: 1.5, calls: 3 } } } } });
+  assert.deepEqual(sets.stats, { scans: 4 });
+  assert.equal(links, 2, "the saved listing's link and the search's");
+  assert.equal(dropped, 11, "counted what was left out: two saved, two searches, and one each of the rest");
+});
+
+test("cleanBackup: nothing usable gives nothing, without throwing", () => {
+  for (const junk of [null, 5, "x", [], { saved: [], usage: "x", stats: null }]) assert.doesNotThrow(() => S.cleanBackup(junk));
+  assert.deepEqual(S.cleanBackup({}).sets, {});
+});

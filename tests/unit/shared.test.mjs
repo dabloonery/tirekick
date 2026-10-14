@@ -175,3 +175,25 @@ test("cleanBackup: nothing usable gives nothing, without throwing", () => {
   for (const junk of [null, 5, "x", [], { saved: [], usage: "x", stats: null }]) assert.doesNotThrow(() => S.cleanBackup(junk));
   assert.deepEqual(S.cleanBackup({}).sets, {});
 });
+
+test("upgradeStorage: what an older version left is carried over or cleaned, once", () => {
+  const old = {
+    hideWords: "repro, box only", needWords: "working", theme: "gameboy", lens: "flip",
+    soldCache: { "used:psp": { at: 1, market: { median: 5 } }, "v2:used:psp": { at: 2, market: null } },
+    saved: { "ebay:123456789": { t: "Camera", u: "https://www.ebay.com/itm/123456789", img: "", p0: 50, a0: 1, p: 40, a: 2 } },
+    quickFilters: { "ebay|psp": { words: 12, min: 0, max: 0, fresh: false, broken: "", deal: 0, a: 1 } },
+    notInterested: "broken",
+    provider: "anthropic",
+  };
+  const { set, remove, changed } = S.upgradeStorage(old);
+  assert.equal(set.filterWords, '-repro -"box only" working');
+  assert.deepEqual(remove.sort(), ["hideWords", "needWords", "notInterested", "theme"]);
+  assert.equal(set.lens, "project");
+  assert.deepEqual(Object.keys(set.soldCache), ["v2:used:psp"]);
+  assert.equal(set.quickFilters["ebay|psp"].words, "", "a filter that would throw is repaired");
+  assert.equal("saved" in set, false, "a record that's already fine isn't rewritten");
+  assert.equal("provider" in set, false);
+  assert.ok(changed.includes("quickFilters") && changed.includes("notInterested"));
+  const again = S.upgradeStorage({ filterWords: "x", saved: old.saved, lens: "use" });
+  assert.deepEqual([again.set, again.remove], [{}, []], "current storage needs nothing");
+});

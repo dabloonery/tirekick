@@ -917,21 +917,23 @@ const MENU_ID = "tirekick-photo";
 const HOME_MENU_ID = "tirekick-home";
 const LOOKUP_MENU_ID = "tirekick-lookup";
 
-// Before 0.32 the always-hide and only-show words were two comma-separated lists; they are one line now.
-async function migrateFilterWords() {
-  const s = await chrome.storage.local.get(["hideWords", "needWords", "filterWords"]);
-  if (s.filterWords !== undefined || (s.hideWords === undefined && s.needWords === undefined)) return;
-  await chrome.storage.local.set({ filterWords: TKShared.filterFromLists(s.hideWords, s.needWords) });
-  await chrome.storage.local.remove(["hideWords", "needWords"]);
+// Older storage, brought up to date once per storage version (TKShared.upgradeStorage): the old word lists,
+// themes and modes, sold prices from an older formula, and any record an older version left in a shape
+// the panel can't read.
+async function upgradeStorage() {
+  const all = await chrome.storage.local.get(null);
+  if (all.storageVersion >= TKShared.STORAGE_VERSION) return;
+  const { set, remove, changed } = TKShared.upgradeStorage(all);
+  if (remove.length) await chrome.storage.local.remove(remove);
+  await chrome.storage.local.set({ ...set, storageVersion: TKShared.STORAGE_VERSION });
+  if (changed.length) console.info("[Tirekick] storage brought up to date:", changed.join(", "));
 }
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
-  await migrateFilterWords().catch(() => {});
   // Defaults are not copied into storage: getSettings() fills in whatever you haven't set, so a better
   // default (a new model, say) reaches every install that never chose otherwise.
-  const { theme } = await chrome.storage.local.get("theme");
-  if (theme !== undefined && !["match", "dark", "light"].includes(theme)) await chrome.storage.local.remove("theme"); // the old retro themes are gone; keep a real choice
+  await upgradeStorage().catch((e) => console.warn("[Tirekick] storage upgrade:", e.message));
   await syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -983,6 +985,7 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
 });
 chrome.runtime.onStartup.addListener(() => {
+  upgradeStorage().catch(() => {}); // a restored profile, or an update applied while the browser was closed
   syncAutoScripts().catch(() => {});
   updateBadge().catch(() => {});
 });

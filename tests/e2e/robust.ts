@@ -64,6 +64,16 @@ await reset();
   await e.close();
 }
 
+// ---------- storage that can't silently fill up ----------
+await reset();
+{
+  // Chrome gives an extension 10 MB unless it asks for more; a few months of kept scores and listings
+  // can get there, and then every save fails.
+  const big = await o.ev(`chrome.storage.local.set({ bigTest: "x".repeat(12 * 1024 * 1024) }).then(() => "ok", (e) => e.message)`);
+  ok("storage holds more than Chrome's default 10 MB", big === "ok", big);
+  await o.ev(`chrome.storage.local.remove("bigTest")`);
+}
+
 ok("no page errors", !errors.length, errors);
 console.log(fails ? `${fails} failed` : "all passed");
 Deno.exit(fails ? 1 : 0);

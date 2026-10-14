@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tirekick",
-  "version": "0.35.0",
+  "version": "0.36.0",
   "description": "Deal scores, sold-price checks and scam warnings for second-hand listings, starting with eBay and Facebook Marketplace.",
   "minimum_chrome_version": "116",
   "homepage_url": "https://github.com/dabloonery/Second-Look",

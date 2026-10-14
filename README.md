@@ -22,11 +22,11 @@ background.
    eBay and Marketplace page; the free marks on the cards work with the panel closed. Click the tab
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
 
-The first time, the panel opens by itself with a three-step welcome (pick Buyer or Reseller, say
-what you want, press Scan); each step is a link that jumps to the right box. With no model set up
-yet, adding a key is step one, with **Open settings** as the one button, and the controls that need a
-model wait until it's done (comparing sold prices works without one). **Got it** closes it for
-good, and the **?** button in the panel header brings it back.
+The first time, the panel opens by itself with a short welcome: what Scan does, what Buyer and
+Reseller change, and that a card's tag has the reasons. With no model set up yet, adding a key comes
+first, with **Open settings** as the one button (the marks on the cards and comparing sold prices work
+without one). **Got it** closes it for good, and the **?** button in the panel header brings it back.
+Home's **Getting started** keeps track of the first few things to try.
 
 **Where it sits**: docked to the right edge (the default) or the left, in one of three widths.
 Drag the header toward a side and let go (both sides light up as you drag) to dock it there, drag the
@@ -35,10 +35,11 @@ left and right pick the side, up and down the width, Home puts it back. Double-c
 puts it back. Each site remembers its own, and the panel always fits the window. Esc tucks it away
 from anywhere on the page (except while you're typing in the site's own boxes).
 
-At the top, **Buyer** (to keep and use) or **Reseller** (to fix up and flip) says how you're shopping
-(see below). Under it, three tabs: **This page** (everything below), **Saved** (your saved listings and
-searches; what you've hidden is folded away at the bottom) and **Home** (what's worth another look, a
-few numbers, spending, which features you use). Saved and Home work on any eBay or Marketplace page.
+Under the header, three tabs: **Home** (what's worth another look, a few numbers that lead to their
+lists, and folded away, spending and which features you use), **This page** (everything below) and
+**Saved** (your saved listings and searches; what you've hidden is folded away at the bottom). Beside
+them, **Buyer** (to keep and use) or **Reseller** (to fix up and flip) says how you're shopping (see
+below). Saved and Home work on any eBay or Marketplace page.
 
 ## Home
 
@@ -53,8 +54,8 @@ few numbers, spending, which features you use). Saved and Home work on any eBay 
 - **What you use**: plain counters kept in this browser (scans, sold-price comparisons, analyses,
   search ideas, photo checks, saves, hides, switches to Reseller). **Reset counts** clears them.
 - **Getting started**: four steps with a check beside each one done; **Hide** folds it away.
-- Right-click the toolbar icon for **Open Tirekick home**; on a page Tirekick doesn't work on,
-  the icon opens eBay with Home showing.
+- Right-click the toolbar icon for **Open Tirekick home**: Tirekick's own page, with a lookup,
+  your saved listings and searches, and Home. On a page Tirekick doesn't work on, the icon opens it too.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Fair price,
 Skip, Likely scam) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
@@ -92,18 +93,24 @@ scam warning stays readable.
 ## Everyday use
 
 - **Buyer / Reseller**, the switch at the top right of the panel, says what you want listings for (see below). Each
-  mode remembers its own sort, skipped-listings setting and "What I want".
-- **What I want**: "working, with charger, under $80". Every scan, analysis and search idea
-  takes it into account, and a listing that misses something says so. After a scan it folds into
-  one line with the compare words (**Edit** opens them); change either and the button becomes
-  **Rescan with your changes**.
+  mode remembers its own sort and skipped-listings setting.
+- **What I want**: "working, with charger, under $80". Each search keeps its own (per site and
+  mode: what you want from a camera isn't what you want from a console), and a listing you open from
+  that search in the same tab uses it. Every scan, analysis and search idea takes it into account, and a
+  listing that misses something says so. Your general taste goes in settings ("What you're into").
+  After a scan it folds into one line with the compare words (**Edit**, or **Add what you want**);
+  change either and the button becomes **Rescan with your changes**.
+- **Scan new listings automatically** (the switch under Scan, or in settings): on an eBay or
+  Marketplace search you're looking at, listings are scored as they load, so you never press Scan.
+  Only while the page is on your screen, never twice for the same listing, and it stops at a problem
+  (shown as "!" on the tab) or at your monthly budget.
 - **Click a title** in the panel to jump to that card. If the panel would cover it, it tucks
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
   price, auctions ending soonest, biggest margin, or new and cheaper first.
 - **Skipped and suspicious listings are grayed out** on the page; switch to Show or Hide under
   **Filter** (Skips and scams).
-- **A row's links** (Open, Sold, Save, Not interested) appear when you point at it or Tab into it,
+- **A row's links**: **Open ↗** is always there; Sold, Save and Not interested appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
   now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Unhide.
@@ -114,9 +121,13 @@ scam warning stays readable.
   Save to keep it, hover for why. On eBay's front page, "Find searches for what I want" does the same
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Tirekick".
+- **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
+  "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (free,
+  no AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page on any other
+  site, with your saved listings and searches (each marked eBay or Marketplace) and Home.
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
-- **The footer** shows this month's spend; click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
+- **The footer** has the quality menu and this month's spend. With Claude the menu is **Thrifty** (Haiku for everything), **Balanced** (Haiku scans, Sonnet for single listings, photos and search ideas; the default) or **Thorough** (Sonnet scans, Opus for the rest); settings has each model separately, and another pair shows as Custom. The spend: click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
 - **Esc** tucks the panel away; the sliders icon opens settings.
 
 ## Buyer and Reseller
@@ -142,7 +153,14 @@ in Reseller (for when you only want fix-ups).
 - Comparisons use what you'd actually pay (price plus shipping) against what sold listings went
   for. The used median comes from recent eBay sales; Reseller also looks up what **broken** ones
   sell for (when the page has broken or untested listings): pay less than that and the worst case is reselling it as-is. "The sales behind these"
-  lists the sales behind each number. eBay's "results matching fewer words" are left out.
+  lists the sales behind each number. eBay's "results matching fewer words" are left out, and so are
+  sales that would skew it: "best offer accepted" ones (the card shows the asking price, not what was
+  paid), lots, for-parts ones listed as used, titles missing a model number from the search, and
+  far-off prices. Each price says how far to trust it: from few sales or a wide spread it's shown as
+  "~$58 · a rough guide". See `docs/accuracy-audit.md`.
+- **Margins** (Reseller) are the sold price less eBay's fee, the shipping buyers paid on those
+  sales (what you'd pay to send it on), likely parts and the price; the hover card spells it out.
+  Before sales tax and your time.
 - The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
   "Compare prices against" if the page's search is vague.
 - **Auctions** are recognized ("3 bids · 2d 4h left"). Their price is only a current bid, so the
@@ -186,7 +204,7 @@ Everything here is free, needs no API key, and runs only on pages you're looking
   for parts, no power, disc read error and the like: the "any of these words" search Marketplace
   can't do. Those words also show as a chip on cards (and moving sale, must go, estate sale:
   sellers who want it gone).
-- **Deal at ≤ $** is your price for this search (it stays when you clear the filter with ×). Listings at or under it get an "At your $60" mark,
+- **Your price ≤ $** is your price for this search (it stays when you clear the filter with ×). Listings at or under it get an "At your $60" mark,
   and the slim tab on the edge of the page counts them (★3) even with the panel closed. When sold
   prices are known it suggests 70% of the median.
 
@@ -334,19 +352,54 @@ refresh the tab. The version number there tells you which copy is running.
 | File | Job |
 |---|---|
 | `manifest.json` | Permissions, icon, keyboard shortcut. With "Show a slim tab" on, `background.js` registers `content/*` for eBay and Facebook pages; with it off, they load only when you click the toolbar icon |
+| `lib/sites.js` | The sites it works on, in one table: names, addresses, listing keys, which page is a search or a listing, photo hosts, how each site's cards behave. Loaded first everywhere; adding a site starts here (`docs/adding-a-site.md`) |
 | `lib/shared.js` | Small pieces shared by the worker, the pages and settings: the link and photo-host checks, settings limits (also applied to restored backups), alert rules, the spend summary, the price sparkline |
 | `lib/theme.js` | The look in one place: both color themes, the Bricolage Grotesque faces, the tread-dot score, the verdict glyphs and the wordmark. Change a color or shape here and the panel, card tags and settings follow; `node scripts/icons.mjs` redraws the toolbar icons from it |
 | `content/rules.js` | The plain rules (words and filters, scam signs, photo verdicts, fix-up words) as functions with no page, storage or network |
-| `content/home.js` | The panel's Home tab |
-| `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape; the sold-price median |
+| `content/home.js` | Home: in the panel's tab and on Tirekick's own page (with its styles) |
+| `lib/sold.js` | eBay sold-price lookups with one pace, cache and back-off for every page |
+| `hub/hub.html`, `hub/hub.js` | Tirekick's own page, for anywhere: look something up, saved listings and searches, Home |
+| `content/adapters.js` | Reads listings (and auctions, lots, offers, seller ratings, scam signs) off each site into one shared shape, through per-site tables (`READERS`, `ITEM_READERS`, `SEARCH_BUILDERS`, `LISTING_LINKS`, `CARD_FINDERS`, `BROWSE_CONTEXT`); the sold-price median |
 | `content/panel.js` | The panel, tags on cards, the scan, memory of seen and hidden listings, filters, the listing view |
 | `background.js` | Talks to Claude, other AI services or Ollama (retries, timeouts, Stop, cost tracking, budget), fetches photos and eBay sold results for Facebook pages; holds the prompts |
 | `options/` | Settings page |
 | `icons/` | The toolbar icon |
 
 The ranking prompt (`RANK_BASE`, `SCAM_RULE` and `LENS_RULES` in `background.js`) is the part most worth tuning.
-Keep it to pages you're looking at, one scan when you press the button: automated, unattended
-collection is what Meta's and eBay's terms prohibit and what gets accounts flagged.
+
+## Ground rules
+
+eBay's and Meta's terms prohibit automated, unattended collection, and that's what gets accounts
+flagged. Every change keeps to these:
+
+- **Only pages you're looking at.** Tirekick reads the listings on a page open in your browser, and
+  never opens, crawls or refreshes a marketplace page by itself. Automatic scanning reads the search
+  you're looking at as it loads, only while that tab is on your screen.
+- **Requests to the sites are few, spaced and started by you.** eBay sold-price lookups happen because
+  you pressed something (or turned on automatic scanning): at most eight an hour, five seconds apart,
+  cached for six hours, from your own browser.
+- **Never get past a bot check.** At the first sign of eBay's "checking your browser" page, lookups stop
+  for an hour (half an hour for the background route) and say so. Nothing tries to solve, avoid or
+  disguise itself from a check, a captcha or a rate limit.
+- **Nothing leaves the browser except to the AI service you chose, and eBay's own search.** No server,
+  no analytics, no account; no listing data is republished anywhere.
+- **No logos, no implied endorsement.** "eBay" and "Facebook Marketplace" name what it works with.
+- **Estimates, said to be estimates.** Scores, prices, margins and warnings help you decide; they aren't
+  advice or a guarantee, and the extension says how far each one can be trusted.
+
+## License and disclaimer
+
+Copyright © 2026 dabloonery, all rights reserved for now (see `LICENSE`, which also has the no-warranty
+terms). It's meant to be open-sourced later; that's a change of `LICENSE` (Apache-2.0 or MIT, say), and the
+repository has no keys or secrets in it or its history to clean up first.
+The bundled Bricolage Grotesque font is under the SIL Open Font License (`fonts/LICENSE.md`).
+
+Scores, verdicts, price comparisons, margins, scam warnings, repair guesses and suggested offers are
+estimates produced by software and AI models from what a listing shows: information, not advice, and
+not a guarantee about any item, seller or price. Check listings and sellers yourself.
+
+Not affiliated with or endorsed by eBay Inc. or Meta Platforms, Inc. eBay and Facebook are trademarks of
+their respective owners.
 
 ## Tests
 

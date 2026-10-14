@@ -8,6 +8,14 @@
 
   R.clamp100 = (n) => Math.max(0, Math.min(100, n));
   R.RANK = { pass: 0, fair: 1, good: 2, great: 3 };
+  // Each verdict's range of scores. The model picks both; when they disagree (a "great" at 55), the verdict
+  // is the judgment and the score moves into its range, so the number and the word on a tag never conflict.
+  // The same lines as adjustedVerdict's: under 45 a pass, under 60 fair, under 75 good.
+  R.BANDS = { great: [75, 100], good: [60, 74], fair: [45, 59], pass: [0, 44], suspicious: [0, 30] };
+  R.fitScore = (verdict, score) => {
+    const [lo, hi] = R.BANDS[verdict] || [0, 100];
+    return Math.max(lo, Math.min(hi, Math.round(Number(score) || 0)));
+  };
   R.signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "±0");
   R.dollars = (n) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
   const SHORT_DATE = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }); // made once: it's slow to make

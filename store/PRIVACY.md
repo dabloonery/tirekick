@@ -27,14 +27,16 @@ includes your API keys). Uninstalling Tirekick deletes all of it.
 ## What leaves your computer, and only when you ask
 
 Tirekick does nothing on a page until you open its panel, press a button, or (for the free marks on
-cards) load an eBay or Marketplace page you're already looking at. It never browses, checks prices or
-contacts anyone in the background.
+cards) load an eBay or Marketplace page you're already looking at. With **Scan new listings
+automatically** turned on (it's off until you turn it on), a search page you're looking at is scanned
+as its listings load, as if you'd pressed Scan. It never browses, checks prices or contacts anyone in
+the background.
 
 | When you… | What is sent | To whom |
 |---|---|---|
-| Press **Scan**, **Analyze this listing** or **Find better searches** | Listing titles and the text on their cards (price, shipping, seller rating, condition, description), your search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: the Claude API (api.anthropic.com), OpenRouter, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer) |
+| Press **Scan** (or have it scan automatically), **Analyze this listing** or **Better searches** | Listing titles and the text on their cards (price, shipping, seller rating, condition, description), your search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: the Claude API (api.anthropic.com), OpenRouter, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer) |
 | Press **Check photo** or right-click a photo | The photo and the listing's title | The same AI service |
-| Compare **sold prices** (a button, or as part of a scan) | Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most | eBay |
+| Compare **sold prices** (a button, as part of a scan, or **Look up** on Tirekick's own page, including words you select on any page and choose "Look up … on eBay and Marketplace") | Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most | eBay |
 | Press **Find photo elsewhere** | The photo's web address, opened in a new tab | Google Lens (lens.google.com) |
 | Press **Test connection** in settings | Your API key, to check it works | The service you picked |
 
@@ -47,7 +49,7 @@ so read the one for the service you pick. Ollama and LM Studio keep everything o
 
 - Send anything to the developer. There's no account, server, advertising or analytics.
 - Sell or share your data, or use it for anything not described here.
-- Read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address).
+- Read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address). On other pages, the only thing it receives is text you select and choose to look up from the right-click menu.
 - Collect payment details or messages.
 
 ## Permissions

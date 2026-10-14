@@ -8,6 +8,7 @@
 
 (() => {
   const TK = (window.Tirekick = window.Tirekick || {});
+  const Sites = window.TKSites; // lib/sites.js: names, addresses, keys and page types per site
 
   // ---------- shared helpers ----------
 
@@ -40,13 +41,7 @@
   };
 
   // One stable key per listing, used to remember what's been scored across re-scans and scrolling.
-  TK.keyOf = (url) => {
-    const ebay = url.match(/\/itm\/(?:[^/?]+\/)?(\d{9,})/);
-    if (ebay) return `ebay:${ebay[1]}`;
-    const fb = url.match(/\/marketplace\/item\/(\d+)/);
-    if (fb) return `fb:${fb[1]}`;
-    return url.split("?")[0];
-  };
+  TK.keyOf = (url) => Sites.keyOf(url);
 
   // eBay thumbnails on result cards are small (s-l140 to s-l500); a photo check needs the big one.
   TK.bigImage = (u) => (/ebayimg\.com/.test(u || "") ? u.replace(/s-l\d+\./, "s-l1600.") : u || "");
@@ -247,7 +242,26 @@
     return out;
   };
 
-  TK.ebayQuery = () => new URLSearchParams(location.search).get("_nkw") || "";
+  TK.ebayQuery = () => Sites.get("ebay").queryOf(location);
+  // The links to listings in a site's result cards, per site: what the panel counts as "on the page".
+  TK.LISTING_LINKS = {
+    ebay: TK.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", "),
+    facebook: 'a[href*="/marketplace/item/"]',
+  };
+  TK.listingLinks = () => TK.LISTING_LINKS[TK.currentSite()] || TK.LISTING_LINKS.ebay;
+  // A listing's card on the page, found again from its key (per site: a new site adds its own). The first
+  // link to an item can sit outside the results (a carousel, "recently viewed"), so prefer one in a card.
+  TK.CARD_FINDERS = {
+    ebay: (key, id) => {
+      const links = [...document.querySelectorAll(`a[href*="/itm/"][href*="${id}"]`)].filter((a) => TK.keyOf(a.href) === key);
+      return links.map((a) => a.closest(TK.EBAY_CARDS)).find(Boolean) || null;
+    },
+    facebook: (key, id) => {
+      const links = [...document.querySelectorAll(`a[href*="/marketplace/item/${id}"]`)];
+      return links.find((a) => a.closest("[data-tirekick-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
+    },
+  };
+  TK.cardFor = (key) => TK.CARD_FINDERS[Sites.ofKey(key).id](key, key.split(":")[1]);
 
   // ---------- Facebook Marketplace ----------
   // FB class names are generated and change constantly, so this adapter avoids
@@ -314,16 +328,21 @@
     return out;
   };
 
-  TK.facebookQuery = () => new URLSearchParams(location.search).get("query") || "";
+  TK.facebookQuery = () => Sites.get("facebook").queryOf(location);
 
   // With no search, what is this page? Marketplace addresses look like /marketplace/ (home feed),
   // /marketplace/<city>/ or /marketplace/<city>/<category> (a category such as "videogames").
   const NOT_CATEGORY = /^(search|item|you|inbox|notifications|create|selling|buying|saved|category)$/i;
-  TK.browseContext = () => {
-    if (TK.currentSite() !== "facebook") {
+  // Per site (a new site adds its own); anything not listed is read as eBay's.
+  TK.BROWSE_CONTEXT = {
+    ebay: () => {
       const cat = location.pathname.match(/^\/b\/([^/]+)/);
       return cat ? `eBay category "${decodeURIComponent(cat[1]).replace(/-/g, " ")}" (no search)` : "eBay page with no search";
-    }
+    },
+    facebook: () => facebookContext(),
+  };
+  TK.browseContext = () => (TK.BROWSE_CONTEXT[TK.currentSite()] || TK.BROWSE_CONTEXT.ebay)();
+  const facebookContext = () => {
     const parts = location.pathname.split("/").filter(Boolean).slice(1); // after "marketplace"
     const cat = parts.find((p, i) => i > 0 && !NOT_CATEGORY.test(p) && !/^\d+$/.test(p)) || "";
     const pretty = cat && cat.replace(/[-_]/g, " ").replace(/([a-z])(games|consoles|electronics)$/i, "$1 $2");
@@ -339,9 +358,11 @@
 
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];
 
-  TK.extractItem = () => {
-    const site = TK.currentSite();
-    if (site === "ebay") {
+  // One listing's page, read per site (a new site adds its own). Any page that isn't eBay's is read the
+  // Marketplace way: visible text and metadata, no class names.
+  TK.ITEM_READERS = {
+    ebay: () => {
+      const site = "ebay";
       const title = squash(firstText(document, ["h1.x-item-title__mainTitle", '[data-testid="x-item-title"]', "h1"]) || meta("og:title"), 200);
       const priceText = squash(firstText(document, [".x-price-primary", '[data-testid="x-price-primary"]']), 60);
       const imgs = [...document.querySelectorAll('.ux-image-carousel img, [data-testid="ux-image-carousel"] img')].map(
@@ -368,37 +389,40 @@
         imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(TK.bigImage).slice(0, 4),
         url: location.href.split("?")[0],
       });
-    }
-    // Facebook Marketplace: class names are useless, so lean on visible text + metadata.
-    // A listing opened from the feed is an overlay (a dialog) over the feed, with the feed still in
-    // [role=main] and the page's og: tags still the feed's; opened directly, it's the main area.
-    // Only a dialog you can see: Facebook keeps hidden ones (a "Notifications" flyout) in the page.
-    const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length).at(-1);
-    const main = dialog || document.querySelector('[role="main"]') || document.body;
-    const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
-    const priceText = priceNode ? priceNode.textContent.trim() : "";
-    const imgs = [...main.querySelectorAll("img")]
-      .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
-      .map((i) => i.src);
-    const title = squash(firstText(main, ["h1"]) || (dialog ? "" : meta("og:title")), 200);
-    const text = main.innerText || "";
-    return withTotal({
-      ...TK.cardFacts(text, title),
-      site: "facebook",
-      title,
-      priceText,
-      price: /^free$/i.test(priceText) ? 0 : TK.parsePrice(priceText),
-      shipping: null,
-      condition: "",
-      seller: "",
-      shippingText: "",
-      details: squash(dialog ? text : meta("og:description") || text, 2500),
-      imageUrls: uniq([dialog ? "" : meta("og:image"), ...imgs]).slice(0, 4),
-      url: location.href.split("?")[0],
-      titleCode: TK.titleCode(title),
-      offSite: TK.offSite(text),
-    });
+    },
+    facebook: () => {
+      // Facebook Marketplace: class names are useless, so lean on visible text + metadata.
+      // A listing opened from the feed is an overlay (a dialog) over the feed, with the feed still in
+      // [role=main] and the page's og: tags still the feed's; opened directly, it's the main area.
+      // Only a dialog you can see: Facebook keeps hidden ones (a "Notifications" flyout) in the page.
+      const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length).at(-1);
+      const main = dialog || document.querySelector('[role="main"]') || document.body;
+      const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
+      const priceText = priceNode ? priceNode.textContent.trim() : "";
+      const imgs = [...main.querySelectorAll("img")]
+        .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
+        .map((i) => i.src);
+      const title = squash(firstText(main, ["h1"]) || (dialog ? "" : meta("og:title")), 200);
+      const text = main.innerText || "";
+      return withTotal({
+        ...TK.cardFacts(text, title),
+        site: "facebook",
+        title,
+        priceText,
+        price: /^free$/i.test(priceText) ? 0 : TK.parsePrice(priceText),
+        shipping: null,
+        condition: "",
+        seller: "",
+        shippingText: "",
+        details: squash(dialog ? text : meta("og:description") || text, 2500),
+        imageUrls: uniq([dialog ? "" : meta("og:image"), ...imgs]).slice(0, 4),
+        url: location.href.split("?")[0],
+        titleCode: TK.titleCode(title),
+        offSite: TK.offSite(text),
+      });
+    },
   };
+  TK.extractItem = () => (TK.ITEM_READERS[TK.currentSite()] || TK.ITEM_READERS.facebook)();
 
   // A short search phrase for the sold-price comparison, taken from a listing title. Condition and
   // fault words ("for parts", "untested", "blinking red light") would skew the sold search, so they go.
@@ -407,7 +431,7 @@
   // On Facebook a trailing code ("... U2X503") would only make the sold search come back empty.
   TK.titleToQuery = (title) =>
     (title || "")
-      .slice(0, TK.currentSite() === "facebook" && TK.titleCode(title) ? -TK.titleCode(title).length : undefined)
+      .slice(0, TK.site()?.titleCodes && TK.titleCode(title) ? -TK.titleCode(title).length : undefined)
       .replace(NOISE, " ")
       .replace(/[^\p{L}\p{N}\s.-]/gu, " ")
       .split(/\s+/)
@@ -419,57 +443,50 @@
   // ---------- pick the adapter for this page ----------
 
   // Every eBay page and every Marketplace page get the tab; what the panel can do depends on the page.
-  TK.currentSite = () => {
-    if (location.hostname === "www.ebay.com") return "ebay";
-    if (location.hostname === "www.facebook.com" && location.pathname.startsWith("/marketplace")) return "facebook";
-    return null;
-  };
+  TK.currentSite = () => Sites.here(location)?.id ?? null;
+  // This page's site entry (lib/sites.js), or null.
+  TK.site = () => Sites.here(location);
 
   // "results" = search results or a category, "item" = one listing, "home" = eBay's front page,
   // "other" = any other eBay page (the panel still has Saved), null = not ours.
-  TK.pageType = () => {
-    const site = TK.currentSite();
-    if (site === "ebay") {
-      const path = location.pathname;
-      return path === "/" ? "home" : path.startsWith("/itm/") ? "item" : /^\/(sch|b)\//.test(path) ? "results" : "other";
-    }
-    if (site === "facebook") return location.pathname.startsWith("/marketplace/item/") ? "item" : "results";
-    return null;
-  };
+  TK.pageType = () => TK.site()?.pageType(location) ?? null;
 
+  // Each site's card reader, by site id: a new site adds its own here.
+  TK.READERS = { ebay: (root) => TK.extractEbay(root), facebook: (root) => TK.extractFacebook(root) };
   TK.extract = () => {
-    const site = TK.currentSite();
-    const items = site === "ebay" ? TK.extractEbay() : site === "facebook" ? TK.extractFacebook() : [];
+    const read = TK.READERS[TK.currentSite()];
+    const items = read ? read() : [];
     return items.map((it, i) => ({ ...it, id: i + 1 }));
   };
 
   TK.detectQuery = () => {
-    const site = TK.currentSite();
     if (TK.pageType() === "item") return TK.titleToQuery(TK.extractItem().title);
-    return site === "ebay" ? TK.ebayQuery() : site === "facebook" ? TK.facebookQuery() : "";
+    return TK.site()?.queryOf(location) ?? "";
   };
 
-  // The address for a suggested search. Both sites take the search words in the URL, which is
-  // sturdier than typing into the page's own search box. Price cap and sort are best-effort.
-  TK.searchUrl = ({ query, maxPrice, newest }) => {
-    const site = TK.currentSite();
-    if (site === "ebay") {
+  // The address for a suggested search, per site (a new site adds its own). The search words go in the
+  // URL, which is sturdier than typing into the page's own search box. Price cap and sort are best-effort.
+  TK.SEARCH_BUILDERS = {
+    ebay: ({ query, maxPrice, newest }) => {
       const u = new URL("https://www.ebay.com/sch/i.html");
       u.searchParams.set("_nkw", query);
       if (maxPrice > 0) u.searchParams.set("_udhi", String(maxPrice));
       if (newest) u.searchParams.set("_sop", "10");
       return u.href;
-    }
-    // Facebook search has no operators: drop minus terms, quotes and brackets so they aren't searched literally.
-    query = query.replace(/(^|\s)-\S+/g, " ").replace(/["()]/g, "").replace(/\s+/g, " ").trim();
-    const u = new URL(location.href); // keeps the city/location part of the Marketplace address
-    u.search = "";
-    if (!/\/search\/?$/.test(u.pathname)) u.pathname = "/marketplace/search";
-    u.searchParams.set("query", query);
-    if (maxPrice > 0) u.searchParams.set("maxPrice", String(maxPrice));
-    if (newest) u.searchParams.set("sortBy", "creation_time_descend");
-    return u.href;
+    },
+    facebook: ({ query, maxPrice, newest }) => {
+      // Facebook search has no operators: drop minus terms, quotes and brackets so they aren't searched literally.
+      query = query.replace(/(^|\s)-\S+/g, " ").replace(/["()]/g, "").replace(/\s+/g, " ").trim();
+      const u = new URL(location.href); // keeps the city/location part of the Marketplace address
+      u.search = "";
+      if (!/\/search\/?$/.test(u.pathname)) u.pathname = "/marketplace/search";
+      u.searchParams.set("query", query);
+      if (maxPrice > 0) u.searchParams.set("maxPrice", String(maxPrice));
+      if (newest) u.searchParams.set("sortBy", "creation_time_descend");
+      return u.href;
+    },
   };
+  TK.searchUrl = (opts) => (TK.SEARCH_BUILDERS[TK.currentSite()] || TK.SEARCH_BUILDERS.facebook)(opts);
 
   // ---------- market reference from eBay sold listings ----------
 
@@ -488,24 +505,65 @@
     u.searchParams.set("LH_Sold", "1");
     u.searchParams.set("LH_Complete", "1");
     u.searchParams.set("_ipg", "60");
+    u.searchParams.set("_sop", "13"); // most recently ended first: today's prices, not last season's
     if (condition) u.searchParams.set("LH_ItemCondition", condition);
     return u.href;
   };
 
   // Median of what buyers paid (price + shipping when the card shows it), plus the few sales
-  // closest to the median so you can see what the number is made of.
-  TK.summarizeSold = (html) => {
+  // closest to the median so you can see what the number is made of. Only sales that are the thing
+  // itself count:
+  //  - "Best offer accepted": the card shows the asking price, not what was paid (always lower), so
+  //    those would pull the median up. Left out.
+  //  - lots and bundles: not one item's price.
+  //  - for parts, not working, as is (when looking at working ones): sellers often list these under
+  //    "used" anyway.
+  //  - titles missing a model number from the search ("k1000", "ps2"): eBay matches loosely.
+  //  - outliers: far outside the rest (a box alone, a mint boxed kit), by Tukey's fences on log prices,
+  //    never nearer than 2.5x the median.
+  // confidence says how far to trust the number: "good" (15+ sales, middle half within 2x),
+  // "fair" (8+, within 3x), else "rough". ship: what buyers paid for shipping when they paid it (median),
+  // a fair guess at what sending one on would cost you.
+  const PARTSY = /\b(for parts|parts only|not working|non[- ]?working|doesn'?t work|does not work|as[- ]is|broken|untested|for repair|faulty|spares)\b/i;
+  const alnum = (x) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+  TK.summarizeSold = (html, { query = "", condition = "" } = {}) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    const sales = TK.extractEbay(doc, { strict: true }).filter((it) => it.total != null && it.total > 0);
+    const all = TK.extractEbay(doc, { strict: true }).filter((it) => it.total != null && it.total > 0);
+    const dropped = { offers: 0, lots: 0, parts: 0, unrelated: 0, outliers: 0 };
+    // Model numbers in the search must be in the title: tokens with a digit and a letter, or 3+ digits.
+    const codes = query.split(/\s+/).filter((w) => (/\d/.test(w) && /[a-z]/i.test(w)) || /^\d{3,}$/.test(w)).map(alnum).filter((w) => w.length >= 2);
+    let sales = all.filter((it) => {
+      const why = /best offer accepted/i.test(it.raw || "") ? "offers" : it.lot ? "lots" : condition !== "parts" && PARTSY.test(it.title) ? "parts" : codes.length && !codes.every((c) => alnum(it.title).includes(c)) ? "unrelated" : "";
+      if (why) dropped[why]++;
+      return !why;
+    });
+    if (sales.length >= 8) {
+      const logs = sales.map((it) => Math.log(it.total)).sort((a, b) => a - b);
+      const q1 = quantile(logs, 0.25);
+      const q3 = quantile(logs, 0.75);
+      // Never closer than 2.5x either side of the median: when prices cluster tightly, the fences alone
+      // would throw out ordinary sales.
+      const mid = quantile(logs, 0.5);
+      const lo = Math.min(q1 - 1.5 * (q3 - q1), mid - Math.log(2.5));
+      const hi = Math.max(q3 + 1.5 * (q3 - q1), mid + Math.log(2.5));
+      const kept = sales.filter((it) => Math.log(it.total) >= lo && Math.log(it.total) <= hi);
+      dropped.outliers = sales.length - kept.length;
+      sales = kept;
+    }
     if (sales.length < 5) return null; // too few sales to trust
     const totals = sales.map((it) => it.total).sort((a, b) => a - b);
     const r = (n) => Math.round(n);
     const median = quantile(totals, 0.5);
+    const p25 = quantile(totals, 0.25);
+    const p75 = quantile(totals, 0.75);
+    const spread = p25 > 0 ? p75 / p25 : Infinity;
+    const confidence = totals.length >= 15 && spread <= 2 ? "good" : totals.length >= 8 && spread <= 3 ? "fair" : "rough";
+    const ships = sales.map((it) => it.shipping).filter((x) => x > 0).sort((a, b) => a - b);
     const samples = [...sales]
       .sort((a, b) => Math.abs(a.total - median) - Math.abs(b.total - median))
       .slice(0, 5)
       .sort((a, b) => a.total - b.total)
       .map((it) => ({ title: it.title, total: it.total, url: it.url }));
-    return { n: totals.length, median: r(median), p25: r(quantile(totals, 0.25)), p75: r(quantile(totals, 0.75)), currency: "$", samples };
+    return { n: totals.length, median: r(median), p25: r(p25), p75: r(p75), confidence, ship: ships.length >= 3 ? r(quantile(ships, 0.5)) : null, dropped, currency: "$", samples };
   };
 })();

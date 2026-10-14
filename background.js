@@ -806,10 +806,10 @@ async function soldWorkerBlocked() {
 // and a site's font rules can't block them.
 
 // ---------- Fonts ----------
-// Page scripts get the bundled serif as bytes and add it with the FontFace API. Nothing is
+// Page scripts get the bundled typeface as bytes and add it with the FontFace API. Nothing is
 // exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
 // and a site's font rules can't block them.
-const FONT_FILES = /^(fraunces-400|fraunces-400-italic|fraunces-600)\.woff2$/;
+const FONT_FILES = /^bricolage-grotesque\.woff2$/;
 const fontCache = new Map();
 async function getFont({ file }) {
   if (!FONT_FILES.test(file || "")) throw new Error("Unknown font.");
@@ -919,7 +919,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 const AUTO_ID = "tirekick-auto";
 const OLD_AUTO_IDS = ["second-look-auto"]; // registered before the rename; left alone, it would load the page scripts twice
 // What a page gets, in load order: shared pieces, the plain rules, the site adapters, then the panel.
-const CONTENT_FILES = ["lib/shared.js", "content/rules.js", "content/adapters.js", "content/home.js", "content/panel.js"];
+const CONTENT_FILES = ["lib/shared.js", "lib/theme.js", "content/rules.js", "content/adapters.js", "content/home.js", "content/panel.js"];
 
 // Install and a settings change can both ask at once; run one at a time so they don't race.
 let syncing = Promise.resolve();
@@ -976,7 +976,7 @@ async function updateBadge() {
   const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
   const fresh = TKShared.alerts(saved, savedSearches, alertsAck).filter((a) => a.isNew);
   const base = chrome.runtime.getManifest().action.default_title;
-  await chrome.action.setBadgeBackgroundColor({ color: "#C8461F" });
+  await chrome.action.setBadgeBackgroundColor({ color: "#1A2B4C" }); // navy, as the icon tile (lib/theme.js)
   await chrome.action.setBadgeText({ text: fresh.length > 99 ? "99+" : fresh.length ? String(fresh.length) : "" });
   await chrome.action.setTitle({ title: fresh.length ? `${base}\n${TKShared.alertSummary(fresh)}. Click the icon to see them.` : base });
 }

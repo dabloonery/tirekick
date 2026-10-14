@@ -27,6 +27,32 @@ ${deep(`<a href="/marketplace/item/333/"><div class="ph"></div><div>$30</div><di
 ${deep(`<a href="/marketplace/item/444/"><div class="ph"></div><div>Just listed</div><div>$140</div><div>Canon AE-1 with 50mm lens</div><div>Santa Fe, NM</div></a>`)}
 ${deep(`<a href="/marketplace/item/555/"><div class="ph"></div><div>$60</div><div>$75</div><div>Yashica FX-3, light seals new</div><div>Albuquerque, NM</div></a>`)}
 </main></div></body></html>`;
+// ?photos=1|2 on facebook.com: cards with real photos from a Facebook image host (scontent.test.fbcdn.net,
+// mapped here), for the same-photo check. a1 and a2 are one picture uploaded twice (two files), a3 the same
+// picture a little brighter, b1 another picture.
+const photoCard = (id: number, photo: string, price: number, title: string) =>
+  deep(`<a href="/marketplace/item/${id}/"><img alt="" style="width:100%;height:140px;object-fit:cover;display:block" src="https://scontent.test.fbcdn.net/v/t45/${photo}_n.bmp?stp=dst&_nc_cat=1"><div>$${price}</div><div>${title}</div><div>Albuquerque, NM</div></a>`);
+const fbPhotosPage = (n: string) => `<!doctype html><html><head><meta charset="utf-8"><title>Marketplace</title>
+<style>body{font:14px system-ui;margin:0}main{display:grid;grid-template-columns:repeat(4,200px);gap:16px;padding:20px}a{display:block;color:inherit;text-decoration:none;border:1px solid #ddd}a div{padding:2px 10px}</style></head><body><div role="main"><main>
+${n === "2"
+  ? photoCard(7005, "a3", 70, "Minolta X-700 with flash")
+  : [photoCard(7001, "a1", 85, "Pentax K1000 35mm film camera"), photoCard(7002, "a2", 60, "Canon AE-1 Program body"), photoCard(7003, "a1", 95, "Pentax K1000 with 50mm lens"), photoCard(7004, "b1", 120, "Yashica FX-3 light seals new")].join("\n")}
+</main></div></body></html>`;
+// A 48×48 24-bit BMP: smooth shading from one pattern (a, a little brighter for a3) or another (b).
+const bmp = (name: string) => {
+  const w = 48, hgt = 48, row = w * 3, size = 54 + row * hgt;
+  const buf = new Uint8Array(size), dv = new DataView(buf.buffer);
+  buf[0] = 0x42; buf[1] = 0x4d; dv.setUint32(2, size, true); dv.setUint32(10, 54, true); dv.setUint32(14, 40, true);
+  dv.setInt32(18, w, true); dv.setInt32(22, hgt, true); dv.setUint16(26, 1, true); dv.setUint16(28, 24, true); dv.setUint32(34, row * hgt, true);
+  const lift = name === "a3" ? 12 : 0;
+  for (let y = 0; y < hgt; y++) for (let x = 0; x < w; x++) {
+    const v = name.startsWith("b") ? 128 + 100 * Math.cos(x / 9 - y / 4) : 120 + 100 * Math.sin(x / 6 + y / 10) + lift;
+    const g = Math.max(0, Math.min(255, Math.round(v)));
+    const o = 54 + (hgt - 1 - y) * row + x * 3;
+    buf[o] = g; buf[o + 1] = Math.max(0, g - 30); buf[o + 2] = Math.min(255, g + 20);
+  }
+  return buf;
+};
 // ?bench=N on facebook.com: a Marketplace-sized page for performance checks (perf.ts). N cards, each nested
 // fourteen boxes deep like Facebook's, more added as you scroll, and the page rewriting class names all the time.
 const benchPage = (n: number, churn = true) => {
@@ -67,6 +93,7 @@ ${card(23, `${t} museum piece`, 900)}
 ${card(24, `${t.split(/\s+/)[0]} strap and cap`, 8)}
 </ul></div></body></html>`;
 };
+let photoHits = 0; // photo requests, to check they stay few
 const fixturePage = (name: string) => {
   const html = Deno.readTextFileSync(new URL(`tests/fixtures/${name.replace(/[^\w-]/g, "")}.html`, ROOT));
   const scripts = ["lib/sites.js", "lib/shared.js", "content/rules.js", "content/adapters.js"].map((f) => `<script>${Deno.readTextFileSync(new URL(f, ROOT))}</script>`).join("");
@@ -76,6 +103,9 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   const u = new URL(req.url);
   if (u.searchParams.has("fixture")) return fixturePage(u.searchParams.get("fixture")!);
   if (u.hostname === "www.facebook.com" && u.searchParams.has("bench")) return new Response(benchPage(+u.searchParams.get("bench")!, u.searchParams.get("churn") !== "0"), { headers: { "content-type": "text/html" } });
+  if (u.hostname === "scontent.test.fbcdn.net") { photoHits++; return new Response(bmp(u.pathname.match(/\/(\w+)_n\.bmp$/)?.[1] || "a1"), { headers: { "content-type": "image/bmp" } }); }
+  if (u.hostname === "www.facebook.com" && u.searchParams.has("photos")) return new Response(fbPhotosPage(u.searchParams.get("photos")!), { headers: { "content-type": "text/html" } });
+  if (u.pathname === "/photo-hits") return new Response(String(photoHits));
   if (/\.jpg$/.test(u.pathname)) return new Response(Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (x) => x.charCodeAt(0)), { headers: { "content-type": "image/gif" } });
   if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace", u.searchParams.has("dark")), { headers: { "content-type": "text/html" } });
   // A sold search for "blockme" is refused, like eBay's browser check.

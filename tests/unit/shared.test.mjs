@@ -222,3 +222,17 @@ test("savedRows: one row per saved listing, newest first, with the latest score"
   assert.deepEqual([rows[1].p0, rows[1].p, rows[1].change, rows[1].saved, rows[1].score, rows[1].verdict, rows[1].sold, rows[1].margin], [120, 95, -25, "2026-10-01", 81, "great", 140, 22.5]);
   assert.deepEqual(S.savedRows(null), []);
 });
+
+test("dHash: a photo's fingerprint survives resizing and brightness, and tells pictures apart", () => {
+  // 9×8 gray pixels from a smooth pattern, the same pattern brighter, and a different one.
+  const pic = (fn) => Array.from({ length: 72 }, (_, i) => fn(i % 9, Math.floor(i / 9)));
+  const a = S.dHash(pic((x, y) => 128 + 90 * Math.sin(x * 0.9 + y * 0.6)));
+  const lighter = S.dHash(pic((x, y) => 140 + 90 * Math.sin(x * 0.9 + y * 0.6)));
+  const b = S.dHash(pic((x, y) => 128 + 90 * Math.cos(x * 0.4 - y * 1.1)));
+  assert.match(a, /^[0-9a-f]{16}$/);
+  assert.equal(lighter, a);
+  assert.notEqual(b, a);
+  // a blank picture (or a placeholder) has no fingerprint: it would match every other blank one
+  assert.equal(S.dHash(pic(() => 200)), "");
+  assert.equal(S.dHash([]), "");
+});

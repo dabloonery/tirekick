@@ -45,12 +45,15 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 ### Order
 
 1. **0.37.0 housekeeping**: the version check, L1, test docs, this section.
-2. **More free features, and better ones.** Done in 0.37.0, from the briefs' parts that need no model:
+2. **More free features, and better ones.** Done in 0.37.0 and 0.38.0, from the briefs' parts that need no model:
    - Brief 4: "Likely scam? 32% of sold price" and "Too cheap?" marks from a trusted sold median; Marketplace's
-     "Joined Facebook in …" warns on an account made this year. *Still open:* reused photos.
+     "Joined Facebook in …" warns on an account made this year. 0.38.0: **Same photo as 2 other listings** on
+     Marketplace, from fingerprints (dHash) of thumbnails on screen, kept 90 days; the same file or the same title
+     doesn't count, and scans are told. *Still open:* eBay, which needs the seller on each card first (sellers there
+     reuse their own photos).
    - Brief 3: an opening offer and walk-away price from sold prices, with the reason shown, and three message
-     templates to pick, edit and copy, before any analysis. *Still open:* passing the plan to the model's analysis,
-     and a counteroffer box.
+     templates to pick, edit and copy, before any analysis. 0.38.0: **They said $…** answers take it, meet in the
+     middle or a last offer, and rewrites the message; Analyze gets the plan and its range is kept near it.
    - Brief 2: how long a listing has been up, how a saved one moved since you saved it, "the seller may take less",
      and saved listings' history kept past the 90-day prune. *Still open:* relists.
    - Brief 6, part 1: saved listings as a spreadsheet (CSV), from Saved and from settings. *Still open:* sync.
@@ -66,17 +69,18 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 
 ### For Myer, in order (2026-10-14)
 
-1. **Review and merge PR #24** (0.37.0) on GitHub: open it, press **Ready for review**, then **Merge pull request**.
-2. **Install 0.37.0 in Vivaldi.** Unzip `tirekick-0.37.0.zip` into the folder Vivaldi already loads Tirekick from,
+1. **Review and merge PR #24** (0.38.0) on GitHub: open it and press **Merge pull request**.
+2. **Install 0.38.0 in Vivaldi.** Unzip `tirekick-0.38.0.zip` into the folder Vivaldi already loads Tirekick from,
    replacing its files (same folder name and place, so your saved data stays), then press the reload arrow on
-   Tirekick in `vivaldi://extensions`. The card there should say 0.37.0.
+   Tirekick in `vivaldi://extensions`. The card there should say 0.38.0.
 3. **The live check, about 20 minutes.** Each one is something the tests can't reach:
    - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "% of sold"
      on the cards? Any "Too cheap?" chips look right?
    - Press **Scan** once with your key. Tags on the cards, and the ranked list?
-   - Open a listing from that search: is there an **Offer** box with a message you can copy?
+   - Open a listing from that search: is there an **Offer** box with a message you can copy? Type a price under
+     **They said $**: does the advice make sense?
    - A Marketplace search, then one listing: does it say how long ago it was listed, and warn if the seller joined
-     Facebook this year?
+     Facebook this year? Scroll a while: any **Same photo as … other listings** marks, and do they look right?
    - Saved: **Download (CSV)** opens in a spreadsheet.
    - Vivaldi: the toolbar icon and its number, Alt+Shift+L, right-click a photo ("Check this photo"), right-click
      selected text ("Look up").

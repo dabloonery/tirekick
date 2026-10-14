@@ -233,6 +233,42 @@
     return dup;
   };
 
+  // ---------- the same photo on other listings ----------
+  // How many of two photo hashes' 64 bits differ (64 when either is missing).
+  R.hashDistance = (a, b) => {
+    if (!/^[0-9a-f]{16}$/.test(a || "") || !/^[0-9a-f]{16}$/.test(b || "")) return 64;
+    let d = 0;
+    for (let i = 0; i < 16; i += 8) for (let x = parseInt(a.slice(i, i + 8), 16) ^ parseInt(b.slice(i, i + 8), 16); x; x >>>= 1) d += x & 1;
+    return d;
+  };
+  R.PHOTO_NEAR = 4; // bits apart that still count as the same picture
+  // The other listings showing this listing's photo, from what you've seen (seen: key -> { h: hash, f: the
+  // photo's file name, t: title }). The same file under another listing is the seller's own relist or a catalog
+  // photo, and the same title is a relist or a repost already marked elsewhere: neither counts. What's left is
+  // the same picture uploaded again under another title: a stolen photo, or a stock one. Returns their keys.
+  R.photoTwins = (key, seen) => {
+    const me = seen?.[key];
+    if (!me?.h) return [];
+    const out = [];
+    for (const [k, o] of Object.entries(seen)) {
+      if (k === key || !o?.h || (o.f && o.f === me.f) || (o.t && o.t === me.t)) continue;
+      if (R.hashDistance(me.h, o.h) <= R.PHOTO_NEAR) out.push(k);
+    }
+    return out;
+  };
+  // A photo's file name from its address, which stays the same across the sizes a site serves it in (eBay:
+  // /images/g/<id>/s-l500.jpg; Facebook: /v/…/<id>_n.jpg?…).
+  R.photoFile = (url) => {
+    try {
+      const parts = new URL(url).pathname.split("/").filter(Boolean);
+      let last = parts.pop() || "";
+      if (/^s-l\d+\.\w+$/i.test(last)) last = parts.pop() || "";
+      return last.replace(/\.\w+$/, "");
+    } catch {
+      return "";
+    }
+  };
+
   // The other codes a scam title has been posted under, by other listings. stemRec: { c: { code: key } }.
   R.otherCodes = (stemRec, key, code) => Object.entries(stemRec?.c || {}).filter(([c, k]) => c !== code && k !== key).map(([c]) => c);
 

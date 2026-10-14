@@ -170,7 +170,7 @@ async function showMemory() {
   const m = Object.keys(listingMemory).length;
   const sv = Object.keys(saved).length + Object.keys(savedSearches).length;
   document.getElementById("memoryInfo").textContent =
-    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops, price history and reposted scams (kept 90 days, only in this browser).` +
+    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops, price history, reposted scams and reused photos (kept 90 days, only in this browser).` +
     (sv ? ` ${sv} saved (listings and searches), kept until you remove them in the panel.` : "");
 }
 document.getElementById("clearHidden").addEventListener("click", async () => {
@@ -179,7 +179,7 @@ document.getElementById("clearHidden").addEventListener("click", async () => {
   note("Everything you hid is visible again.");
 });
 document.getElementById("clearMemory").addEventListener("click", async () => {
-  await chrome.storage.local.remove(["listingMemory", "codeStems"]);
+  await chrome.storage.local.remove(["listingMemory", "codeStems", "photoSeen"]);
   showMemory();
   note("Seen listings forgotten.");
 });

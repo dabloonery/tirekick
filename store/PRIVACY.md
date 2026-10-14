@@ -15,6 +15,7 @@ All of this is kept in your browser's extension storage and never sent to the de
 - **Your settings**, including any API key you paste in. Keys stay in this browser profile; the pages Tirekick works on never see them.
 - **Listings and searches you saved, and listings you hid**, with the prices you saw.
 - **Listings you've seen** (title, price, when), so it can say "new to you" and show price drops and history. Kept for 90 days.
+- **Photo fingerprints** for Marketplace listings you scroll past: a 16-character code worked out from each thumbnail (not the photo itself), so it can spot the same photo on another listing. Kept for 90 days.
 - **Scores** for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and **sold-price results**, kept for six hours.
 - **Small preferences**: each mode's sort, each search's "what I want" and filter, and where the panel sits on each site.
 - **A spending estimate** for paid AI, worked out from token counts at list price.
@@ -37,6 +38,7 @@ the background.
 | Press **Scan** (or have it scan automatically), **Analyze this listing** or **Better searches** | Listing titles and the text on their cards (price, shipping, seller rating, condition, description), your search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: the Claude API (api.anthropic.com), OpenRouter, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer) |
 | Press **Check photo** or right-click a photo | The photo and the listing's title | The same AI service |
 | Compare **sold prices** (a button, as part of a scan, or **Look up** on Tirekick's own page, including words you select on any page and choose "Look up … on eBay and Marketplace") | Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most | eBay |
+| Scroll past Marketplace listings | A request for each thumbnail you see (the same picture the page already shows), without your Facebook cookies, so the fingerprint can be worked out on your computer. Nothing about you or the listing goes with it | Facebook's image server (fbcdn.net) |
 | Press **Find photo elsewhere** | The photo's web address, opened in a new tab | Google Lens (lens.google.com) |
 | Press **Test connection** in settings | Your API key, to check it works | The service you picked |
 

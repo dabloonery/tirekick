@@ -26,6 +26,25 @@ ok("…seller ratings, auctions, lots and offers", eq([items[0].sellerPct, items
 ok("…photo and link", /ebayimg\.com/.test(items[0].imageUrl) && /^https:\/\/www\.ebay\.com\/itm\/100000000001/.test(items[0].url));
 ok("…page type and search words", (await p.ev(`Tirekick.pageType()`)) === "results" && (await p.ev(`Tirekick.ebayQuery()`)) === "game boy sp");
 
+// Odd cards: whatever a page throws at the adapter, it reads what it can and never throws.
+{
+  const odd = `<ul>
+    <li class='s-card'><div class='s-card__title'>No link at all</div><div class='s-card__price'>$5.00</div></li>
+    <li class='s-card'><a href='https://www.ebay.com/itm/300000000001'></a><div class='s-card__price'>$5.00</div></li>
+    <li class='s-card'><a href='https://www.ebay.com/itm/300000000002'><div class='s-card__title'>Price missing camera body</div></a></li>
+    <li class='s-card'><a href='https://www.ebay.com/itm/300000000003'><div class='s-card__title'>Foreign seller camera</div></a><div class='s-card__price'>C $40.00</div><span>Approximately US $29.20</span></li>
+    <li class='s-card'><a href='https://www.ebay.com/itm/300000000004'><div class='s-card__title'>Pokémon Red 🎮 cartridge</div></a><div class='s-card__price'>$1,249.99</div><span>+$12.35 delivery</span></li>
+    <li class='s-card'><a href='javascript:alert(1)'><div class='s-card__title'>Not a listing</div></a></li>
+    <li class='s-card'></li>
+  </ul>`;
+  const q = await page("https://www.ebay.com/sch/i.html?_nkw=x", "ebay-results");
+  const r = await q.ev(`(() => { try { const d = new DOMParser().parseFromString(${JSON.stringify(odd)}, "text/html"); return Tirekick.extractEbay(d).map(({ el, raw, ...it }) => [it.title, it.price, it.total]); } catch (e) { return "THREW " + e.message; } })()`);
+  ok("odd cards: no link or no title are skipped, a missing price stays unknown, another currency uses eBay's US price, emoji and accents survive", eq(r, [["Price missing camera body", null, null], ["Foreign seller camera", 29.2, 29.2], ["Pokémon Red 🎮 cartridge", 1249.99, 1262.34]]), r);
+  const empty = await q.ev(`(() => { try { document.body.replaceChildren(); return [Tirekick.extract().length, Tirekick.linkedListings(), typeof Tirekick.extractItem().title]; } catch (e) { return "THREW " + e.message; } })()`);
+  ok("an empty page reads as nothing, without throwing", eq(empty, [0, 0, "string"]), empty);
+  await q.close();
+}
+
 p = await page("https://www.ebay.com/sch/i.html?_nkw=snes", "ebay-results-old");
 items = await extract(p);
 ok("eBay results (older layout)", items.length === 2 && items[0].title === "Super Nintendo SNES Console Bundle 2 Controllers" && eq([items[0].price, items[0].shipping, items[0].total, items[1].price, items[1].shipping], [95, 12.35, 107.35, 24.99, 0]), items.map((i: any) => [i.title, i.price, i.shipping]));

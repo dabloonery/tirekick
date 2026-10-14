@@ -119,3 +119,44 @@ test("healthNote says what changed, and nothing when all is well", () => {
   assert.match(R.healthNote({ level: "partial", links: 48, items: 10 }, "Marketplace"), /read 10 of the 48 listings/);
   assert.match(R.healthNote({ level: "prices", items: 48, priced: 5 }, "eBay"), /price on only 5/);
 });
+
+test("sighting: seen before, new to you, price drops and their history", () => {
+  const first = R.sighting(undefined, 100, { now: 1, pageHadKnown: false });
+  assert.deepEqual(first, { out: { isNew: false, known: false }, rec: { p: 100, pa: 1, f: 1, a: 1 } }, "a first visit to a search marks nothing new");
+  assert.equal(R.sighting(undefined, 100, { now: 1, pageHadKnown: true }).out.isNew, true, "a search you've seen before marks what's new");
+  const same = R.sighting(first.rec, 100, { now: 5 });
+  assert.deepEqual(same, { out: { isNew: false, known: true }, rec: { p: 100, pa: 1, f: 1, a: 5 } });
+  const small = R.sighting(first.rec, 99.5, { now: 6 });
+  assert.equal(small.out.drop, undefined, "under a dollar and 3% isn't a drop");
+  const drop = R.sighting(first.rec, 80, { now: 7 });
+  assert.deepEqual(drop.out.drop, { from: 100, since: 1 });
+  assert.deepEqual(drop.rec, { p: 80, pa: 7, f: 1, a: 7, h: [[100, 1]] });
+  const bid = R.sighting(drop.rec, 20, { now: 8, auction: true });
+  assert.equal(bid.out.drop, undefined, "a bid says nothing about drops");
+  assert.equal(bid.rec.p, 80, "…and the last fixed price is kept");
+  let r = first.rec;
+  for (let i = 0; i < 8; i++) r = R.sighting(r, 100 - i * 5, { now: 10 + i }).rec;
+  assert.equal(r.h.length, 5, "history keeps the last five changes");
+  assert.equal(R.sighting({ p: 50, pa: 1, f: 1, a: 1, o: 3 }, 50, { now: 9 }).rec.o, 3, "when you first opened it is kept");
+  assert.doesNotThrow(() => R.sighting("junk", 5), "a damaged record is treated as new");
+  assert.equal(R.sighting({ p: "x", pa: 1 }, 5, { now: 2 }).rec.p, 5);
+});
+
+test("duplicates: same title or same photo on one page", () => {
+  const a = { title: "Pentax K1000 35mm film camera", imageUrl: "https://i.ebayimg.com/1.jpg" };
+  const b = { title: "PENTAX K1000 35mm film camera!", imageUrl: "https://i.ebayimg.com/2.jpg" };
+  const c = { title: "Nikon F3", imageUrl: "https://i.ebayimg.com/2.jpg" };
+  const d = { title: "Nikon F3", imageUrl: "data:image/gif;base64,x" };
+  const e = { title: "Nikon F3", imageUrl: "data:image/gif;base64,x" };
+  const dup = R.duplicates([a, b, c, d, e], (u) => u.startsWith("data:"));
+  assert.equal(dup.get(a), 2);
+  assert.equal(dup.get(b), 2, "same title, and a photo shared with c");
+  assert.equal(dup.get(c), 2);
+  assert.equal(dup.has(d), false, "short titles and placeholder photos don't count");
+});
+
+test("otherCodes: the same scam title under other codes", () => {
+  const stem = { c: { M2465: "fb:1", K7731: "fb:2", Z9999: "fb:1" } };
+  assert.deepEqual(R.otherCodes(stem, "fb:1", "M2465"), ["K7731"], "codes on the same listing don't count");
+  assert.deepEqual(R.otherCodes(undefined, "fb:1", "M2465"), []);
+});

@@ -57,7 +57,7 @@ few numbers, spending, which features you use). Saved and Home work on any eBay 
   the icon opens eBay with Home showing.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Fair price,
-Skip, Suspicious) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
+Skip, Likely scam) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
 button becomes "Scan N new listings"; only the new ones are scored.
 
 **Scores stay with the listing.** Every score (a scan, an analysis, a photo check) is saved in this
@@ -75,18 +75,18 @@ code on the end of the title: "Nintendo Game Boy Advance SP M2465", "Halo Specia
 S1337". Tirekick watches for it:
 
 - **Reposted under new codes**: the same title seen with two different codes, on one page or any
-  page in the last month, is marked "Scam: reposted" and greyed out straight away,
-  with no model and no key needed. A scan marks these Suspicious without sending them to the model.
-- **Code in title**: a lone code gets a chip and counts as a likely scam straight away: greyed out,
+  page in the last month, is marked "Scam: reposted" and grayed out straight away,
+  with no model and no key needed. A scan marks these Likely scam without sending them to the model.
+- **Code in title**: a lone code gets a chip and counts as a likely scam straight away: grayed out,
   last in every sort, never a deal at your price. A scan spells it out for the model, which marks
-  it Suspicious unless the code is the item's real model number (Pentax K1000, PS Vita PCH1001);
-  then the chip and the greying go away.
+  it Likely scam unless the code is the item's real model number (Pentax K1000, PS Vita PCH1001);
+  then the chip and the graying go away.
 - **Contact off the site**: in a title or on a listing, a disguised web address ("www . jmyzl . com", "remove the
   spaces"), an oddly written phone number ("505_507__6507"), "text me a screenshot", WhatsApp or
-  Telegram shows a "Likely scam" note, and the analysis is Suspicious whatever the model thought.
+  Telegram shows a "Likely scam" note, and the analysis is Likely scam whatever the model thought.
   A plain phone number ("call or text") is only a hint.
 
-Suspicious listings are greyed out along with skipped ones (Skips and scams: Show / Dim / Hide, under **Filter**). Dimming fades the card but not its tag or chips, so a
+Likely scams are grayed out along with skipped ones (Skips and scams: Show / Dim / Hide, under **Filter**). Dimming fades the card but not its tag or chips, so a
 scam warning stays readable.
 
 ## Everyday use
@@ -101,7 +101,7 @@ scam warning stays readable.
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
   price, auctions ending soonest, biggest margin, or new and cheaper first.
-- **Skipped and suspicious listings are greyed out** on the page; switch to Show or Hide under
+- **Skipped and suspicious listings are grayed out** on the page; switch to Show or Hide under
   **Filter** (Skips and scams).
 - **A row's links** (Open, Sold, Save, Not interested) appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
@@ -145,7 +145,7 @@ in Reseller (for when you only want fix-ups).
   lists the sales behind each number. eBay's "results matching fewer words" are left out.
 - The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
   "Compare prices against" if the page's search is vague.
-- **Auctions** are recognised ("3 bids · 2d 4h left"). Their price is only a current bid, so the
+- **Auctions** are recognized ("3 bids · 2d 4h left"). Their price is only a current bid, so the
   tag shows the most worth bidding instead: "Bid ≤ $100".
 - **Lots** ("lot of 6") show a price per item. "Or Best Offer" / OBO gets an "Offers" chip.
 
@@ -153,7 +153,7 @@ in Reseller (for when you only want fix-ups).
 
 On the Marketplace home feed, or a Marketplace or eBay category page, there's nothing to compare
 against, so your interests (settings) and "What I want" decide what's relevant. Everything else
-reads "Not your thing" and is greyed out with the skipped listings. Prices are compared with the model's
+reads "Not your thing" and is grayed out with the skipped listings. Prices are compared with the model's
 estimate of what that kind of item usually sells for, always marked **est.**; press
 **Sold prices** on a listing for real eBay numbers for that exact item.
 
@@ -232,7 +232,7 @@ paid AI stops when it's reached.
 The **Scan** button says how many listings it would send and about what that costs ("Scan 48
 listings · about $0.26"), from what scoring has actually cost you per listing with that model.
 **Stop** appears beside the status line while the model works (scans, analyses, photo checks,
-ideas): nothing new is sent, requests under way are cancelled, and what already came back stays.
+ideas): nothing new is sent, requests under way are canceled, and what already came back stays.
 
 ### Other AI services
 
@@ -259,13 +259,13 @@ which is at console.anthropic.com.
 
 ## Look
 
-Plain and built to be read: dark first, a hairline and a word beside every colour, numbers in a
+Plain and built to be read: dark first, a hairline and a word beside every color, numbers in a
 monospaced face so prices line up. **Settings → On the page → Theme**: *Match my browser* (the
 default; dark if the browser doesn't say), *Dark* or *Light*. The panel follows that; the marks on
 eBay and Marketplace cards follow the page itself (its real background, so a site's dark mode or a
-dark-mode extension counts). One scale everywhere (panel, card marks, photo card, settings): sizes 11, 12, 13, 14, 15, 18, 22 (10 only inside the score tag), weights 400 and 600 (800 for numerals and headings). Buttons come in three tiers: filled (the one action to take: Scan, Analyze, Test connection), outlined (other actions), and plain underlined text for actions inside a list; a red outline means it clears something. Colour carries meaning only: the verdict colours, red for scams and clearing things, orange for "new" and "at your price". The tag's word and the line beside it use the same vocabulary (Great / Great deal, Fair / Fair price, Scam? / Suspicious). Type is Bricolage Grotesque (bundled), a
+dark-mode extension counts). One scale everywhere (panel, card marks, photo card, settings): sizes 11, 12, 13, 14, 15, 18, 22 (10 only inside the score tag), weights 400 and 600 (800 for numerals and headings). Buttons come in three tiers: filled (the one action to take: Scan, Analyze, Test connection), outlined (other actions), and plain underlined text for actions inside a list; a red outline means it clears something. Color carries meaning only: the verdict colors, red for scams and clearing things, orange for "new" and "at your price". The tag's word and the line beside it use the same vocabulary (Great / Great deal, Fair / Fair price, Scam? / Suspicious). Type is Bricolage Grotesque (bundled), a
 narrower cut for the wordmark, headings, scores and prices. Scores are tread dots: the fill is the verdict, the tread
-lights up as far as the score, Skip is hollow and Suspicious carries a "!" badge, and each verdict word has its own
+lights up as far as the score, Skip is hollow and Likely scam carries a "!" badge, and each verdict word has its own
 glyph, so color is never the only cue. Palettes, type, the dot and the glyphs all live in `lib/theme.js`, which the
 panel, the card tags and the settings page read. Text contrast is 4.5:1 or better in both themes, and control
 borders 3:1 or better.
@@ -352,4 +352,4 @@ collection is what Meta's and eBay's terms prohibit and what gets accounts flagg
 
 `tests/e2e/run.sh` (needs `deno` and `openssl` as well) loads the real unpacked extension in headless Chrome against a mock Claude API: `scores-persist.ts` (scores across tabs, searches, the listing page, reloads), `marketplace.ts` (a Facebook Marketplace-shaped page: reading, repost scams, marks, scan), `first-run.ts` (the welcome shows once, Got it puts it away, ? brings it back), `diagnostic.ts`.
 
-`tests/run.sh` loads the panel on an eBay-shaped page in headless Chrome (needs `google-chrome-stable` and `python3`) and prints PASS/FAIL for the keyboard and focus behaviour. The extension APIs are stubbed; it does not exercise the models or real sites.
+`tests/run.sh` loads the panel on an eBay-shaped page in headless Chrome (needs `google-chrome-stable` and `python3`) and prints PASS/FAIL for the keyboard and focus behavior. The extension APIs are stubbed; it does not exercise the models or real sites.

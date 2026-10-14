@@ -197,3 +197,28 @@ test("upgradeStorage: what an older version left is carried over or cleaned, onc
   const again = S.upgradeStorage({ filterWords: "x", saved: old.saved, lens: "use" });
   assert.deepEqual([again.set, again.remove], [{}, []], "current storage needs nothing");
 });
+
+test("toCsv quotes every field, keeps formulas as text, and opens in Excel as UTF-8", () => {
+  const csv = S.toCsv([{ a: 'Game Boy "SP", blue', b: "=HYPERLINK(1)" }, { a: "-5 off", b: -5 }, { a: "Pokémon 🎮", b: null }], [{ key: "a", label: "A" }, { key: "b", label: "B" }]);
+  assert.equal(csv[0], "﻿");
+  const lines = csv.slice(1).split("\r\n");
+  assert.equal(lines[0], '"A","B"');
+  assert.equal(lines[1], '"Game Boy ""SP"", blue","\'=HYPERLINK(1)"');
+  assert.equal(lines[2], '"\'-5 off","-5"', "a negative number stays a number; text starting with - doesn't");
+  assert.equal(lines[3], '"Pokémon 🎮",""');
+  assert.equal(lines[4], "");
+});
+
+test("savedRows: one row per saved listing, newest first, with the latest score", () => {
+  const saved = {
+    "ebay:1": { t: "Pentax K1000", u: "https://www.ebay.com/itm/1", p0: 120, p: 95, a0: Date.parse("2026-10-01"), a: Date.parse("2026-10-10") },
+    "fb:2": { t: "Switch", u: "javascript:alert(1)", p0: 200, a0: Date.parse("2026-10-05"), a: Date.parse("2026-10-05") },
+  };
+  const scans = { "ebay:1": { use: { score: 81, verdict: "great", refWorking: 140 }, flip: { score: 70, verdict: "good", margin: 22.5 } } };
+  const rows = S.savedRows(saved, scans);
+  assert.deepEqual(rows.map((r) => r.key), ["fb:2", "ebay:1"]);
+  assert.equal(rows[0].link, "https://www.facebook.com/marketplace/item/2/", "an unsafe stored link is rebuilt");
+  assert.equal(rows[0].store, "Marketplace");
+  assert.deepEqual([rows[1].p0, rows[1].p, rows[1].change, rows[1].saved, rows[1].score, rows[1].verdict, rows[1].sold, rows[1].margin], [120, 95, -25, "2026-10-01", 81, "great", 140, 22.5]);
+  assert.deepEqual(S.savedRows(null), []);
+});

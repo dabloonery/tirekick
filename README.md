@@ -187,6 +187,8 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **Scam marks**: reposts under new codes, codes in titles, contact off the site (see Scams).
 - **% of sold**: once sold prices are known for the search, every card says how its price
   (with shipping) compares, in green when it's 70% or less. Lots and auctions are left out.
+- **Too cheap**: under 40% of a trusted sold median reads "Likely scam? 32% of sold price", under 55% "Too
+  cheap? 47% of sold price" (not for broken ones, lots or auctions, and not when the sold prices are only a rough guide).
 - **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" straight away.
 - **New to you** on a search you've looked at before (not on feeds, and not when most of the
   page is new anyway).
@@ -224,13 +226,19 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
   latest you've seen ("$52 (↓ from $60)"), and searches you save with **Save this search**, which
   remember when you last looked and how many were at your price; they're in the **Saved** view, with
   a small line of each saved listing's price over time, and what you've hidden folded away at the bottom. **Open all searches** opens each
-  in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text.
+  in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text, and
+  **Download (CSV)** a spreadsheet with prices, dates and the latest score (also in Settings → Backup).
   Prices update whenever a saved listing is on your screen again; nothing is checked in the
   background.
 - **Try on Marketplace / Try on eBay** runs your words on the other site.
 
 **On a listing page**: when you saw it before, its price history ("$70 (Sep 30) → $60 (Oct 5) →
-$55 now", with a small line of it), Save, Not interested, and Sold on eBay.
+$55 now", with a small line of it), Save, Not interested, and Sold on eBay. How long it's been listed (when the
+page says), how a saved one moved ("Down $25 (−21%) since you saved it"), and whether the seller may take less
+(price drops, weeks on sale, "moving sale", takes offers). With sold prices known, an **offer**: what to open
+at and when to walk away, worked out from the sales, with a message to the seller you can pick, edit and copy
+(nothing is typed into the site or sent). Marketplace listings also warn when the seller's account was made this
+year ("Joined Facebook in 2026").
 
 **In settings**: words to always filter by, in the filter bar's syntax (`-replica -repro -"box only"`
 drops those; a plain word must be in the title). Older "always hide" and "only show" lists were

@@ -133,6 +133,26 @@
 
   const squash = (s, max = 300) => (s || "").replace(/\s+/g, " ").trim().slice(0, max);
 
+  // The year a seller's account was made, where the listing says ("Joined Facebook in 2019"); null otherwise.
+  TK.joinedYear = (text) => {
+    const y = Number(String(text || "").match(/\bjoined (?:facebook )?in (\d{4})\b/i)?.[1]);
+    return y >= 2004 && y <= new Date().getFullYear() ? y : null;
+  };
+  // How many days ago a listing went up, from "Listed 3 weeks ago" (Marketplace) or "Listed on Oct 3, 2026"
+  // (eBay); approximate for the relative kind. null when the page doesn't say.
+  const AGO = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30, year: 365 };
+  TK.listedDaysAgo = (text, now = Date.now()) => {
+    const t = String(text || "");
+    const rel = t.match(/\blisted (?:about |over )?(a|an|a few|\d+) (minute|hour|day|week|month|year)s? ago\b/i);
+    if (rel) {
+      const n = /^an?$/i.test(rel[1]) ? 1 : /few/i.test(rel[1]) ? 3 : Number(rel[1]);
+      return Math.round(n * AGO[rel[2].toLowerCase()] * 10) / 10;
+    }
+    const on = t.match(/\blisted on:? ([a-z]{3,9} \d{1,2}, \d{4})\b/i);
+    const at = on ? Date.parse(on[1]) : NaN;
+    return Number.isFinite(at) && at <= now ? Math.floor((now - at) / 864e5) : null;
+  };
+
   // ---------- scam patterns (Facebook) ----------
   // Bulk-posted fake listings end their titles with a short random code ("Game Boy Advance SP M2465",
   // "Halo Special Edition Xbox S1337", "... U2X503") so no two look identical. A real model number
@@ -412,6 +432,7 @@
         details: squash(firstText(document, [".x-about-this-item", '[data-testid="x-about-this-item"]']) || meta("og:description"), 1200),
         imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^(https?:|data:image)/.test(u)).map(TK.bigImage).slice(0, 4),
         url: location.href.split("?")[0],
+        listedDays: TK.listedDaysAgo(TK.spacedText(document.querySelector("main, #mainContent") || document.body).slice(0, 20000)),
       });
     },
     facebook: () => {
@@ -443,6 +464,8 @@
         url: location.href.split("?")[0],
         titleCode: TK.titleCode(title),
         offSite: TK.offSite(text),
+        sellerJoined: TK.joinedYear(text),
+        listedDays: TK.listedDaysAgo(text),
       });
     },
   };

@@ -178,3 +178,69 @@ test("quickTerms: a quote left open, and words that aren't text", () => {
   assert.deepEqual(R.quickTerms(12), []);
   assert.equal(R.termsReason("Nintendo DMG", '"dmg'), "", "a stray quote doesn't filter everything out");
 });
+
+test("sellerWarning flags an account made this year", () => {
+  const prefs = { minSellerRatings: 5, minSellerPct: 97 };
+  const now = Date.parse("2026-10-14");
+  assert.equal(R.sellerWarning({ sellerJoined: 2026 }, prefs, now), "Account made in 2026");
+  assert.equal(R.sellerWarning({ sellerJoined: 2015 }, prefs, now), "");
+  assert.equal(R.sellerWarning({}, prefs, now), "");
+  assert.equal(R.sellerWarning({ sellerCount: 0, sellerJoined: 2026 }, prefs, now), "New seller", "ratings come first");
+});
+
+test("tooCheap: far under a trusted sold median, not for auctions, lots, broken ones or a rough reference", () => {
+  const m = { median: 200, p25: 170, p75: 230, n: 20, confidence: "good" };
+  assert.deepEqual(R.tooCheap({ total: 60 }, m), { level: "far", pct: 30 });
+  assert.deepEqual(R.tooCheap({ total: 100 }, m), { level: "low", pct: 50 });
+  assert.equal(R.tooCheap({ total: 120 }, m), null);
+  assert.equal(R.tooCheap({ total: 60, project: "for parts" }, m), null);
+  assert.equal(R.tooCheap({ total: 60, auction: true }, m), null);
+  assert.equal(R.tooCheap({ total: 60, lot: 3 }, m), null);
+  assert.equal(R.tooCheap({ total: 60 }, { ...m, confidence: "rough" }), null);
+  assert.equal(R.tooCheap({ total: 0 }, m), null, "free isn't a price");
+  assert.equal(R.tooCheap({ total: 60 }, null), null);
+});
+
+test("softSeller counts the signs of room to haggle", () => {
+  assert.deepEqual(R.softSeller({}), { level: "none", why: [] });
+  assert.equal(R.softSeller({ drops: 1 }).level, "some");
+  const s = R.softSeller({ drops: 2, days: 45, motivated: "moving sale", bestOffer: true });
+  assert.equal(s.level, "likely");
+  assert.deepEqual(s.why, ["the price dropped 2 times", "listed for 45 days", "“moving sale”", "takes offers"]);
+  assert.deepEqual(R.softSeller({ days: 90 }).why, ["listed for 3 months"]);
+  assert.equal(R.softSeller({ days: 10 }).level, "none");
+});
+
+test("offerPlan opens between the cheaper quarter and the median, walks away at the median", () => {
+  const m = { median: 100, p25: 80, p75: 120, n: 24, confidence: "good" };
+  const p = R.offerPlan({ price: 120 }, m);
+  assert.equal(p.open, 90);
+  assert.equal(p.walkAway, 100);
+  assert.match(p.reasons[0], /\$80–\$120 \(24 sales\)/);
+  // a soft seller opens at the cheaper quarter
+  assert.equal(R.offerPlan({ price: 120, soft: "likely" }, m).open, 80);
+  // shipping comes off: the offer is for the item
+  const s = R.offerPlan({ price: 110, shipping: 10 }, m);
+  assert.deepEqual([s.open, s.walkAway], [80, 90]);
+  // never under 60% of asking, never above the walk-away
+  assert.equal(R.offerPlan({ price: 400 }, m).open, 100);
+  assert.equal(R.offerPlan({ price: 400 }, m).walkAway, 100);
+  // already cheap: no haggling advice
+  assert.equal(R.offerPlan({ price: 75 }, m).cheap, true);
+  // nothing solid to go on
+  for (const bad of [{ price: 120, auction: true }, { price: 120, lot: 4 }, { price: 120, project: "for parts" }, { price: null }]) assert.equal(R.offerPlan(bad, m), null);
+  assert.equal(R.offerPlan({ price: 120 }, null), null);
+});
+
+test("roundOffer rounds down to friendly amounts", () => {
+  assert.deepEqual([12.7, 47, 99, 101, 249].map(R.roundOffer), [12, 45, 95, 100, 240]);
+});
+
+test("offerMessages: templates per site", () => {
+  const local = R.offerMessages(80, { local: true });
+  assert.equal(local.length, 3);
+  assert.match(local[0].text, /^Hi! Is this still available\? Would you take \$80\? I can pick up/);
+  assert.equal(R.offerMessages(80, { site: "ebay", bestOffer: true })[0].button, true);
+  assert.doesNotMatch(R.offerMessages(80, { site: "ebay" })[0].text, /pick up/);
+  assert.deepEqual(R.offerMessages(0), []);
+});

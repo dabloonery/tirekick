@@ -90,6 +90,34 @@ await reset();
   await o2.close();
 }
 
+// ---------- a damaged backup ----------
+await reset();
+{
+  // A filter whose words aren't text used to throw on every search it applied to.
+  const backup = {
+    app: "tirekick", version: "0.36.0",
+    quickFilters: { "ebay|pentax k1000": { words: 12, min: "5", a: 1 } },
+    listingMemory: { "ebay:1111111111": "seen", "ebay:2222222222": { p: "x" } },
+    notInterested: { "ebay:3333333333": null },
+    saved: { "ebay:4444444444": { t: { title: "object" }, img: "http://127.0.0.1:1/x.png", p0: "5" } },
+  };
+  const file = (await Deno.makeTempDir()) + "/damaged.json";
+  await Deno.writeTextFile(file, JSON.stringify(backup));
+  const { root } = await c.send("DOM.getDocument", {}, o.sessionId);
+  const { nodeId } = await c.send("DOM.querySelector", { nodeId: root.nodeId, selector: "#restoreFile" }, o.sessionId);
+  await c.send("DOM.setFileInputFiles", { files: [file], nodeId }, o.sessionId);
+  await sleep(1200);
+  const msg = await o.ev(`document.getElementById('msg').textContent`);
+  ok("restoring a damaged backup says what it left out", /entries that didn't make sense were left out/.test(msg), msg);
+  const saved = await get("saved");
+  ok("…keeps what it can, cleaned", saved?.["ebay:4444444444"]?.t === "" && saved["ebay:4444444444"].img === "" && saved["ebay:4444444444"].p0 === null, saved);
+  const before = errors.length;
+  const p = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");
+  await sleep(2500);
+  ok("…and the panel still works on the search it touched", (await R(p, `return r.querySelector('.pi-line')?.textContent || ''`)).includes("listings") && errors.length === before, errors.slice(before));
+  await p.close();
+}
+
 ok("no page errors", !errors.length, errors);
 console.log(fails ? `${fails} failed` : "all passed");
 Deno.exit(fails ? 1 : 0);

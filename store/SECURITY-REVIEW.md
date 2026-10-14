@@ -105,6 +105,30 @@ it. The privacy page says keys stay in the browser profile. **No change needed.*
   16 px of transparent padding for the store tile; the current one is acceptable but will look a little
   larger than neighbors in search results.
 
+## Vivaldi and other Chromium browsers
+
+Myer uses Vivaldi day to day. Tirekick should behave the same there, because it only uses the standard
+Chromium extension APIs: `storage`, `scripting`, `contextMenus`, `action`, `permissions`, `tabs`,
+`windows`, `runtime` and `commands`. It doesn't use the Chrome-only or Google-only APIs that other
+browsers leave out: no `sidePanel` (the panel is drawn inside the page), `offscreen`, `identity`, Google
+sign-in or Chrome Sync. `minimum_chrome_version` 116 is well below current Vivaldi.
+
+Vivaldi installs straight from the Chrome Web Store, so one listing covers it. So do Edge, Brave and
+Opera (Opera needs its "Install Chrome Extensions" add-on).
+
+A few things that are Vivaldi's own UI rather than the extension, worth a look in the store build:
+
+| What | Why it might differ | Check |
+|---|---|---|
+| Toolbar icon and badge | Vivaldi can tuck extension icons into its extensions menu, which hides the badge number | Is the icon showing, and does the badge appear after a saved listing gets cheaper? |
+| Alt+Shift+L shortcut | Vivaldi has its own shortcut system, and a Vivaldi shortcut on the same keys would win | Does the shortcut open the panel? If not, set it at vivaldi://extensions/shortcuts |
+| "Open Tirekick home" on the icon's right-click menu | That entry uses the `action` menu context, which depends on how Vivaldi draws extension icons | Right-click the icon and look for it. The same thing is reachable by clicking the icon on any non-eBay page |
+| "Check this photo with Tirekick" | Standard page right-click menu | Right-click a listing photo on eBay |
+
+This part wasn't tested in Vivaldi here; the automated tests run in Chromium. Myer's daily use of the
+unpacked build already covers most of it. The checklist has a step to repeat these checks on the store
+build.
+
 ## Not covered
 
 The full test suite (`deno task test`) wasn't run here because Deno isn't installed in this

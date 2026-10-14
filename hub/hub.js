@@ -59,7 +59,7 @@
   // there is one, otherwise from the background script.
   const soldMarket = TKSold.create({ fetchHtml: (query, condition) => send("fetchSoldHtml", { url: TK.soldUrl(query, TK.SOLD_CONDITION[condition]) }), send });
   const cell = (label, m) => h("div", { class: "mcell" }, h("span", {}, label), h("b", {}, `${m.confidence === "rough" ? "~" : ""}${money(m.median)}`), h("span", {}, `${money(m.p25)}–${money(m.p75)} · ${m.n} sales${m.confidence === "rough" ? " · a rough guide" : ""}`));
-  const leftOut = (d) => (d ? [d.offers && `${d.offers} best-offer ${d.offers === 1 ? "sale" : "sales"} (the real price isn't shown)`, d.lots && `${d.lots} ${d.lots === 1 ? "lot" : "lots"}`, d.parts && `${d.parts} for parts`, d.unrelated && `${d.unrelated} without the model number`, d.outliers && `${d.outliers} far-off ${d.outliers === 1 ? "price" : "prices"}`].filter(Boolean) : []);
+  const leftOut = TK.leftOutSold;
   const say = (text, err = false) => answer.replaceChildren(h("div", { class: err ? "status err" : "status", role: err ? "alert" : null }, text));
   const lookUp = async () => {
     const q = qEl.value.trim();

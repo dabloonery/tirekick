@@ -38,6 +38,12 @@ p = await page("https://www.ebay.com/sch/i.html?_nkw=x", "ebay-sold");
 const m = await p.ev(`(({samples, ...m}) => ({...m, samples: samples.length}))(Tirekick.summarizeSold(document.documentElement.outerHTML))`);
 ok("sold listings become a median; eBay's looser matches are left out", m.n === 8 && m.median === 56 && m.p25 === 51 && m.p75 === 59 && m.samples === 5, m);
 ok("…too few sales to trust gives nothing", (await p.ev(`Tirekick.summarizeSold("<ul><li class='s-card'><a href='https://www.ebay.com/itm/9'><div class='s-card__title'>x</div></a><div class='s-card__price'>$5</div></li></ul>")`)) === null);
+{
+  const card = (id: number, price: string, extra = "") => `<li class='s-card'><a href='https://www.ebay.com/itm/${id}'><div class='s-card__title'>Pentax K1000 camera body ${id}</div></a><div class='s-card__price'>${price}</div>${extra}</li>`;
+  const html = `<ul>${[50, 52, 54, 56, 58, 60].map((p, i) => card(100000000 + i, `$${p}.00`)).join("")}${card(200000001, "C $20.00")}${card(200000002, "AU $25.00")}${card(200000003, "$45.00 to $60.00")}${card(200000004, "$90.00", `<p>${"Ships from a smoke-free home. ".repeat(15)}</p><span>Best offer accepted</span>`)}</ul>`;
+  const s = await p.ev(`(({samples, ...m}) => m)(Tirekick.summarizeSold(${JSON.stringify(html)}))`);
+  ok("sold prices leave out other currencies, price ranges and best offers (even far down a card)", s.n === 6 && s.median === 55 && s.dropped.foreign === 2 && s.dropped.ranges === 1 && s.dropped.offers === 1, s);
+}
 
 p = await page("https://www.ebay.com/itm/100000000001", "ebay-item");
 const it = await p.ev(`(({el, ...it}) => it)(Tirekick.extractItem())`);

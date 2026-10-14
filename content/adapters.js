@@ -21,6 +21,18 @@
     return Number.isFinite(n) ? n : null;
   };
 
+  // eBay.com shows some sellers' prices in their own currency ("C $20.00", "AU $35.00", "£15.00"). Reading
+  // those as US dollars would be wrong by a third or more, so such a price is treated as unknown, unless
+  // the same text also gives eBay's US-dollar conversion ("Approximately US $14.60").
+  TK.foreignCurrency = (text) => /(?:^|[^A-Za-z])(?:C|CA|AU|A|NZ|HK|S|SG)\s?\$|[£€¥]|\b(?:GBP|EUR|CAD|AUD|JPY)\b/.test((text || "").replace(/\u00a0/g, " "));
+  TK.usdPrice = (priceText, context = "") => {
+    if (!TK.foreignCurrency(priceText)) return TK.parsePrice(priceText);
+    const us = (context || "").replace(/\u00a0/g, " ").match(/US\s?\$\s?([\d,]+(?:\.\d{1,2})?)/);
+    return us ? parseFloat(us[1].replace(/,/g, "")) : null;
+  };
+  // "$45.00 to $60.00": a listing with several versions at different prices.
+  TK.isPriceRange = (text) => /\$\s?[\d,.]+\s*(?:to|-|–)\s*(?:US\s?)?\$/.test(text || "");
+
   const firstText = (root, selectors) => {
     for (const sel of selectors) {
       const node = root.querySelector(sel);
@@ -227,7 +239,7 @@
           site: "ebay",
           title,
           priceText,
-          price: TK.parsePrice(priceText),
+          price: TK.usdPrice(priceText, text),
           shipping: TK.parseShipping(text),
           url,
           imageUrl: firstImage(card),
@@ -391,7 +403,7 @@
         site,
         title,
         priceText,
-        price: TK.parsePrice(priceText),
+        price: TK.usdPrice(priceText, firstText(document, [".x-price-approx", '[data-testid="x-price-approx"]'])),
         shipping: TK.parseShipping(shippingText, true),
         // the label sits in .ux-textspans (the text beside it repeats it for screen readers and adds a "More information" button)
         condition: squash(firstText(document, [".x-item-condition-text .ux-textspans", ".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),
@@ -538,14 +550,34 @@
   // a fair guess at what sending one on would cost you.
   const PARTSY = /\b(for parts|parts only|not working|non[- ]?working|doesn'?t work|does not work|as[- ]is|broken|untested|for repair|faulty|spares)\b/i;
   const alnum = (x) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+  // What a sold-price summary left out, as phrases for "Left out: …" (the panel and the hub page).
+  TK.leftOutSold = (d) =>
+    d
+      ? [
+          d.offers && `${d.offers} best-offer ${d.offers === 1 ? "sale" : "sales"} (the real price isn't shown)`,
+          d.lots && `${d.lots} ${d.lots === 1 ? "lot" : "lots"}`,
+          d.parts && `${d.parts} for parts`,
+          d.unrelated && `${d.unrelated} without the model number`,
+          d.outliers && `${d.outliers} far-off ${d.outliers === 1 ? "price" : "prices"}`,
+          d.foreign && `${d.foreign} in another currency`,
+          d.ranges && `${d.ranges} with a price range`,
+        ].filter(Boolean)
+      : [];
   TK.summarizeSold = (html, { query = "", condition = "" } = {}) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    const all = TK.extractEbay(doc, { strict: true }).filter((it) => it.total != null && it.total > 0);
-    const dropped = { offers: 0, lots: 0, parts: 0, unrelated: 0, outliers: 0 };
+    const read = TK.extractEbay(doc, { strict: true });
+    const dropped = { offers: 0, lots: 0, parts: 0, unrelated: 0, outliers: 0, foreign: 0, ranges: 0 };
+    // Another currency (no US price given) and price ranges (which version sold isn't shown) say nothing
+    // reliable about what one sold for.
+    const all = read.filter((it) => {
+      const why = TK.foreignCurrency(it.priceText) && it.price == null ? "foreign" : TK.isPriceRange(it.priceText) ? "ranges" : "";
+      if (why) dropped[why]++;
+      return !why && it.total != null && it.total > 0;
+    });
     // Model numbers in the search must be in the title: tokens with a digit and a letter, or 3+ digits.
     const codes = query.split(/\s+/).filter((w) => (/\d/.test(w) && /[a-z]/i.test(w)) || /^\d{3,}$/.test(w)).map(alnum).filter((w) => w.length >= 2);
     let sales = all.filter((it) => {
-      const why = /best offer accepted/i.test(it.raw || "") ? "offers" : it.lot ? "lots" : condition !== "parts" && PARTSY.test(it.title) ? "parts" : codes.length && !codes.every((c) => alnum(it.title).includes(c)) ? "unrelated" : "";
+      const why = /best offer accepted/i.test(it.el?.textContent || it.raw || "") ? "offers" : it.lot ? "lots" : condition !== "parts" && PARTSY.test(it.title) ? "parts" : codes.length && !codes.every((c) => alnum(it.title).includes(c)) ? "unrelated" : "";
       if (why) dropped[why]++;
       return !why;
     });

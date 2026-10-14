@@ -83,7 +83,7 @@
           "details",
           { class: "comps" },
           h("summary", {}, "The sales closest to the middle"),
-          h("ul", {}, market.samples.map((x) => h("li", {}, h("a", { href: x.url, target: "_blank", rel: "noopener" }, h("span", { class: "cp" }, money(x.total)), h("span", { class: "ct" }, x.title)))))
+          h("ul", {}, market.samples.map((x) => h("li", {}, h("a", { href: S.safeUrl(x.url, "#"), target: "_blank", rel: "noopener" }, h("span", { class: "cp" }, money(x.total)), h("span", { class: "ct" }, x.title)))))
         ),
         // Honest about what the number is: matching words, not a verified identical item.
         h("p", { class: "hint caveat" }, `The middle of ${market.n} recent eBay sales whose titles match these words, with shipping where shown.${leftOut(market.dropped).length ? ` Left out: ${leftOut(market.dropped).join(", ")}.` : ""} Check a few: a kit or a bundle can still share the words. It's what sold, not what's listed.`)

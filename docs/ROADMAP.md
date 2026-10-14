@@ -16,6 +16,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 4: Stronger scam checks](#brief-4-stronger-scam-checks)
   - [Brief 5: More stores](#brief-5-more-stores)
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
+  - [Brief 7: Built-in browser AI](#brief-7-built-in-browser-ai) (first after the 1.0.0 launch)
 
 ---
 
@@ -56,7 +57,9 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    under sold), not only from a model's "Great".
 5. **Store, when dabloonery is ready.** A public privacy-policy page is required; a free GitHub Pages site works, and a
    domain such as tirekick.app is optional (dabloonery to decide). Then the contact address, `homepage_url` and 1.0.0.
-6. **Brief 5, more stores** (Craigslist first), after 1.0 is in the store.
+6. **Brief 7, built-in browser AI**, the first feature after the 1.0.0 launch (dabloonery: "let's make that a
+   priority"). A free model with no key, where the browser has one.
+7. **Brief 5, more stores** (Craigslist first).
 
 ### Open source at 1.0.0 (decided 2026-10-14)
 
@@ -301,6 +304,7 @@ Six briefs, one per file, written 2026-10-14 so another agent can pick one up co
 | 4 | [Stronger scam checks](#brief-4-stronger-scam-checks) | Medium | Nothing new |
 | 5 | [More stores](#brief-5-more-stores) | Large (one PR per store) | 0.36.0 port (site table) |
 | 6 | [Sync and export](#brief-6-sync-and-export) | Small (export) to medium (sync) | Nothing new |
+| 7 | [Built-in browser AI](#brief-7-built-in-browser-ai) | Medium | Nothing new. First after the 1.0.0 launch (dabloonery, 2026-10-14) |
 
 Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
@@ -673,3 +677,53 @@ Two things, shippable separately:
 - **Sync:** with the switch on in two profiles, saving a listing or search on one appears on the other; removing it stays removed; settings follow; keys don't unless opted in; the size shown stays under the limit with 200 saved listings. Off by default, and turning it off stops writes.
 - Vivaldi result reported to dabloonery before Part 2 is built, and the chosen route works in Vivaldi.
 - Privacy page updated. `tests/all.sh` green.
+
+---
+
+### Brief 7: Built-in browser AI
+
+Read [the briefs intro](#read-this-before-any-brief) first (ground rules, Vivaldi, copy, tests). Decided with dabloonery
+on 2026-10-14: a priority, first in line after the 1.0.0 launch, and it should cover any browser that ships a model.
+
+#### Goal
+
+A free AI model with no key and no setup, wherever the browser has one built in, so scoring works the moment
+Tirekick is installed. The API key and Ollama stay, as the choice for deeper analysis and for browsers without a
+model.
+
+#### What browsers have (check again before building)
+
+| Browser | What it has | Notes |
+|---|---|---|
+| Chrome | The Prompt API (`LanguageModel`) with Gemini Nano, for extensions since Chrome 138 | Needs about 22 GB of free disk and a decent graphics card or 16 GB of RAM; downloads the model on first use; can take images |
+| Edge | The same API, with Microsoft's own model | One piece of code covers both |
+| Firefox | A different, experimental API | Later, if Tirekick goes to Firefox |
+| Vivaldi | None | dabloonery's browser: Claude or Ollama as now |
+
+Sources: [Chrome's Prompt API](https://developer.chrome.com/docs/ai/prompt-api),
+[Edge's Prompt API](https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api).
+
+#### How it would fit
+
+- **A model choice, "Built into this browser (free)"**, offered only when a feature check finds one
+  (`LanguageModel.availability()` is "available" or "downloadable"). Any browser that adds the same API gets it with
+  no change. Where there's none, settings says so in one line and offers the other choices.
+- **New installs start on it** when it's there, so the welcome card asks for nothing; the key becomes optional.
+  Existing installs keep their model and see it offered.
+- **Quick scoring with it; deep analysis with a bigger model when one is set up.** Scans send short batches and ask
+  for the scan's JSON shape through `responseConstraint`. Analyze and photo checks use it only when nothing else is
+  set up, and say it's a small model.
+- **The download**: when availability is "downloadable", one button starts it, with its size, and progress in the
+  status line. Nothing downloads without a click.
+- **Where it runs**: check which extension contexts can call it (the background worker, or an offscreen page) and
+  keep one queue, like the paid services. It costs nothing, so spend stays at $0 and the footer says "free, on this
+  computer".
+- **Privacy**: nothing leaves the computer, the same as Ollama; the privacy page and listing say so.
+
+#### How to know it's done
+
+- With the API present (a stub in the tests, the real thing in Chrome by hand), the choice appears, scans run
+  through it, and spend stays at $0. Without it, the choice doesn't appear and nothing changes.
+- A batch of the mock scans scored by Gemini Nano in Chrome is compared with Haiku's on the same listings, and the
+  README says honestly how they differ.
+- dabloonery has tried it in Chrome; in Vivaldi the choice doesn't appear and nothing breaks.

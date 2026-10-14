@@ -860,6 +860,19 @@
   });
 
   const setStatus = (...a) => setStatusNow(...a);
+  // A write to this browser's storage that failed (it's full, or the browser refused). Every save used to
+  // swallow this, so saving a listing could quietly do nothing. Say it once in a while, not on every write.
+  let storeFailedAt = 0;
+  const storeFailed = (e) => {
+    if (!alive() || Date.now() - storeFailedAt < 10 * 60 * 1000) return;
+    storeFailedAt = Date.now();
+    console.warn("[Tirekick] storage write failed:", e?.message || e);
+    setStatusNow(`Tirekick couldn't save to this browser's storage (${String(e?.message || e).slice(0, 120)}). What you just did may not be kept. Home shows how much is in use; Settings can clear old data.`, true, { label: "Open settings", fn: () => send("openOptions").catch(() => {}) });
+  };
+  const storeFailedThrow = (e) => {
+    storeFailed(e);
+    throw e;
+  };
   // The hairline under the tabs; showProgress(null) takes it away.
   const progressEl = $(".progress");
   const showProgress = (done, total) => {
@@ -1258,7 +1271,7 @@
   $('[data-act="intro-done"]').addEventListener("click", () => {
     showIntro(false);
     introPending = false;
-    if (alive()) chrome.storage.local.set({ introDone: true }).catch(() => {});
+    if (alive()) chrome.storage.local.set({ introDone: true }).catch(storeFailed);
   });
   $('[data-act="help"]').addEventListener("click", () => {
     if (TK.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved, and what changed is on Home.");
@@ -1337,7 +1350,7 @@
     else delete searchWants[k];
     const keys = Object.keys(searchWants);
     if (keys.length > WANTS_MAX) keys.slice(0, keys.length - WANTS_MAX).forEach((x) => delete searchWants[x]);
-    if (alive()) chrome.storage.local.set({ searchWants }).catch(() => {});
+    if (alive()) chrome.storage.local.set({ searchWants }).catch(storeFailed);
   };
   const feeEl = $("#fee");
   const showMode = () => {
@@ -1361,7 +1374,7 @@
   };
   const setPref = (key, value) => {
     (modePrefs[lens] ||= {})[key] = value;
-    if (alive()) chrome.storage.local.set({ modePrefs }).catch(() => {});
+    if (alive()) chrome.storage.local.set({ modePrefs }).catch(storeFailed);
   };
   // What each mode is for: the first line of This page while you're new to it (your first few scans), and
   // again right after you switch, until the next scan. After that it's known, and the space goes to results.
@@ -1376,7 +1389,7 @@
     justSwitched = true;
     showModeHint();
     if (next === "project") bump("flipSwitches");
-    if (alive()) chrome.storage.local.set({ lens }).catch(() => {});
+    if (alive()) chrome.storage.local.set({ lens }).catch(storeFailed);
     applyPrefs();
     showMode();
     onModeChanged();
@@ -1405,7 +1418,7 @@
   feeEl.addEventListener("change", () => {
     const n = TKShared.clampSetting("feePct", Number(feeEl.value));
     feeEl.value = String(n);
-    if (alive()) chrome.storage.local.set({ feePct: n }).catch(() => {});
+    if (alive()) chrome.storage.local.set({ feePct: n }).catch(storeFailed);
     refreshPending();
   });
   showFee();
@@ -1633,7 +1646,7 @@
       const cutoff = Date.now() - MEMORY_DAYS * 864e5;
       memory = Object.fromEntries(Object.entries(memory).filter(([, r]) => r && r.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-MEMORY_MAX));
     }
-    chrome.storage.local.set({ listingMemory: memory }).catch(() => {});
+    chrome.storage.local.set({ listingMemory: memory }).catch(storeFailed);
   };
   const saveMemorySoon = () => {
     clearTimeout(memoryTimer);
@@ -1670,7 +1683,7 @@
       dirtyStems.clear();
       const cutoff = Date.now() - STEM_DAYS * 864e5;
       codeStems = Object.fromEntries(Object.entries(stored).filter(([, r]) => r?.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-3000));
-      await chrome.storage.local.set({ codeStems });
+      await chrome.storage.local.set({ codeStems }).catch(storeFailed);
     }, 300); // soon: a reload right after would lose it, and this is rare
     return stem;
   };
@@ -1952,7 +1965,10 @@
   const writeStored = async (name, mutate) => {
     const stored = (await chrome.storage.local.get(name))[name] || {};
     mutate(stored);
-    await chrome.storage.local.set({ [name]: stored });
+    await chrome.storage.local.set({ [name]: stored }).catch((e) => {
+      storeFailed(e);
+      throw e; // the caller stops here: nothing says "Saved" when it wasn't
+    });
     return stored;
   };
   // Plain counters of what you use, kept only in this browser (Home shows them; nothing is sent anywhere).
@@ -2162,7 +2178,7 @@
                           onclick: async () => {
                             if (!confirm(`Show all ${hidden.length} hidden listings again?`)) return;
                             notInterested = {};
-                            await chrome.storage.local.set({ notInterested: {} });
+                            await chrome.storage.local.set({ notInterested: {} }).catch(storeFailedThrow);
                             redecorateAll();
                             renderSaved();
                             sayHere("Everything you hid is back.");
@@ -2369,7 +2385,7 @@
     else stored[key] = { t: f.title || "", a: Date.now() };
     const kept = Object.entries(stored).sort((a, b) => a[1].a - b[1].a).slice(-3000);
     notInterested = Object.fromEntries(kept);
-    await chrome.storage.local.set({ notInterested });
+    await chrome.storage.local.set({ notInterested }).catch(storeFailedThrow);
     if (facts.has(key)) facts.get(key).hidden = !interested;
     const el = scored.get(key)?.el?.isConnected ? scored.get(key).el : elFor(key);
     if (el) decorate(key, el);
@@ -2882,7 +2898,7 @@
       const newest = (r) => Math.max(0, ...Object.values(r).map((s) => s.at || 0));
       scansCache = Object.fromEntries(Object.entries(scans).filter(([, r]) => newest(r) > cutoff).sort((a, b) => newest(a[1]) - newest(b[1])).slice(-SCAN_MAX));
     }
-    await chrome.storage.local.set({ scans: scansCache }).catch(() => {});
+    await chrome.storage.local.set({ scans: scansCache }).catch(storeFailed);
   };
   window.addEventListener("pagehide", () => flushScans());
   // Switching to a tab you just opened (a listing from the results, say) hides this one: save first.
@@ -3181,7 +3197,7 @@
       if (quickActive() || value.deal) quickFilters[key] = value;
       else delete quickFilters[key];
       const kept = Object.entries(quickFilters).sort((a, b) => a[1].a - b[1].a).slice(-200);
-      await chrome.storage.local.set({ quickFilters: Object.fromEntries(kept) });
+      await chrome.storage.local.set({ quickFilters: Object.fromEntries(kept) }).catch(storeFailed);
     }, 400);
   };
   const money0 = (v) => Math.max(0, Math.round(Number(String(v).replace(/[$,\s]/g, "")) || 0));
@@ -3276,14 +3292,14 @@
     const on = autoIn.checked;
     cfg.autoScan = on;
     autoHold = "";
-    if (alive()) await chrome.storage.local.set({ autoScan: on }).catch(() => {});
+    if (alive()) await chrome.storage.local.set({ autoScan: on }).catch(storeFailed);
     if (!on) setStatus("Automatic scanning is off: press Scan when you want scores.");
     else if (cfg.monthlyBudget > 0 || cfg.provider === "ollama")
       setStatus(`Scanning automatically: new listings are scored as they load${cfg.provider === "ollama" ? " (free with Ollama)" : `, up to your $${cfg.monthlyBudget} monthly budget`}.`);
     else
       setStatus("Scanning automatically: new listings are scored as they load. There's no monthly budget to stop it.", false, {
         label: "Set a $5 monthly budget",
-        fn: () => chrome.storage.local.set({ monthlyBudget: 5 }).then(() => setStatus("Monthly budget: $5. Change it in settings.")).catch(() => {}),
+        fn: () => chrome.storage.local.set({ monthlyBudget: 5 }).then(() => setStatus("Monthly budget: $5. Change it in settings.")).catch(storeFailed),
       });
     refreshPending();
   });
@@ -3443,7 +3459,7 @@
       if (Object.keys(fresh).length) {
         // Keep the memory bounded: drop expired entries, keep the newest 1500.
         const kept = Object.entries(scoreCache).filter(([, v]) => Date.now() - v.at < SCORE_TTL_MS).slice(-(1500 - Object.keys(fresh).length));
-        await chrome.storage.local.set({ scoreCache: Object.fromEntries([...kept, ...Object.entries(fresh)]) });
+        await chrome.storage.local.set({ scoreCache: Object.fromEntries([...kept, ...Object.entries(fresh)]) }).catch(storeFailed); // the scores still show; they just aren't kept
       }
       if (scored !== session) return; // you've moved on to another page
       // Anything not scored (failed batch, or the model skipped it) is offered again next scan.

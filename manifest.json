@@ -8,7 +8,8 @@
   "permissions": [
     "storage",
     "contextMenus",
-    "scripting"
+    "scripting",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "http://localhost:11434/*",

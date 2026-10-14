@@ -100,8 +100,9 @@
     return el;
   };
 
-  // Every row's way to the listing itself, under its price (the title shows the card on the page instead)
-  const openLink = (it) => h("a", { class: "open", href: it.url, target: "_blank", rel: "noopener", title: "Open the listing in a new tab" }, "Open \u2197");
+  // Every row's way to the listing itself, under its price (the title shows the card on the page instead).
+  // The address comes from the page, so it goes through the same check as stored ones.
+  const openLink = (it) => h("a", { class: "open", href: TKShared.safeUrl(it.url, "#"), target: "_blank", rel: "noopener", title: "Open the listing in a new tab" }, "Open \u2197");
 
   // The card tag's score: a tread dot like the panel's, set through CSSOM so a page's style rules can't block it
   const scoreDial = (item) => {
@@ -2733,7 +2734,7 @@
             h("summary", {}, "The sales behind these"),
             groups.flatMap(([label, list]) => [
               h("b", {}, label),
-              h("ul", {}, list.map((x) => h("li", {}, h("a", { href: x.url, target: "_blank", rel: "noopener" }, h("span", { class: "cp" }, dollars(x.total)), h("span", { class: "ct" }, x.title))))),
+              h("ul", {}, list.map((x) => h("li", {}, h("a", { href: TKShared.safeUrl(x.url, "#"), target: "_blank", rel: "noopener" }, h("span", { class: "cp" }, dollars(x.total)), h("span", { class: "ct" }, x.title))))),
             ])
           ),
       ].filter(Boolean)

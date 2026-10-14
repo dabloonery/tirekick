@@ -406,6 +406,11 @@ their respective owners.
 
 ## Tests
 
-`tests/e2e/run.sh` (needs `deno` and `openssl` as well) loads the real unpacked extension in headless Chrome against a mock Claude API: `scores-persist.ts` (scores across tabs, searches, the listing page, reloads), `marketplace.ts` (a Facebook Marketplace-shaped page: reading, repost scams, marks, scan), `first-run.ts` (the welcome shows once, Got it puts it away, ? brings it back), `diagnostic.ts`.
+`deno task test` runs everything (needs `google-chrome-stable`, `deno`, `python3` and `openssl`): the fixture
+pages and plain rules (`tests/run.sh`), then the real unpacked extension in headless Chrome against eBay- and
+Marketplace-shaped pages and a mock Claude API (`tests/e2e/`), ending with a performance guard on a long
+Marketplace feed. Nothing touches the real sites or a real model. `tests/README.md` lists what each file checks and
+what to do when eBay or Facebook change their pages.
 
-`tests/run.sh` loads the panel on an eBay-shaped page in headless Chrome (needs `google-chrome-stable` and `python3`) and prints PASS/FAIL for the keyboard and focus behavior. The extension APIs are stubbed; it does not exercise the models or real sites.
+Every pull request has to raise the version in `manifest.json` (`deno task version-check`, run by CI), so the
+number on the extensions page always says which copy is running.

@@ -3,6 +3,7 @@
     "test": "tests/all.sh",
     "test:unit": "deno test --allow-read tests/unit/",
     "pack": "deno run --allow-read --allow-write scripts/pack.mjs",
-    "screenshots": "tests/e2e/run.sh screenshots.ts"
+    "screenshots": "tests/e2e/run.sh screenshots.ts",
+    "version-check": "deno run --allow-read --allow-run --allow-env scripts/version-check.mjs"
   }
 }

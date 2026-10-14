@@ -316,6 +316,7 @@
     .stopbtn:disabled { opacity:.6; cursor:progress; }
     .status:empty { display:none; }
     .status.err { color:var(--v-suspicious); border-left:2px solid currentColor; padding-left:10px; }
+    .readwarn { margin-top:10px; }
     .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:10px; height:10px; margin-right:8px; vertical-align:-1px;
       border:1.5px solid var(--rule); border-top-color:var(--ink); border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
@@ -682,6 +683,7 @@
         <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
         <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
+        <div class="status err readwarn" role="status" hidden></div>
         <div class="ideas-inline" hidden><div class="status ideas-status" role="status"></div><div class="ideas-list"></div></div>
       </div>
       <div class="listbar" hidden>
@@ -2652,6 +2654,33 @@
   };
 
 
+  // ---------- does the page reader still keep up with the site? ----------
+  // Both sites change their markup without notice. When the cards on a results page stop being read (or
+  // come without prices), say so here instead of quietly showing fewer listings, and note it for Home.
+  // Counted again only when the number of listing links changes, and only every few seconds.
+  const readWarn = $(".readwarn");
+  let healthLinks = -1;
+  let healthLevel = "";
+  const checkHealth = async () => {
+    if (TK.pageType() !== "results") return void ((readWarn.hidden = true), (healthLinks = -1));
+    const links = TK.linkedListings();
+    if (links === healthLinks) return;
+    healthLinks = links;
+    const items = TK.extract();
+    // With no search words (a category page, the Marketplace feed), links outside the results are common.
+    const hl = TKRules.readHealth({ links, items: items.length, priced: items.filter((it) => it.price != null).length }, { partialOk: !pageSearch() });
+    const note = TKRules.healthNote(hl, TK.site().name);
+    readWarn.replaceChildren(...(note ? [note, h("button", { onclick: checkPage }, "Check this page")] : []));
+    readWarn.hidden = !note;
+    if (hl.level === "few" || hl.level === healthLevel || !alive()) return;
+    healthLevel = hl.level;
+    await writeStored("siteHealth", (s) => {
+      const r = (s[TK.currentSite()] = { ...(s[TK.currentSite()] || {}) });
+      if (note) Object.assign(r, { bad: Date.now(), note, level: hl.level });
+      else r.ok = Date.now();
+    });
+  };
+
   // ---------- "Check this page": what the page reader can see, for when a site changes its layout ----------
   // Counts only, plus a few public listing titles; nothing is sent anywhere, the report is copied on request.
   const checkPage = async () => {
@@ -4043,6 +4072,7 @@
     syncPageTheme(); // the page's own light or dark (cheap: it only writes when that changes)
     reapplyFacebook();
     if (!scanning) pagePass(); // cheap when nothing changed: compares the listing links only
+    if (ticks % 3 === 0) checkHealth().catch(() => {});
     if (++ticks % 2 === 0) refreshPending();
   };
   const timer = setInterval(tick, 1000);

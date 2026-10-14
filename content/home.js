@@ -88,6 +88,15 @@
       );
     }
 
+    // A site whose pages Tirekick last couldn't read (it changed its layout), until a page of it reads fine
+    // again. Kept for a week: after that it's old news either way.
+    function health(d) {
+      const bad = Object.entries(d.siteHealth || {}).filter(([, r]) => r?.bad > (r.ok || 0) && Date.now() - r.bad < 7 * 864e5 && typeof r.note === "string");
+      if (!bad.length) return null;
+      return h("section", { class: "hm-sec" }, h("h3", {}, "A site changed"),
+        ...bad.map(([, r]) => h("p", { class: "hm-empty" }, `${r.note} Seen ${ago(r.bad)}. Updating Tirekick usually fixes this; if it doesn't, use Check this page in the panel on that page and send what it copies.`)));
+    }
+
     function alertsSection(list) {
       const rows = list.length
         ? list.map((a) =>
@@ -178,7 +187,7 @@
     let refresh = async function () {
       const d = await chrome.storage.local.get({
         provider: "anthropic", oaiModel: "", monthlyBudget: 0,
-        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false,
+        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {},
       });
       // The API key stays in the background script; the page only learns whether there is one.
       d.hasKey = await send("getSettings").then((s) => !!s.hasKey).catch(() => false);
@@ -189,7 +198,7 @@
       // What's new comes first: it's why you'd come back. Getting started follows while you're new to it;
       // the numbers lead to the lists behind them; spending and usage fold away.
       const first = list.length ? [alertsSection(list), start(d)] : [start(d), alertsSection(list)];
-      root.replaceChildren(...[...first, numbers(d), spend(d), usage(d), await footer()].filter(Boolean));
+      root.replaceChildren(...[health(d), ...first, numbers(d), spend(d), usage(d), await footer()].filter(Boolean));
       return list;
     }
 

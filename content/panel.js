@@ -1687,23 +1687,17 @@
     return stem;
   };
   // The other codes this title has been posted under (by other listings), if any.
-  const otherCodes = (key, stem, code) => Object.entries(codeStems[stem]?.c || {}).filter(([c, k]) => c !== code && k !== key).map(([c]) => c);
+  const otherCodes = (key, stem, code) => TKRules.otherCodes(codeStems[stem], key, code);
 
   // Records a sighting; returns { isNew, drop } relative to what was remembered before.
   const remember = (key, price, pageHadKnown, auction = false) => {
-    const rec = memory[key];
-    const now = Date.now();
-    const out = { isNew: !rec && pageHadKnown, known: !!rec };
-    if (auction) price = null; // keep the last fixed price, if any; a current bid says nothing about drops
-    if (rec && price != null && rec.p != null && price < rec.p - Math.max(1, rec.p * 0.03)) out.drop = { from: rec.p, since: rec.pa };
-    // Every price change is kept (the last five), so a listing page can show its history.
-    const changed = rec && price != null && rec.p != null && rec.p !== price;
-    const hist = changed ? [...(rec.h || []), [rec.p, rec.pa]].slice(-5) : rec?.h;
-    memory[key] = { p: price ?? rec?.p ?? null, pa: rec && (price == null || rec.p === price) ? rec.pa : now, f: rec?.f ?? now, a: now, ...(rec?.o && { o: rec.o }), ...(hist?.length && { h: hist }) };
+    const { out, rec } = TKRules.sighting(memory[key], price, { pageHadKnown, auction });
+    memory[key] = rec;
     dirtyMemory.add(key);
     saveMemorySoon();
     return out;
   };
+
 
   // Why a listing is filtered out ("" if it isn't): the words in your settings (matched against the title),
   // then this search's filter bar.
@@ -2235,14 +2229,7 @@
       passKeys = keysNow;
       if (pageHadKnown === null && items.length) pageHadKnown = items.some((it) => memory[keyOf(it.url)]);
       // Same title (or same photo) on several listings: reposts, or one seller with several.
-      const groups = new Map();
-      for (const it of items) {
-        const t = normTitle(it.title);
-        if (t.split(" ").length >= 4) groups.set(`t:${t}`, [...(groups.get(`t:${t}`) || []), it]);
-        if (it.imageUrl && !TK.isPlaceholder(it.imageUrl)) groups.set(`i:${it.imageUrl}`, [...(groups.get(`i:${it.imageUrl}`) || []), it]);
-      }
-      const dup = new Map();
-      for (const list of groups.values()) if (list.length > 1) list.forEach((it) => dup.set(it, Math.max(dup.get(it) || 0, list.length)));
+      const dup = TKRules.duplicates(items, TK.isPlaceholder);
       // Every coded title is noted first, so two copies on this page find each other.
       const stems = new Map(items.filter((it) => it.titleCode).map((it) => [it, noteCode(keyOf(it.url), it.title, it.titleCode)]));
 

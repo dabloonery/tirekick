@@ -502,7 +502,7 @@ Steps 2 and 4 can be combined into one PR if you would rather ship one release, 
 
 ## Tirekick: security and permissions review
 
-*2026-10-14, against `main` at 0.35.0 (commit 381f758). Review only: no extension code was changed.* Status as of 0.36.0: no blockers; the optional L1 hardening is not done yet.
+*2026-10-14, against `main` at 0.35.0 (commit 381f758). Review only: no extension code was changed.* Status as of 0.37.0: no blockers; L1 is done.
 
 **Verdict: nothing blocks submission.** No remote code, no `eval`, no web-accessible resources, no
 `externally_connectable`, and every network destination is either declared or approved by the user one
@@ -578,7 +578,7 @@ there would run in the web page's own context, not the extension's, so the worst
 attacking itself.
 
 **Recommendation (later, low priority):** wrap them in `TKShared.safeUrl(...)` like the saved-item
-links, for consistency. One-line change each, after the in-flight work merges.
+links, for consistency. One-line change each. **Done in 0.37.0:** the row's Open link and the sold-sales lists in the panel and the hub go through `TKShared.safeUrl`.
 
 #### L2. A web page can open or close the panel
 

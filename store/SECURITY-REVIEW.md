@@ -78,8 +78,7 @@ there would run in the web page's own context, not the extension's, so the worst
 attacking itself.
 
 **Recommendation (later, low priority):** wrap them in `TKShared.safeUrl(...)` like the saved-item
-links, for consistency. One-line change each. Not done yet as of 0.36.0; line numbers have drifted, so search
-for `it.url` and `x.url` in `content/panel.js`.
+links, for consistency. One-line change each. Done in 0.37.0: the row's Open link and the sold-sales lists in the panel and the hub go through `TKShared.safeUrl`.
 
 ### L2. A web page can open or close the panel
 

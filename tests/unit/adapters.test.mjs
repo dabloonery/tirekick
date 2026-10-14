@@ -101,3 +101,24 @@ test("offSite: the disguised forms are still caught", () => {
   assert.ok(sure("pay only with gift cards"));
   assert.ok(sure("send me a screenshot of the code"));
 });
+
+test("prices in another currency aren't read as US dollars", () => {
+  for (const t of ["C $20.00", "AU $35.00", "£15.00", "EUR 12,00", "CA $9.99", "NZ $5"]) assert.equal(TK.foreignCurrency(t), true, t);
+  for (const t of ["$20.00", "US $20.00", "$1,249.99", "Was $45", "WAS $45", "MSRP $50", ""]) assert.equal(TK.foreignCurrency(t), false, t);
+  assert.equal(TK.usdPrice("$20.00"), 20);
+  assert.equal(TK.usdPrice("C $20.00"), null, "unknown rather than wrong");
+  assert.equal(TK.usdPrice("C $20.00", "C $20.00 Approximately US $14.60 Buy It Now"), 14.6, "eBay's own conversion when it's there");
+});
+
+test("price ranges are spotted", () => {
+  assert.equal(TK.isPriceRange("$45.00 to $60.00"), true);
+  assert.equal(TK.isPriceRange("$45 - $60"), true);
+  assert.equal(TK.isPriceRange("US $45.00 to US $60.00"), true);
+  assert.equal(TK.isPriceRange("$45.00"), false);
+  assert.equal(TK.isPriceRange("$45.00 + $5 shipping"), false);
+});
+
+test("leftOutSold names what a sold summary left out", () => {
+  assert.deepEqual(TK.leftOutSold({ offers: 1, lots: 2, foreign: 3, ranges: 1, parts: 0 }), ["1 best-offer sale (the real price isn't shown)", "2 lots", "3 in another currency", "1 with a price range"]);
+  assert.deepEqual(TK.leftOutSold(undefined), []);
+});

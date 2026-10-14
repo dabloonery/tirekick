@@ -2717,7 +2717,7 @@
   const soldMarket = TKSold.create({ fetchHtml: fetchSoldHtml, send, isStopped: () => stopRequested });
 
   // What the number rests on: how many sales, and when it's a rough guide (few sales, or a wide spread).
-  const leftOut = (d) => (d ? [d.offers && `${d.offers} best-offer ${d.offers === 1 ? "sale" : "sales"} (the real price isn't shown)`, d.lots && `${d.lots} ${d.lots === 1 ? "lot" : "lots"}`, d.parts && `${d.parts} for parts`, d.unrelated && `${d.unrelated} without the model number`, d.outliers && `${d.outliers} far-off ${d.outliers === 1 ? "price" : "prices"}`].filter(Boolean) : []);
+  const leftOut = TK.leftOutSold;
   const priceCell = (label, m) =>
     h(
       "div",

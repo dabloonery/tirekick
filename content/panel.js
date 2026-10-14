@@ -1620,13 +1620,15 @@
   let showHidden = false;
   let facts = new Map(); // key -> facts for this page view
   let codeStems = {}; // Facebook title without its trailing code -> { c: { code: listing key }, a: last seen }
+  let photoSeen = {}; // listing key -> { h: photo hash, f: photo file name, t: title, a: last seen } (photoTwins sites)
   let saved = {}; // key -> { t: title, u: url, img, p0: price when saved, a0: when, p: last price seen, a: last seen }
   let savedSearches = {}; // "site|query" -> { site, q, url, a0: when saved, v: last visit, n: listings then, fresh: new to you then }
   const dirtyMemory = new Set();
   const dirtyStems = new Set();
-  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "codeStems", "saved", "savedSearches"]).then((v) => {
+  const memoryReady = chrome.storage.local.get(["listingMemory", "notInterested", "codeStems", "saved", "savedSearches", "photoSeen"]).then((v) => {
     memory = v.listingMemory || {};
     codeStems = v.codeStems || {};
+    photoSeen = v.photoSeen || {};
     saved = v.saved || {};
     savedSearches = v.savedSearches || {};
     notInterested = v.notInterested || {};
@@ -1698,6 +1700,85 @@
   // The other codes this title has been posted under (by other listings), if any.
   const otherCodes = (key, stem, code) => TKRules.otherCodes(codeStems[stem], key, code);
 
+  // The same photo on other listings, on sites where that means something (TKSites photoTwins: Marketplace).
+  // Each photo you scroll past gets a fingerprint (photoHashes in background.js, a few at a time, only cards
+  // on screen); the same picture under another title, here or on any page in the last 90 days, is marked on
+  // both: a stolen photo, or a stock one. No model, and nothing leaves this computer.
+  const PHOTO_DAYS = 90;
+  const photoWanted = new Map(); // key -> photo address, waiting for its fingerprint
+  const photoAsked = new Set(); // keys fingerprinted, or on their way, on this page
+  const photoOf = new WeakMap(); // card element -> [key, photo address], for the observer
+  let photoTimer = 0;
+  const photoSite = () => !!TK.site()?.photoTwins;
+  const markPhotoTwins = () => {
+    const changed = [];
+    for (const [key, f] of facts) {
+      const n = photoSeen[key] ? TKRules.photoTwins(key, photoSeen).length : 0;
+      if ((f.photoTwins || 0) !== n) {
+        f.photoTwins = n;
+        changed.push([key, elFor(key)]);
+      }
+    }
+    if (changed.length) {
+      decorateAll(changed);
+      render();
+    }
+  };
+  // Fingerprints for a few photos, kept with the listing; resolves to the keys that got one.
+  const hashPhotos = async (pairs) => {
+    let hashes = {};
+    try {
+      ({ hashes } = await send("photoHashes", { urls: pairs.map(([, u]) => u) }));
+    } catch {
+      return [];
+    }
+    const now = Date.now();
+    const upsert = {};
+    for (const [k, u, title] of pairs) if (hashes?.[u]) upsert[k] = photoSeen[k] = { h: hashes[u], f: TKRules.photoFile(u), t: normTitle(title || ""), a: now };
+    if (!Object.keys(upsert).length) return [];
+    photoSeen = await writeStored("photoSeen", { upsert, cap: { max: 20000, by: "a", maxAge: PHOTO_DAYS * 864e5 } }).catch(() => photoSeen);
+    return Object.keys(upsert);
+  };
+  const pumpPhotos = () => {
+    if (photoTimer || !photoWanted.size || !alive()) return;
+    photoTimer = setTimeout(async () => {
+      const batch = [...photoWanted].slice(0, 6).map(([k, u]) => [k, u, facts.get(k)?.title]);
+      batch.forEach(([k]) => photoWanted.delete(k));
+      if (await hashPhotos(batch).then((ks) => ks.length)) markPhotoTwins();
+      photoTimer = 0;
+      pumpPhotos();
+    }, 600);
+  };
+  const photoObserver = "IntersectionObserver" in window
+    ? new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          photoObserver.unobserve(e.target);
+          const [key, url] = photoOf.get(e.target) || [];
+          if (key && facts.get(key)?.imageUrl === url) photoWanted.set(key, url);
+        }
+        pumpPhotos();
+      }, { rootMargin: "200px" })
+    : null;
+  // Called on each page pass: photos already fingerprinted (the same file) count at once, the rest wait to be seen.
+  const watchPhotos = (items) => {
+    if (!photoObserver || !photoSite()) return;
+    let known = false;
+    for (const it of items) {
+      const key = keyOf(it.url);
+      if (photoAsked.has(key) || !it.imageUrl || !it.el || TK.isPlaceholder(it.imageUrl) || !TKShared.isListingImage(it.imageUrl)) continue;
+      photoAsked.add(key);
+      const rec = photoSeen[key];
+      if (rec?.h && rec.f === TKRules.photoFile(it.imageUrl)) {
+        known = true;
+        continue;
+      }
+      photoOf.set(it.el, [key, it.imageUrl]);
+      photoObserver.observe(it.el);
+    }
+    if (known) markPhotoTwins();
+  };
+
   // Records a sighting; returns { isNew, drop } relative to what was remembered before.
   const remember = (key, price, pageHadKnown, auction = false) => {
     const { out, rec } = TKRules.sighting(memory[key], price, { pageHadKnown, auction });
@@ -1742,6 +1823,7 @@
     else if (f.offSite?.sure) c.push(["warn", "Scam: off-site contact"]);
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
+    if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "% of sold".
     const cheap = f.vsSold != null && TKRules.tooCheap(f, lastMarket);
     if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} ${cheap.pct}% of sold price`]);
@@ -1761,7 +1843,7 @@
     if (f.bestOffer) c.push(["plain", "Offers"]);
     return c.slice(0, 3);
   };
-  const chipEls = (f) => chipsFor(f).map(([kind, text]) => h("span", { class: `tk-chip k-${kind}` }, text));
+  const chipEls = (f) => chipsFor(f).map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, text));
 
   // Our own buttons sit inside the site's card (on Facebook, inside the link): keep the click ours.
   const own = (fn) => (e) => {
@@ -2277,6 +2359,7 @@
           hidden: !!notInterested[key],
         });
         if (prev?.codeOk != null) f.codeOk = prev.codeOk; // a scan judged this code a real model number: keep that
+        if (prev?.photoTwins) f.photoTwins = prev.photoTwins;
         f.vsSold = vsSoldOf(f);
         f.known = prev ? prev.known : !!sighting.known;
         f.project = clueOf(PROJECT, `${it.title} ${f.text}`);
@@ -2286,6 +2369,7 @@
         facts.set(key, f);
       }
       await notePrices(items);
+      watchPhotos(items);
       if (!scansCache) await loadScans().catch(() => {});
       if (restoreScans(items)) {
         setCount(scored.size);
@@ -2391,7 +2475,7 @@
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
       .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !/% of sold$/.test(t))
-      .map(([kind, text]) => h("span", { class: `tk-chip k-${kind}` }, text));
+      .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, text));
     if (item.photoAdjust) {
       const chip = h("span", { class: "tk-chip", title: "Photo check" }, signed(item.photoAdjust));
       chip.insertAdjacentHTML("afterbegin", CAMERA); // static markup, no page text involved
@@ -2416,6 +2500,7 @@
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,
+        f.photoTwins ? line(photoTwinsText(f.photoTwins)) : null,
         item.reason || "",
         item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}${item.scannedKind === "scan" || !item.scannedKind ? ", from the card's title, price and text (not the photos or the description)" : ", from the listing's page"}.`) : null,
         // How the numbers were made, and how far to trust them
@@ -3363,6 +3448,7 @@
       }
       if (market?.median > 0 && epoch === pageEpoch) applyMarket(market); // every card, scored or not
       items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
+      items.forEach((it) => (it.photoTwins = facts.get(keyOf(it.url))?.photoTwins || 0)); // the model is told
 
       // Anything already judged in this exact setting comes back from memory, free.
       const model = settings.scanModel; // scans can use their own, cheaper model
@@ -3591,6 +3677,17 @@
     itemFacts.vsSold = vsSoldOf(itemFacts);
     if (saved[key]) await notePrices([{ url: listing.url, price: listing.price }]);
     renderItemInfo();
+    // Its main photo, against the photos of other listings you've seen (sites with photoTwins).
+    if (photoSite() && itemFacts.imageUrl && TKShared.isListingImage(itemFacts.imageUrl) && !photoAsked.has(key)) {
+      photoAsked.add(key);
+      const rec = photoSeen[key];
+      const ok = rec?.h && rec.f === TKRules.photoFile(itemFacts.imageUrl) ? true : (await hashPhotos([[key, itemFacts.imageUrl, listing.title]])).length > 0;
+      const n = ok ? TKRules.photoTwins(key, photoSeen).length : 0;
+      if (n && itemFacts?.key === key) {
+        itemFacts.photoTwins = n;
+        renderItemInfo();
+      }
+    }
     // Sold prices already looked up for these words (in the last few hours) apply here for free too.
     if (!lastMarket && !cacheTried) {
       cacheTried = true;
@@ -3601,6 +3698,8 @@
       }
     }
   };
+  // The same photo on other listings, in words, with what to do about it.
+  const photoTwinsText = (n) => `The same photo is on ${n} other listing${n > 1 ? "s" : ""} you've seen, under other titles: a stolen or stock photo. Ask the seller for a photo with today's date.`;
   // Certain scam signs on a listing page, in words; "" when there are none.
   const scamWarning = (f) =>
     f.campaign
@@ -3715,6 +3814,7 @@
     piLine.replaceChildren(
       pastLine,
       scam ? h("div", { class: "scamnote" }, h("b", {}, "Likely scam. "), scam) : "",
+      f.photoTwins ? h("div", {}, photoTwinsText(f.photoTwins)) : "",
       when || f.drop ? h("div", {}, `${when || "Seen before"}${f.drop ? `; it was ${dollars(f.drop.from)} then` : ""}.`) : "",
       history ? h("div", {}, history) : "",
       history ? h("div", { class: "spark" }, TKShared.spark([...f.history.map(([p, t]) => ({ v: p, t })), { v: f.price, t: Date.now() }], { label: history })) : "",
@@ -3888,6 +3988,7 @@
       const forLens = lens;
       const market = await getMarket(settings, query, forLens);
       priceNotes(listing, market, forLens, settings.feePct);
+      if (itemFacts?.photoTwins) listing.photoTwins = itemFacts.photoTwins;
       // The free offer plan goes to the model, and its range is kept near it (TKRules.fitOffer).
       const plan = !listing.auction ? planFor(listing, market, itemFacts ? softFor(itemFacts).level : "none") : null;
       listing.offerPlan = plan && !plan.cheap ? { open: plan.open, walkAway: plan.walkAway, confidence: plan.confidence } : null;

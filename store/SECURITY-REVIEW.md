@@ -20,6 +20,7 @@ ideas for a later release.
 | Rendering page and AI text | The panel builds elements with `textContent` (the `h()` helper). The three `innerHTML` uses are static CSS or fixed words and numbers. | `content/panel.js:85`, `:143`, `:3017`, `:3756` |
 | Links to stored addresses | Saved listings and searches (which a restored backup can fill) only become links when they point at `https://www.ebay.com` or `https://www.facebook.com`; anything else falls back to a rebuilt address. | `lib/shared.js:10` |
 | Photos sent to AI | Only eBay and Facebook image hosts or inline `data:` images, checked again after redirects, capped at 3.5 MB. A listing can't make the extension fetch a local or internal address. | `background.js:707` |
+| Photo fingerprints (0.38.0) | `photoHashes` fetches only eBay and Facebook image hosts (`TKShared.isListingImage`, checked again after redirects), without cookies, at most 8 per message and 6 every 0.6 s from the panel, only cards scrolled into view, under 3 MB. The picture is shrunk to 9×8 gray pixels and only a 16-hex-digit hash is kept. | `background.js`, `photoHashes` |
 | Sold-price fetches | Only `https://www.ebay.com/sch/i.html?...LH_Sold=1` is fetched; anything else is refused. | `background.js:766` |
 | Opening tabs | Only eBay search or browse pages and Marketplace pages, at most 12. | `background.js:833` |
 | Custom AI addresses | Each one needs the user's OK through `chrome.permissions.request` before any request goes out; a restored backup can't skip that. | `options/options.js:21`, `background.js:74`, `:225` |

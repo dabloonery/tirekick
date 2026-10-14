@@ -195,6 +195,10 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **Auctions ending soon**: "Ends in 45m · no bids" in the last three hours.
 - **Seller warnings** for few ratings or a low positive percentage (eBay; limits in settings), and
   **duplicates**: the same title or photo on several listings on one page.
+- **Same photo as other listings** (Marketplace): a photo you've seen on another listing under another title, on
+  any page in the last 90 days: a stolen or stock photo. Tirekick works out a small fingerprint from each thumbnail
+  you scroll past (on your computer; only the code is kept), so it catches a photo uploaded again, not just the same
+  file. The seller's own relists and identical titles don't count. Not on eBay, where sellers reuse their own photos.
 - **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
   ✕ **Not interested**.
 
@@ -237,7 +241,9 @@ $55 now", with a small line of it), Save, Not interested, and Sold on eBay. How 
 page says), how a saved one moved ("Down $25 (−21%) since you saved it"), and whether the seller may take less
 (price drops, weeks on sale, "moving sale", takes offers). With sold prices known, an **offer**: what to open
 at and when to walk away, worked out from the sales, with a message to the seller you can pick, edit and copy
-(nothing is typed into the site or sent). Marketplace listings also warn when the seller's account was made this
+(nothing is typed into the site or sent). When the seller answers, type their price under **They said $** and it
+says whether to take it, meet in the middle or make a last offer at your walk-away price, and rewrites the message.
+With a key, **Analyze** is given the same plan and keeps its offer range near it. Marketplace listings also warn when the seller's account was made this
 year ("Joined Facebook in 2026").
 
 **In settings**: words to always filter by, in the filter bar's syntax (`-replica -repro -"box only"`

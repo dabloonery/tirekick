@@ -277,3 +277,33 @@ test("offerMessages: templates per site", () => {
   assert.doesNotMatch(R.offerMessages(80, { site: "ebay" })[0].text, /pick up/);
   assert.deepEqual(R.offerMessages(0), []);
 });
+
+test("hashDistance counts the bits two photo fingerprints differ in", () => {
+  assert.equal(R.hashDistance("00ff00ff00ff00ff", "00ff00ff00ff00ff"), 0);
+  assert.equal(R.hashDistance("00ff00ff00ff00ff", "01ff00ff00ff00fe"), 2);
+  assert.equal(R.hashDistance("ffffffffffffffff", "0000000000000000"), 64);
+  assert.equal(R.hashDistance("", "00ff00ff00ff00ff"), 64);
+  assert.equal(R.hashDistance("not a hash at all", "00ff00ff00ff00ff"), 64);
+});
+
+test("photoTwins: the same picture under other titles counts; the same file or the same title doesn't", () => {
+  const seen = {
+    "fb:1": { h: "00ff00ff00ff00ff", f: "111_n", t: "pentax k1000 film camera" },
+    "fb:2": { h: "00ff00ff00ff00fe", f: "222_n", t: "canon ae 1 slr" }, // the same picture, re-uploaded, another title
+    "fb:3": { h: "00ff00ff00ff00ff", f: "111_n", t: "pentax k1000 working" }, // the same file: the seller's own relist
+    "fb:4": { h: "00ff00ff00ff00ff", f: "444_n", t: "pentax k1000 film camera" }, // the same title: a repost, marked elsewhere
+    "fb:5": { h: "ff00ff00ff00ff00", f: "555_n", t: "yashica fx 3" }, // another picture
+    "fb:6": { h: "0fff00ff00ff00f0", f: "666_n", t: "minolta x 700" }, // 8 bits off: not the same
+  };
+  assert.deepEqual(R.photoTwins("fb:1", seen), ["fb:2"]);
+  assert.deepEqual(R.photoTwins("fb:2", seen), ["fb:1", "fb:3", "fb:4"]);
+  assert.deepEqual(R.photoTwins("fb:5", seen), []);
+  assert.deepEqual(R.photoTwins("fb:9", seen), []);
+});
+
+test("photoFile: one name for a photo across its sizes", () => {
+  assert.equal(R.photoFile("https://i.ebayimg.com/images/g/AbC123/s-l500.jpg"), "AbC123");
+  assert.equal(R.photoFile("https://i.ebayimg.com/images/g/AbC123/s-l1600.webp"), "AbC123");
+  assert.equal(R.photoFile("https://scontent-den2-1.xx.fbcdn.net/v/t45.5328-4/4567_8910_n.jpg?stp=c0.43&_nc_cat=1"), "4567_8910_n");
+  assert.equal(R.photoFile("not a url"), "");
+});

@@ -20,7 +20,9 @@
   R.dollars = (n) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
   const SHORT_DATE = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }); // made once: it's slow to make
   R.shortDate = (ts) => SHORT_DATE.format(new Date(ts));
-  R.normTitle = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  // Accents don't change a word ("Pokémon" is "pokemon"), and letters in any alphabet are letters.
+  R.fold = (t) => String(t ?? "").normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase();
+  R.normTitle = (t) => R.fold(t).replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   R.hash = (str) => {
     let x = 5381;
     for (let i = 0; i < str.length; i++) x = ((x << 5) + x + str.charCodeAt(i)) | 0;
@@ -41,10 +43,20 @@
   // "a/b" is either; quotes keep a phrase together.
   const reEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // "charger/adapter" = either word. Matches whole words, so "repro" doesn't catch "reproduced".
-  R.hasWord = (text, w) => w.split("/").some((alt) => alt.trim() && new RegExp(`(^|[^a-z0-9])${reEscape(alt.trim())}($|[^a-z0-9])`, "i").test(text));
+  // Accents are ignored on both sides, and a word's edges are any non-letter in any alphabet (so "mara"
+  // doesn't match inside "cámara").
+  R.hasWord = (text, w) => {
+    const t = R.fold(text);
+    return String(w).split("/").some((alt) => {
+      const a = R.fold(alt).trim();
+      return a && new RegExp(`(^|[^\\p{L}\\p{N}])${reEscape(a)}($|[^\\p{L}\\p{N}])`, "u").test(t);
+    });
+  };
+  // A quote left open ('"must go') reads as the words in it, not as a word that starts with a quote mark
+  // (which nothing has, so every listing would be filtered out).
   R.quickTerms = (words) =>
-    [...(words || "").matchAll(/(-?)"([^"]+)"|(-?)(\S+)/g)]
-      .map((m) => ({ not: !!(m[1] || m[3]), w: (m[2] || m[4] || "").toLowerCase() }))
+    [...(typeof words === "string" ? words : "").matchAll(/(-?)"([^"]+)"|(-?)(\S+)/g)]
+      .map((m) => ({ not: !!(m[1] || m[3]), w: (m[2] || m[4] || "").replace(/"/g, "").trim().toLowerCase() }))
       .filter((t) => t.w && t.w !== "-");
   // Why `text` fails a line of words ("" if it passes).
   R.termsReason = (text, words) => {

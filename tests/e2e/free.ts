@@ -59,6 +59,25 @@ ok("…says where they come from", /From sold prices, no AI: sold ones go for \$
 ok("…with a message to edit and three kinds to pick from", offer?.msg === "Hi! Is this still available? Would you take $270?" && offer?.kinds?.join() === "Friendly,Direct,With a reason", offer);
 await R(it, `const s=r.querySelector('.pi-line .offer select'); s.value='direct'; s.dispatchEvent(new Event('change'))`);
 ok("…and picking another kind changes the message", /^Hi, I can offer \$270\. Let me know/.test(await R(it, `return r.querySelector('.pi-line .offer textarea').value`)));
+// The seller answers: what to do, and the message rewritten to match.
+const said = (n: number) => R(it, `const i=r.querySelector('.pi-line .offer input.said'); i.value='${n}'; i.dispatchEvent(new Event('input')); return { answer: r.querySelector('.pi-line .said-answer').textContent, msg: r.querySelector('.pi-line .offer textarea').value }`);
+const s1 = await said(285);
+ok("\"They said $285\" (close to the walk-away) says take it, not another round", /^Take it at \$285: that's within what you planned to pay/.test(s1?.answer) && s1?.msg === "Deal, $285 works for me.", s1);
+const s2 = await said(320);
+ok("…$320 (over it) says to offer the walk-away price once", /^Offer \$290 once, then walk away/.test(s2?.answer) && /^Thanks, but \$290 is the most I can do/.test(s2?.msg), s2);
+const s3 = await said(265);
+ok("…and $265 (under the opening offer) says take it too", /^Take it at \$265: that's at or under your opening offer/.test(s3?.answer) && /^Deal, \$265 works for me\./.test(s3?.msg), s3);
+// With a key: the plan goes to the analysis, and its range stays near the plan.
+await store(`{anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:true}`);
+await fetch("http://localhost:1234/calls", { method: "DELETE" });
+await R(it, `r.querySelector('[data-act=analyze]').click()`);
+await waitFor(() => R(it, `return /Suggested offer/.test(r.querySelector('.offer')?.textContent || '')`), 10000);
+const calls = await (await fetch("http://localhost:1234/calls")).json();
+ok("the analysis is told the offer plan from sold prices", calls.some((c: any) => /open at \$270, walk away above \$290/.test(c.plan)), calls);
+const an = await R(it, `const b=[...r.querySelectorAll('.offer')].find(x=>/Suggested offer/.test(x.textContent)); return b && { text: b.textContent, msg: b.querySelector('textarea')?.value, said: !!b.querySelector('input.said') }`);
+ok("…a lowball range from the model ($230–$260) is kept near the plan ($240–$260)", /Suggested offer: \$240–\$260/.test(an?.text || "") && /Kept near the plan from sold prices/.test(an?.text || ""), an);
+ok("…with the same editable message and \"They said\" box", /Would you take \$240\?/.test(an?.msg || "") && an?.said, an);
+await store(`{anthropicKey:'', useSoldComps:false}`);
 await it.close();
 
 // ---------- saved listings as a spreadsheet ----------

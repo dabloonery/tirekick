@@ -232,6 +232,39 @@ test("offerPlan opens between the cheaper quarter and the median, walks away at 
   assert.equal(R.offerPlan({ price: 120 }, null), null);
 });
 
+test("counterOffer: take it, meet in the middle, or a last offer at the walk-away price", () => {
+  const plan = { open: 240, walkAway: 300 };
+  assert.deepEqual(R.counterOffer(plan, 230), { action: "accept", amount: 230, why: "that's at or under your opening offer" });
+  assert.equal(R.counterOffer(plan, 250).action, "accept"); // too close to haggle over
+  assert.deepEqual(R.counterOffer(plan, 290), { action: "counter", amount: 260, why: "it's under your walk-away price, and meeting in the middle saves $30" });
+  assert.deepEqual(R.counterOffer(plan, 320), { action: "last", amount: 300, why: "it's over your walk-away price of $300" });
+  // a few dollars apart isn't worth another round
+  assert.equal(R.counterOffer({ open: 90, walkAway: 100 }, 98).action, "accept");
+  // the same price to open and walk away at: anything over it gets that price once
+  assert.deepEqual(R.counterOffer({ open: 100, walkAway: 100 }, 110), { action: "last", amount: 100, why: "it's over your walk-away price of $100" });
+  for (const [p, t] of [[null, 100], [plan, 0], [plan, "abc"], [{ open: 0 }, 50]]) assert.equal(R.counterOffer(p, t), null);
+  assert.equal(R.counterOffer(plan, "290").amount, 260); // straight from a text field
+});
+
+test("fitOffer keeps the analysis's range near the plan from sold prices", () => {
+  const plan = { open: 240, walkAway: 300, confidence: "good" };
+  assert.deepEqual(R.fitOffer(250, 280, plan), [250, 280]); // inside: as the model said
+  assert.deepEqual(R.fitOffer(150, 200, plan), [210, 210]); // far under: up to 90% of the opening offer
+  assert.deepEqual(R.fitOffer(280, 400, plan), [280, 300]); // never past the walk-away price
+  assert.deepEqual(R.fitOffer(0, 0, plan), [0, 0]); // no haggling: left alone
+  assert.deepEqual(R.fitOffer(150, 200, { ...plan, confidence: "rough" }), [150, 200]);
+  assert.deepEqual(R.fitOffer(150, 200, null), [150, 200]);
+  assert.deepEqual(R.fitOffer(150, 200, { cheap: true }), [150, 200]);
+});
+
+test("counterMessage: what to send back, per site", () => {
+  assert.equal(R.counterMessage({ action: "accept", amount: 250 }, { local: true }), "Deal, $250 works for me. When can I pick it up?");
+  assert.equal(R.counterMessage({ action: "counter", amount: 260 }), "Thanks! Could we meet in the middle at $260?");
+  assert.equal(R.counterMessage({ action: "last", amount: 300 }), "Thanks, but $300 is the most I can do. Let me know if that works.");
+  assert.equal(R.counterMessage({ action: "counter", amount: 260 }, { site: "ebay", bestOffer: true }), "Counter with $260 on eBay's offer page.");
+  assert.equal(R.counterMessage(null), "");
+});
+
 test("roundOffer rounds down to friendly amounts", () => {
   assert.deepEqual([12.7, 47, 99, 101, 249].map(R.roundOffer), [12, 45, 95, 100, 240]);
 });

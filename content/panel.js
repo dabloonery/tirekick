@@ -612,6 +612,8 @@
     .offer-acts select { margin-right:8px; }
     .said-row { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; color:var(--muted); }
     .said { width:7em; font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); padding:4px 7px; }
+    .said-answer { margin-top:6px; }
+    .offer .said-answer b { font:600 13px/1.4 var(--ui); margin:0; color:var(--ink); }
     .said-answer:empty { display:none; }
     .offer b { font:600 20px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
     .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }

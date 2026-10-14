@@ -6,7 +6,7 @@
 cd "$(dirname "$0")" || exit 1
 # The throwaway test certificate and extension id live outside the extension folder (Chrome warns about key files inside it).
 export E2E_TMP="$(mktemp -d)"
-openssl req -x509 -newkey rsa:2048 -nodes -keyout "$E2E_TMP/key.pem" -out "$E2E_TMP/cert.pem" -days 2 -subj "/CN=www.ebay.com" -addext "subjectAltName=DNS:www.ebay.com,DNS:www.facebook.com" 2>/dev/null
+openssl req -x509 -newkey rsa:2048 -nodes -keyout "$E2E_TMP/key.pem" -out "$E2E_TMP/cert.pem" -days 2 -subj "/CN=www.ebay.com" -addext "subjectAltName=DNS:www.ebay.com,DNS:www.facebook.com,DNS:scontent.test.fbcdn.net" 2>/dev/null
 deno run -A server.ts >/dev/null 2>&1 &
 SRV=$!
 PROFILE="$(mktemp -d)" # a fresh browser profile each run, removed at the end (they add up in /tmp)

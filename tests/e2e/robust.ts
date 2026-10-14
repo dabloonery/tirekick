@@ -35,6 +35,8 @@ const waitFor = async (fn: () => Promise<unknown>, ms = 8000) => {
   return false;
 };
 
+ok("installing brings storage up to date and notes its version", (await get("storageVersion")) === 1);
+
 // ---------- a site that changed its pages ----------
 await reset();
 {
@@ -116,6 +118,32 @@ await reset();
   await sleep(2500);
   ok("…and the panel still works on the search it touched", (await R(p, `return r.querySelector('.pi-line')?.textContent || ''`)).includes("listings") && errors.length === before, errors.slice(before));
   await p.close();
+}
+
+// ---------- storage a current version writes passes the upgrade untouched ----------
+await reset();
+{
+  const p = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");
+  await sleep(1500);
+  await R(p, `r.querySelector('[data-act=tab]').click()`);
+  await sleep(400);
+  const chips = async (label: string) => p.ev(`(() => { const b = [...document.querySelectorAll('.tirekick-marks button, .tirekick-sticker button')].find((b) => b.textContent === ${JSON.stringify(label)}); if (b) b.click(); return !!b; })()`);
+  const clicked = [await chips("Save"), await chips("Not interested")];
+  await R(p, `[...r.querySelectorAll('button')].find(b=>b.textContent==='Save search')?.click()`);
+  await R(p, `r.querySelector('.qf-toggle').click()`);
+  await R(p, `const i=r.querySelector('.qf-words'); i.focus(); i.value='k1000 -parts'; i.dispatchEvent(new Event('input',{bubbles:true}))`);
+  await R(p, `r.querySelector('[data-mode=reseller]').click()`);
+  await sleep(2500);
+  await p.close();
+  await sleep(800);
+  const all = await o.ev(`chrome.storage.local.get(null)`);
+  const filled = ["saved", "notInterested", "savedSearches", "quickFilters", "listingMemory", "stats"].filter((k) => all[k] && Object.keys(all[k]).length);
+  ok("a session's worth of real storage is set up for the check", filled.length === 6 && clicked.every(Boolean), { filled, clicked });
+  const up = await o.ev(`TKShared.upgradeStorage(${JSON.stringify(all)})`);
+  const diff = Object.fromEntries(Object.keys(up.set).map((k) => { const key = Object.keys(all[k]).find((x) => JSON.stringify(all[k][x]) !== JSON.stringify(up.set[k][x])); return [k, { key, was: all[k][key], now: up.set[k][key] }]; }));
+  // The one change: a saved listing's photo that was still the page's lazy-load placeholder (nothing shows it).
+  const onlyPlaceholder = Object.keys(up.set).every((k) => k === "saved") && Object.values(diff).every((d: any) => /^data:/.test(d.was?.img) && d.now?.img === "");
+  ok("…and the storage upgrade leaves it as it is", onlyPlaceholder && !up.remove.length, diff);
 }
 
 ok("no page errors", !errors.length, errors);

@@ -3,22 +3,22 @@ const { open, c } = await start();
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true})`);
 const q = `https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`;
-const sh = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('second-look-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
+const sh = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
 // 1. scan in tab A
 const a = await open(q); await sleep(1500);
 await sh(a, `r.querySelector('[data-act=scan]').click()`); await sleep(3000);
-console.log("A stickers:", await a.ev(`document.querySelectorAll('.second-look-sticker').length`));
+console.log("A stickers:", await a.ev(`document.querySelectorAll('.tirekick-sticker').length`));
 console.log("stored:", await o.ev(`chrome.storage.local.get('scans').then(x=>Object.keys(x.scans||{}).length)`));
 const nCalls = async () => (await (await fetch("http://localhost:1234/calls")).json()).length;
 console.log("api calls after scan:", await nCalls());
 // 2. a brand-new tab on the same search: scores should be there with no scan
 const b = await open(q); await sleep(2000);
-console.log("B stickers (no scan pressed):", await b.ev(`document.querySelectorAll('.second-look-sticker').length`), "calls", await nCalls());
+console.log("B stickers (no scan pressed):", await b.ev(`document.querySelectorAll('.tirekick-sticker').length`), "calls", await nCalls());
 console.log("B scan button:", await sh(b, `return r.querySelector('[data-act=scan]').textContent`));
 await sh(b, `r.querySelector('[data-act=tab]').click()`); await sleep(500); await b.shot("s1_restored.png");
 // 3. different search page containing same listings (other context): still restored
 const d = await open(`https://www.ebay.com/sch/i.html?_nkw=film+camera`); await sleep(2000);
-console.log("D (other search) stickers:", await d.ev(`document.querySelectorAll('.second-look-sticker').length`));
+console.log("D (other search) stickers:", await d.ev(`document.querySelectorAll('.tirekick-sticker').length`));
 // 4. listing page shows the stored score
 const i = await open(`https://www.ebay.com/itm/1111111111`); await sleep(2500);
 console.log("item page line:", await sh(i, `return r.querySelector('.pi-line').textContent.slice(0,160)`));

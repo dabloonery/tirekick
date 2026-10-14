@@ -1,4 +1,6 @@
-# Second Look
+# Tirekick
+
+Kick the tires before you buy.
 
 A browser extension for buying second-hand on eBay and Facebook Marketplace. It puts a small
 score tag on every listing you're looking at, compares prices with what the same thing actually
@@ -16,7 +18,7 @@ background.
 2. Paste a Claude API key (from console.anthropic.com). Settings save as you go, the key is checked
    the moment you paste it, and a banner at the top says whether you're ready (or the one thing missing),
    with links to try it on eBay or Marketplace. **Show** reveals a key to check for typos.
-3. Search eBay or Facebook Marketplace. A slim **Second Look** tab sits on the right edge of every
+3. Search eBay or Facebook Marketplace. A slim **Tirekick** tab sits on the right edge of every
    eBay and Marketplace page; the free marks on the cards work with the panel closed. Click the tab
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
 
@@ -51,7 +53,7 @@ few numbers, spending, which features you use). Saved and Home work on any eBay 
 - **What you use**: plain counters kept in this browser (scans, sold-price comparisons, analyses,
   search ideas, photo checks, saves, hides, switches to Reseller). **Reset counts** clears them.
 - **Getting started**: four steps with a check beside each one done; **Hide** folds it away.
-- Right-click the toolbar icon for **Open Second Look home**; on a page Second Look doesn't work on,
+- Right-click the toolbar icon for **Open Tirekick home**; on a page Tirekick doesn't work on,
   the icon opens eBay with Home showing.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Fair price,
@@ -70,7 +72,7 @@ and **Start over** clears the page without bringing them back until you leave it
 
 The most common Marketplace scam is one fake listing posted many times, each copy with a random
 code on the end of the title: "Nintendo Game Boy Advance SP M2465", "Halo Special Edition Xbox
-S1337". Second Look watches for it:
+S1337". Tirekick watches for it:
 
 - **Reposted under new codes**: the same title seen with two different codes, on one page or any
   page in the last month, is marked "Scam: reposted" and greyed out straight away,
@@ -111,7 +113,7 @@ scam warning stays readable.
   misspellings sellers make, other model names, tighter or looser words. Click one to run it,
   Save to keep it, hover for why. On eBay's front page, "Find searches for what I want" does the same
   from "What I want".
-- **Right-click any photo** and choose "Check this photo with Second Look".
+- **Right-click any photo** and choose "Check this photo with Tirekick".
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
 - **The footer** shows this month's spend; click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
@@ -248,7 +250,7 @@ Settings → Model → "Other AI services" works with anything that speaks the O
 Pick the service, paste the key, press **Test connection** (it lists the models into the Model menu, and remembers them), and pick one. Every model field is a menu (Claude's three models, what Test connection found, your installed Ollama models) with **Another model…** for typing an ID. A
 separate photo model is optional (it has to accept images). For spending on services other than
 Claude and OpenRouter, enter their prices per million tokens. If a model can't do structured
-output, Second Look falls back to plain JSON, so most chat models work; small ones judge less well.
+output, Tirekick falls back to plain JSON, so most chat models work; small ones judge less well.
 
 To keep costs down, scores are remembered for a day (re-scans and coming back are free), up to
 three requests run at once, and a failed request's listings come back on the next scan. Spending
@@ -315,7 +317,7 @@ Both sites change their markup without warning. If a scan says "No listings foun
 
 **eBay shows "Checking your browser" or won't load**: eBay does this to traffic that looks
 automated, and then ordinary page loads get it too for a while (refreshing usually clears it).
-Second Look's only automated traffic is the sold-price lookups: at least 5 seconds apart, at
+Tirekick's only automated traffic is the sold-price lookups: at least 5 seconds apart, at
 most 8 an hour, remembered for 6 hours, and paused for an hour at the first check (the price
 box then links to eBay's own sold listings). On Facebook, keep an eBay tab open: lookups then run
 from that tab, like eBay's own pages, which eBay questions far less. If it keeps happening, untick "Compare prices with

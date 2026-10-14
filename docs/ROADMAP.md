@@ -64,6 +64,34 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    priority"). A free model with no key, where the browser has one.
 7. **Brief 5, more stores** (Craigslist first).
 
+### For dabloonery, in order (2026-10-14)
+
+1. **Review and merge PR #24** (0.37.0) on GitHub: open it, press **Ready for review**, then **Merge pull request**.
+2. **Install 0.37.0 in Vivaldi.** Unzip `tirekick-0.37.0.zip` into the folder Vivaldi already loads Tirekick from,
+   replacing its files (same folder name and place, so your saved data stays), then press the reload arrow on
+   Tirekick in `vivaldi://extensions`. The card there should say 0.37.0.
+3. **The live check, about 20 minutes.** Each one is something the tests can't reach:
+   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "% of sold"
+     on the cards? Any "Too cheap?" chips look right?
+   - Press **Scan** once with your key. Tags on the cards, and the ranked list?
+   - Open a listing from that search: is there an **Offer** box with a message you can copy?
+   - A Marketplace search, then one listing: does it say how long ago it was listed, and warn if the seller joined
+     Facebook this year?
+   - Saved: **Download (CSV)** opens in a spreadsheet.
+   - Vivaldi: the toolbar icon and its number, Alt+Shift+L, right-click a photo ("Check this photo"), right-click
+     selected text ("Look up").
+   - Tell Claude what broke, with a screenshot if you can.
+4. **Save real pages for the tests** while you're there (right-click the page, **Save as**, "Webpage, HTML only"):
+   an eBay search, an eBay sold search, an eBay listing, a Marketplace search and a Marketplace listing. Put them in
+   your Second-Look folder under `tests/fixtures/real/` and say so.
+5. **Decide on a domain.** Not required: a free GitHub Pages address works for the privacy policy. If you want
+   tirekick.app, register it; either way, set up a contact email address for the store listing.
+6. **Store accounts, when you're ready to launch:** a Chrome Web Store developer account (one-time fee, needs a
+   Google account with 2-Step Verification) and trader or non-trader status.
+7. **Screenshots 1 and 2** from real eBay pages (steps in the store checklist below).
+8. **Before going public:** decide whether to rewrite history to remove your email from old commits, and turn on
+   GitHub's "Keep my email address private".
+
 ### Open source at 1.0.0 (decided 2026-10-14)
 
 dabloonery agreed: license Tirekick under **Apache-2.0** and make the repository public at the 1.0.0 store launch.

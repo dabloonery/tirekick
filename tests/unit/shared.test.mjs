@@ -100,3 +100,38 @@ test("usageSummary: today, this month, last month, and the models behind this mo
   assert.equal(+s.models.a.usd.toFixed(2), 0.4);
   assert.deepEqual(S.usageSummary(undefined, now), { today: 0, month: 0, last: 0, calls: 0, models: {} });
 });
+
+test("applyEdit: changes to a shared record, described rather than written whole", () => {
+  const now = 1_000_000;
+  const base = { a: { t: "one", a: 10, p: 5 }, b: { t: "two", a: 20 } };
+  assert.deepEqual(S.applyEdit(base, { set: { c: { t: "three", a: 30 }, a: null } }, now), { b: { t: "two", a: 20 }, c: { t: "three", a: 30 } });
+  assert.deepEqual(S.applyEdit(base, { add: { a: { t: "new" }, d: 1 } }, now), { ...base, d: 1 }, "add never replaces");
+  assert.deepEqual(S.applyEdit(base, { patch: { a: { p: 4 }, gone: { p: 1 } } }, now).a, { t: "one", a: 10, p: 4 });
+  assert.equal("gone" in S.applyEdit(base, { patch: { gone: { p: 1 } } }, now), false, "patch doesn't bring back a removed entry");
+  assert.deepEqual(S.applyEdit({ s: { c: { X1: "k1" }, a: 1 } }, { upsert: { s: { c: { Y2: "k2" }, a: 2 }, n: { a: 3 } } }, now), { s: { c: { X1: "k1", Y2: "k2" }, a: 2 }, n: { a: 3 } }, "codes from two tabs are both kept");
+  assert.deepEqual(S.applyEdit({ scans: 2 }, { inc: { scans: 1, saves: 1 }, add: { since: 5 } }, now), { scans: 3, saves: 1, since: 5 });
+  assert.deepEqual(S.applyEdit({ since: 1 }, { add: { since: 5 } }, now), { since: 1 });
+  const many = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`k${i}`, { a: i }]));
+  assert.deepEqual(Object.keys(S.applyEdit(many, { cap: { max: 3, by: "a" } }, now)), ["k7", "k8", "k9"], "keeps the newest");
+  assert.deepEqual(Object.keys(S.applyEdit({ old: { at: now - 100 }, young: { at: now - 5 } }, { cap: { max: 9, by: "at", maxAge: 50 } }, now)), ["young"]);
+  assert.deepEqual(S.applyEdit(null, { set: { x: 1 } }, now), { x: 1 }, "nothing stored yet");
+  assert.deepEqual(S.applyEdit(["junk"], {}, now), {}, "something that isn't a record is replaced");
+});
+
+test("soldSlot: one booking for every tab, spaced, capped and paused", () => {
+  const opts = { perHour: 3, gap: 5000 };
+  const now = 10_000_000;
+  assert.deepEqual(S.soldSlot({ cooldownUntil: now + 1 }, now, opts), { pausedUntil: now + 1 });
+  assert.deepEqual(S.soldSlot({}, now, opts), { wait: 0, log: [now] });
+  let st = { log: [] };
+  const waits = [];
+  for (let i = 0; i < 4; i++) {
+    const r = S.soldSlot(st, now, opts);
+    if (r.full) { waits.push("full"); continue; }
+    waits.push(r.wait);
+    st = { log: r.log };
+  }
+  assert.deepEqual(waits, [0, 5000, 10000, "full"], "asked at the same moment, each gets its own turn, and no more than the hour allows");
+  assert.deepEqual(S.soldSlot({ log: [now - 2 * 3600e3, now - 3600e3 - 1] }, now, opts), { wait: 0, log: [now] }, "older than an hour doesn't count");
+  assert.deepEqual(S.soldSlot({ log: "junk" }, now, opts), { wait: 0, log: [now] });
+});

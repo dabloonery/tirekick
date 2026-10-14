@@ -964,7 +964,7 @@
   const saveBox = () => {
     clearTimeout(boxTimer);
     boxTimer = setTimeout(
-      () => alive() && writeStored("panelBox", (b) => (box.side !== DEFAULT_BOX.side || box.size !== DEFAULT_BOX.size ? (b[boxSite] = { ...box }) : delete b[boxSite])).catch(() => {}),
+      () => alive() && writeStored("panelBox", { set: { [boxSite]: box.side !== DEFAULT_BOX.side || box.size !== DEFAULT_BOX.size ? { ...box } : null } }).catch(() => {}),
       300
     );
   };
@@ -1349,8 +1349,9 @@
     if (v) searchWants[k] = v;
     else delete searchWants[k];
     const keys = Object.keys(searchWants);
-    if (keys.length > WANTS_MAX) keys.slice(0, keys.length - WANTS_MAX).forEach((x) => delete searchWants[x]);
-    if (alive()) chrome.storage.local.set({ searchWants }).catch(storeFailed);
+    const old = keys.length > WANTS_MAX ? keys.slice(0, keys.length - WANTS_MAX) : [];
+    old.forEach((x) => delete searchWants[x]);
+    if (alive()) writeStored("searchWants", { set: { ...Object.fromEntries(old.map((x) => [x, null])), [k]: v || null } }).catch(() => {});
   };
   const feeEl = $("#fee");
   const showMode = () => {
@@ -1374,7 +1375,7 @@
   };
   const setPref = (key, value) => {
     (modePrefs[lens] ||= {})[key] = value;
-    if (alive()) chrome.storage.local.set({ modePrefs }).catch(storeFailed);
+    if (alive()) writeStored("modePrefs", { upsert: { [lens]: { [key]: value } } }).catch(() => {});
   };
   // What each mode is for: the first line of This page while you're new to it (your first few scans), and
   // again right after you switch, until the next scan. After that it's known, and the space goes to results.
@@ -1678,12 +1679,10 @@
     clearTimeout(stemTimer);
     stemTimer = setTimeout(async () => {
       if (!dirtyStems.size || !alive()) return;
-      const { codeStems: stored = {} } = await chrome.storage.local.get("codeStems");
-      for (const k of dirtyStems) stored[k] = codeStems[k];
+      const upsert = Object.fromEntries([...dirtyStems].map((k) => [k, codeStems[k]]));
       dirtyStems.clear();
-      const cutoff = Date.now() - STEM_DAYS * 864e5;
-      codeStems = Object.fromEntries(Object.entries(stored).filter(([, r]) => r?.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-3000));
-      await chrome.storage.local.set({ codeStems }).catch(storeFailed);
+      // Merged with what other tabs noted under the same title (codes from both are kept).
+      codeStems = await writeStored("codeStems", { upsert, cap: { max: 3000, by: "a", maxAge: STEM_DAYS * 864e5 } }).catch(() => codeStems);
     }, 300); // soon: a reload right after would lose it, and this is rare
     return stem;
   };
@@ -1961,31 +1960,21 @@
   ];
 
   // ---------- saved listings and searches (kept in this browser, across both sites) ----------
-  // Several tabs may write at once, so each change is merged into what's stored.
-  const writeStored = async (name, mutate) => {
-    const stored = (await chrome.storage.local.get(name))[name] || {};
-    mutate(stored);
-    await chrome.storage.local.set({ [name]: stored }).catch((e) => {
-      storeFailed(e);
-      throw e; // the caller stops here: nothing says "Saved" when it wasn't
-    });
-    return stored;
-  };
+  // Several tabs may write at once, so a change is sent as an edit (TKShared.applyEdit) and the background
+  // script applies them one at a time. Resolves to the record as stored after it.
+  const writeStored = (name, edit) => send("storeEdit", { name, edit }).catch(storeFailedThrow); // the caller stops here: nothing says "Saved" when it wasn't
   // Plain counters of what you use, kept only in this browser (Home shows them; nothing is sent anywhere).
   // One at a time, so two close together don't overwrite each other.
   let bumpQueue = Promise.resolve();
   const bump = (name) => {
     if (!alive()) return;
-    bumpQueue = bumpQueue.then(() => writeStored("stats", (s) => ((s[name] = (s[name] || 0) + 1), (s.since ||= Date.now())))).catch(() => {});
+    bumpQueue = bumpQueue.then(() => writeStored("stats", { inc: { [name]: 1 }, add: { since: Date.now() } })).catch(() => {});
   };
   const toggleSave = async (key) => {
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     const was = !!saved[key];
     if (!was) bump("saves");
-    saved = await writeStored("saved", (s) => {
-      if (was) delete s[key];
-      else s[key] = { t: f.title || "", u: f.url || location.href.split("?")[0], img: f.imageUrl || "", p0: f.price ?? null, a0: Date.now(), p: f.price ?? null, a: Date.now() };
-    });
+    saved = await writeStored("saved", { set: { [key]: was ? null : { t: f.title || "", u: f.url || location.href.split("?")[0], img: f.imageUrl || "", p0: f.price ?? null, a0: Date.now(), p: f.price ?? null, a: Date.now() } } });
     afterSavedChange();
     setStatus(was ? "Removed from Saved." : `Saved \u201c${(f.title || "listing").slice(0, 50)}\u201d. It's under Saved at the bottom of the panel.`, false, { label: "Undo", fn: () => toggleSave(key) });
   };
@@ -1994,10 +1983,7 @@
   const toggleSearch = async (q) => {
     const k = searchKey(q);
     const was = !!savedSearches[k];
-    savedSearches = await writeStored("savedSearches", (s) => {
-      if (was) delete s[k];
-      else s[k] = { site: TK.currentSite(), q, url: location.href, a0: Date.now(), v: Date.now(), n: facts.size, fresh: 0, deal: quick.deal || 0, deals: dealCount() };
-    });
+    savedSearches = await writeStored("savedSearches", { set: { [k]: was ? null : { site: TK.currentSite(), q, url: location.href, a0: Date.now(), v: Date.now(), n: facts.size, fresh: 0, deal: quick.deal || 0, deals: dealCount() } } });
     afterSavedChange();
     setStatus(was ? "Search removed from Saved." : `Saved the search \u201c${q}\u201d. Open it again from Saved; new listings will say "New to you".`);
   };
@@ -2043,7 +2029,7 @@
   });
   const siteName = (k) => TKSites.nameOf(k);
   const removeStored = async (name, k) => {
-    const next = await writeStored(name, (s) => delete s[k]);
+    const next = await writeStored(name, { set: { [k]: null } });
     if (name === "saved") saved = next;
     else savedSearches = next;
     afterSavedChange();
@@ -2347,9 +2333,7 @@
       return s.p !== it.price || Date.now() - s.a > 60 * 60 * 1000;
     });
     if (!stale.length) return;
-    saved = await writeStored("saved", (s) => {
-      for (const it of stale) if (s[keyOf(it.url)]) Object.assign(s[keyOf(it.url)], { p: it.price, a: Date.now() });
-    });
+    saved = await writeStored("saved", { patch: Object.fromEntries(stale.map((it) => [keyOf(it.url), { p: it.price, a: Date.now() }])) }); // a listing unsaved meanwhile stays unsaved
   };
   // A saved search remembers when you last looked and how much was new then.
   const noteSearchVisit = async (all) => {
@@ -2357,10 +2341,7 @@
     const rec = q && savedSearches[searchKey(q)];
     const deals = all.filter((f) => f.deal && !f.hidden && !f.filtered).length;
     if (!rec || (rec.n === all.length && rec.deals === deals && Date.now() - rec.v < 10 * 60 * 1000)) return;
-    savedSearches = await writeStored("savedSearches", (s) => {
-      const r = s[searchKey(q)];
-      if (r) Object.assign(r, { v: Date.now(), n: all.length, fresh: all.filter((f) => f.fresh).length, deals, deal: quick.deal || 0, url: location.href });
-    });
+    savedSearches = await writeStored("savedSearches", { patch: { [searchKey(q)]: { v: Date.now(), n: all.length, fresh: all.filter((f) => f.fresh).length, deals, deal: quick.deal || 0, url: location.href } } });
   };
 
   // Re-dress everything after a settings change (filters, marks, hidden toggle).
@@ -2379,13 +2360,8 @@
   // "Not interested": hidden on every page from now on (undo from the panel or settings).
   const setInterested = async (key, interested) => {
     if (!interested) bump("hides");
-    const { notInterested: stored = {} } = await chrome.storage.local.get("notInterested");
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
-    if (interested) delete stored[key];
-    else stored[key] = { t: f.title || "", a: Date.now() };
-    const kept = Object.entries(stored).sort((a, b) => a[1].a - b[1].a).slice(-3000);
-    notInterested = Object.fromEntries(kept);
-    await chrome.storage.local.set({ notInterested }).catch(storeFailedThrow);
+    notInterested = await writeStored("notInterested", { set: { [key]: interested ? null : { t: f.title || "", a: Date.now() } }, cap: { max: 3000, by: "a" } });
     if (facts.has(key)) facts.get(key).hidden = !interested;
     const el = scored.get(key)?.el?.isConnected ? scored.get(key).el : elFor(key);
     if (el) decorate(key, el);
@@ -2690,11 +2666,7 @@
     readWarn.hidden = !note;
     if (hl.level === "few" || hl.level === healthLevel || !alive()) return;
     healthLevel = hl.level;
-    await writeStored("siteHealth", (s) => {
-      const r = (s[TK.currentSite()] = { ...(s[TK.currentSite()] || {}) });
-      if (note) Object.assign(r, { bad: Date.now(), note, level: hl.level });
-      else r.ok = Date.now();
-    });
+    await writeStored("siteHealth", { upsert: { [TK.currentSite()]: note ? { bad: Date.now(), note, level: hl.level } : { ok: Date.now() } } });
   };
 
   // ---------- "Check this page": what the page reader can see, for when a site changes its layout ----------
@@ -3193,11 +3165,7 @@
     const key = quickKey();
     const value = { ...quick, a: Date.now() };
     quickTimer = setTimeout(async () => {
-      const { quickFilters = {} } = await chrome.storage.local.get("quickFilters");
-      if (quickActive() || value.deal) quickFilters[key] = value;
-      else delete quickFilters[key];
-      const kept = Object.entries(quickFilters).sort((a, b) => a[1].a - b[1].a).slice(-200);
-      await chrome.storage.local.set({ quickFilters: Object.fromEntries(kept) }).catch(storeFailed);
+      await writeStored("quickFilters", { set: { [key]: quickActive() || value.deal ? value : null }, cap: { max: 200, by: "a" } }).catch(() => {});
     }, 400);
   };
   const money0 = (v) => Math.max(0, Math.round(Number(String(v).replace(/[$,\s]/g, "")) || 0));
@@ -3930,9 +3898,7 @@
   const ideasBox = $(".ideas-inline");
   const saveIdea = async (idea, btn) => {
     const k = searchKey(idea.query);
-    savedSearches = await writeStored("savedSearches", (st) => {
-      st[k] ||= { site: TK.currentSite(), q: idea.query, url: TK.searchUrl(idea), a0: Date.now(), v: 0, n: 0, fresh: 0 };
-    });
+    savedSearches = await writeStored("savedSearches", { add: { [k]: { site: TK.currentSite(), q: idea.query, url: TK.searchUrl(idea), a0: Date.now(), v: 0, n: 0, fresh: 0 } } });
     btn.textContent = "Saved";
     btn.classList.add("on");
     btn.title = "Kept under Saved";

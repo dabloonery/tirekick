@@ -858,7 +858,35 @@ async function abort({ ids }) {
   return true;
 }
 
-const HANDLERS = { rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, soldWorkerBlocked, getFont, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
+// ---------- One writer for what tabs share ----------
+// Tabs send changes to shared records here (see TKShared.applyEdit) and they're applied one at a time,
+// so two tabs saving, hiding or filtering at the same moment can't undo each other.
+const SHARED = new Set(["saved", "savedSearches", "stats", "notInterested", "codeStems", "quickFilters", "panelBox", "siteHealth", "soldCache", "searchWants", "modePrefs"]);
+let editQueue = Promise.resolve();
+const oneAtATime = (fn) => {
+  const run = editQueue.then(fn);
+  editQueue = run.catch(() => {});
+  return run;
+};
+function storeEdit({ name, edit }) {
+  if (!SHARED.has(name)) return Promise.reject(new Error("Not a shared record."));
+  return oneAtATime(async () => {
+    const next = TKShared.applyEdit((await chrome.storage.local.get(name))[name], edit);
+    await chrome.storage.local.set({ [name]: next });
+    return next;
+  });
+}
+// A turn at an eBay sold-price lookup (TKShared.soldSlot), booked here so tabs can't both take the last one.
+function soldSlot({ perHour, gap }) {
+  return oneAtATime(async () => {
+    const { soldLog, soldCooldownUntil } = await chrome.storage.local.get(["soldLog", "soldCooldownUntil"]);
+    const slot = TKShared.soldSlot({ log: soldLog, cooldownUntil: soldCooldownUntil }, Date.now(), { perHour, gap });
+    if (slot.log) await chrome.storage.local.set({ soldLog: slot.log });
+    return slot;
+  });
+}
+
+const HANDLERS = { storeEdit, soldSlot, rankBatch, analyzeListing, suggestSearches, checkPhoto, fetchSoldHtml, soldWorkerBlocked, getFont, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];

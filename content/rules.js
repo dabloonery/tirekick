@@ -87,10 +87,73 @@
   // At or under your price for this search, and not a likely scam.
   R.isDeal = (f, dealPrice) => dealPrice > 0 && f.total != null && f.total <= dealPrice && !R.likelyScam(f);
 
-  R.sellerWarning = (f, { minSellerRatings, minSellerPct }) => {
+  // sellerJoined: the year the seller's account was made, where the site says (Marketplace: "Joined
+  // Facebook in 2026"). An account made this year is how most Marketplace scams start.
+  R.sellerWarning = (f, { minSellerRatings, minSellerPct }, now = Date.now()) => {
     if (f.sellerCount != null && f.sellerCount < minSellerRatings) return f.sellerCount === 0 ? "New seller" : `Seller: ${f.sellerCount} ratings`;
     if (f.sellerPct != null && f.sellerPct < minSellerPct) return `Seller ${f.sellerPct}% positive`;
+    if (f.sellerJoined >= new Date(now).getFullYear()) return `Account made in ${f.sellerJoined}`;
     return "";
+  };
+
+  // A price far under what the same thing sells for is the other half of most scams: the bait. Only with
+  // a sold reference worth trusting (not "rough"), and never for what that reference doesn't describe:
+  // auctions (a bid isn't a price), lots, and broken ones (the reference is for working ones).
+  // Returns { level: "far" | "low", pct } or null. Cutoffs in one place so they can be tuned.
+  R.TOO_CHEAP = { far: 0.4, low: 0.55 };
+  R.tooCheap = (f, market) => {
+    if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
+    if (f.auction || f.lot || f.project) return null;
+    const pct = f.total / market.median;
+    const level = pct < R.TOO_CHEAP.far ? "far" : pct < R.TOO_CHEAP.low ? "low" : "";
+    return level ? { level, pct: Math.round(pct * 100) } : null;
+  };
+
+  // "Seller may take less": what a listing shows that usually means room to haggle. Each sign is a short
+  // reason; two or more make it likely. drops: price drops you've seen; days: how long it's been listed (or
+  // since you first saw it); motivated: "moving sale" and the like; bestOffer: the site's own offer button.
+  R.softSeller = ({ drops = 0, days = null, motivated = "", bestOffer = false } = {}) => {
+    const why = [];
+    if (drops >= 1) why.push(drops === 1 ? "the price dropped once" : `the price dropped ${drops} times`);
+    if (days != null && days >= 30) why.push(`listed for ${days >= 60 ? `${Math.round(days / 30)} months` : `${Math.round(days)} days`}`);
+    if (motivated) why.push(`“${motivated}”`);
+    if (bestOffer) why.push("takes offers");
+    return { level: why.length >= 2 ? "likely" : why.length ? "some" : "none", why };
+  };
+
+  // Friendly offer amounts: whole dollars under $20, fives under $100, tens above. Always rounded down.
+  R.roundOffer = (n) => {
+    const step = n < 20 ? 1 : n < 100 ? 5 : 10;
+    return Math.max(step, Math.floor(n / step) * step);
+  };
+  // An opening offer and the most worth paying, worked out from sold prices, with the reasons. Totals
+  // include shipping (that's how sold prices compare); the amounts to offer are for the item alone.
+  // Opens midway between the cheaper quarter of sales and the median (at the cheaper quarter when the
+  // seller looks soft), never above the asking price, never under 60% of it (lower reads as a lowball
+  // and gets ignored). Walk away above the median. Returns null when there's nothing solid to go on.
+  R.offerPlan = ({ price, shipping = 0, auction, lot, project, soft = "none" } = {}, market) => {
+    if (!(market?.median > 0) || !(market.p25 > 0) || price == null || !(price > 0) || auction || lot || project) return null;
+    const ship = Number(shipping) || 0;
+    const total = price + ship;
+    const reasons = [`sold ones go for $${market.p25}–$${market.p75} (${market.n} sales)`];
+    if (total <= market.p25) return { cheap: true, open: null, walkAway: null, reasons: [`it's already under most sales: ${reasons[0]}`], confidence: market.confidence };
+    const target = soft === "likely" ? market.p25 : (market.p25 + market.median) / 2;
+    const open = R.roundOffer(Math.max(price * 0.6, Math.min(price, target - ship)));
+    const walkAway = R.roundOffer(Math.min(price, market.median - ship));
+    if (soft !== "none") reasons.push(soft === "likely" ? "the seller looks ready to take less" : "the seller may take less");
+    return { cheap: false, open: Math.min(open, walkAway), walkAway, reasons, confidence: market.confidence };
+  };
+  // Messages to send a seller, from templates (free and predictable). local: pickup sites; bestOffer on
+  // eBay means using its Make offer button, so there's no message, only the amount.
+  R.offerMessages = (amount, { local = false, bestOffer = false, site = "" } = {}) => {
+    if (!(amount > 0)) return [];
+    if (bestOffer && site === "ebay") return [{ id: "button", label: "Make offer", text: `Use eBay's Make offer button with $${amount}.`, button: true }];
+    const pickup = local ? " I can pick up whenever suits you." : "";
+    return [
+      { id: "friendly", label: "Friendly", text: `Hi! Is this still available? Would you take $${amount}?${pickup}` },
+      { id: "direct", label: "Direct", text: `Hi, I can offer $${amount}${local ? " cash, and pick up today or tomorrow" : ""}. Let me know if that works.` },
+      { id: "why", label: "With a reason", text: `Hi! Similar ones have been selling for around this, so would you take $${amount}?${pickup}` },
+    ];
   };
 
   // Words that say "fix-up project" (what a fixer hunts for, and Marketplace can't search for all at

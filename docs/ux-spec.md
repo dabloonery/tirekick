@@ -133,6 +133,8 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | Filter bar | Sticky at the top of the list. Filter toggles words, price range, New only, Hide broken, deal price, and Show / Dim / Hide for skips. Enter or Esc folds it; the button keeps the count |
 | Card tag | Focusable; hover or focus shows the hover card. Never covers Facebook's "Just listed" corner (top right on Marketplace) |
 | Footer | The quality menu and this month's spend (opens the spending detail). With Claude the menu is **Thrifty** (Haiku for both), **Balanced** (Haiku scans, Sonnet for a single listing; the default) or **Thorough** (Sonnet scans, Opus): one choice sets both models, so what it shows is what scans use. Another pair from settings shows as *Custom*. Other services and Ollama are listed by model |
+| Offer helper | On a listing page once sold prices are known, before any analysis: *Offer $270, walk away above $290*, the sales behind it (*From sold prices, no AI*), a message picked from three kinds (Friendly, Direct, With a reason) in a box you can edit, and **Copy message**. eBay listings with Make offer get the amount instead of a message. Nothing is typed into the site |
+| Too-cheap chip | *Likely scam? 32% of sold price* under 40% of a trusted median, *Too cheap? 47% of sold price* under 55%; in place of the plain "% of sold" chip. Not for broken ones, lots, auctions or a rough reference |
 | Home tiles | Saved listings, price drops, saved searches open Saved; spent this month opens the spending detail |
 
 ## 7. Accessibility acceptance criteria (WCAG 2.2 AA)

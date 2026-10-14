@@ -608,6 +608,8 @@
     .offer { margin-top:12px; padding:11px 12px; background:var(--paper-2); border-radius:var(--r-sm); font-size:13px; }
     .offer-acts { margin-top:8px; }
     .msg-preview { margin-top:8px; color:var(--muted); font-style:italic; }
+    .msg-edit { display:block; width:100%; box-sizing:border-box; margin-top:8px; font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); padding:7px 9px; resize:vertical; }
+    .offer-acts select { margin-right:8px; }
     .offer b { font:600 20px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
     .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }
     .adjust.up { color:var(--v-great); }
@@ -1646,7 +1648,10 @@
     dirtyMemory.clear();
     if (Object.keys(memory).length > MEMORY_MAX * 1.1) {
       const cutoff = Date.now() - MEMORY_DAYS * 864e5;
-      memory = Object.fromEntries(Object.entries(memory).filter(([, r]) => r && r.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-MEMORY_MAX));
+      // A saved listing's price history is kept whatever its age: it's what the Saved view and the offer use.
+      const keep = Object.entries(memory).filter(([k, r]) => r && saved[k]);
+      const rest = Object.entries(memory).filter(([k, r]) => r && !saved[k] && r.a > cutoff).sort((a, b) => a[1].a - b[1].a).slice(-Math.max(0, MEMORY_MAX - keep.length));
+      memory = Object.fromEntries([...rest, ...keep]);
     }
     chrome.storage.local.set({ listingMemory: memory }).catch(storeFailed);
   };
@@ -1734,9 +1739,12 @@
     else if (f.offSite?.sure) c.push(["warn", "Scam: off-site contact"]);
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
+    // Far under what the same thing sold for: the usual bait. Said in place of the plain "% of sold".
+    const cheap = f.vsSold != null && TKRules.tooCheap(f, lastMarket);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} ${cheap.pct}% of sold price`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
-    if (f.vsSold != null) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold`]);
+    if (f.vsSold != null && !cheap) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold`]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
     if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
@@ -2085,6 +2093,17 @@
         }
       },
     }, "Copy the list");
+    // The same list as a spreadsheet, with prices seen and the latest score (TKShared.savedRows).
+    const csv = h("button", {
+      onclick: () => {
+        const rows = TKShared.savedRows(saved, scansCache || {});
+        const a = h("a", { href: URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" })), download: `tirekick-saved-${new Date().toLocaleDateString("en-CA")}.csv` });
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        csv.textContent = "Downloaded";
+      },
+      title: "Saved listings with prices and scores, for a spreadsheet",
+    }, "Download (CSV)");
     $(".saved-body").replaceChildren(
       ...[
             !items.length && !searches.length
@@ -2105,7 +2124,7 @@
                 r.p != null ? h("div", { class: "pr" }, dollars(r.p)) : null
               )
             ),
-            items.length ? h("div", { class: "actions sv-acts" }, copy) : null,
+            items.length ? h("div", { class: "actions sv-acts" }, copy, csv) : null,
             searches.length ? h("b", { class: "sub" }, `Saved searches \u00b7 ${searches.length}`) : null,
             ...searches.map(([k, r]) =>
               h(
@@ -2302,7 +2321,9 @@
     lastMarket = market;
     marketFor = queryEl.value.trim().toLowerCase();
     for (const f of facts.values()) f.vsSold = vsSoldOf(f);
+    if (itemFacts) itemFacts.vsSold = vsSoldOf(itemFacts);
     redecorateAll();
+    if (TK.pageType() === "item") renderItemInfo(); // the offer helper works from these prices
     refreshPending();
     showQuick(); // the "Your price" box can now suggest a price
   };
@@ -3561,9 +3582,21 @@
       project: clueOf(PROJECT, `${listing.title} ${listing.condition || ""} ${listing.details || ""}`),
       motivated: clueOf(MOTIVATED, `${listing.title} ${listing.details || ""}`),
       since: memory[key].pa,
+      listedDays: listing.listedDays ?? null,
+      firstSeen: before?.f || null,
     };
+    itemFacts.vsSold = vsSoldOf(itemFacts);
     if (saved[key]) await notePrices([{ url: listing.url, price: listing.price }]);
     renderItemInfo();
+    // Sold prices already looked up for these words (in the last few hours) apply here for free too.
+    if (!lastMarket && !cacheTried) {
+      cacheTried = true;
+      const m = await cachedMarket(queryEl.value);
+      if (m && !lastMarket && itemFacts?.key === key) {
+        renderMarket(m);
+        applyMarket(m);
+      }
+    }
   };
   // Certain scam signs on a listing page, in words; "" when there are none.
   const scamWarning = (f) =>
@@ -3572,6 +3605,48 @@
       : f.offSite?.sure
         ? `It asks you to get in touch outside ${(TKSites.get(f.site) || TKSites.get("facebook")).owner} (${f.offSite.why.join("; ")}). That's how these scams take payment.`
         : "";
+  // "3 weeks ago", from a number of days (approximate, like the sites' own).
+  const agoText = (d) => (d < 1 ? "today" : d < 2 ? "yesterday" : d < 14 ? `${Math.round(d)} days ago` : d < 60 ? `about ${Math.round(d / 7)} weeks ago` : d < 365 ? `about ${Math.round(d / 30)} months ago` : "over a year ago");
+  // "Down $30 (−18%) since you saved it on Oct 3" or up, said plainly.
+  const savedChange = (p0, p, at) => {
+    const d = Math.round((p - p0) * 100) / 100;
+    const pct = Math.round((Math.abs(d) / p0) * 100);
+    return `${d < 0 ? "Down" : "Up"} ${dollars(Math.abs(d))}${pct ? ` (${d < 0 ? "−" : "+"}${pct}%)` : ""} since you saved it on ${shortDate(at)} at ${dollars(p0)}.`;
+  };
+  // The offer helper: an opening offer and a walk-away price from the sold prices (TKRules.offerPlan),
+  // messages from templates you can edit, and Copy. Nothing is typed into the site or sent.
+  const offerBox = (f, soft) => {
+    const plan = lastMarket && TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, soft }, lastMarket);
+    if (!plan) return "";
+    const rough = plan.confidence === "rough" ? " A rough guide: few sales, or a wide spread." : "";
+    if (plan.cheap) return h("div", { class: "offer" }, `Priced well: ${plan.reasons[0]}. Offering much less may lose it.${rough}`);
+    const site = TKSites.get(f.site);
+    const messages = TKRules.offerMessages(plan.open, { local: !!site?.local, bestOffer: !!f.bestOffer, site: f.site });
+    const box = h("textarea", { class: "msg-edit", rows: "3", "aria-label": "Message to the seller" });
+    box.value = messages[0]?.text || "";
+    const copy = h("button", {
+      onclick: async () => {
+        try {
+          await navigator.clipboard.writeText(box.value);
+          copy.textContent = "Copied";
+        } catch {
+          copy.textContent = "Couldn't copy";
+        }
+      },
+    }, "Copy message");
+    const pick = messages.length > 1
+      ? h("select", { "aria-label": "Kind of message", onchange: (e) => ((box.value = messages.find((m) => m.id === e.target.value)?.text || box.value), (copy.textContent = "Copy message")) }, messages.map((m) => h("option", { value: m.id }, m.label)))
+      : null;
+    return h(
+      "div",
+      { class: "offer" },
+      "Offer ",
+      h("b", {}, dollars(plan.open)),
+      plan.walkAway > plan.open ? [", walk away above ", h("b", {}, dollars(plan.walkAway))] : null,
+      h("div", { class: "meta" }, `From sold prices, no AI: ${plan.reasons.join("; ")}.${rough}`),
+      messages[0]?.button ? h("div", { class: "msg-preview" }, messages[0].text) : [box, h("div", { class: "actions offer-acts" }, pick, copy)]
+    );
+  };
   const renderItemInfo = () => {
     const f = itemFacts;
     if (!f || TK.pageType() !== "item") return;
@@ -3584,6 +3659,15 @@
         ? `Price history: ${f.history.map(([p, t]) => `${dollars(p)} (${shortDate(t)})`).join(" \u2192 ")} \u2192 ${dollars(f.price)} now.`
         : "";
     const sv = saved[f.key];
+    // How long it's been up (the page's own date, or since you first saw it), and whether the seller may haggle.
+    const days = f.listedDays ?? (f.firstSeen ? (Date.now() - f.firstSeen) / 864e5 : null);
+    const prices = [...f.history.map(([p]) => p), f.price].filter((p) => p != null);
+    const drops = prices.filter((p, i) => i && TKRules.isDrop(prices[i - 1], p)).length;
+    const soft = TKRules.softSeller({ drops, days: days != null && days >= 1 ? Math.round(days) : null, motivated: f.motivated, bestOffer: !!f.bestOffer });
+    const age = f.listedDays != null ? `Listed ${agoText(f.listedDays)}.` : "";
+    const softLine = soft.level !== "none" ? `${soft.level === "likely" ? "The seller looks ready to take less" : "The seller may take less"}: ${soft.why.join(", ")}.` : "";
+    // An offer worked out from sold prices, before (and without) any analysis.
+    const offer = !itemEl.childElementCount ? offerBox(f, soft.level) : "";
     // What an earlier scan or analysis (in a search, another tab, or here) made of this listing.
     const past = storedScan(f.key, lens);
     const pastLine = past && !itemEl.childElementCount
@@ -3605,8 +3689,10 @@
       when || f.drop ? h("div", {}, `${when || "Seen before"}${f.drop ? `; it was ${dollars(f.drop.from)} then` : ""}.`) : "",
       history ? h("div", {}, history) : "",
       history ? h("div", { class: "spark" }, TKShared.spark([...f.history.map(([p, t]) => ({ v: p, t })), { v: f.price, t: Date.now() }], { label: history })) : "",
-      sv?.p0 != null && f.price != null && f.price !== sv.p0 ? h("div", {}, `Saved on ${shortDate(sv.a0)} at ${dollars(sv.p0)}.`) : "",
+      sv?.p0 != null && f.price != null && f.price !== sv.p0 ? h("div", {}, savedChange(sv.p0, f.price, sv.a0)) : "",
+      age || softLine ? h("div", {}, [age, softLine].filter(Boolean).join(" ")) : "",
       chips.length ? h("div", { class: "chips" }, chips) : "",
+      offer,
       slot ? "" : acts
     );
     piSearch.replaceChildren();

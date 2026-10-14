@@ -37,6 +37,7 @@
     <li><b>Your settings</b>, including any API key you paste in. Keys stay in this browser profile; the pages Tirekick works on never see them.</li>
     <li><b>Listings and searches you saved, and listings you hid</b>, with the prices you saw.</li>
     <li><b>Listings you’ve seen</b> (title, price, when), so it can say “new to you” and show price drops and history. Kept for 90 days.</li>
+    <li><b>Photo fingerprints</b> for Marketplace listings you scroll past: a 16-character code worked out from each thumbnail (not the photo itself), so it can spot the same photo on another listing. Kept for 90 days.</li>
     <li><b>Scores</b> for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and <b>sold-price results</b>, kept for six hours.</li>
     <li><b>Small preferences</b>: each mode’s sort, each search’s “what I want” and filter, and where the panel sits on each site.</li>
     <li><b>A spending estimate</b> for paid AI, worked out from token counts at list price.</li>
@@ -53,6 +54,7 @@
         <tr><td>Press <b>Scan</b> (or have it scan automatically), <b>Analyze this listing</b> or <b>Better searches</b></td><td>Listing titles and the text on their cards (price, shipping, seller rating, condition, description), your search words, and the “what I want” and “what you’re into” text you wrote</td><td>The AI service you picked in settings: the Claude API (api.anthropic.com), OpenRouter, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer)</td></tr>
         <tr><td>Press <b>Check photo</b> or right-click a photo</td><td>The photo and the listing’s title</td><td>The same AI service</td></tr>
         <tr><td>Compare <b>sold prices</b> (a button, as part of a scan, or <b>Look up</b> on Tirekick’s own page, including words you select on any page and choose “Look up … on eBay and Marketplace”)</td><td>Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most</td><td>eBay</td></tr>
+        <tr><td>Scroll past Marketplace listings</td><td>A request for each thumbnail you see (the same picture the page already shows), without your Facebook cookies, so the fingerprint can be worked out on your computer. Nothing about you or the listing goes with it</td><td>Facebook’s image server (fbcdn.net)</td></tr>
         <tr><td>Press <b>Find photo elsewhere</b></td><td>The photo’s web address, opened in a new tab</td><td>Google Lens (lens.google.com)</td></tr>
         <tr><td>Press <b>Test connection</b> in settings</td><td>Your API key, to check it works</td><td>The service you picked</td></tr>
       </tbody>
@@ -73,7 +75,7 @@
     <li><b>Storage</b>: keeps everything listed above in your browser.</li>
     <li><b>Scripting</b>: draws the score tags and the panel on eBay and Facebook pages, and reads eBay sold-price results from an open eBay tab when you’re on Facebook.</li>
     <li><b>Context menus</b>: “Check this photo with Tirekick” on images, and “Open Tirekick home” on the toolbar icon.</li>
-    <li><b>eBay and Facebook</b> (and their image servers): the sites it works on, and photo checks you ask for.</li>
+    <li><b>eBay and Facebook</b> (and their image servers): the sites it works on, photo checks you ask for, and fingerprints of Marketplace thumbnails.</li>
     <li><b>The AI services</b> listed above, and Ollama and LM Studio on your computer: reached only when you press a button that uses them.</li>
     <li><b>Any other address</b> (optional): only for “another OpenAI-style address”. Chrome asks you to allow that one address when you press Test connection; Tirekick can’t reach any address you haven’t allowed.</li>
   </ul>

@@ -187,12 +187,18 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **Scam marks**: reposts under new codes, codes in titles, contact off the site (see Scams).
 - **% of sold**: once sold prices are known for the search, every card says how its price
   (with shipping) compares, in green when it's 70% or less. Lots and auctions are left out.
+- **Too cheap**: under 40% of a trusted sold median reads "Likely scam? 32% of sold price", under 55% "Too
+  cheap? 47% of sold price" (not for broken ones, lots or auctions, and not when the sold prices are only a rough guide).
 - **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" straight away.
 - **New to you** on a search you've looked at before (not on feeds, and not when most of the
   page is new anyway).
 - **Auctions ending soon**: "Ends in 45m · no bids" in the last three hours.
 - **Seller warnings** for few ratings or a low positive percentage (eBay; limits in settings), and
   **duplicates**: the same title or photo on several listings on one page.
+- **Same photo as other listings** (Marketplace): a photo you've seen on another listing under another title, on
+  any page in the last 90 days: a stolen or stock photo. Tirekick works out a small fingerprint from each thumbnail
+  you scroll past (on your computer; only the code is kept), so it catches a photo uploaded again, not just the same
+  file. The seller's own relists and identical titles don't count. Not on eBay, where sellers reuse their own photos.
 - **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
   ✕ **Not interested**.
 
@@ -224,13 +230,21 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
   latest you've seen ("$52 (↓ from $60)"), and searches you save with **Save this search**, which
   remember when you last looked and how many were at your price; they're in the **Saved** view, with
   a small line of each saved listing's price over time, and what you've hidden folded away at the bottom. **Open all searches** opens each
-  in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text.
+  in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text, and
+  **Download (CSV)** a spreadsheet with prices, dates and the latest score (also in Settings → Backup).
   Prices update whenever a saved listing is on your screen again; nothing is checked in the
   background.
 - **Try on Marketplace / Try on eBay** runs your words on the other site.
 
 **On a listing page**: when you saw it before, its price history ("$70 (Sep 30) → $60 (Oct 5) →
-$55 now", with a small line of it), Save, Not interested, and Sold on eBay.
+$55 now", with a small line of it), Save, Not interested, and Sold on eBay. How long it's been listed (when the
+page says), how a saved one moved ("Down $25 (−21%) since you saved it"), and whether the seller may take less
+(price drops, weeks on sale, "moving sale", takes offers). With sold prices known, an **offer**: what to open
+at and when to walk away, worked out from the sales, with a message to the seller you can pick, edit and copy
+(nothing is typed into the site or sent). When the seller answers, type their price under **They said $** and it
+says whether to take it, meet in the middle or make a last offer at your walk-away price, and rewrites the message.
+With a key, **Analyze** is given the same plan and keeps its offer range near it. Marketplace listings also warn when the seller's account was made this
+year ("Joined Facebook in 2026").
 
 **In settings**: words to always filter by, in the filter bar's syntax (`-replica -repro -"box only"`
 drops those; a plain word must be in the title). Older "always hide" and "only show" lists were
@@ -406,6 +420,11 @@ their respective owners.
 
 ## Tests
 
-`tests/e2e/run.sh` (needs `deno` and `openssl` as well) loads the real unpacked extension in headless Chrome against a mock Claude API: `scores-persist.ts` (scores across tabs, searches, the listing page, reloads), `marketplace.ts` (a Facebook Marketplace-shaped page: reading, repost scams, marks, scan), `first-run.ts` (the welcome shows once, Got it puts it away, ? brings it back), `diagnostic.ts`.
+`deno task test` runs everything (needs `google-chrome-stable`, `deno`, `python3` and `openssl`): the fixture
+pages and plain rules (`tests/run.sh`), then the real unpacked extension in headless Chrome against eBay- and
+Marketplace-shaped pages and a mock Claude API (`tests/e2e/`), ending with a performance guard on a long
+Marketplace feed. Nothing touches the real sites or a real model. `tests/README.md` lists what each file checks and
+what to do when eBay or Facebook change their pages.
 
-`tests/run.sh` loads the panel on an eBay-shaped page in headless Chrome (needs `google-chrome-stable` and `python3`) and prints PASS/FAIL for the keyboard and focus behavior. The extension APIs are stubbed; it does not exercise the models or real sites.
+Every pull request has to raise the version in `manifest.json` (`deno task version-check`, run by CI), so the
+number on the extensions page always says which copy is running.

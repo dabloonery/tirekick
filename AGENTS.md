@@ -53,8 +53,7 @@ Conventions that matter:
   (`TKRules.readHealth`) and records the result per store in `siteHealth`; Home shows a note when a store
   looks broken. Keep that working when you change adapters.
 - **Links**: any address that came from storage, a backup or a web page goes through
-  `TKShared.safeUrl` before it becomes a link or is opened. L1 in the security review lists the panel
-  links still to wrap.
+  `TKShared.safeUrl` before it becomes a link or is opened (security review L1, done in 0.37.0).
 - **Permissions**: don't add any without a reason in `store/LISTING.md` and the security review.
   Any-address host access stays optional, asked for one address at a time.
 

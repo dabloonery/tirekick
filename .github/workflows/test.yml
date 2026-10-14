@@ -9,10 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
       # The runner image has google-chrome-stable, python3 and openssl already.
       - run: google-chrome-stable --version
+      # A pull request must raise the version (scripts/version-check.mjs).
+      - if: github.event_name == 'pull_request'
+        run: deno task version-check origin/${{ github.base_ref }}
       - run: deno task test
       - run: deno task pack

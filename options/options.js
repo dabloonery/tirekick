@@ -170,7 +170,7 @@ async function showMemory() {
   const m = Object.keys(listingMemory).length;
   const sv = Object.keys(saved).length + Object.keys(savedSearches).length;
   document.getElementById("memoryInfo").textContent =
-    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops, price history and reposted scams (kept 90 days, only in this browser).` +
+    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops, price history, reposted scams and reused photos (kept 90 days, only in this browser).` +
     (sv ? ` ${sv} saved (listings and searches), kept until you remove them in the panel.` : "");
 }
 document.getElementById("clearHidden").addEventListener("click", async () => {
@@ -179,7 +179,7 @@ document.getElementById("clearHidden").addEventListener("click", async () => {
   note("Everything you hid is visible again.");
 });
 document.getElementById("clearMemory").addEventListener("click", async () => {
-  await chrome.storage.local.remove(["listingMemory", "codeStems"]);
+  await chrome.storage.local.remove(["listingMemory", "codeStems", "photoSeen"]);
   showMemory();
   note("Seen listings forgotten.");
 });
@@ -371,6 +371,18 @@ document.getElementById("backup").addEventListener("click", async () => {
   const n = Object.keys(data.saved || {}).length;
   const ns = Object.keys(data.savedSearches || {}).length;
   note(`Backup saved (${n} saved listing${n === 1 ? "" : "s"}, ${ns} search${ns === 1 ? "" : "es"}). Keys aren't included.`);
+});
+// Saved listings as a spreadsheet: prices you've seen, and the latest score for each (TKShared.savedRows).
+document.getElementById("exportCsv").addEventListener("click", async () => {
+  const { saved = {}, scans = {} } = await chrome.storage.local.get(["saved", "scans"]);
+  const rows = TKShared.savedRows(saved, scans);
+  if (!rows.length) return note("No saved listings yet. Save one from a card or the panel first.");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" }));
+  a.download = `tirekick-saved-${new Date().toLocaleDateString("en-CA")}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  note(`Downloaded ${rows.length} saved listing${rows.length === 1 ? "" : "s"} as a spreadsheet (CSV).`);
 });
 document.getElementById("restore").addEventListener("click", () => document.getElementById("restoreFile").click());
 document.getElementById("restoreFile").addEventListener("change", async (e) => {

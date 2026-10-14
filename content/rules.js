@@ -87,10 +87,108 @@
   // At or under your price for this search, and not a likely scam.
   R.isDeal = (f, dealPrice) => dealPrice > 0 && f.total != null && f.total <= dealPrice && !R.likelyScam(f);
 
-  R.sellerWarning = (f, { minSellerRatings, minSellerPct }) => {
+  // sellerJoined: the year the seller's account was made, where the site says (Marketplace: "Joined
+  // Facebook in 2026"). An account made this year is how most Marketplace scams start.
+  R.sellerWarning = (f, { minSellerRatings, minSellerPct }, now = Date.now()) => {
     if (f.sellerCount != null && f.sellerCount < minSellerRatings) return f.sellerCount === 0 ? "New seller" : `Seller: ${f.sellerCount} ratings`;
     if (f.sellerPct != null && f.sellerPct < minSellerPct) return `Seller ${f.sellerPct}% positive`;
+    if (f.sellerJoined >= new Date(now).getFullYear()) return `Account made in ${f.sellerJoined}`;
     return "";
+  };
+
+  // A price far under what the same thing sells for is the other half of most scams: the bait. Only with
+  // a sold reference worth trusting (not "rough"), and never for what that reference doesn't describe:
+  // auctions (a bid isn't a price), lots, and broken ones (the reference is for working ones).
+  // Returns { level: "far" | "low", pct } or null. Cutoffs in one place so they can be tuned.
+  R.TOO_CHEAP = { far: 0.4, low: 0.55 };
+  R.tooCheap = (f, market) => {
+    if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
+    if (f.auction || f.lot || f.project) return null;
+    const pct = f.total / market.median;
+    const level = pct < R.TOO_CHEAP.far ? "far" : pct < R.TOO_CHEAP.low ? "low" : "";
+    return level ? { level, pct: Math.round(pct * 100) } : null;
+  };
+
+  // "Seller may take less": what a listing shows that usually means room to haggle. Each sign is a short
+  // reason; two or more make it likely. drops: price drops you've seen; days: how long it's been listed (or
+  // since you first saw it); motivated: "moving sale" and the like; bestOffer: the site's own offer button.
+  R.softSeller = ({ drops = 0, days = null, motivated = "", bestOffer = false } = {}) => {
+    const why = [];
+    if (drops >= 1) why.push(drops === 1 ? "the price dropped once" : `the price dropped ${drops} times`);
+    if (days != null && days >= 30) why.push(`listed for ${days >= 60 ? `${Math.round(days / 30)} months` : `${Math.round(days)} days`}`);
+    if (motivated) why.push(`“${motivated}”`);
+    if (bestOffer) why.push("takes offers");
+    return { level: why.length >= 2 ? "likely" : why.length ? "some" : "none", why };
+  };
+
+  // Friendly offer amounts: whole dollars under $20, fives under $100, tens above. Always rounded down.
+  R.roundOffer = (n) => {
+    const step = n < 20 ? 1 : n < 100 ? 5 : 10;
+    return Math.max(step, Math.floor(n / step) * step);
+  };
+  // An opening offer and the most worth paying, worked out from sold prices, with the reasons. Totals
+  // include shipping (that's how sold prices compare); the amounts to offer are for the item alone.
+  // Opens midway between the cheaper quarter of sales and the median (at the cheaper quarter when the
+  // seller looks soft), never above the asking price, never under 60% of it (lower reads as a lowball
+  // and gets ignored). Walk away above the median. Returns null when there's nothing solid to go on.
+  R.offerPlan = ({ price, shipping = 0, auction, lot, project, soft = "none" } = {}, market) => {
+    if (!(market?.median > 0) || !(market.p25 > 0) || price == null || !(price > 0) || auction || lot || project) return null;
+    const ship = Number(shipping) || 0;
+    const total = price + ship;
+    const reasons = [`sold ones go for $${market.p25}–$${market.p75} (${market.n} sales)`];
+    if (total <= market.p25) return { cheap: true, open: null, walkAway: null, reasons: [`it's already under most sales: ${reasons[0]}`], confidence: market.confidence };
+    const target = soft === "likely" ? market.p25 : (market.p25 + market.median) / 2;
+    const open = R.roundOffer(Math.max(price * 0.6, Math.min(price, target - ship)));
+    const walkAway = R.roundOffer(Math.min(price, market.median - ship));
+    if (soft !== "none") reasons.push(soft === "likely" ? "the seller looks ready to take less" : "the seller may take less");
+    return { cheap: false, open: Math.min(open, walkAway), walkAway, reasons, confidence: market.confidence };
+  };
+  // Messages to send a seller, from templates (free and predictable). local: pickup sites; bestOffer on
+  // eBay means using its Make offer button, so there's no message, only the amount.
+  R.offerMessages = (amount, { local = false, bestOffer = false, site = "" } = {}) => {
+    if (!(amount > 0)) return [];
+    if (bestOffer && site === "ebay") return [{ id: "button", label: "Make offer", text: `Use eBay's Make offer button with $${amount}.`, button: true }];
+    const pickup = local ? " I can pick up whenever suits you." : "";
+    return [
+      { id: "friendly", label: "Friendly", text: `Hi! Is this still available? Would you take $${amount}?${pickup}` },
+      { id: "direct", label: "Direct", text: `Hi, I can offer $${amount}${local ? " cash, and pick up today or tomorrow" : ""}. Let me know if that works.` },
+      { id: "why", label: "With a reason", text: `Hi! Similar ones have been selling for around this, so would you take $${amount}?${pickup}` },
+    ];
+  };
+
+  // The analysis's offer range, kept near the plan from sold prices: the model may move it for what it read in
+  // the listing, but not below 90% of the plan's opening offer or above its walk-away price. A rough reference,
+  // no plan, or a range of 0 (no haggling) leaves the model's numbers as they are. Returns [low, high].
+  R.fitOffer = (low, high, plan) => {
+    if (!(high > 0) || !plan || plan.cheap || plan.confidence === "rough" || !(plan.open > 0)) return [low, high];
+    const top = Math.max(plan.open, plan.walkAway || 0);
+    const floor = R.roundOffer(plan.open * 0.9);
+    const lo = Math.min(top, Math.max(floor, low | 0));
+    return [lo, Math.min(top, Math.max(lo, high | 0))];
+  };
+  // When the seller answers with a price: take it, meet in the middle, or offer the walk-away price once.
+  // plan: { open, walkAway } (from offerPlan, or the analysis's range). Returns { action, amount, why } or null.
+  R.counterOffer = (plan, theirs) => {
+    theirs = Number(theirs);
+    if (!(plan?.open > 0) || !(theirs > 0)) return null;
+    const open = plan.open;
+    const top = plan.walkAway > open ? plan.walkAway : open;
+    if (theirs <= open) return { action: "accept", amount: theirs, why: "that's at or under your opening offer" };
+    if (theirs <= top) {
+      let mid = R.roundOffer((open + theirs) / 2);
+      if (mid <= open) mid = Math.round((open + theirs) / 2); // rounding mustn't land back on the offer they turned down
+      if (theirs - mid < Math.max(5, theirs * 0.05)) return { action: "accept", amount: theirs, why: "that's within what you planned to pay" };
+      return { action: "counter", amount: mid, why: `it's under your walk-away price, and meeting in the middle saves $${theirs - mid}` };
+    }
+    return { action: "last", amount: top, why: `it's over your walk-away price of $${top}` };
+  };
+  // The reply to send for a counterOffer answer. On eBay with best offer, the answer goes through its offer page.
+  R.counterMessage = (c, { local = false, bestOffer = false, site = "" } = {}) => {
+    if (!c) return "";
+    if (bestOffer && site === "ebay") return c.action === "accept" ? `Accept their counteroffer of $${c.amount} on eBay.` : `Counter with $${c.amount} on eBay's offer page.`;
+    if (c.action === "accept") return `Deal, $${c.amount} works for me.${local ? " When can I pick it up?" : ""}`;
+    if (c.action === "counter") return `Thanks! Could we meet in the middle at $${c.amount}?`;
+    return `Thanks, but $${c.amount} is the most I can do. Let me know if that works.`;
   };
 
   // Words that say "fix-up project" (what a fixer hunts for, and Marketplace can't search for all at
@@ -133,6 +231,42 @@
     const dup = new Map();
     for (const list of groups.values()) if (list.length > 1) for (const it of list) dup.set(it, Math.max(dup.get(it) || 0, list.length));
     return dup;
+  };
+
+  // ---------- the same photo on other listings ----------
+  // How many of two photo hashes' 64 bits differ (64 when either is missing).
+  R.hashDistance = (a, b) => {
+    if (!/^[0-9a-f]{16}$/.test(a || "") || !/^[0-9a-f]{16}$/.test(b || "")) return 64;
+    let d = 0;
+    for (let i = 0; i < 16; i += 8) for (let x = parseInt(a.slice(i, i + 8), 16) ^ parseInt(b.slice(i, i + 8), 16); x; x >>>= 1) d += x & 1;
+    return d;
+  };
+  R.PHOTO_NEAR = 4; // bits apart that still count as the same picture
+  // The other listings showing this listing's photo, from what you've seen (seen: key -> { h: hash, f: the
+  // photo's file name, t: title }). The same file under another listing is the seller's own relist or a catalog
+  // photo, and the same title is a relist or a repost already marked elsewhere: neither counts. What's left is
+  // the same picture uploaded again under another title: a stolen photo, or a stock one. Returns their keys.
+  R.photoTwins = (key, seen) => {
+    const me = seen?.[key];
+    if (!me?.h) return [];
+    const out = [];
+    for (const [k, o] of Object.entries(seen)) {
+      if (k === key || !o?.h || (o.f && o.f === me.f) || (o.t && o.t === me.t)) continue;
+      if (R.hashDistance(me.h, o.h) <= R.PHOTO_NEAR) out.push(k);
+    }
+    return out;
+  };
+  // A photo's file name from its address, which stays the same across the sizes a site serves it in (eBay:
+  // /images/g/<id>/s-l500.jpg; Facebook: /v/…/<id>_n.jpg?…).
+  R.photoFile = (url) => {
+    try {
+      const parts = new URL(url).pathname.split("/").filter(Boolean);
+      let last = parts.pop() || "";
+      if (/^s-l\d+\.\w+$/i.test(last)) last = parts.pop() || "";
+      return last.replace(/\.\w+$/, "");
+    } catch {
+      return "";
+    }
   };
 
   // The other codes a scam title has been posted under, by other listings. stemRec: { c: { code: key } }.

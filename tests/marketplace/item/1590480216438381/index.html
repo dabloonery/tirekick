@@ -7,7 +7,9 @@
   <h1>Nintendo Game Boy Advance SP M2465</h1>
   <span>$31</span>
   <p>Condition Used - like new</p>
+  <p>Listed 3 weeks ago in Albuquerque, NM</p>
   <p>More photos and details are available here: www . jmyzl . com</p>
+  <p>Seller details</p><p>Joined Facebook in 2026</p>
 </div>
 <div id="feed">
   <a href="/marketplace/item/111/"><div>$165</div><div>$180</div><div>Nintendo Switch Bundle</div><div>Albuquerque, NM</div></a>
@@ -29,6 +31,8 @@
   check("listing price read", it.price === 31, `price was ${it.price}`);
   check("disguised web address found", !!it.offSite?.sure, JSON.stringify(it.offSite));
   check("title code found", it.titleCode === "M2465", `code was "${it.titleCode}"`);
+  check("seller's join year read", it.sellerJoined === 2026, `was ${it.sellerJoined}`);
+  check("listed age read (3 weeks)", it.listedDays === 21, `was ${it.listedDays}`);
   const cards = Tirekick.extractFacebook();
   const sw = cards.find((c) => /Bundle/.test(c.title)), plain = cards.find((c) => c.title === "Nintendo Switch");
   check("marked-down card: current price first", sw && sw.price === 165, `price was ${sw && sw.price}`);

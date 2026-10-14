@@ -2,6 +2,9 @@
 
 Kick the tires before you buy.
 
+> Working on Tirekick (person or agent)? Read [AGENTS.md](AGENTS.md) first: it points to the
+> roadmap and reference docs in [docs/](docs/) and lists the standing rules.
+
 A browser extension for buying second-hand on eBay and Facebook Marketplace. It puts a small
 score tag on every listing you're looking at, compares prices with what the same thing actually
 sold for, flags likely scams, and remembers what you've already seen. A language model (the

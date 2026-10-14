@@ -50,6 +50,7 @@ Help people buying second-hand online judge the listings they are viewing on sup
 | Permission | Why |
 |---|---|
 | `storage` | Keeps the user's settings, saved and hidden listings, the memory of what they've seen, and cached scores, all in this browser. |
+| `unlimitedStorage` | Lifts the 10 MB limit on that same local storage, so a few months of kept scores and seen listings can't fill it and make saving a listing fail. Nothing more is stored and nothing leaves the browser; old entries are still pruned. |
 | `scripting` | Registers the page script that draws the score tags and the panel on eBay and Facebook pages (and injects it on demand when the "slim tab" setting is off), and reads eBay sold-price results from an open eBay tab when the user is on Facebook. |
 | `contextMenus` | Three entries: "Check this photo with Tirekick" on images on eBay and Facebook, "Look up “…” on eBay and Marketplace" on text the user selects (it opens the extension's own page with that text; nothing is read from the page), and "Open Tirekick home" on the toolbar icon. |
 | Host: `https://www.ebay.com/*`, `https://www.facebook.com/*` | The two sites it works on: reading the listings the user is viewing, and fetching eBay sold-listing pages for price comparison when the user asks (at most eight an hour, paused at the first sign of eBay's browser check). |

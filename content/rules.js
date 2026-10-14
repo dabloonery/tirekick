@@ -156,6 +156,41 @@
     ];
   };
 
+  // The analysis's offer range, kept near the plan from sold prices: the model may move it for what it read in
+  // the listing, but not below 90% of the plan's opening offer or above its walk-away price. A rough reference,
+  // no plan, or a range of 0 (no haggling) leaves the model's numbers as they are. Returns [low, high].
+  R.fitOffer = (low, high, plan) => {
+    if (!(high > 0) || !plan || plan.cheap || plan.confidence === "rough" || !(plan.open > 0)) return [low, high];
+    const top = Math.max(plan.open, plan.walkAway || 0);
+    const floor = R.roundOffer(plan.open * 0.9);
+    const lo = Math.min(top, Math.max(floor, low | 0));
+    return [lo, Math.min(top, Math.max(lo, high | 0))];
+  };
+  // When the seller answers with a price: take it, meet in the middle, or offer the walk-away price once.
+  // plan: { open, walkAway } (from offerPlan, or the analysis's range). Returns { action, amount, why } or null.
+  R.counterOffer = (plan, theirs) => {
+    theirs = Number(theirs);
+    if (!(plan?.open > 0) || !(theirs > 0)) return null;
+    const open = plan.open;
+    const top = plan.walkAway > open ? plan.walkAway : open;
+    if (theirs <= open) return { action: "accept", amount: theirs, why: "that's at or under your opening offer" };
+    if (theirs <= top) {
+      let mid = R.roundOffer((open + theirs) / 2);
+      if (mid <= open) mid = Math.round((open + theirs) / 2); // rounding mustn't land back on the offer they turned down
+      if (theirs - mid < Math.max(5, theirs * 0.05)) return { action: "accept", amount: theirs, why: "that's within what you planned to pay" };
+      return { action: "counter", amount: mid, why: `it's under your walk-away price, and meeting in the middle saves $${theirs - mid}` };
+    }
+    return { action: "last", amount: top, why: `it's over your walk-away price of $${top}` };
+  };
+  // The reply to send for a counterOffer answer. On eBay with best offer, the answer goes through its offer page.
+  R.counterMessage = (c, { local = false, bestOffer = false, site = "" } = {}) => {
+    if (!c) return "";
+    if (bestOffer && site === "ebay") return c.action === "accept" ? `Accept their counteroffer of $${c.amount} on eBay.` : `Counter with $${c.amount} on eBay's offer page.`;
+    if (c.action === "accept") return `Deal, $${c.amount} works for me.${local ? " When can I pick it up?" : ""}`;
+    if (c.action === "counter") return `Thanks! Could we meet in the middle at $${c.amount}?`;
+    return `Thanks, but $${c.amount} is the most I can do. Let me know if that works.`;
+  };
+
   // Words that say "fix-up project" (what a fixer hunts for, and Marketplace can't search for all at
   // once) and words that say the seller wants it gone. Read from the title and card text.
   R.PROJECT =

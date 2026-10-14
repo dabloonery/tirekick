@@ -610,6 +610,9 @@
     .msg-preview { margin-top:8px; color:var(--muted); font-style:italic; }
     .msg-edit { display:block; width:100%; box-sizing:border-box; margin-top:8px; font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); padding:7px 9px; resize:vertical; }
     .offer-acts select { margin-right:8px; }
+    .said-row { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; color:var(--muted); }
+    .said { width:7em; font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); padding:4px 7px; }
+    .said-answer:empty { display:none; }
     .offer b { font:600 20px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
     .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }
     .adjust.up { color:var(--v-great); }
@@ -3613,17 +3616,25 @@
     const pct = Math.round((Math.abs(d) / p0) * 100);
     return `${d < 0 ? "Down" : "Up"} ${dollars(Math.abs(d))}${pct ? ` (${d < 0 ? "−" : "+"}${pct}%)` : ""} since you saved it on ${shortDate(at)} at ${dollars(p0)}.`;
   };
-  // The offer helper: an opening offer and a walk-away price from the sold prices (TKRules.offerPlan),
-  // messages from templates you can edit, and Copy. Nothing is typed into the site or sent.
-  const offerBox = (f, soft) => {
-    const plan = lastMarket && TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, soft }, lastMarket);
-    if (!plan) return "";
-    const rough = plan.confidence === "rough" ? " A rough guide: few sales, or a wide spread." : "";
-    if (plan.cheap) return h("div", { class: "offer" }, `Priced well: ${plan.reasons[0]}. Offering much less may lose it.${rough}`);
-    const site = TKSites.get(f.site);
-    const messages = TKRules.offerMessages(plan.open, { local: !!site?.local, bestOffer: !!f.bestOffer, site: f.site });
-    const box = h("textarea", { class: "msg-edit", rows: "3", "aria-label": "Message to the seller" });
-    box.value = messages[0]?.text || "";
+  // How ready the seller looks to take less (TKRules.softSeller), from what's known about a listing page.
+  const softFor = (f) => {
+    const days = f.listedDays ?? (f.firstSeen ? (Date.now() - f.firstSeen) / 864e5 : null);
+    const prices = [...(f.history || []).map(([p]) => p), f.price].filter((p) => p != null);
+    const drops = prices.filter((p, i) => i && TKRules.isDrop(prices[i - 1], p)).length;
+    return TKRules.softSeller({ drops, days: days != null && days >= 1 ? Math.round(days) : null, motivated: f.motivated, bestOffer: !!f.bestOffer });
+  };
+  // The offer plan from sold prices (TKRules.offerPlan) for a listing, or null.
+  const planFor = (f, market, soft = "none") =>
+    market ? TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, soft }, market) : null;
+  // A message to the seller you can edit, a pick of kinds, Copy, and "They said $…" for the seller's answer,
+  // which says whether to take it, meet in the middle or make a last offer (TKRules.counterOffer) and
+  // rewrites the message to match. Nothing is typed into the site or sent.
+  const messageArea = (messages, plan, f) => {
+    const ctx = { local: !!TKSites.get(f.site)?.local, bestOffer: !!f.bestOffer, site: f.site };
+    const button = !!messages[0]?.button;
+    const box = button ? h("div", { class: "msg-preview" }, messages[0].text) : h("textarea", { class: "msg-edit", rows: "3", "aria-label": "Message to the seller" });
+    if (!button) box.value = messages[0]?.text || "";
+    const setText = (t) => (button ? (box.textContent = t) : ((box.value = t), (copy.textContent = "Copy message")));
     const copy = h("button", {
       onclick: async () => {
         try {
@@ -3635,8 +3646,29 @@
       },
     }, "Copy message");
     const pick = messages.length > 1
-      ? h("select", { "aria-label": "Kind of message", onchange: (e) => ((box.value = messages.find((m) => m.id === e.target.value)?.text || box.value), (copy.textContent = "Copy message")) }, messages.map((m) => h("option", { value: m.id }, m.label)))
+      ? h("select", { "aria-label": "Kind of message", onchange: (e) => setText(messages.find((m) => m.id === e.target.value)?.text || box.value) }, messages.map((m) => h("option", { value: m.id }, m.label)))
       : null;
+    const answer = h("div", { class: "meta said-answer", "aria-live": "polite" });
+    const said = h("input", {
+      type: "number", min: "1", step: "1", inputmode: "numeric", class: "said", "aria-label": "The seller's price, in dollars",
+      oninput: () => {
+        const c = TKRules.counterOffer(plan, said.value);
+        if (!c) return answer.replaceChildren();
+        const head = c.action === "accept" ? `Take it at ${dollars(c.amount)}` : c.action === "counter" ? `Counter at ${dollars(c.amount)}` : `Offer ${dollars(c.amount)} once, then walk away`;
+        answer.replaceChildren(h("b", {}, head), `: ${c.why}.`);
+        setText(TKRules.counterMessage(c, ctx));
+      },
+    });
+    return [box, button ? null : h("div", { class: "actions offer-acts" }, pick, copy), h("label", { class: "said-row" }, "They said $", said), answer];
+  };
+  // The offer helper: an opening offer and a walk-away price from the sold prices (TKRules.offerPlan),
+  // with the messages above.
+  const offerBox = (f, soft) => {
+    const plan = planFor(f, lastMarket, soft);
+    if (!plan) return "";
+    const rough = plan.confidence === "rough" ? " A rough guide: few sales, or a wide spread." : "";
+    if (plan.cheap) return h("div", { class: "offer" }, `Priced well: ${plan.reasons[0]}. Offering much less may lose it.${rough}`);
+    const messages = TKRules.offerMessages(plan.open, { local: !!TKSites.get(f.site)?.local, bestOffer: !!f.bestOffer, site: f.site });
     return h(
       "div",
       { class: "offer" },
@@ -3644,7 +3676,7 @@
       h("b", {}, dollars(plan.open)),
       plan.walkAway > plan.open ? [", walk away above ", h("b", {}, dollars(plan.walkAway))] : null,
       h("div", { class: "meta" }, `From sold prices, no AI: ${plan.reasons.join("; ")}.${rough}`),
-      messages[0]?.button ? h("div", { class: "msg-preview" }, messages[0].text) : [box, h("div", { class: "actions offer-acts" }, pick, copy)]
+      messageArea(messages, plan, f)
     );
   };
   const renderItemInfo = () => {
@@ -3660,10 +3692,7 @@
         : "";
     const sv = saved[f.key];
     // How long it's been up (the page's own date, or since you first saw it), and whether the seller may haggle.
-    const days = f.listedDays ?? (f.firstSeen ? (Date.now() - f.firstSeen) / 864e5 : null);
-    const prices = [...f.history.map(([p]) => p), f.price].filter((p) => p != null);
-    const drops = prices.filter((p, i) => i && TKRules.isDrop(prices[i - 1], p)).length;
-    const soft = TKRules.softSeller({ drops, days: days != null && days >= 1 ? Math.round(days) : null, motivated: f.motivated, bestOffer: !!f.bestOffer });
+    const soft = softFor(f);
     const age = f.listedDays != null ? `Listed ${agoText(f.listedDays)}.` : "";
     const softLine = soft.level !== "none" ? `${soft.level === "likely" ? "The seller looks ready to take less" : "The seller may take less"}: ${soft.why.join(", ")}.` : "";
     // An offer worked out from sold prices, before (and without) any analysis.
@@ -3739,27 +3768,16 @@
         )
       );
     } else if (r.offerHigh > 0) {
-      // A first message you can paste to the seller, opening at the low end of the range.
-      const message = `Hi! Is this still available? Would you take $${r.offerLow}?${TKSites.get(listing.site)?.local ? " I can pick up whenever suits you." : ""}`;
-      const copy = h("button", {
-        onclick: async () => {
-          try {
-            await navigator.clipboard.writeText(message);
-            copy.textContent = "Copied";
-          } catch {
-            copy.textContent = "Couldn't copy";
-          }
-        },
-        title: message,
-      }, "Copy message");
+      // Messages opening at the low end of the range; "They said" answers from the range too.
+      const messages = TKRules.offerMessages(r.offerLow, { local: !!TKSites.get(listing.site)?.local, bestOffer: !!listing.bestOffer, site: listing.site });
       parts.push(
         h(
           "div",
           { class: "offer" },
           `${listing.bestOffer ? "Accepts offers. " : ""}Suggested offer: `,
           h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`),
-          h("div", { class: "msg-preview" }, `\u201c${message}\u201d`),
-          h("div", { class: "actions offer-acts" }, copy)
+          listing.offerPlan ? h("div", { class: "meta" }, `Kept near the plan from sold prices (open at ${dollars(listing.offerPlan.open)}, walk away above ${dollars(listing.offerPlan.walkAway)}).`) : null,
+          messageArea(messages, { open: r.offerLow, walkAway: r.offerHigh }, listing)
         )
       );
     }
@@ -3870,10 +3888,14 @@
       const forLens = lens;
       const market = await getMarket(settings, query, forLens);
       priceNotes(listing, market, forLens, settings.feePct);
+      // The free offer plan goes to the model, and its range is kept near it (TKRules.fitOffer).
+      const plan = !listing.auction ? planFor(listing, market, itemFacts ? softFor(itemFacts).level : "none") : null;
+      listing.offerPlan = plan && !plan.cheap ? { open: plan.open, walkAway: plan.walkAway, confidence: plan.confidence } : null;
       setStatus(`Analyzing this listing as ${MODES[forLens].as}…`);
       const r = await sendAI("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
       if (!VERDICT[r.verdict]) r.verdict = "fair";
       r.score = fitScore(r.verdict, r.score); // the number agrees with the word
+      if (!listing.auction) [r.offerLow, r.offerHigh] = TKRules.fitOffer(r.offerLow, r.offerHigh, listing.offerPlan);
       // Certain scam signs (see scamWarning) overrule whatever the model made of the listing.
       if (itemFacts?.key === keyOf(location.href)) {
         itemFacts.offSite = listing.offSite; // the description may have loaded since the first look

@@ -590,6 +590,7 @@ async function analyzeListing({ listing, query, market, lens = "use", want = "",
     listing.seller && `seller: ${listing.seller}`,
     listing.shippingText && `shipping: ${listing.shippingText}`,
     listing.marginBeforeRepair != null && `margin before repairs: $${listing.marginBeforeRepair}`,
+    listing.offerPlan?.open > 0 && `offer plan from sold prices: open at $${listing.offerPlan.open}, walk away above $${listing.offerPlan.walkAway}. Keep offerLow / offerHigh near it; move them only for something you read in this listing (condition, missing parts, a fair price already)`,
     ...scamNotes(listing).map((n) => `SCAM SIGNAL: ${n}`),
     listing.details && `details: ${listing.details}`,
   ].filter(Boolean);

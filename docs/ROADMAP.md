@@ -6,6 +6,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
 
 ## Contents
 
+- [Next steps](#next-steps) (2026-10-14: the order of work, and what waits on dabloonery)
 - [Tirekick: Chrome Web Store submission checklist](#tirekick-chrome-web-store-submission-checklist)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
 - [Tirekick feature briefs](#tirekick-feature-briefs)
@@ -15,6 +16,47 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 4: Stronger scam checks](#brief-4-stronger-scam-checks)
   - [Brief 5: More stores](#brief-5-more-stores)
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
+
+---
+
+## Next steps
+
+*2026-10-14, against `main` at 0.36.0 plus this PR. The order of work across the plans below. dabloonery added one
+direction on 2026-10-14: "sturdier non-AI features should also mean they're more useful, accurate and
+plentiful; fill gaps". So the free parts of the feature briefs come before anything else that needs a model.*
+
+### Where each plan stands
+
+| Plan | State |
+|---|---|
+| Store checklist | The writing is done. Accounts, a public privacy-policy page and screenshots 1 and 2 wait on dabloonery. Not submitted, and won't be without dabloonery's OK |
+| Sturdier no-AI features | All 8 items shipped (#14 to #21). Still open: real saved eBay and Marketplace pages in place of the hand-made fixtures |
+| Security review | No blockers. L1 done in 0.37.0 |
+| US English fixes (REFERENCE §5) | Done |
+| Feature briefs | See "Order" below |
+| Live checks | Never done: the extension on real eBay and Marketplace pages, **eBay sold-price lookups on real sold pages**, the Vivaldi checks, a screen reader |
+
+### Version numbers
+
+PRs #13 to #22 all shipped as 0.36.0, and an older pre-rename build (`second-look-0.36.1.zip`) carries a higher
+number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (`deno task version-check`).
+
+### Order
+
+1. **0.37.0 housekeeping**: the version check, L1, test docs, this section.
+2. **More free features, and better ones**, from the briefs' parts that need no model:
+   - Brief 4: "far under the sold price" as a rule; Marketplace's "Joined Facebook in …" feeding the seller warning.
+   - Brief 3: an opening offer and walk-away price worked out from sold prices, with the reason shown, and message
+     templates to pick from (today the range is whatever the model says).
+   - Brief 2: how long a listing has been up, "down $30 since you saved it", and "seller may take less".
+   - Brief 6, part 1: download saved listings as a spreadsheet (CSV).
+3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
+   listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
+4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far
+   under sold), not only from a model's "Great".
+5. **Store, when dabloonery is ready.** A public privacy-policy page is required; a free GitHub Pages site works, and a
+   domain such as tirekick.app is optional (dabloonery to decide). Then the contact address, `homepage_url` and 1.0.0.
+6. **Brief 5, more stores** (Craigslist first), after 1.0 is in the store.
 
 ---
 
@@ -57,7 +99,7 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 - [ ] **dabloonery:** rename the GitHub repo to `tirekick` (Settings, General). GitHub redirects the old address.
 - [ ] **Claude:** set `homepage_url` to `https://tirekick.app`, update README and listing links, and
       replace the contact placeholders. Small PR.
-- [ ] **Claude (optional):** the L1 hardening from the security review (three links through `safeUrl`).
+- [x] **Claude (optional):** the L1 hardening from the security review (links through `safeUrl`). Done in 0.37.0.
 - [ ] **Claude:** bump the version for the store build (suggest **1.0.0** for the first public release).
 - [ ] Run `deno task test`, then `deno task pack`. Unzip `dist/tirekick-<version>.zip` into a fresh folder,
       load it with **Load unpacked**, and click through: an eBay search, the panel, a scan with your key,

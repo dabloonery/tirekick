@@ -2,53 +2,59 @@
 
 *Last updated: October 2026*
 
-Tirekick is a browser extension for people buying second-hand on eBay and Facebook Marketplace. This page says
-what it keeps, what it sends, and to whom. The short version: **it has no server and no analytics, the developer receives
-nothing, and anything that leaves your computer goes to a service you chose, because you asked for it.**
+Tirekick is a browser extension for people buying second-hand online. It currently works on eBay and
+Facebook Marketplace. This page says what it keeps, what it sends, and to whom.
 
-## What stays on your computer
+**The short version:** Tirekick has no server and no analytics. The developer receives nothing.
+Anything that leaves your computer goes to a service you chose, because you asked it to.
 
-Everything below is stored in your browser's extension storage and never sent to the developer:
+## What stays in your browser
 
-- **Your settings**, including any API key you paste in. Keys are kept only in this browser profile. The pages the extension works on never receive them.
-- **Listings you saved, searches you saved, and listings you marked "Not interested"**, with the prices you saw.
-- **A memory of listings you've seen** (titles, prices, when) so it can say "new to you" and show price drops and history. Kept for 90 days.
-- **Scores** for listings you scanned or analyzed (kept with the listing for 60 days, so they come back in other searches and tabs), and **sold-price results**, cached for six hours.
-- **Small preferences**: each mode's sort and "what I want", the filter you set for each search, and where the panel sits on each site.
-- **A spending estimate** for paid AI, from token counts at list price.
-- **Plain counters** of which features you use (scans, saves and so on), shown on the Home tab.
+All of this is kept in your browser's extension storage and never sent to the developer:
 
-You can clear the seen and hidden memory and the spending and usage counters in the extension's settings and on the Home tab, remove saved
-things from the panel, and save a backup file or restore one (never including your API keys). Uninstalling the extension removes all of it.
+- **Your settings**, including any API key you paste in. Keys stay in this browser profile; the pages Tirekick works on never see them.
+- **Listings and searches you saved, and listings you hid**, with the prices you saw.
+- **Listings you've seen** (title, price, when), so it can say "new to you" and show price drops and history. Kept for 90 days.
+- **Scores** for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and **sold-price results**, kept for six hours.
+- **Small preferences**: each mode's sort and "what I want", each search's filter, and where the panel sits on each site.
+- **A spending estimate** for paid AI, worked out from token counts at list price.
+- **Simple counters** of which features you use, shown on the Home tab.
+
+You can clear what you've seen and hidden, and the spending and usage counters, in settings and on the
+Home tab. You can remove saved things from the panel, and save or restore a backup file (which never
+includes your API keys). Uninstalling Tirekick deletes all of it.
 
 ## What leaves your computer, and only when you ask
 
-Tirekick does nothing on a page until you open its panel, press a button, or (for the free marks on cards) load an eBay or Marketplace
-page you are already looking at. It never browses, checks prices, or contacts anyone in the background.
+Tirekick does nothing on a page until you open its panel, press a button, or (for the free marks on
+cards) load an eBay or Marketplace page you're already looking at. It never browses, checks prices or
+contacts anyone in the background.
 
 | When you… | What is sent | To whom |
 |---|---|---|
-| Press **Scan**, **Analyze this listing** or **Find better searches** | Listing titles and the text visible on their cards (price, shipping, seller rating, condition, listing description), the search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: the Claude API (api.anthropic.com), OpenRouter, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, an address you entered, or Ollama / LM Studio on your own computer (which stay on your computer) |
-| Press **Check photo** or right-click a photo | The photo, and the listing's title | The same AI service |
-| Compare **sold prices** (a button, or as part of a scan) | The search words, in a request to ebay.com made from your browser with your own eBay session, at most a few an hour | eBay |
-| Press **Find photo elsewhere** | The photo's web address, in a new tab | Google Lens (lens.google.com) |
-| Press **Test connection** in settings | Your API key, to check it | The service you picked |
+| Press **Scan**, **Analyze this listing** or **Find better searches** | Listing titles and the text on their cards (price, shipping, seller rating, condition, description), your search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: the Claude API (api.anthropic.com), OpenRouter, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer) |
+| Press **Check photo** or right-click a photo | The photo and the listing's title | The same AI service |
+| Compare **sold prices** (a button, or as part of a scan) | Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most | eBay |
+| Press **Find photo elsewhere** | The photo's web address, opened in a new tab | Google Lens (lens.google.com) |
+| Press **Test connection** in settings | Your API key, to check it works | The service you picked |
 
-Your API key is sent only to the service it belongs to, in the way that service's documentation says to. Photos and listing text
-sent to an AI service are handled under *that service's* privacy policy and terms; read the one for the service you choose.
-Choosing Ollama or LM Studio keeps all of it on your computer (sold-price searches still go to eBay; they can be turned off).
+Your API key goes only to the service it belongs to, the way that service's documentation says to send
+it. Photos and listing text sent to an AI service fall under *that service's* privacy policy and terms,
+so read the one for the service you pick. Ollama and LM Studio keep everything on your computer
+(sold-price lookups still go to eBay, and you can turn those off).
 
-## What it does not do
+## What Tirekick doesn't do
 
-- It does not send anything to the developer, and has no account, server, advertising or analytics.
-- It does not sell or share your data, and does not use it for anything other than what is described here.
-- It does not read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address).
-- It does not collect payment details or messages.
+- Send anything to the developer. There's no account, server, advertising or analytics.
+- Sell or share your data, or use it for anything not described here.
+- Read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address).
+- Collect payment details or messages.
 
 ## Permissions
 
-The permissions and what each is for are listed in `store/LISTING.md`.
+Each permission and what it's for is listed in `store/LISTING.md`.
 
 ## Changes and contact
 
-If this changes, the new version will be here with a new date. Questions: **<your contact email>**
+If this policy changes, the new version will be posted here with a new date.
+Questions: **<your contact email>**

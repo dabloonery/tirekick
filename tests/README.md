@@ -22,7 +22,7 @@ it) and a fake Claude API that keeps every request, so tests can check the model
 | `e2e/scores-persist.ts` | scores kept with each listing across tabs, searches and reloads |
 | `e2e/marketplace.ts` | Marketplace: reposted-code scams, a scan, whole grid cells hidden (no gaps) |
 | `e2e/perf.ts` | a long, busy Marketplace feed: main-thread time while scrolling, with and without the extension, opening and sorting the panel; `PROFILE_OUT`/`TRACE_OUT` say where the time goes. In `all.sh` it runs as a guard (`PERF_GUARD=1`) |
-| `e2e/a11y.ts` | not a test: the browser's accessibility tree (controls with no name), the keyboard tab order and focus rings, forced colours (Windows high contrast) and 200% zoom, as screenshots and `a11y.json` (`A11Y_OUT=dir`) |
+| `e2e/a11y.ts` | not a test: the browser's accessibility tree (controls with no name), the keyboard tab order and focus rings, forced colors (Windows high contrast) and 200% zoom, as screenshots and `a11y.json` (`A11Y_OUT=dir`) |
 | `e2e/audit.ts` | not a test: screenshots of every state, dark and light, plus contrast, target-size and type measurements (`AUDIT_OUT=dir`) |
 | `e2e/screenshots.ts` | not a test: the store screenshots in `store/screenshots` |
 | `a11y.test.js`, `opts.test.js` | keyboard and focus in the panel; the settings page (run by `tests/run.sh`) |

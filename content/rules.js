@@ -88,6 +88,44 @@
   R.MOTIVATED = /\b(moving(?: sale)?|must go|need(?:s)? (?:it )?gone|estate sale|cleaning out|garage sale|downsizing|first come first served|priced to sell|quick sale)\b/i;
   R.clueOf = (re, text) => (text.match(re)?.[1] || "").toLowerCase().replace(/\s+/g, " ");
 
+  // ---------- what's remembered about listings you've seen ----------
+  // A drop: at least 3% or a dollar under the last price seen (the same rule as a saved listing's alert).
+  R.isDrop = (from, to) => from != null && to != null && to < from - Math.max(1, from * 0.03);
+  // One sighting of a listing, against what was remembered about it (rec, or nothing). Returns the record
+  // to keep and what's new about it: isNew (not seen before, on a search you've looked at before), known,
+  // and drop ({ from, since }) when the price fell. Auctions keep the last fixed price: a bid says nothing
+  // about drops. Each price change is kept (the last five) so a listing page can show its history.
+  // rec: { p: last price, pa: since when, f: first seen, a: last seen, o: first opened, h: [[price, since]] }
+  R.sighting = (rec, price, { now = Date.now(), pageHadKnown = false, auction = false } = {}) => {
+    const old = rec && typeof rec === "object" ? rec : null;
+    const out = { isNew: !old && !!pageHadKnown, known: !!old };
+    if (auction || !Number.isFinite(price)) price = null;
+    const last = Number.isFinite(old?.p) ? old.p : null;
+    if (old && price != null && R.isDrop(last, price)) out.drop = { from: last, since: old.pa };
+    const changed = old && price != null && last != null && last !== price;
+    const hist = changed ? [...(Array.isArray(old.h) ? old.h : []), [last, old.pa]].slice(-5) : old?.h;
+    const next = { p: price ?? last, pa: old && (price == null || last === price) ? old.pa : now, f: old?.f ?? now, a: now, ...(old?.o && { o: old.o }), ...(hist?.length && { h: hist }) };
+    return { out, rec: next };
+  };
+
+  // Listings on one page that share a title (4+ words, so "Nikon camera" doesn't count) or a photo:
+  // reposts, or one seller with several. Returns item -> how many share it (only for those that do).
+  R.duplicates = (items, isPlaceholder = () => false) => {
+    const groups = new Map();
+    const add = (k, it) => (groups.get(k) || groups.set(k, []).get(k)).push(it);
+    for (const it of items) {
+      const t = R.normTitle(it.title || "");
+      if (t.split(" ").length >= 4) add(`t:${t}`, it);
+      if (it.imageUrl && !isPlaceholder(it.imageUrl)) add(`i:${it.imageUrl}`, it);
+    }
+    const dup = new Map();
+    for (const list of groups.values()) if (list.length > 1) for (const it of list) dup.set(it, Math.max(dup.get(it) || 0, list.length));
+    return dup;
+  };
+
+  // The other codes a scam title has been posted under, by other listings. stemRec: { c: { code: key } }.
+  R.otherCodes = (stemRec, key, code) => Object.entries(stemRec?.c || {}).filter(([c, k]) => c !== code && k !== key).map(([c]) => c);
+
   // ---------- did the page reader keep up with the site? ----------
   // links: listings linked on the page (any link to a listing, counted once each), items: listings the
   // adapter read, priced: how many of those came with a price. Sites change their markup without notice,

@@ -45,12 +45,15 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 ### Order
 
 1. **0.37.0 housekeeping**: the version check, L1, test docs, this section.
-2. **More free features, and better ones**, from the briefs' parts that need no model:
-   - Brief 4: "far under the sold price" as a rule; Marketplace's "Joined Facebook in …" feeding the seller warning.
-   - Brief 3: an opening offer and walk-away price worked out from sold prices, with the reason shown, and message
-     templates to pick from (today the range is whatever the model says).
-   - Brief 2: how long a listing has been up, "down $30 since you saved it", and "seller may take less".
-   - Brief 6, part 1: download saved listings as a spreadsheet (CSV).
+2. **More free features, and better ones.** Done in 0.37.0, from the briefs' parts that need no model:
+   - Brief 4: "Likely scam? 32% of sold price" and "Too cheap?" marks from a trusted sold median; Marketplace's
+     "Joined Facebook in …" warns on an account made this year. *Still open:* reused photos.
+   - Brief 3: an opening offer and walk-away price from sold prices, with the reason shown, and three message
+     templates to pick, edit and copy, before any analysis. *Still open:* passing the plan to the model's analysis,
+     and a counteroffer box.
+   - Brief 2: how long a listing has been up, how a saved one moved since you saved it, "the seller may take less",
+     and saved listings' history kept past the 90-day prune. *Still open:* relists.
+   - Brief 6, part 1: saved listings as a spreadsheet (CSV), from Saved and from settings. *Still open:* sync.
 3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far

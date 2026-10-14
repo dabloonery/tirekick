@@ -88,6 +88,8 @@
   summary:hover h2 { text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:4px; }
   [hidden] { display:none !important; }
   :focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+  .legal { margin-top:40px; padding-top:14px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; }
+  .legal p { margin:0 0 6px; }
 </style>
 </head>
 <body>
@@ -133,7 +135,7 @@
       <div class="field">
         <label for="anthropicScanModel">Claude model for scans</label>
         <input id="anthropicScanModel" type="text" autocomplete="off" placeholder="Empty: the same as the model above">
-        <span class="hint">A scan scores many listings at once, so a cheaper model keeps it affordable; the Scan button shows what it will cost. Pick a stronger one if its judgments look off, or choose the same as above.</span>
+        <span class="hint">A scan scores many listings at once, so a cheaper model keeps it affordable; the Scan button shows what it will cost. Pick a stronger one if its judgments look off, or choose the same as above. The quality menu at the bottom of the panel sets both at once: Thrifty, Balanced or Thorough.</span>
       </div>
     </div>
     <div id="oaiBox">
@@ -265,6 +267,10 @@
       <span class="hint">Match follows your browser, or dark if it doesn't say. The marks on eBay and Marketplace cards follow the page itself.</span>
     </div>
     <div class="field check">
+      <input id="autoScan" type="checkbox">
+      <label for="autoScan">Scan automatically<span class="hint">On an eBay or Marketplace search you're looking at, new listings are scored as they load, so you never press Scan. It only runs while the page is on your screen and stops at your monthly budget (set one under Spending). Same switch as under Scan in the panel.</span></label>
+    </div>
+    <div class="field check">
       <input id="showTab" type="checkbox">
       <label for="showTab">Show a slim tab on eBay and Facebook Marketplace<span class="hint">Pull it out to open the panel. If eBay ever misbehaves, turn this off and Tirekick loads only when you click its toolbar icon. Reload open eBay tabs after changing it.</span></label>
     </div>
@@ -272,13 +278,20 @@
 
   <section id="sec-backup">
     <details>
-    <summary><h2>Backup</h2><span class="hint">Save or restore everything but your keys</span></summary>
+    <summary><h2>Backup and your data</h2><span class="hint">Save, restore, or delete everything</span></summary>
     <p class="hint">Everything Tirekick keeps lives only in this browser. A backup file holds your saved listings and searches, each search's filter and price, what you've hidden, what you've seen, spending and these settings, but never your API keys. Restoring adds to what's here and takes the backup's settings.</p>
     <div class="row-btns"><button type="button" class="small" id="backup">Save a backup</button><button type="button" class="small" id="restore">Restore from a backup…</button><input type="file" id="restoreFile" accept="application/json,.json" hidden></div>
+    <p class="hint">Delete everything removes what Tirekick keeps in this browser: your API keys, saved listings and searches, what you've hidden and seen, spending, and these settings. Save a backup first if you might want it back. Uninstalling the extension deletes it all too.</p>
+    <div class="row-btns"><button type="button" class="small danger" id="wipeAll">Delete everything</button></div>
       </details>
   </section>
   <div id="msg" role="status" aria-live="polite"></div>
+  <footer class="legal">
+    <p>Scores, prices, margins and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.</p>
+    <p>Not affiliated with or endorsed by eBay or Facebook. eBay and Facebook are trademarks of their owners.</p>
+  </footer>
 </main>
+<script src="../lib/sites.js"></script>
 <script src="../lib/shared.js"></script>
 <script src="options.js"></script>
 </body>

@@ -11,7 +11,9 @@
   window.chrome = { runtime: { id: "test", lastError: null, onMessage: { addListener() {} }, sendMessage: (m, cb) => cb({ ok: true, data: "" }) },
     storage: { local: { get: async () => ({}), set: async () => {}, onChanged: { addListener() {} } } } };
 </script>
+<script src="/lib/sites.js"></script>
 <script src="/content/adapters.js"></script>
+<script src="/lib/sold.js"></script>
 <script>
   const it = Tirekick.extractItem(); const out = [];
   const check = (n, ok, why = "") => out.push(`${ok ? "PASS" : "FAIL"} ${n}${ok ? "" : ": " + why}`);

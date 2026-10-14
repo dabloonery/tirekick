@@ -11,7 +11,7 @@ await p.ev(`(()=>{ const d=document; const h=d.createElement('div'); h.id='secon
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 const r = await o.ev(`(async()=>{ const [tab]=await chrome.tabs.query({url:'https://www.ebay.com/*'});
   await chrome.scripting.executeScript({target:{tabId:tab.id}, func:()=>{ window.__tirekickPanel=false; document.getElementById('tirekick-host')?.remove(); }});
-  await chrome.scripting.executeScript({target:{tabId:tab.id}, files:['lib/shared.js','content/rules.js','content/adapters.js','content/home.js','content/panel.js']});
+  await chrome.scripting.executeScript({target:{tabId:tab.id}, files:['lib/sites.js','lib/shared.js','lib/theme.js','content/rules.js','content/adapters.js','lib/sold.js','content/home.js','content/panel.js']});
   return true })()`);
 await sleep(1500);
 const s = await p.ev(`({ old: document.querySelectorAll('#second-look-host,#second-look-styles,.second-look-sticker,[data-second-look-key],[data-sl-v],[data-second-look-pos]').length, theme: document.documentElement.hasAttribute('data-sl-theme'), pos: document.querySelector('li.s-card, li.s-item').style.position, host: !!document.getElementById('tirekick-host') })`);

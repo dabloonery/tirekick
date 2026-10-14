@@ -42,7 +42,7 @@
     ["photoChecks", "Photo checks"], ["saves", "Saved listings"], ["hides", "Marked not interested"], ["flipSwitches", "Switched to Reseller mode"],
   ];
 
-  function mount(box, { send, getMode = () => "buyer", isShown = () => true, onAlerts = () => {} }) {
+  function mount(box, { send, go = () => {}, showSpend = () => {}, getMode = () => "buyer", isShown = () => true, onAlerts = () => {} }) {
     let D = null; // the stored data last drawn
     let lastAlerts = [];
     const root = h("div", { class: "hm" });
@@ -70,7 +70,7 @@
       const keyed = d.provider === "ollama" || (d.provider === "openai" && !!d.oaiModel) || (d.provider === "anthropic" && !!d.hasKey);
       const steps = [
         { done: keyed, title: "Connect a model", text: "Paste a Claude API key (or pick another AI service or Ollama). Card marks, filters and sold-price comparisons work without one.", acts: [h("button", { class: "hm-btn primary", onclick: () => send("openOptions").catch(() => {}) }, "Open settings")] },
-        { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: "Search eBay or Marketplace, then pick Buyer (to keep and use) or Reseller (to fix up and flip) at the top right of this panel.", acts: [link("https://www.ebay.com/", "eBay", { class: "hm-btn" }), link("https://www.facebook.com/marketplace/", "Marketplace", { class: "hm-btn" })] },
+        { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: `Search ${TKSites.all.map((s) => s.name).join(" or ")}, then pick Buyer (to keep and use) or Reseller (to fix up and flip) at the top right of this panel.`, acts: TKSites.all.map((s) => link(s.home, s.name, { class: "hm-btn" })) },
         { done: (d.stats.scans || 0) + (d.stats.soldLookups || 0) > 0, title: "Press Scan, or compare sold prices", text: "Scan scores each listing. “Sold prices”, under Scan, is free and needs no model." },
         { done: Object.keys(d.saved).length + Object.keys(d.savedSearches).length > 0, title: "Save a listing or a search", text: "Hover a card and press Save, or use Save search in the panel. Price drops show up here and as a number on the toolbar icon." },
       ];
@@ -95,7 +95,7 @@
               ? h("div", { class: `hm-alert${a.isNew ? " new" : ""}` }, h("span", { class: "hm-tag" }, a.isNew ? "New" : "Cheaper"), h("div", { class: "t" }, link(itemHref(a.key), D.saved[a.key]?.t || itemHref(a.key)), h("small", {}, h("span", { class: "down" }, `↓ ${money(a.from - a.now)}`), ` since you saved it: ${money(a.from)} → ${money(a.now)}`)))
               : h("div", { class: `hm-alert${a.isNew ? " new" : ""}` }, h("span", { class: "hm-tag" }, a.isNew ? "New" : "At your price"), h("div", { class: "t" }, link(searchUrl(D.savedSearches[a.key] || {}), `“${a.title}”`), h("small", {}, `${plural(a.n, "listing")} at your ${money(a.deal)} when you last looked, ${ago(a.when)}`)))
           )
-        : [h("div", { class: "hm-empty" }, "Nothing yet. Saved listings that get cheaper, and saved searches with listings at your price, show up here and on the toolbar icon (checked when they're on your screen, never in the background).")];
+        : [h("div", { class: "hm-empty", title: "Checked when those listings are on your screen, never in the background" }, "Nothing new. Saved listings that get cheaper, and saved searches with listings at your price, show up here.")];
       return h("section", { class: "hm-sec" }, h("h3", {}, "Worth another look"), h("div", { class: "hm-alerts" }, rows));
     }
 
@@ -112,7 +112,12 @@
         mode === "reseller"
           ? [["Saved listings", savedRows.length], ["Saved searches", searches.length, searches.length ? `${plural(searches.filter((r) => r?.deals > 0).length, "search")} with listings at your price` : ""], ["At your price", atPrice, "across your saved searches, last time you looked"], spent]
           : [["Saved listings", savedRows.length], ["Price drops", cheaper.length ? money(off) : "$0", cheaper.length ? `across ${plural(cheaper.length, "saved listing")}` : "since you saved them"], ["Saved searches", searches.length], spent];
-      const nodes = tiles.map(([label, value, note]) => h("div", { class: "hm-tile" }, h("span", {}, label), h("b", {}, String(value)), note ? h("small", {}, note) : null));
+      const target = (label) => (/^Saved|^Price drops|^At your price/.test(label) ? () => go("saved") : /^Spent/.test(label) ? showSpend : null);
+      const nodes = tiles.map(([label, value, note]) => {
+        const kids = [h("span", {}, label), h("b", {}, String(value)), note ? h("small", {}, note) : null];
+        const fn = target(label);
+        return fn ? h("button", { class: "hm-tile", onclick: fn, title: /^Spent/.test(label) ? "Spending in detail" : "Open Saved" }, ...kids) : h("div", { class: "hm-tile" }, ...kids);
+      });
       if (d.monthlyBudget > 0) {
         const pct = Math.min(100, (sum.month / d.monthlyBudget) * 100);
         nodes[3].append(h("div", { class: `hm-meter${pct >= 80 ? " hot" : ""}`, role: "img", "aria-label": `${Math.round(pct)}% of the monthly budget used` }, h("i", { style: `width:${pct}%` })));
@@ -129,7 +134,7 @@
       }
       const total = days.reduce((s, x) => s + x.usd, 0);
       const head = h("h3", {}, "Spent on paid AI, 30 days", h("span", { class: "hm-grow" }), total > 0 ? h("span", { class: "hm-count" }, spendMoney(total)) : null);
-      if (!total) return h("section", { class: "hm-sec" }, head, h("div", { class: "hm-empty" }, "Nothing spent on paid AI in the last 30 days. Ollama and LM Studio are free, and the card marks and sold-price comparisons never cost anything."));
+      if (!total) return null; // nothing to show; the footer and settings say what's free
       const max = Math.max(...days.map((x) => x.usd));
       const nice = (m) => { const p = 10 ** Math.floor(Math.log10(m)); const f = m / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
       const top = nice(max);
@@ -145,8 +150,8 @@
       const ticks = [0.5, 1].map((f) => h("span", { class: "ylab", style: `bottom:${f * 100}%`, "aria-hidden": "true" }, tickMoney(top * f)));
       const models = {};
       for (const [day, v] of Object.entries(d.usage.days || {})) if (days.some((x) => x.key === day)) for (const [id, mv] of Object.entries(v.models || {})) (models[id] ||= { usd: 0, calls: 0 }), (models[id].usd += mv.usd), (models[id].calls += mv.calls);
-      return h("section", { class: "hm-sec" },
-        head,
+      return h("details", { class: "hm-sec hm-fold" },
+        h("summary", {}, head),
         h("div", { class: "hm-chart" }, h("div", { class: "plot", role: "img", "aria-label": `Spend per day for the last 30 days: ${spendMoney(total)} in all, the most ${spendMoney(max)} on ${dayFmt(days[peak].t)}. Table view below lists each day.` }, ...grid, ...ticks, ...cols), h("div", { class: "xaxis", "aria-hidden": "true" }, h("span", {}, dayFmt(days[0].t)), h("span", {}, `Peak ${spendMoney(max)}, ${dayFmt(days[peak].t)}`), h("span", {}, "Today"))),
         h("details", { class: "hm-table" }, h("summary", {}, "Table view"), h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Day"), h("th", { class: "n" }, "Calls"), h("th", { class: "n" }, "Estimated cost"))), h("tbody", {}, ...days.filter((x) => x.usd > 0 || x.calls > 0).reverse().map((x) => h("tr", {}, h("td", {}, dayFmt(x.t)), h("td", { class: "n" }, String(x.calls)), h("td", { class: "n" }, spendMoney(x.usd))))))),
         h("p", { class: "hm-hint" }, Object.entries(models).sort((a, b) => b[1].usd - a[1].usd).map(([id, v]) => `${modelName(id)} ${spendMoney(v.usd)} (${plural(v.calls, "call")})`).join(" · "), " · estimated from token counts at list price, not your real balance.")
@@ -156,10 +161,11 @@
     function usage(d) {
       const s = d.stats;
       const max = Math.max(1, ...USAGE.map(([k]) => s[k] || 0));
-      return h("section", { class: "hm-sec" },
-        h("h3", {}, "What you use", h("span", { class: "hm-grow" }), h("button", { class: "hm-btn small", onclick: () => confirm("Reset the usage counts? This only clears these counters.") && chrome.storage.local.remove("stats") }, "Reset counts")),
+      return h("details", { class: "hm-sec hm-fold" },
+        h("summary", {}, h("h3", {}, "What you use")),
         h("p", { class: "hm-hint" }, s.since ? `Counted on this computer since ${dayFmt(s.since)}. A feature at zero is one you haven't tried yet, or one worth rethinking.` : "Nothing counted yet. These are plain counters kept in this browser, so you can see which features you actually use."),
-        h("div", { class: "hm-use" }, ...USAGE.map(([k, label]) => h("div", {}, h("span", {}, label), h("span", { class: "track", role: "img", "aria-label": `${label}: ${s[k] || 0}` }, h("i", { class: s[k] ? "" : "zero", style: `width:${((s[k] || 0) / max) * 100}%` })), h("b", {}, String(s[k] || 0)))))
+        h("div", { class: "hm-use" }, ...USAGE.map(([k, label]) => h("div", {}, h("span", {}, label), h("span", { class: "track", role: "img", "aria-label": `${label}: ${s[k] || 0}` }, h("i", { class: s[k] ? "" : "zero", style: `width:${((s[k] || 0) / max) * 100}%` })), h("b", {}, String(s[k] || 0))))),
+        h("div", { class: "acts" }, h("button", { class: "hm-btn small", onclick: () => confirm("Reset the usage counts? This only clears these counters.") && chrome.storage.local.remove("stats") }, "Reset counts"))
       );
     }
 
@@ -180,7 +186,10 @@
       const list = alertsOf(d.saved, d.savedSearches, d.alertsAck);
       lastAlerts = list;
       onAlerts(list.filter((a) => a.isNew).length);
-      root.replaceChildren(...[start(d), alertsSection(list), numbers(d), spend(d), usage(d), await footer()].filter(Boolean));
+      // What's new comes first: it's why you'd come back. Getting started follows while you're new to it;
+      // the numbers lead to the lists behind them; spending and usage fold away.
+      const first = list.length ? [alertsSection(list), start(d)] : [start(d), alertsSection(list)];
+      root.replaceChildren(...[...first, numbers(d), spend(d), usage(d), await footer()].filter(Boolean));
       return list;
     }
 
@@ -234,5 +243,90 @@
     };
   }
 
-  window.TKHome = { mount };
+  // Home's look, in the panel's tokens (--paper, --ink, --display…): the panel and the hub page both use it.
+  const CSS = `
+    .hm { display:grid; gap:2px; }
+    .hm-sec { padding:14px 0 8px; border-top:var(--bw) solid var(--rule); }
+    .hm-sec:first-child { border-top:0; padding-top:10px; }
+    .hm h3 { margin:0 0 10px; display:flex; align-items:baseline; gap:8px; color:var(--ink); font:600 17px/1.3 var(--display); letter-spacing:-.01em; }
+    .hm h3 .hm-count, .hm h3 .hm-btn { font-family:var(--ui); letter-spacing:normal; }
+    .hm .hm-grow { flex:1; }
+    .hm .hm-count { font-size:12px; font-weight:400; font-variant-numeric:tabular-nums; }
+    .hm .hm-hint { display:block; color:var(--muted); font-size:12px; }
+    .hm p.hm-hint { margin:8px 0 0; }
+    .hm .hm-empty { color:var(--muted); font-size:13px; padding:2px 0 8px; }
+    .hm a { color:var(--ink); text-underline-offset:3px; text-decoration-color:var(--line); }
+    .hm a:hover { text-decoration-color:currentColor; }
+    .hm-btn { display:inline-block; min-height:24px; font:600 12px/1.2 var(--ui); padding:5px 10px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:none; color:var(--ink); cursor:pointer; text-decoration:none; }
+    .hm-btn:hover { border-color:var(--ink); }
+    .hm-btn.primary { background:var(--btn); color:var(--on-btn); border-color:var(--btn); }
+    .hm-btn.small { padding:4px 8px; }
+    .hm-btn:focus-visible, .hm a:focus-visible, .hm .col:focus-visible, .hm summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .hm-bar { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin:0 0 10px; }
+    .hm-bar i { display:block; height:100%; background:var(--v-great); }
+    .hm-steps { list-style:none; margin:0 0 8px; padding:0; display:grid; gap:8px; }
+    .hm-steps li { display:grid; grid-template-columns:22px 1fr; gap:10px; align-items:start; padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
+    .hm-steps li:not(.done) { background:var(--raise); }
+    .hm-steps .num { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font:600 12px/1 var(--ui); box-shadow:inset 0 0 0 1px var(--line); color:var(--muted); }
+    .hm-steps li.done .num { background:var(--v-great); box-shadow:none; color:var(--on-v); }
+    .hm-steps li.done b { color:var(--muted); font-weight:400; text-decoration:line-through; text-decoration-color:var(--line); }
+    .hm-steps b { display:block; font-weight:600; }
+    .hm-steps .acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .hm-alerts { display:grid; gap:8px; }
+    .hm-alert { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:start; padding:9px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; }
+    .hm-alert.new { border-color:var(--rule); background:var(--raise); }
+    .hm-tag { font-size:12px; font-weight:600; padding:1px 8px; border-radius:999px; background:var(--paper-2); color:var(--muted); white-space:nowrap; }
+    .hm-alert.new .hm-tag { background:var(--new-bg); color:var(--new-fg); }
+    .hm-alert .t { min-width:0; overflow-wrap:anywhere; }
+    .hm-alert .t a { font-weight:600; }
+    .hm-alert .t small { display:block; color:var(--muted); font-size:12px; }
+    .hm .down { color:var(--v-great); font-weight:600; }
+    .hm-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px 16px; }
+    .hm-tile { padding:2px 0 0 12px; border-left:2px solid var(--rule); }
+    /* a number you can act on is a button: it goes to the list behind it */
+    button.hm-tile { all:unset; box-sizing:border-box; display:flex; flex-direction:column; justify-content:flex-start; padding:2px 0 0 12px; border-left:2px solid var(--rule); cursor:pointer; transition:border-color .15s; }
+    button.hm-tile:hover { border-left-color:var(--ink); }
+    button.hm-tile:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    /* the detail sections fold: a heading you can open */
+    .hm-fold > summary { list-style:none; cursor:pointer; }
+    .hm-fold > summary::-webkit-details-marker { display:none; }
+    .hm-fold > summary h3 { margin-bottom:0; }
+    .hm-fold > summary h3::after { content:"+"; margin-left:auto; padding-left:10px; color:var(--muted); font:400 16px/1 var(--ui); }
+    .hm-fold[open] > summary h3::after { content:"\\2212"; }
+    .hm-fold[open] > summary { margin-bottom:10px; }
+    .hm-fold > summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+    .hm-tile span { display:block; color:var(--muted); font-size:12px; }
+    .hm-tile b { display:block; font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; }
+    .hm-tile small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
+    .hm-meter { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin-top:7px; }
+    .hm-meter i { display:block; height:100%; background:var(--ink); }
+    .hm-meter.hot i { background:var(--accent); }
+    .hm-chart { position:relative; padding:20px 0 0 44px; }
+    .hm .plot { position:relative; height:96px; display:flex; align-items:flex-end; gap:2px; border-bottom:var(--bw) solid var(--rule); }
+    .hm .grid { position:absolute; left:0; right:0; height:0; border-top:var(--bw) solid var(--rule); pointer-events:none; }
+    .hm .ylab { position:absolute; left:-44px; width:38px; text-align:right; font-size:12px; color:var(--muted); transform:translateY(-50%); font-variant-numeric:tabular-nums; }
+    .hm .col { flex:1; min-width:0; height:100%; display:flex; align-items:flex-end; justify-content:center; background:none; border:0; padding:0; cursor:default; position:relative; }
+    .hm .col i { display:block; width:100%; max-width:14px; border-radius:3px 3px 0 0; background:var(--muted); opacity:.45; transition:opacity .12s; }
+    .hm .col.peak i, .hm .col:hover i, .hm .col:focus-visible i { opacity:1; background:var(--accent); }
+    .hm .xaxis { display:flex; justify-content:space-between; gap:6px; font-size:12px; color:var(--muted); margin-top:5px; }
+    .hm-tip { position:absolute; z-index:5; pointer-events:none; background:var(--ink); color:var(--on-ink); padding:5px 9px; border-radius:var(--r-sm); font-size:12px; opacity:0; transform:translate(-50%, -100%); transition:opacity .1s; white-space:nowrap; }
+    .hm-tip b { font:600 15px/1.2 var(--display); display:block; }
+    .hm-tip.show { opacity:1; }
+    .hm-table { margin-top:10px; }
+    .hm-table summary { cursor:pointer; color:var(--muted); font-size:12px; padding:3px 0; }
+    .hm table { border-collapse:collapse; width:100%; font-size:12px; margin-top:6px; }
+    .hm th, .hm td { text-align:left; padding:4px 6px; border-bottom:var(--bw) solid var(--rule); }
+    .hm td.n, .hm th.n { text-align:right; font-variant-numeric:tabular-nums; }
+    .hm-use { display:grid; gap:7px; margin-top:8px; }
+    .hm-fold .acts { margin-top:12px; }
+    .hm-use > div { display:grid; grid-template-columns:minmax(110px, 150px) 1fr 34px; gap:10px; align-items:center; font-size:13px; }
+    .hm-use .track { height:8px; }
+    .hm-use .track i { display:block; height:100%; background:var(--ink); border-radius:0 2px 2px 0; min-width:2px; }
+    .hm-use .track i.zero { background:var(--rule); }
+    .hm-use b { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
+    .hm-foot { margin-top:14px; padding-top:12px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
+    @media (prefers-reduced-motion: reduce) { .hm .col i, .hm-tip { transition:none; } }
+`;
+
+  window.TKHome = { mount, CSS };
 })();

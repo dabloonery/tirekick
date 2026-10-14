@@ -28,9 +28,10 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 - [ ] Check `https://tirekick.app/privacy` loads in a private window. This is the **privacy policy URL**
       for the store.
 
-## 3. Code and repo (after the two in-flight threads merge)
+## 3. Code and repo
 
-Wait for the redesign fixes and the ux-spec port (0.36.0) to land on `main` first.
+*Status 2026-10-14: the redesign fixes and the ux-spec port (0.36.0) are on `main`, plus the robustness
+work (PRs #14 to #21). Nothing below is done yet.*
 
 - [ ] **dabloonery:** rename the GitHub repo to `tirekick` (Settings, General). GitHub redirects the old address.
 - [ ] **Claude:** set `homepage_url` to `https://tirekick.app`, update README and listing links, and
@@ -47,7 +48,7 @@ Wait for the redesign fixes and the ux-spec port (0.36.0) to land on `main` firs
 |---|---|---|
 | Store icon | 128 × 128 | ✅ `icons/icon128.png` |
 | Screenshots (1 to 5) | 1280 × 800 | ⚠️ 3, 4 and 5 are ready. **1 and 2 are test pages: replace with real eBay captures** |
-| Small promo tile | 440 × 280 | ✅ `store/promo-small.png` (draft, in this PR) |
+| Small promo tile | 440 × 280 | ✅ `store/promo-small.png` (draft) |
 | Marquee promo tile | 1400 × 560 | Optional; only used if the store features the extension. Skip for now |
 
 Taking screenshots 1 and 2 (**dabloonery**, since it needs your eBay session and API key):

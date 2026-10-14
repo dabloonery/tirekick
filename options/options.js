@@ -355,33 +355,9 @@ load().then(showStatus);
 // Collections are merged on restore (a backup never deletes anything here); settings come from the backup.
 // What a backup file says it is. New backups write the first; "second-look" is from before the rename to Tirekick.
 const BACKUP_APPS = ["tirekick", "second-look"];
-const BACKUP_SETS = ["saved", "savedSearches", "quickFilters", "notInterested", "listingMemory", "codeStems", "usage", "stats", "modePrefs", "searchWants"];
+const BACKUP_SETS = TKShared.BACKUP_SETS;
 const SECRET = ["anthropicKey", "oaiKey"];
-
-// A backup file can hold anything, and saved addresses become links on eBay and Facebook pages. Keep
-// only addresses on those two sites (TKShared.safeUrl in lib/shared.js); a bad one is
-// rebuilt from the listing's key or the search words, and counted so the note can say so.
 const isRecord = (v) => v && typeof v === "object" && !Array.isArray(v);
-function cleanSaved(saved, fixed) {
-  const out = {};
-  for (const [k, r] of Object.entries(saved)) {
-    if (!isRecord(r) || !/^(ebay|fb):[\w-]+$/.test(k)) continue;
-    const u = TKShared.savedItemUrl(k, r);
-    if (u !== r.u && r.u) fixed.n++;
-    out[k] = { ...r, u };
-  }
-  return out;
-}
-function cleanSearches(searches, fixed) {
-  const out = {};
-  for (const [k, r] of Object.entries(searches)) {
-    if (!isRecord(r) || typeof r.q !== "string") continue;
-    const url = TKShared.searchUrl(r);
-    if (url !== r.url) fixed.n++;
-    out[k] = { ...r, url };
-  }
-  return out;
-}
 document.getElementById("backup").addEventListener("click", async () => {
   const all = await chrome.storage.local.get([...FIELDS, ...BACKUP_SETS]);
   const settings = Object.fromEntries(FIELDS.filter((f) => !SECRET.includes(f) && all[f] !== undefined).map((f) => [f, all[f]]));
@@ -401,6 +377,8 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   e.target.value = "";
   if (!file) return;
+  // A real backup is well under this; a file this big is something else, and reading it would stall the page.
+  if (file.size > 50 * 1024 * 1024) return note("That file is too big to be a Tirekick backup.");
   let data;
   try {
     data = JSON.parse(await file.text());
@@ -409,32 +387,21 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   }
   if (!BACKUP_APPS.includes(data?.app)) return note("That file isn't a Tirekick backup.");
   const here = await chrome.storage.local.get(BACKUP_SETS);
+  // Every record is cleaned first (TKShared.cleanBackup): a damaged or hand-edited file can't leave
+  // something in storage that breaks the panel on every page.
+  const { sets, dropped, links } = TKShared.cleanBackup(data);
   const out = {};
-  const fixed = { n: 0 };
-  if (isRecord(data.saved)) data.saved = cleanSaved(data.saved, fixed);
-  if (isRecord(data.savedSearches)) data.savedSearches = cleanSearches(data.savedSearches, fixed);
-  for (const k of BACKUP_SETS) {
-    if (!data[k] || typeof data[k] !== "object") continue;
+  for (const [k, v] of Object.entries(sets)) {
     if (k === "usage") {
       // Spending per day: keep whichever record of a day is larger, so nothing is counted twice.
       const days = { ...(here.usage?.days || {}) };
-      for (const [d, v] of Object.entries(isRecord(data.usage.days) ? data.usage.days : {})) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !isRecord(v) || !Number.isFinite(v.usd) || v.usd < 0 || !Number.isFinite(v.calls)) continue; // the budget adds these up
-        if (!days[d] || v.usd > days[d].usd) days[d] = { usd: v.usd, calls: v.calls, models: isRecord(v.models) ? v.models : {} };
-      }
+      for (const [d, dv] of Object.entries(v.days)) if (!days[d] || dv.usd > days[d].usd) days[d] = dv;
       out.usage = { days };
-    } else if (k === "stats") {
-      const counts = Object.fromEntries(Object.entries(data.stats).filter(([, n]) => Number.isFinite(n) && n >= 0));
-      out.stats = { ...counts, ...(here.stats || {}) };
-    } else if (k === "searchWants") {
-      // Each search's "What I want": short text only, what's here wins.
-      const w = Object.fromEntries(Object.entries(data.searchWants).filter(([key, v]) => typeof v === "string" && v.length <= 300 && key.length <= 400).map(([key, v]) => [key, v.trim()]));
-      out.searchWants = { ...w, ...(here.searchWants || {}) };
     } else if (k === "listingMemory") {
       const m = { ...(here.listingMemory || {}) };
-      for (const [key, r] of Object.entries(data.listingMemory)) if (!m[key] || (r?.a || 0) > (m[key].a || 0)) m[key] = r;
+      for (const [key, r] of Object.entries(v)) if (!m[key] || r.a > (m[key].a || 0)) m[key] = r;
       out.listingMemory = m;
-    } else out[k] = { ...data[k], ...(here[k] || {}) }; // what's here wins where both have it
+    } else out[k] = { ...v, ...(here[k] || {}) }; // what's here wins where both have it
   }
   // Settings go through the same limits as typing them here; one that doesn't make sense is left out.
   const settings = {};
@@ -454,9 +421,10 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   showMemory();
   showSpend();
   const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
-  const reset = fixed.n ? ` ${plural(fixed.n, "link")} to somewhere other than eBay or Facebook ${fixed.n === 1 ? "was" : "were"} replaced.` : "";
+  const reset = links ? ` ${plural(links, "link")} to somewhere other than eBay or Facebook ${links === 1 ? "was" : "were"} replaced.` : "";
+  const bad = dropped ? ` ${plural(dropped, "entry", "entries")} that didn't make sense ${dropped === 1 ? "was" : "were"} left out.` : "";
   const left = skipped ? ` ${plural(skipped, "setting")} in the file didn't make sense and ${skipped === 1 ? "was" : "were"} left out.` : "";
-  note(`Restored from ${file.name}: ${plural(Object.keys(data.saved || {}).length, "saved listing")}, ${plural(Object.keys(data.savedSearches || {}).length, "search", "searches")}, and settings.${reset}${left}`);
+  note(`Restored from ${file.name}: ${plural(Object.keys(sets.saved || {}).length, "saved listing")}, ${plural(Object.keys(sets.savedSearches || {}).length, "search", "searches")}, and settings.${reset}${bad}${left}`);
 });
 
 // Folded sections open when a jump link (or the address) points at them.

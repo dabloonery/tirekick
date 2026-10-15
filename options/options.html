@@ -86,6 +86,7 @@
   details[open] > summary { margin-bottom:12px; }
   details[open] > summary::after { content:"\2212"; }
   details[open] > summary .hint { visibility:hidden; }
+  .adv { margin:4px 0 14px; } .adv > summary { color:var(--muted); font-size:14px; justify-content:flex-start; } .adv > summary::after { font-size:16px; }
   summary:hover h2 { text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:4px; }
   [hidden] { display:none !important; }
   :focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
@@ -113,7 +114,7 @@
       </div>
     </div>
   </div>
-  <nav class="jump" aria-label="Sections"><a href="#sec-model">Model</a><a href="#sec-spending">Spending</a><a href="#sec-judging">Judging</a><a href="#sec-filters">Filters</a><a href="#sec-page">On the page</a><a href="#sec-backup">Backup</a></nav>
+  <nav class="jump" aria-label="Sections"><a href="#sec-model">Model</a><a href="#sec-judging">Judging</a><a href="#sec-filters">Filters</a><a href="#sec-page">On the page</a><a href="#sec-spending">Spending</a><a href="#sec-backup">Backup</a></nav>
 
   <section id="sec-model">
     <h2>Model</h2>
@@ -199,24 +200,15 @@
         <span class="hint">Used only when you check a photo.</span>
       </div>
     </div>
+    <details class="adv">
+    <summary>Advanced</summary>
     <div class="field">
       <label for="batchSize">Listings per request</label>
       <input autocomplete="off" id="batchSize" type="number" min="1" max="30">
       <span class="hint">Lower this if the model skips listings. Raise it if scans feel slow.</span>
     </div>
+    </details>
     <div class="field"><div class="row-btns"><button type="button" class="small primary" id="test">Test connection</button><span id="testMsg" class="hint" role="status"></span></div></div>
-  </section>
-
-  <section id="sec-spending">
-    <h2>Spending</h2>
-    <div class="spendgrid" id="spendGrid"></div>
-    <div id="spendModels" class="hint"></div>
-    <div class="field" style="margin-top:14px">
-      <label for="monthlyBudget">Monthly budget for paid AI (dollars)</label>
-      <input autocomplete="off" id="monthlyBudget" type="number" min="0" step="1" placeholder="0 = no budget">
-      <span class="hint">When this month's estimated spend reaches it, paid AI stops until next month (or until you raise it). 0 means no budget. The panel's footer shows how much is used.</span>
-    </div>
-    <p class="hint">Estimated from tokens at list price; your real Claude balance is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>. OpenRouter reports its own costs. <button type="button" class="small danger" id="resetSpend">Reset the counter</button></p>
   </section>
 
   <section id="sec-judging">
@@ -224,7 +216,7 @@
     <summary><h2>Judging</h2><span class="hint">What you're into, selling fees</span></summary>
     <div class="field">
       <label for="interests">What you're into</label>
-      <textarea autocomplete="off" id="interests" rows="2"></textarea>
+      <textarea autocomplete="off" id="interests" rows="2" placeholder="e.g. film cameras, kids' bikes, mid-century furniture"></textarea>
       <span class="hint">Every judgment takes it into account. On a feed or category with no search, it decides what counts as your thing. Leave blank to judge everything the same.</span>
     </div>
     <div class="field">
@@ -281,10 +273,24 @@
     </div>
   </section>
 
+  <section id="sec-spending">
+    <details>
+    <summary><h2>Paid AI spending</h2><span class="hint">An estimate, and a monthly budget</span></summary>
+    <div class="spendgrid" id="spendGrid"></div>
+    <div id="spendModels" class="hint"></div>
+    <div class="field" style="margin-top:14px">
+      <label for="monthlyBudget">Monthly budget for paid AI (dollars)</label>
+      <input autocomplete="off" id="monthlyBudget" type="number" min="0" step="1" placeholder="0 = no budget">
+      <span class="hint">When this month's estimated spend reaches it, paid AI stops until next month (or until you raise it). 0 means no budget. The panel's footer shows how much is used.</span>
+    </div>
+    <p class="hint">Estimated from tokens at list price; your real Claude balance is at <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">console.anthropic.com</a>. OpenRouter reports its own costs. <button type="button" class="small danger" id="resetSpend">Reset the counter</button></p>
+    </details>
+  </section>
+
   <section id="sec-backup">
     <details>
     <summary><h2>Backup and your data</h2><span class="hint">Save, restore, or delete everything</span></summary>
-    <p class="hint">Everything Tirekick keeps lives only in this browser. A backup file holds your saved listings and searches, each search's filter and price, what you've hidden, what you've seen, spending and these settings, but never your API keys. Restoring adds to what's here and takes the backup's settings.</p>
+    <p class="hint">Everything Tirekick keeps lives only in this browser. A backup file holds your saved listings and searches, each search's filter and price, what you've hidden, what you've seen, spending and these settings, but never your API keys. Restoring adds to what's here and takes the backup's settings. <span id="bytesUsed"></span></p>
     <div class="row-btns"><button type="button" class="small" id="backup">Save a backup</button><button type="button" class="small" id="restore">Restore from a backup…</button><button type="button" class="small" id="exportCsv">Download saved listings (CSV)</button><input type="file" id="restoreFile" accept="application/json,.json" hidden></div>
     <p class="hint">Delete everything removes what Tirekick keeps in this browser: your API keys, saved listings and searches, what you've hidden and seen, spending, and these settings. Save a backup first if you might want it back. Uninstalling the extension deletes it all too.</p>
     <div class="row-btns"><button type="button" class="small danger" id="wipeAll">Delete everything</button></div>

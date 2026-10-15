@@ -124,7 +124,7 @@
       const days = [];
       for (let i = 29; i >= 0; i--) {
         const t = new Date(Date.now() - i * 864e5);
-        const key = t.toLocaleDateString("en-CA");
+        const key = TKShared.localDay(t);
         days.push({ key, t: t.getTime(), usd: d.usage.days?.[key]?.usd || 0, calls: d.usage.days?.[key]?.calls || 0 });
       }
       const total = days.reduce((s, x) => s + x.usd, 0);

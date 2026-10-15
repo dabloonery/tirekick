@@ -2274,7 +2274,7 @@
     const csv = h("button", {
       onclick: () => {
         const rows = TKShared.savedRows(saved, scansCache || {});
-        const a = h("a", { href: URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" })), download: `tirekick-saved-${new Date().toLocaleDateString("en-CA")}.csv` });
+        const a = h("a", { href: URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" })), download: `tirekick-saved-${TKShared.localDay()}.csv` });
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
         csv.textContent = "Downloaded";

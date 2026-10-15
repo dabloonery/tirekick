@@ -508,7 +508,7 @@ Steps 2 and 4 can be combined into one PR if you would rather ship one release, 
 
 **Verdict: nothing blocks submission.** No remote code, no `eval`, no web-accessible resources, no
 `externally_connectable`, and every network destination is either declared or approved by the user one
-address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 269 KB, no tests or
+address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 269 KB at 0.35.0; 22 files, about 315 KB at 0.48.0; no tests or
 source maps). Two items are worth knowing before review starts (M1, M2); the rest are small hardening
 ideas for a later release.
 
@@ -603,8 +603,7 @@ it. The privacy page says keys stay in the browser profile. **No change needed.*
 
 ### Housekeeping before submission (not security)
 
-- `homepage_url` points at `github.com/dabloonery/Second-Look`. Update it to `https://tirekick.app`
-  once the domain is live (or to the renamed repo).
+- ~~`homepage_url` points at the old repo~~: it is `https://tirekick.app` since 0.42.1.
 - The privacy policy and listing use support@tirekick.app, which works once Myer sets up the domain and mailbox.
 - The 128 px icon is a full-bleed navy tile. The store's guidelines suggest 96 px of artwork inside
   16 px of transparent padding for the store tile; the current one is acceptable but will look a little

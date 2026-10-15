@@ -18,6 +18,8 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
   - [Brief 7: Built-in browser AI](#brief-7-built-in-browser-ai) (first after the 1.0.0 launch)
   - [Brief 8: Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) (plan; check first that it helps)
+  - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then Safari)
+  - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
 
 ---
 
@@ -343,7 +345,7 @@ Each is a separate PR so you can stop after any of them.
 
 ## Tirekick feature briefs
 
-Six briefs, one per file, written 2026-10-14 so another agent can pick one up cold. Each is a plan only: nothing here has been built or tested.
+The briefs (1 to 7 written 2026-10-14, 8 to 10 on 2026-10-15) are written so another agent can pick one up cold. Each is a plan only: nothing here has been built or tested.
 
 | # | Brief | Size | Depends on |
 |---|---|---|---|
@@ -355,6 +357,8 @@ Six briefs, one per file, written 2026-10-14 so another agent can pick one up co
 | 6 | [Sync and export](#brief-6-sync-and-export) | Small (export) to medium (sync) | Nothing new |
 | 7 | [Built-in browser AI](#brief-7-built-in-browser-ai) | Medium | Nothing new. First after the 1.0.0 launch (dabloonery, 2026-10-14) |
 | 8 | [Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) | Small to medium | A check on 30 real listings first |
+| 9 | [More browsers](#brief-9-more-browsers) | Small (Edge) to large (Safari) | Nothing new |
+| 10 | [More AI options](#brief-10-more-ai-options) | Small | 0.40.0 service menu |
 
 Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
@@ -809,3 +813,37 @@ option 1 only if it gives a sensible number for clearly more of them without mak
 #### Size and files
 Small to medium: `content/rules.js` (a pure `askingTypical`, unit tested), `content/panel.js` (chip and
 tooltip wording), `lib/shared.js` (nothing new in storage). One PR, version bump, light and dark screenshots.
+
+### Brief 9: More browsers
+
+Added 2026-10-15 (dabloonery: platform-agnostic plans belong here). Plan only; nothing built.
+
+- **Already covered:** Chrome, Vivaldi, Brave, Opera and Edge are all Chromium and load the same zip. Edge has its
+  own free store (Microsoft Partner Center): the same zip, a listing copied from `store/LISTING.md`. Cheapest next step.
+- **Firefox (medium).** Firefox runs Manifest V3 but starts `background.js` as an event page, not a service worker:
+  add `"background": { "scripts": [...] }` beside `service_worker` (Firefox reads one, Chrome the other), and a
+  `browser_specific_settings.gecko.id`. Check `chrome.action.openPopup`, `setPopup` per tab, context menus,
+  `optional_host_permissions` (asked at runtime in Firefox) and the shadow-DOM panel. Run the e2e suite in Firefox
+  through its WebDriver BiDi support, or by hand from a checklist at first. Publish on addons.mozilla.org (free;
+  source review is easy since there's no build step).
+- **Safari (large).** Needs Apple's Safari Web Extension converter, an Xcode wrapper app, a Mac to build on and
+  the $99 a year Apple developer program, and ships through the App Store. Host permissions are granted per site by
+  the user. Worth it only after Firefox, if people ask.
+- **How to know it's done:** per browser, the free marks, Scan, Saved, the popup and a restore from backup work on
+  the eBay and Marketplace fixtures; the README says which browsers are supported.
+
+### Brief 10: More AI options
+
+Added 2026-10-15. Plan only. 0.40.0 already made the choice even: one "AI service" menu lists every service side by
+side, and a fresh install picks none. What's left:
+
+- **Quality presets for every service.** The panel's Thrifty, Balanced and Thorough menu only exists for Claude
+  today. Give each preset service (OpenAI, Gemini, OpenRouter and the rest) its own cheap and strong model pair, kept
+  in one table, so every service gets the same menu. Small.
+- **Built-in browser AI:** Brief 7 (Gemini Nano in Chrome, Edge's own model). First after 1.0.0.
+- **Local models:** Ollama and LM Studio work today. Add a short "which model to pull" note in settings, measured
+  on the mock scans, and a clear message when the local server isn't running. Small.
+- **Native Gemini API** only if the OpenAI-style address falls short (photos, structured answers); otherwise keep
+  one code path.
+- **How to know it's done:** with each service set up against the mock server, the panel menu offers the same three
+  choices, and scans, Analyze and photo checks work.

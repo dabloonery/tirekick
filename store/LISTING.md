@@ -19,7 +19,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 Tirekick looks over second-hand listings with you, on the stores where you shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
 
-**Free, no account, no AI needed**
+**Free, with no account. These work without the optional AI features**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
 • "% of sold" on every card once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones

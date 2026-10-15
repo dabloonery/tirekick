@@ -4,7 +4,7 @@
   "version": "0.42.1",
   "description": "Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.",
   "minimum_chrome_version": "116",
-  "homepage_url": "https://github.com/dabloonery/Second-Look",
+  "homepage_url": "https://tirekick.app",
   "permissions": [
     "storage",
     "contextMenus",

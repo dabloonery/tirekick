@@ -99,6 +99,18 @@ const menus = await o.ev(`chrome.runtime.getManifest().action.default_title`);
 ok("the icon's name is just Tirekick", menus === "Tirekick", menus);
 await hp.close();
 
+// ---------- 0.40.0: no one AI service pushed ----------
+await o.ev(`chrome.storage.local.clear()`);
+const op = await open(`chrome-extension://${EXT}/options/options.html`);
+await sleep(800);
+const fresh = await op.ev(`({ pick: document.getElementById('service').value, title: document.getElementById('statusTitle').textContent, boxes: ['anthropicBox','oaiBox','ollamaBox'].every(id => document.getElementById(id).hidden), link: document.getElementById('keyLink').hidden, n: document.getElementById('service').options.length })`);
+ok("a fresh install picks no AI service: one menu lists them side by side", fresh?.pick === "" && /choose an AI service/.test(fresh.title) && fresh.boxes && fresh.link && fresh.n === 11, fresh);
+await op.ev(`(()=>{const s=document.getElementById('service'); s.value='openai:gemini'; s.dispatchEvent(new Event('change'));})()`);
+await sleep(600);
+const gem = await op.ev(`chrome.storage.local.get(['provider','oaiPreset','oaiUrl']).then(s => ({ ...s, box: !document.getElementById('oaiBox').hidden, link: document.getElementById('keyLink').href }))`);
+ok("…picking Gemini sets it up, with a link to Gemini's key page", gem?.provider === "openai" && gem.oaiPreset === "gemini" && /generativelanguage/.test(gem.oaiUrl) && gem.box && /aistudio/.test(gem.link), gem);
+await op.close();
+
 ok("no page logged an error", !errors.length, errors.slice(0, 5));
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

@@ -7,18 +7,20 @@ Kick the tires before you buy.
 
 A browser extension for buying second-hand on eBay and Facebook Marketplace. It puts a small
 score tag on every listing you're looking at, compares prices with what the same thing actually
-sold for, flags likely scams, and remembers what you've already seen. A language model (the
-Claude API, or Ollama on your own computer) does the judging; a lot of the useful parts don't
+sold for, flags likely scams, and remembers what you've already seen. An AI you choose (any
+service you have a key for, such as Anthropic, Google Gemini, OpenAI or OpenRouter, or a free model on
+your own computer) does the judging; a lot of the useful parts don't
 need a model at all.
 
 It only works on pages you're looking at, when you ask. Nothing browses or checks prices in the
 background.
 
-## Quick start (Claude API, about 5 minutes)
+## Quick start (about 5 minutes)
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens.
-2. Paste a Claude API key (from console.anthropic.com). Settings save as you go, the key is checked
+2. Under **AI service**, choose the one you have a key for (or Ollama or LM Studio on your own
+   computer), and paste its key. Settings save as you go, the key is checked
    the moment you paste it, and a banner at the top says whether you're ready (or the one thing missing),
    with links to try it on eBay or Marketplace. **Show** reveals a key to check for typos.
 3. Search eBay or Facebook Marketplace. A slim **Tirekick** tab sits on the right edge of every
@@ -271,7 +273,7 @@ Turn off "Mark cards before you scan" in settings to keep cards untouched until 
 ## Model and cost
 
 Scans use their own model, **Haiku 5.5** by default (about a fortieth of Opus 5.5's price; a scan sends
-many listings at once), set under "Claude model for scans" in settings; analyzing one listing, photo
+many listings at once), set under "Model for scans" in settings; analyzing one listing, photo
 checks and search ideas use the main model. New installs start the main model on **Sonnet 5.5**, and the scan's fixed instructions are marked for the API's prompt cache, so later batches read them cheaper. Existing installs keep the model they chose. The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
 **Sonnet 5.5** (half the price), **Haiku 5.5** (about a fortieth), the other AI service you've set up,
 or your **Ollama** model (free, local). Next to it is this month's spend on paid AI; click it for

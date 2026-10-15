@@ -675,7 +675,7 @@
           <div class="hint w-note">Scores, prices and warnings are estimates to help you decide, not a guarantee: check the listing and the seller yourself.</div>
           <button class="ghost go" data-act="intro-done">Got it</button>
         </div>
-        <div class="setup" hidden><b class="setup-title">Add an AI to start scoring.</b> <span class="setup-text">A Claude API key takes a minute at console.anthropic.com. Or pick another service, or Ollama on your own computer, in settings.</span>
+        <div class="setup" hidden><b class="setup-title">Add an AI to start scoring.</b> <span class="setup-text">Pick any AI service you have a key for (Anthropic, Google Gemini, OpenAI, OpenRouter and others), or a free model on your own computer, in settings.</span>
           <button class="scan" data-act="open-settings">Open settings</button></div>
         <div class="hint mode-hint"></div>
         <div class="inputs">
@@ -1119,18 +1119,22 @@
   const short = (id) => nameOf(id).replace(/ 5\.5$/, "");
   const qualityNow = () => QUALITY.find(([, , sm, m]) => sm === cfg.scanModel && m === cfg.anthropicModel);
   const renderModels = () => {
-    const opts = QUALITY.map(([id, label, sm, m]) => ["anthropic", `q:${id}`, `${label} \u00b7 ${sm === m ? short(m) : `${short(sm)} + ${short(m)}`}`]);
-    if (cfg.anthropicModel && !qualityNow()) opts.push(["anthropic", "custom", `Custom \u00b7 ${short(cfg.scanModel || cfg.anthropicModel)} + ${short(cfg.anthropicModel)}`]);
-    // Another AI service, once one is set up in settings.
+    // Only the services you've set up are offered, side by side: no one service is pushed before you pick.
+    const opts = [];
+    if (cfg.hasKey) {
+      opts.push(...QUALITY.map(([id, label, sm, m]) => ["anthropic", `q:${id}`, `Claude \u00b7 ${label} \u00b7 ${sm === m ? short(m) : `${short(sm)} + ${short(m)}`}`]));
+      if (cfg.anthropicModel && !qualityNow()) opts.push(["anthropic", "custom", `Claude \u00b7 Custom \u00b7 ${short(cfg.scanModel || cfg.anthropicModel)} + ${short(cfg.anthropicModel)}`]);
+    }
     if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName} \u00b7 ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
     opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama \u00b7 ${cfg.textModel || "qwen3:4b"} \u00b7 free`]);
+    if (cfg.provider === "anthropic" && !cfg.hasKey) opts.unshift(["", "", "No AI yet \u00b7 pick one in settings"]);
     modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}`, title: label }, label)));
     $(".model-pick").title =
       cfg.provider === "anthropic"
         ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes straight away; settings has each one.`
         : "Which model judges listings. Changes straight away.";
     const q = qualityNow();
-    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : `anthropic|${q ? `q:${q[0]}` : "custom"}`;
+    modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : cfg.hasKey ? `anthropic|${q ? `q:${q[0]}` : "custom"}` : "|";
   };
   const openSettings = () => send("openOptions").catch(() => {});
   $('[data-act="settings"]').addEventListener("click", openSettings);
@@ -1173,6 +1177,7 @@
 
   modelSel.addEventListener("change", async () => {
     const [provider, model] = modelSel.value.split("|");
+    if (!provider) return openSettings();
     const q = QUALITY.find(([id]) => model === `q:${id}`);
     await chrome.storage.local.set(provider === "anthropic" ? (q ? { provider, anthropicScanModel: q[2], anthropicModel: q[3] } : { provider }) : { provider });
     setStatus(
@@ -1272,7 +1277,7 @@
     const keyless = /LM Studio/.test(cfg.oaiName || "");
     const missing =
       cfg.provider === "anthropic" && !cfg.hasKey
-        ? ["Add an AI to start scoring.", "A Claude API key takes a minute at console.anthropic.com. Or pick another service, or Ollama on your own computer, in settings."]
+        ? ["Add an AI to start scoring.", "Pick any AI service you have a key for (Anthropic, Google Gemini, OpenAI, OpenRouter and others), or a free model on your own computer, in settings."]
         : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
@@ -3188,7 +3193,7 @@
     piBar.hidden = !scored.length;
     const scamN = n((f) => likelyScam(f) && !f.hidden);
     const bits = [`<b>${all.length}</b> listings`];
-    if (scamN) bits.push(`<b>${scamN}</b> ${scamN === 1 ? "looks like a scam" : "look like scams"}`);
+    if (scamN) bits.push(`<b>${scamN}</b> possible scam${scamN === 1 ? "" : "s"}`);
     const dealN = dealCount();
     if (dealN) bits.push(`<b>${dealN}</b> at your price`);
     if (newN) bits.push(`<b>${newN}</b> new to you`);

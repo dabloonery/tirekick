@@ -5,17 +5,32 @@ const MAY_BE_EMPTY = ["anthropicScanModel", "anthropicKey", "oaiKey", "oaiModel"
 
 // Services that speak the OpenAI chat API. Picking one fills in its address.
 const PRESETS = {
-  openrouter: { url: "https://openrouter.ai/api/v1", hint: "One key for models from Google, Meta, Mistral, DeepSeek, Qwen and more. Key at openrouter.ai/keys. Costs are reported exactly." },
-  openai: { url: "https://api.openai.com/v1", hint: "Key at platform.openai.com/api-keys." },
-  gemini: { url: "https://generativelanguage.googleapis.com/v1beta/openai", hint: "Key at aistudio.google.com/apikey. There's a free tier with rate limits." },
-  deepseek: { url: "https://api.deepseek.com/v1", hint: "Key at platform.deepseek.com/api_keys." },
-  mistral: { url: "https://api.mistral.ai/v1", hint: "Key at console.mistral.ai/api-keys." },
-  xai: { url: "https://api.x.ai/v1", hint: "Key at console.x.ai." },
+  openrouter: { url: "https://openrouter.ai/api/v1", keys: "https://openrouter.ai/keys", hint: "One key for models from many makers. Key at openrouter.ai/keys. Costs are reported exactly." },
+  openai: { url: "https://api.openai.com/v1", keys: "https://platform.openai.com/api-keys", hint: "Key at platform.openai.com/api-keys." },
+  gemini: { url: "https://generativelanguage.googleapis.com/v1beta/openai", keys: "https://aistudio.google.com/apikey", hint: "Key at aistudio.google.com/apikey. There's a free tier with rate limits." },
+  deepseek: { url: "https://api.deepseek.com/v1", keys: "https://platform.deepseek.com/api_keys", hint: "Key at platform.deepseek.com/api_keys." },
+  mistral: { url: "https://api.mistral.ai/v1", keys: "https://console.mistral.ai/api-keys", hint: "Key at console.mistral.ai/api-keys." },
+  xai: { url: "https://api.x.ai/v1", keys: "https://console.x.ai", hint: "Key at console.x.ai." },
   lmstudio: { url: "http://localhost:1234/v1", hint: "Free and private. In LM Studio, load a model and start the server (Developer tab); no key needed." },
   custom: { url: "", hint: "Any service with an OpenAI-style /v1/chat/completions. Test connection asks your permission to reach it." },
 };
+// The other two kinds of service, for the same hint and key link.
+const SERVICES = {
+  anthropic: { keys: "https://console.anthropic.com/settings/keys", hint: "Key at console.anthropic.com." },
+  ollama: { hint: "Free and private: runs on your own computer. Install Ollama, pull a model, and Tirekick talks to it directly." },
+};
+// The one "AI service" menu stands for two stored settings: provider, and for OpenAI-style services which one.
+// Nothing is picked until you choose (a fresh install shows "Choose one…" rather than any one brand).
+let chosen = false;
+const serviceOf = () => {
+  const p = document.getElementById("provider").value;
+  return p === "openai" ? `openai:${document.getElementById("oaiPreset").value || "custom"}` : p;
+};
+const serviceInfo = (v) => (v.startsWith("openai:") ? PRESETS[v.slice(7)] : SERVICES[v]) || {};
 const showPreset = () => {
-  document.getElementById("oaiPresetHint").textContent = PRESETS[document.getElementById("oaiPreset").value]?.hint || "";
+  const sel = document.getElementById("service");
+  sel.value = chosen ? serviceOf() : "";
+  document.getElementById("serviceHint").textContent = chosen ? serviceInfo(sel.value).hint || "" : "";
 };
 // Tirekick may reach the listed services already; any other address needs your OK once.
 async function allowOrigin(url) {
@@ -107,13 +122,16 @@ document.getElementById("theme").addEventListener("change", (e) => applyTheme(e.
 async function load() {
   // Settings with defaults filled in come from the background script (it leaves out the key).
   const res = await chrome.runtime.sendMessage({ type: "getSettings" }).catch(() => null);
-  const s = { ...(res?.ok ? res.data : {}), ...(await chrome.storage.local.get(FIELDS)) };
+  const stored = await chrome.storage.local.get([...FIELDS, "serviceChosen"]);
+  const s = { ...(res?.ok ? res.data : {}), ...stored };
   for (const f of FIELDS) {
     const el = document.getElementById(f);
     if (el.type === "checkbox") el.checked = !!s[f];
     else el.value = s[f] ?? "";
   }
   applyTheme(s.theme);
+  // Chosen once you picked a service, or already set one up before this menu existed.
+  chosen = !!(s.serviceChosen || stored.provider || stored.anthropicKey || stored.oaiKey || stored.oaiModel);
   await showLists();
   for (const p of Object.values(pickers)) p.sync(); // the saved values are in the boxes now
   showProvider();
@@ -191,16 +209,31 @@ document.getElementById("wipeAll").addEventListener("click", async () => {
 });
 
 function showProvider() {
-  const p = document.getElementById("provider").value;
+  const p = chosen ? document.getElementById("provider").value : "";
   document.getElementById("anthropicBox").hidden = p !== "anthropic";
   document.getElementById("oaiBox").hidden = p !== "openai";
   document.getElementById("ollamaBox").hidden = p !== "ollama";
+  document.getElementById("test").closest(".field").hidden = !p;
   testMsg.textContent = "";
   showPreset();
 }
 document.getElementById("provider").addEventListener("change", showProvider);
-document.getElementById("oaiPreset").addEventListener("change", async (e) => {
-  const preset = PRESETS[e.target.value];
+document.getElementById("service").addEventListener("change", async (e) => {
+  const [provider, preset] = e.target.value.split(":");
+  chosen = true;
+  document.getElementById("provider").value = provider;
+  await chrome.storage.local.set({ serviceChosen: true });
+  await saveField("provider");
+  if (preset && preset !== document.getElementById("oaiPreset").value) {
+    document.getElementById("oaiPreset").value = preset;
+    await saveField("oaiPreset");
+    await presetPicked();
+  }
+  showProvider();
+  showStatus();
+});
+async function presetPicked() {
+  const preset = PRESETS[document.getElementById("oaiPreset").value];
   showPreset();
   if (preset?.url) {
     const url = document.getElementById("oaiUrl");
@@ -209,7 +242,7 @@ document.getElementById("oaiPreset").addEventListener("change", async (e) => {
   }
   await chrome.storage.local.remove("oaiModelList");
   await showLists();
-});
+}
 
 // Each field saves when you leave it (or tick it): no Save button to forget.
 const valueOf = (f) => {
@@ -254,13 +287,17 @@ async function showStatus() {
   const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel"]);
   const provider = s.provider || "anthropic";
   const card = document.getElementById("statusCard");
+  const keyLink = document.getElementById("keyLink");
   let ready = false, title, text;
-  if (provider === "anthropic") {
+  if (!chosen) {
+    title = "One step left: choose an AI service";
+    text = "Pick any service you have a key for under Model, or a free model on your own computer (Ollama or LM Studio). The free marks and price tools work without one.";
+  } else if (provider === "anthropic") {
     ready = !!s.anthropicKey;
     const m = s.anthropicModel || "claude-sonnet-5-5";
     const scanM = s.anthropicScanModel === undefined ? "claude-haiku-5-5" : s.anthropicScanModel || m;
-    title = ready ? `Ready: ${NAMES[m] || m}${scanM !== m ? `, scans with ${NAMES[scanM] || scanM}` : ""}` : "One step left: add a Claude API key";
-    text = ready ? "Open an eBay or Marketplace search and press Scan, or just look at the free marks on the cards." : "Paste it below and it is checked right away. Prefer not to use Claude? Pick another AI service or Ollama under Model; the free marks and sold-price tools work without any model.";
+    title = ready ? `Ready: ${NAMES[m] || m}${scanM !== m ? `, scans with ${NAMES[scanM] || scanM}` : ""}` : "One step left: add your Anthropic API key";
+    text = ready ? "Open an eBay or Marketplace search and press Scan, or just look at the free marks on the cards." : "Paste it below and it is checked right away. The free marks and price tools work without any model.";
   } else if (provider === "openai") {
     const keyless = /localhost|127\.0\.0\.1/.test(s.oaiUrl || "");
     ready = !!s.oaiModel && (!!s.oaiKey || keyless);
@@ -274,7 +311,10 @@ async function showStatus() {
   card.classList.toggle("ready", ready);
   document.getElementById("statusTitle").textContent = title;
   document.getElementById("statusText").textContent = text;
-  document.getElementById("keyLink").hidden = ready || provider !== "anthropic";
+  // A button to the chosen service's key page, until it's set up.
+  const keys = chosen && !ready ? serviceInfo(serviceOf()).keys : "";
+  keyLink.hidden = !keys;
+  if (keys) keyLink.href = keys;
 }
 chrome.storage.onChanged.addListener(() => showStatus());
 

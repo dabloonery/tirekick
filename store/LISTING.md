@@ -29,7 +29,7 @@ Tirekick has optional AI features. The checks below are free and work without th
 • From any page: select a thing's name, right-click, "Look up": what it has sold for on eBay, and a search on eBay, Marketplace or both
 • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
 
-**Optional: add an AI you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
+**Optional: add an AI you choose** (Anthropic's Claude, DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
 • A score and verdict for every listing, one line on the price, and the reasons on hover
 • Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
 • Reseller mode for people who fix and flip: the likely fault, how hard it is, parts, and your margin after eBay fees

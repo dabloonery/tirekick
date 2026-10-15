@@ -119,9 +119,7 @@ Before it goes public:
 
 - [x] Scrub personal paths from the docs (the home-folder path in REFERENCE's rename notes, removed in 0.37.0).
 - [ ] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL).
-- [ ] Know that the commit history carries Myer's personal email address on about 25 commits. Either accept it, or
-      rewrite history before publishing (a one-time, force-pushed change; Myer's call), and set GitHub's
-      "Keep my email address private" for future commits.
+- [ ] Remove Myer's personal email from the commit history: see [Brand over personal name](#brand-over-personal-name).
 - [ ] Check again that no keys, tokens or private details are in the files or the history.
 
 The name, alongside it:
@@ -131,6 +129,50 @@ The name, alongside it:
 - [ ] Before launch, run a clearance search for "Tirekick" and "Tire Kick" in software: USPTO (classes 9 and 42),
       the Chrome Web Store, and app stores.
 - [ ] Around the open-source launch, file a USPTO registration in class 9 (Myer).
+
+### Brand over personal name
+
+*Added 2026-10-15 (Myer: "remove my name and info where possible and replace with tirekick.app or Tirekick").
+Myer isn't hiding that they made Tirekick; the brand should simply be what people see.*
+
+Audit of both repos and the accounts around them:
+
+| Where | What shows now | Status |
+| --- | --- | --- |
+| `LICENSE`, README "License and disclaimer" | was "dabloonery" | Done in 0.40.3: "The Tirekick authors" |
+| `store/LISTING.md` homepage | was the GitHub repo | Done in 0.40.3: `https://tirekick.app` |
+| `manifest.json` `homepage_url` | the GitHub repo | `https://tirekick.app` in PR #30 |
+| Code comments (`rules.js`, `theme.js`) | Myer's name | Done in 0.40.3 |
+| Website repo `tirekick-site` | "© 2026 Tirekick™", support@tirekick.app, no personal details, one commit by Claude | Clean |
+| Store listing, privacy policy, site contact | support@tirekick.app | Clean, once the mailbox forwards |
+| Main repo commit history | personal email on 25 commits (24 by Myer, 1 by Claude) | Myer, step 1 |
+| GitHub owner `dabloonery` | in both repo addresses and as the author of every merge | Myer, step 2 |
+| Chrome Web Store publisher name and contact email | not set yet | Myer, step 3 |
+| Internal notes (`AGENTS.md`, this file, `REFERENCE.md`, `store/SUBMISSION-CHECKLIST.md`, `store/SECURITY-REVIEW.md`) | "Myer" as the decision maker | Claude, step 5 |
+
+Steps for Myer, in order. None of these can be done from the project, and steps 1 and 2 can't be undone:
+
+1. **Commit history (recommended: publish a clean copy, don't rewrite this repo).** At 1.0.0, rather than
+   making this repository public, push a copy whose history has the personal email swapped for GitHub's
+   private address (`118295889+dabloonery@users.noreply.github.com`) to a new public repo, and keep this one
+   private. Rewriting this repo in place also works, but GitHub keeps old pull requests' commits, so the email
+   would still be reachable through them. Either way, first turn on GitHub's Settings, Emails, "Keep my email
+   address private" and "Block command line pushes that expose my email", and set that private address as
+   `git config --global user.email` on your computer. Claude can prepare the clean copy when you say so.
+2. **GitHub owner (recommended: a free "tirekick" organization).** Create a GitHub organization named
+   `tirekick` and transfer both repos to it; old addresses redirect. Then the code lives at
+   `github.com/tirekick/...` and the site is already on tirekick.app. Your account still shows as a member
+   and on your own commits. Install the Claude GitHub App on the new organization afterwards.
+3. **Chrome Web Store account (recommended: publisher name "Tirekick").** In the developer dashboard's
+   Account page, set the publisher display name to "Tirekick" and the contact email to support@tirekick.app
+   (it must be verified, so set up forwarding first). Stay a non-trader, which keeps a home address off the
+   listing; a trader account would show an address and phone number.
+4. **Email and domain.** Finish support@tirekick.app forwarding in Cloudflare Email Routing. Replies sent
+   from your own mailbox show your personal address; to reply as support@tirekick.app, add it as a "send as"
+   address in your mail app or use a mailbox on the domain. Cloudflare hides the domain owner's details in
+   WHOIS by default; check that it does for tirekick.app.
+5. **Internal notes (Claude, in the 1.0.0 PR).** Before the code goes public, change "Myer" to "the owner"
+   in the files listed in the table, so the public repo carries no names.
 
 ---
 

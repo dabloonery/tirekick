@@ -10,7 +10,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 - **Category:** Shopping
 - **Language:** English
 - **Privacy policy URL:** the public address of `store/PRIVACY.md`. The repository is private for now, so its GitHub page isn't public: host it elsewhere (a GitHub Gist, a GitHub Pages site from a small public repository, or any web page you control) until the repository is opened
-- **Homepage URL:** https://github.com/dabloonery/Second-Look (set in the manifest)
+- **Homepage URL:** https://tirekick.app (set in the manifest)
 - **Support contact:** support@tirekick.app (public; works once the tirekick.app mailbox is set up)
 
 ## Description

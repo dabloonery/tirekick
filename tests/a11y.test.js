@@ -61,7 +61,7 @@
       w.value = "dmg -case";
       w.dispatchEvent(new Event("input", { bubbles: true }));
       await wait(500);
-      check("button counts the filters that are set", /Filter\s*\u00b7\s*1/.test(tog.textContent), `label "${tog.textContent}"`);
+      check("button counts the filters that are set", /Filter \(1\)/.test(tog.textContent), `label "${tog.textContent}"`);
       tog.click();
       check("fields tuck away again", box.hidden, "still shown");
       w.value = "";

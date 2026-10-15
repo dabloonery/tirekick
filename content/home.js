@@ -137,7 +137,7 @@
       const cols = days.map((x, i) => {
         // A column per day shows its numbers on hover; the keyboard and screen readers get them from Table view.
         const col = h("span", { class: `col${i === peak ? " peak" : ""}`, "aria-hidden": "true" }, h("i", { style: `height:${(x.usd / top) * 100}%` }));
-        col.addEventListener("pointerenter", () => showTip(col, spendMoney(x.usd), `${dayFmt(x.t)} · ${plural(x.calls, "call")}`));
+        col.addEventListener("pointerenter", () => showTip(col, spendMoney(x.usd), `${dayFmt(x.t)}, ${plural(x.calls, "call")}`));
         col.addEventListener("pointerleave", hideTip);
         return col;
       });

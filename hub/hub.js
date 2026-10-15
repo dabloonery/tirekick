@@ -69,7 +69,7 @@
   // The same lookups as the panel's, with the same pace and cache: through an eBay tab you have open if
   // there is one, otherwise from the background script.
   const soldMarket = TKSold.create({ fetchHtml: (query, condition) => send("fetchSoldHtml", { url: TK.soldUrl(query, TK.SOLD_CONDITION[condition]) }), send });
-  const cell = (label, m) => h("div", { class: "mcell" }, h("span", {}, label), h("b", {}, `${m.confidence === "rough" ? "~" : ""}${money(m.median)}`), h("span", {}, `${money(m.p25)}–${money(m.p75)} · ${m.n} sales${m.confidence === "rough" ? " · a rough guide" : ""}`));
+  const cell = (label, m) => h("div", { class: "mcell" }, h("span", {}, label), h("b", {}, `${m.confidence === "rough" ? "~" : ""}${money(m.median)}`), h("span", {}, `${money(m.p25)}–${money(m.p75)}, ${m.n} sales${m.confidence === "rough" ? ", a rough guide" : ""}`));
   const leftOut = TK.leftOutSold;
   const say = (text, err = false) => answer.replaceChildren(h("div", { class: err ? "status err" : "status", role: err ? "alert" : null }, text));
   const lookUp = async () => {

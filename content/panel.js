@@ -363,7 +363,7 @@
     .model:focus { outline:none; border-color:var(--ink); }
     .model:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .spend { all:unset; padding:4px 0; cursor:pointer; color:var(--muted); font-size:13px; white-space:nowrap; font-variant-numeric:tabular-nums; }
-    .spend b { color:var(--ink); font:600 15px/1 var(--display); font-variant-numeric:lining-nums tabular-nums; }
+    .spend b { color:var(--muted); font:500 13px/1 var(--ui); font-variant-numeric:lining-nums tabular-nums; }
     .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
     .spend[hidden], .model-pick[hidden] { display:none; }
     .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
@@ -469,6 +469,7 @@
     .pi-head { margin-bottom:3px; color:var(--ink); font:600 23px/1.2 var(--display); letter-spacing:-.015em; }
     .pi-head .mono { font-family:var(--mono); }
     .pi-line b { color:var(--ink); font-weight:600; }
+    .pi-line .past .past-why { margin:4px 0 0; }
     .pi-line button { all:unset; position:relative; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
     .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
@@ -478,6 +479,7 @@
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .fchip { font-size:13px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
+    .fchip b { font-weight:700; } .fchip .tk-rest { font-weight:500; }
     .fchip.k-new { background:var(--new-bg); color:var(--new-fg); } .fchip.k-good { background:var(--good-bg); color:var(--good-fg); } .fchip.k-warn { background:var(--warn-bg); color:var(--warn-fg); }
     .fchip.k-plain { background:none; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line); }
     .fchip.k-deal { background:var(--new-bg); color:var(--new-fg); }
@@ -877,7 +879,7 @@
     if (inputsSum.dataset.shown === `${q}\n${want}`) return; // runs every two seconds: only redraw a change
     inputsSum.dataset.shown = `${q}\n${want}`;
     $(".sum-text").replaceChildren(
-      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", want ? [" \u00b7 wants ", h("b", {}, want)] : []].flat()
+      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", want ? [", wants ", h("b", {}, want)] : []].flat()
     );
     // Nothing in What I want: the button says what it's for, instead of the line saying what's missing
     $('[data-act="edit-inputs"]').textContent = want ? "Edit" : "Add what you want";
@@ -1142,13 +1144,13 @@
     // Only the services you've set up are offered, side by side: no one service is pushed before you pick.
     const opts = [];
     if (cfg.hasKey) {
-      opts.push(...QUALITY.map(([id, label, sm, m]) => ["anthropic", `q:${id}`, `Claude \u00b7 ${label} \u00b7 ${sm === m ? short(m) : `${short(sm)} + ${short(m)}`}`]));
-      if (cfg.anthropicModel && !qualityNow()) opts.push(["anthropic", "custom", `Claude \u00b7 Custom \u00b7 ${short(cfg.scanModel || cfg.anthropicModel)} + ${short(cfg.anthropicModel)}`]);
+      opts.push(...QUALITY.map(([id, label, sm, m]) => ["anthropic", `q:${id}`, `Claude, ${label}`, `Scans with ${short(sm)}, single listings with ${short(m)}`]));
+      if (cfg.anthropicModel && !qualityNow()) opts.push(["anthropic", "custom", "Claude, Custom", `Scans with ${short(cfg.scanModel || cfg.anthropicModel)}, single listings with ${short(cfg.anthropicModel)}`]);
     }
-    if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName} \u00b7 ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
-    opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama \u00b7 ${cfg.textModel || "qwen3:4b"} \u00b7 free`]);
-    if (cfg.provider === "anthropic" && !cfg.hasKey) opts.unshift(["", "", "No AI yet \u00b7 pick one in settings"]);
-    modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}`, title: label }, label)));
+    if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName}, ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
+    opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama, ${cfg.textModel || "qwen3:4b"} (free)`]);
+    if (cfg.provider === "anthropic" && !cfg.hasKey) opts.unshift(["", "", "No AI yet: pick one in settings"]);
+    modelSel.replaceChildren(...opts.map(([prov, m, label, more]) => h("option", { value: `${prov}|${m}`, title: more || label }, label)));
     $(".model-pick").title =
       cfg.provider === "anthropic"
         ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes straight away; settings has each one.`
@@ -1216,27 +1218,6 @@
     );
   });
 
-  const usageSummary = (usage) => {
-    const days = usage?.days || {};
-    const now = new Date();
-    const day = now.toLocaleDateString("en-CA");
-    const month = day.slice(0, 7);
-    const last = new Date(now.getFullYear(), now.getMonth() - 1, 15).toLocaleDateString("en-CA").slice(0, 7);
-    const sum = { today: 0, month: 0, last: 0, calls: 0, models: {} };
-    for (const [d, v] of Object.entries(days)) {
-      if (d === day) sum.today += v.usd;
-      if (d.startsWith(last)) sum.last += v.usd;
-      if (!d.startsWith(month)) continue;
-      sum.month += v.usd;
-      sum.calls += v.calls;
-      for (const [m, mv] of Object.entries(v.models || {})) {
-        const t = (sum.models[m] ||= { usd: 0, calls: 0 });
-        t.usd += mv.usd;
-        t.calls += mv.calls;
-      }
-    }
-    return sum;
-  };
   const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
   const perCall = (n) => (n < 0.01 ? "under $0.01 each" : `about $${n.toFixed(2)} each`);
   let lastUsage = null;
@@ -1244,7 +1225,7 @@
   // Always pass the record explicitly: after a reset it's undefined, and that must show $0.00.
   const renderSpend = (usage) => {
     lastUsage = usage;
-    const s = usageSummary(usage);
+    const s = TKShared.usageSummary(usage);
     const budget = +cfg.monthlyBudget || 0;
     const share = budget ? s.month / budget : 0;
     const level = share >= 1 ? "over" : share >= 0.8 ? "warn" : "";
@@ -1502,13 +1483,13 @@
   const lensLine = (it) => {
     if (it.related === false) return it.browse ? "Not your thing" : "Not your search";
     // The number that matters first, so a narrow sticker doesn't cut it off.
-    if (it.auction) return [it.bidCap > 0 ? `Bid \u2264 ${dollars(it.bidCap)}` : "Auction", it.timeLeft && `${it.timeLeft} left`].filter(Boolean).join(" \u00b7 ");
-    if (it.lot && it.total != null) return `Lot of ${it.lot} \u00b7 ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
+    if (it.auction) return [it.bidCap > 0 ? `Bid \u2264 ${dollars(it.bidCap)}` : "Auction", it.timeLeft && `${it.timeLeft} left`].filter(Boolean).join(", ");
+    if (it.lot && it.total != null) return `Lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
     // Fix & flip: how hard the fix is (when there is one) and what it should make; whichever is known.
     if (it.lens === "project") {
       const margin = it.margin != null ? `\u2248 ${money(it.margin)} gap after fees${it.refIsEstimate || it.refRough ? " (est.)" : ""}` : "";
       const broken = it.fault && !/^none$/i.test(it.fault);
-      if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`)].filter(Boolean).join(" \u00b7 ");
+      if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`)].filter(Boolean).join(", ");
       if (margin) return margin;
       if (broken && it.partsCost > 0) return `~$${it.partsCost} parts`;
     }
@@ -1613,6 +1594,7 @@
       .tk-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--tk-paper); color:var(--tk-ink);
         font:600 13px/1.35 ${UI}; white-space:nowrap; letter-spacing:normal; text-transform:none; box-shadow:0 2px 6px -2px rgba(0,0,0,.35); }
       .tk-chip svg { width:11px; height:11px; }
+      .tk-chip b { font-weight:700; } .tk-chip .tk-rest { font-weight:500; }
       .tirekick-marks .tk-chip, .tk-under .tk-chip { max-width:100%; white-space:normal; } /* a long tag wraps inside the card */
       .tk-chip.k-new, .tk-chip.k-deal { background:var(--tk-new-bg); color:var(--tk-new-fg); } .tk-chip.k-good { background:var(--tk-good-bg); color:var(--tk-good-fg); }
       .tk-chip.k-warn { background:var(--tk-warn-bg); color:var(--tk-warn-fg); }
@@ -1903,13 +1885,15 @@
     if (f.sellerWarn) c.push(["warn", f.sellerWarn]);
     if (f.dup) c.push(["warn", `Same title ×${f.dup}`]);
     // An auction in its last few hours, especially with no bids, is when bargains happen.
-    if (f.auction && f.hoursLeft != null && f.hoursLeft <= 3) c.push(["new", `Ends in ${f.timeLeft}${f.bids === 0 ? " · no bids" : ""}`]);
-    else if (f.auction) c.push(["plain", `Auction${f.timeLeft ? ` · ${f.timeLeft} left` : ""}`]);
+    if (f.auction && f.hoursLeft != null && f.hoursLeft <= 3) c.push(["new", `Ends in ${f.timeLeft}${f.bids === 0 ? ", no bids" : ""}`]);
+    else if (f.auction) c.push(["plain", `Auction${f.timeLeft ? `, ${f.timeLeft} left` : ""}`]);
     if (f.lot) c.push(["plain", `Lot of ${f.lot}`]);
     if (f.bestOffer) c.push(["plain", "Offers"]);
     return c.slice(0, 3);
   };
-  const chipEls = (f) => chipsFor(f).map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, text));
+  // A chip's lead word ("Good price") is set in bold, so it needs no "·" to part it from the number.
+  const chipText = (t) => (t.includes(" \u00b7 ") ? [h("b", {}, t.slice(0, t.indexOf(" \u00b7 "))), h("span", { class: "tk-rest" }, ` ${t.slice(t.indexOf(" \u00b7 ") + 3)}`)] : t);
+  const chipEls = (f) => chipsFor(f).map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
 
   // Our own buttons sit inside the site's card (on Facebook, inside the link): keep the click ours.
   const own = (fn) => (e) => {
@@ -2584,7 +2568,7 @@
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
       .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t))
-      .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, text));
+      .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
     if (item.photoAdjust) {
       const chip = h("span", { class: "tk-chip", title: "Photo check" }, signed(item.photoAdjust));
       chip.insertAdjacentHTML("afterbegin", CAMERA); // static markup, no page text involved
@@ -2605,7 +2589,7 @@
         h(
         "div",
         { class: "tk-pop" },
-        h("b", {}, String(item.score), " · ", h("span", { class: "tk-pw" }, v.label)),
+        h("b", {}, String(item.score), " ", h("span", { class: "tk-pw" }, v.label)),
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,
@@ -2626,7 +2610,7 @@
         f.dup ? line(`${f.dup} listings on this page share this title or photo: a repost, or one seller with several.`) : null,
         item.fault && !/^none$/i.test(item.fault) ? line(`Likely fault: ${item.fault}${item.difficulty ? ` (difficulty ${item.difficulty}/5)` : ""}`) : null,
         item.photoAdjust ? line(`Photo check ${signed(item.photoAdjust)}: ${(item.photos || []).flatMap((p) => p.why).join("; ") || "see panel"}`) : null,
-        item.flags?.length ? line(item.flags.join(" · ")) : null,
+        item.flags?.length ? line(item.flags.join(", ")) : null,
         item.imageUrl &&
         h(
           "div",
@@ -2715,14 +2699,14 @@
         shownKeys.add(key);
         const known = chipsFor(f)
           .filter(([, t]) => !/^Auction|^Lot of/.test(t) && !TKRules.SOLD_CHIP.test(t))
-          .map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+          .map(([k, t]) => h("span", { class: `fchip k-${k}` }, chipText(t)));
         const saveBtn = h("button", { class: saved[key] ? "on" : null, onclick: () => toggleSave(key) }, saved[key] ? "Saved" : "Save");
         const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
         // Not scored (yet): the price is the headline, with what's known for free.
         if (it.score == null) {
           const mk = marketOf(f);
-          const vs = f.vsSold != null ? ` \u00b7 ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true })} (${dollars(Math.round(mk.median))})` : "";
-          const each = it.lot && it.total != null ? ` \u00b7 lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
+          const vs = f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true })} (${dollars(Math.round(mk.median))})` : "";
+          const each = it.lot && it.total != null ? `, lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
           listEl.append(
             h(
               "div",
@@ -2733,15 +2717,15 @@
                 h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
                 (() => {
                   const read = !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
-                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " \u00b7 free read") : null;
+                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
                 })(),
                 likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
                 (() => {
                   // The tag already shows the price; the line adds only what it doesn't say.
                   const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]
                     .filter(Boolean)
-                    .join(" \u00b7 ");
-                  const line = `${bits}${vs}${each}`.replace(/^ \u00b7 /, "");
+                    .join(", ");
+                  const line = `${bits}${vs}${each}`.replace(/^, /, "");
                   return line ? h("div", { class: "meta" }, line) : null;
                 })(),
                 known.length ? h("div", { class: "flags" }, known) : null
@@ -2763,8 +2747,8 @@
         const vsMarket =
           it.vsWorking != null && !it.auction && !it.lot
             ? it.refIsEstimate
-              ? ` \u00b7 ${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-              : ` \u00b7 ${TKRules.vsText(it.total, it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
+              ? `${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
+              : `${TKRules.vsText(it.total, it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
             : "";
         const line = lensLine(it);
         const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
@@ -2777,8 +2761,8 @@
               "div",
               {},
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
-              h("div", { class: "meta", "data-v": pv.v }, h("span", { class: "verdict" }, pv.label), `${it.related === false ? " (not your search)" : ""}${it.auction || it.shipping > 0 ? ` \u00b7 ${priceStr(it)}` : ""}${it.related === false ? "" : vsMarket}`),
-              (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` \u00b7 ${it.fault}` : "")) : null,
+              h("div", { class: "meta", "data-v": pv.v }, h("span", { class: "verdict" }, pv.label), ` ${[it.related === false && "(not your search)", (it.auction || it.shipping > 0) && priceStr(it), it.related !== false && vsMarket].filter(Boolean).join(", ")}`),
+              (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? `, ${it.fault}` : "")) : null,
               h("div", { class: "reason" }, it.reason || ""),
               // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
               known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null
@@ -2950,7 +2934,7 @@
       { title: [`The middle of ${m.n} recent eBay sales, shipping included where shown.`, leftOut(m.dropped).length && `Left out: ${leftOut(m.dropped).join(", ")}.`].filter(Boolean).join(" ") },
       h("span", { class: "mlabel" }, label),
       h("span", { class: "mval" }, `${m.confidence === "rough" ? "~" : ""}$${m.median}`),
-      h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75} \u00b7 ${m.n} sales${m.confidence === "rough" ? " \u00b7 a rough guide" : ""}`)
+      h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75}, ${m.n} sales${m.confidence === "rough" ? ", a rough guide" : ""}`)
     );
   const renderMarket = (market) => {
     if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a market price.");
@@ -3211,7 +3195,7 @@
     const est = cfg.provider !== "ollama" && cfg.scanRate > 0 ? toScore * cfg.scanRate : 0;
     const label = changed ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : toScore ? `Scan ${toScore} listing${toScore > 1 ? "s" : ""}` : "Scan this page";
     // This runs every two seconds: only touch what changed (each change makes the browser restyle the panel).
-    const costText = est && (changed || n || !seen.size) ? ` \u00b7 ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}` : "";
+    const costText = est && (changed || n || !seen.size) ? ` ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}` : "";
     if (scanBtn.dataset.shown !== label + costText) {
       scanBtn.dataset.shown = label + costText;
       scanBtn.replaceChildren(label, costText ? h("span", { class: "cost" }, costText) : "");
@@ -3287,10 +3271,10 @@
     if (newN) bits.push(`<b>${newN}</b> new to you`);
     if (dropN) bits.push(`<b>${dropN}</b> cheaper than before`);
     if (warnN) bits.push(`<b>${warnN}</b> to be careful with`);
-    piLine.innerHTML = bits.join(" \u00b7 "); // numbers and fixed words only
+    piLine.innerHTML = bits.join(", "); // numbers and fixed words only
     if (hidN || filN) {
       piLine.append(
-        ` \u00b7 ${[hidN && `${hidN} not interested`, filN && `${filN} filtered`].filter(Boolean).join(", ")} `,
+        `, ${[hidN && `${hidN} not interested`, filN && `${filN} filtered`].filter(Boolean).join(", ")} `,
         h("button", { onclick: () => setShowHidden(!showHidden) }, showHidden ? "Hide them again" : `Show ${hidN + filN === 1 ? "it" : "them"}`)
       );
     }
@@ -3356,7 +3340,7 @@
     qf.hidden = !qfOpen;
     qfToggle.setAttribute("aria-expanded", String(qfOpen));
     const n = [quick.words.trim(), quick.min, quick.max, quick.deal].filter(Boolean).length;
-    qfToggle.textContent = n ? `Filter \u00b7 ${n}` : "Filter";
+    qfToggle.textContent = n ? `Filter (${n})` : "Filter";
     qfToggle.classList.toggle("on", n > 0);
   };
   qfToggle.addEventListener("click", () => {
@@ -3943,7 +3927,7 @@
     const f = itemFacts;
     if (!f || TK.pageType() !== "item") return;
     // After an analysis its own line says how far under or over sold it is; the chip would say it twice.
-    const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && TKRules.SOLD_CHIP.test(t))).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+    const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && TKRules.SOLD_CHIP.test(t)) && !(t === f.motivated && softFor(f).level !== "none")).map(([k, t]) => h("span", { class: `fchip k-${k}` }, chipText(t)));
     const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
     const scam = scamWarning(f);
     // Every price you've seen it at: "$70 (Sep 30) → $60 (Oct 5) → $55 now".
@@ -3967,7 +3951,9 @@
     // What an earlier scan or analysis (in a search, another tab, or here) made of this listing.
     const past = storedScan(f.key, lens);
     const pastLine = past && !itemEl.childElementCount
-      ? h("div", {}, h("b", {}, `${past.score} \u00b7 ${VERDICT[past.verdict]?.label || past.verdict}`), ` on ${shortDate(past.at)}${past.m ? ` with ${nameOf(past.m)}` : ""}${past.p != null && f.price != null && past.p !== priceOf(f) ? ` (the price was ${dollars(past.p)} then)` : ""}${past.reason ? `: ${past.reason}` : "."}`)
+      ? h("div", { class: "past", title: past.m ? `Judged with ${nameOf(past.m)}` : null },
+          h("div", { "data-v": past.verdict }, h("span", { class: "verdict" }, VERDICT[past.verdict]?.label || past.verdict), ` ${past.score} out of 100, ${shortDate(past.at)}${past.p != null && f.price != null && past.p !== priceOf(f) ? ` (the price was ${dollars(past.p)} then)` : ""}`),
+          past.reason ? h("p", { class: "past-why" }, past.reason) : null)
       : "";
     const acts = h(
       "div",
@@ -4002,8 +3988,8 @@
     const v = shownV({ ...listing, verdict: r.verdict }, {});
     const score = clamp100(r.score | 0);
     const vs =
-      (listing.vsWorking != null ? ` · ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +
-      (listing.vsParts != null ? ` · ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("the typical price", "typical for parts")}` : "");
+      (listing.vsWorking != null ? `, ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +
+      (listing.vsParts != null ? `, ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("the typical price", "typical for parts")}` : "");
     const rep = r.repair;
     const margin = listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (rep?.partsCost || 0) : null;
     const photoBox = h("div");
@@ -4016,7 +4002,7 @@
         h(
           "div",
           {},
-          h("div", { class: "title", "data-v": v.v }, h("span", { class: "verdict" }, v.label), ` \u00b7 ${score} out of 100`),
+          h("div", { class: "title", "data-v": v.v }, h("span", { class: "verdict" }, v.label), ` ${score} out of 100`),
           h("div", { class: "meta" }, `${priceStr(listing)}${vs}`),
           h("div", { class: "reason" }, r.summary || ""),
           r.photoAdjust ? h("div", { class: r.photoAdjust < 0 ? "adjust" : "adjust up" }, `Photo check ${signed(r.photoAdjust)} (was ${r.baseScore})`) : null,
@@ -4061,7 +4047,7 @@
         h(
           "div",
           { class: "sect" },
-          h("strong", {}, `${DIFFICULTY[rep.difficulty] || DIFFICULTY[0]}${rep.difficulty ? ` (${rep.difficulty}/5)` : ""}${rep.partsCost ? ` · ~$${rep.partsCost} parts` : ""}`),
+          h("strong", {}, `${DIFFICULTY[rep.difficulty] || DIFFICULTY[0]}${rep.difficulty ? ` (${rep.difficulty}/5)` : ""}${rep.partsCost ? `, ~$${rep.partsCost} parts` : ""}`),
           rep.faults?.length ? h("ol", {}, rep.faults.slice(0, 4).map((f) => h("li", {}, f))) : null,
           kv("Parts", rep.parts),
           kv("Tools", rep.tools),
@@ -4165,7 +4151,7 @@
       renderItem(listing, r, market);
       setCount(1);
       analyzeBtn.className = "ghost";
-      analyzeBtn.replaceChildren("Analyze again", settings.provider === "anthropic" && r.cost ? h("span", { class: "cost" }, ` \u00b7 last one ${fmtCost(r.cost)}`) : "");
+      analyzeBtn.replaceChildren("Analyze again", settings.provider === "anthropic" && r.cost ? h("span", { class: "cost" }, ` last one ${fmtCost(r.cost)}`) : "");
       editingInputs = false;
       editingQ = false;
       setStatus("");

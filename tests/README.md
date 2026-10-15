@@ -25,6 +25,7 @@ it) and a fake Claude API that keeps every request, so tests can check the model
 | `e2e/robust.ts` | the free features when things go wrong: a site that changed its pages, storage, several tabs at once, damaged backups |
 | `e2e/free.ts` | the free extras: "too cheap" marks from sold prices, the offer helper on a listing page (with "They said $…" and the plan passed to an analysis), saved listings as a spreadsheet |
 | `e2e/photos.ts` | the same photo on other Marketplace listings: fingerprints of thumbnails on screen, marks on both cards, kept for later pages, never on eBay |
+| `e2e/tidy.ts` | 0.39.0: the Marketplace home feed without off-topic posts, quick filters and Skips out of the Filter drawer, the free read on rows and chips, an offer from one free sold lookup, search ideas on the feed, the navy theme, clicking the page tucks the panel away |
 | `e2e/first-run.ts` | the welcome opens the panel once; Got it puts it away; ? brings it back |
 | `e2e/rename.ts` | a tab left open across the Second Look → Tirekick update loses the old panel and tags |
 | `e2e/states.ts` | every way things can go wrong, on the real panel: rejected key, rate limit, answer cut off, no connection, budget used up, a scan under way and stopped, a page with nothing to scan, empty Saved and Home, Delete everything. Checks the message, that it's on screen, and that it offers the way out (`STATES_OUT=dir` saves screenshots) |

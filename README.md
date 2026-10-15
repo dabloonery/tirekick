@@ -57,8 +57,9 @@ below). Saved and Home work on any eBay or Marketplace page.
 - **What you use**: plain counters kept in this browser (scans, sold-price comparisons, analyses,
   search ideas, photo checks, saves, hides, switches to Reseller). **Reset counts** clears them.
 - **Getting started**: four steps with a check beside each one done; **Hide** folds it away.
-- Right-click the toolbar icon for **Open Tirekick home**: Tirekick's own page, with a lookup,
-  your saved listings and searches, and Home. On a page Tirekick doesn't work on, the icon opens it too.
+- On a page Tirekick doesn't work on, the toolbar icon opens **Tirekick's own page as a popup**: a lookup,
+  your saved listings and searches, and Home. **Open in a tab ↗** at its top (or right-click the icon,
+  **Open Tirekick in a tab**) gives it a whole tab. On eBay and Marketplace the icon opens the panel instead.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Fair price,
 Skip, Likely scam) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
@@ -90,7 +91,7 @@ S1337". Tirekick watches for it:
   Telegram shows a "Likely scam" note, and the analysis is Likely scam whatever the model thought.
   A plain phone number ("call or text") is only a hint.
 
-Likely scams are grayed out along with skipped ones (Skips and scams: Show / Dim / Hide, under **Filter**). Dimming fades the card but not its tag or chips, so a
+Likely scams are grayed out along with skipped ones (Skips and scams: Show / Dim / Hide, above the list). Dimming fades the card but not its tag or chips, so a
 scam warning stays readable.
 
 ## Everyday use
@@ -111,8 +112,11 @@ scam warning stays readable.
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
   price, auctions ending soonest, biggest margin, or new and cheaper first.
-- **Skipped and suspicious listings are grayed out** on the page; switch to Show or Hide under
-  **Filter** (Skips and scams).
+- **Skipped and suspicious listings are grayed out** on the page; switch to Show or Hide with
+  **Skips and scams** above the list.
+- **Before any scan, each row has a free read**: Great, Good or Fair price, or Over sold price, from the sold
+  prices; Check first or Likely scam from the free warnings; Off-topic. "Best first" sorts by it until a scan
+  gives real scores, and the cards' sold chip says the same word ("Good price · $53 under sold").
 - **A row's links**: **Open ↗** is always there; Sold, Save and Not interested appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
@@ -125,8 +129,8 @@ scam warning stays readable.
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Tirekick".
 - **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
-  "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (free,
-  no AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page on any other
+  "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (free, without
+  the AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
   site, with your saved listings and searches (each marked eBay or Marketplace) and Home.
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
@@ -178,17 +182,20 @@ reads "Not your thing" and is grayed out with the skipped listings. Prices are c
 estimate of what that kind of item usually sells for, always marked **est.**; press
 **Sold prices** on a listing for real eBay numbers for that exact item.
 
-## Without any AI
+## Without the AI
 
-Everything here is free, needs no API key, and runs only on pages you're looking at.
+Tirekick has AI features, and they're optional. Everything here works without them: it's free, needs no API
+key, and runs only on pages you're looking at.
 
 **On the cards**, as soon as a results page loads:
 
 - **Scam marks**: reposts under new codes, codes in titles, contact off the site (see Scams).
-- **% of sold**: once sold prices are known for the search, every card says how its price
-  (with shipping) compares, in green when it's 70% or less. Lots and auctions are left out.
-- **Too cheap**: under 40% of a trusted sold median reads "Likely scam? 32% of sold price", under 55% "Too
-  cheap? 47% of sold price" (not for broken ones, lots or auctions, and not when the sold prices are only a rough guide).
+- **Under or over sold**: once sold prices are known for the search, every card says how far its price
+  (with shipping) is from what sold ones go for, in dollars: "Good price · $53 under sold", "$20 over sold",
+  "about the sold price". Pointing at it shows the sold median. Lots and auctions are left out.
+- **Too cheap**: under 40% of a trusted sold median reads "Likely scam? Sold ones go for $300", under 55%
+  "Too cheap? Sold ones go for $300" (not for broken ones, lots or auctions, and not when the sold prices are
+  only a rough guide).
 - **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" straight away.
 - **New to you** on a search you've looked at before (not on feeds, and not when most of the
   page is new anyway).
@@ -202,7 +209,13 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
   ✕ **Not interested**.
 
-**Filtering a search** (the **Filter** button above the list opens the fields, and says how many are set; Enter or Esc folds them away again, and a search's saved filter applies with the box folded; each search remembers its own):
+**Filtering a search.** **New only**, **Hide broken** and **Hide off-topic** sit above the list, one click each.
+The **Filter** button opens the words, price range and your price, and says how many are set; Enter or Esc
+folds them away again, and a search's saved filter applies with the box folded. Each search remembers its own.
+
+- **Hide off-topic** drops what isn't an item for sale: rentals and rooms, services (massage, cleaning, hair),
+  jobs, pets, "looking for" posts and $1 placeholder prices. It's on by itself on the Marketplace home page, where
+  that clutter lives; turn it off there and Tirekick remembers.
 
 - **Words**, like an eBay search: `dmg -case -game` keeps listings with "dmg" and drops any with
   "case" or "game"; `1000/2000` is either; `"must go"` is a phrase. They match the title and the

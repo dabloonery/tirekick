@@ -659,7 +659,7 @@ async function suggestSearches({ site, query, intent, titles, market, lens = "us
     : [
         `site: ${site}`,
         IDEAS_LENS[lensOf(lens)],
-        query && `current search: ${query}`,
+        query ? `current search: ${query}` : "this is a browse feed, not a search: suggest searches for the kinds of item that come up more than once in it",
         market && market.median != null && `sold-price reference: median $${market.median}, middle half $${market.p25}-$${market.p75}${market.parts ? `; for parts: median $${market.parts.median}` : ""}`,
         titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
       ];
@@ -925,9 +925,14 @@ function soldSlot({ perHour, gap }) {
   });
 }
 
-const HANDLERS = { storeEdit, soldSlot, rankBatch, analyzeListing, suggestSearches, checkPhoto, photoHashes, fetchSoldHtml, soldWorkerBlocked, getFont, openOptions, openHome, openTabs, abort, getSettings: getPageSettings };
+// A store page with the panel on it: there the icon opens or tucks away the panel instead of the popup.
+async function panelTab(_payload, sender) {
+  if (sender?.tab?.id >= 0 && sender.frameId === 0) await chrome.action.setPopup({ tabId: sender.tab.id, popup: "" });
+}
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+const HANDLERS = { storeEdit, soldSlot, rankBatch, analyzeListing, suggestSearches, checkPhoto, photoHashes, fetchSoldHtml, soldWorkerBlocked, getFont, openOptions, openHome, openTabs, abort, panelTab, getSettings: getPageSettings };
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
   if (!handler) return false;
   const payload = msg.payload || {};
@@ -939,7 +944,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   (async () => {
     try {
-      sendResponse({ ok: true, data: await handler(payload) });
+      sendResponse({ ok: true, data: await handler(payload, sender) });
     } catch (err) {
       sendResponse({ ok: false, error: err.message || String(err) });
     } finally {
@@ -974,6 +979,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // default (a new model, say) reaches every install that never chose otherwise.
   await upgradeStorage().catch((e) => console.warn("[Tirekick] storage upgrade:", e.message));
   await syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
+  refreshOpenTabs().catch(() => {});
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
@@ -981,7 +987,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       contexts: ["image"],
       documentUrlPatterns: TKSites.matches(),
     });
-    chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Tirekick home", contexts: ["action"] });
+    // The icon's own right-click menu: the browser fills most of it; Tirekick adds only this.
+    chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Tirekick in a tab", contexts: ["action"] });
     // Anywhere: select a thing's name and see what it sells for, or search for it on both sites.
     chrome.contextMenus.create({ id: LOOKUP_MENU_ID, title: "Look up \u201c%s\u201d on eBay and Marketplace", contexts: ["selection"] });
   });
@@ -1028,6 +1035,16 @@ chrome.runtime.onStartup.addListener(() => {
   syncAutoScripts().catch(() => {});
   updateBadge().catch(() => {});
 });
+
+// After an install or an update, eBay and Marketplace tabs that are already open get the new page scripts, so
+// you don't have to reload them. The old copy steps aside within a second (teardown in content/panel.js).
+async function refreshOpenTabs() {
+  const { showTab } = await getSettings();
+  if (!showTab) return;
+  const tabs = await chrome.tabs.query({ url: TKSites.matches() });
+  await sleep(1500);
+  for (const t of tabs) if (t.id >= 0 && !t.discarded) await ensureInjected(t.id).catch(() => {});
+}
 
 // ---------- Nothing runs on eBay/Facebook until you ask (when the tab is off) ----------
 // No content scripts are declared in the manifest, so page loads are untouched.
@@ -1076,8 +1093,18 @@ async function openHome({ q = "" } = {}) {
   await chrome.tabs.create({ url });
 }
 
-// The icon opens the panel, or tucks it away; with something new to look at it opens on Home instead.
-// On a page the panel doesn't work on (not eBay or Marketplace), it opens Tirekick's own page.
+// Everywhere else the icon opens Tirekick's own page as a popup (manifest default_popup). On a store page
+// the panel clears that for its tab (panelTab), so the icon opens the panel, or tucks it away; with something
+// new to look at it opens on Home instead. If the tab has since left the store, the popup comes back.
+const POPUP = "hub/hub.html?popup";
+async function showPopup(tabId) {
+  await chrome.action.setPopup({ tabId, popup: POPUP }).catch(() => {});
+  try {
+    await chrome.action.openPopup();
+  } catch {
+    await openHome(); // a browser without openPopup: the same page in a tab
+  }
+}
 async function openPanel(tabId) {
   try {
     const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
@@ -1092,9 +1119,9 @@ async function openPanel(tabId) {
         return true;
       },
     });
-    if (!ours) await openHome();
+    if (!ours) await showPopup(tabId);
   } catch {
-    await openHome().catch(() => {}); // a page the extension can't touch
+    await showPopup(tabId).catch(() => {}); // a page the extension can't touch
   }
 }
 

@@ -46,7 +46,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 
 1. **0.37.0 housekeeping**: the version check, L1, test docs, this section.
 2. **More free features, and better ones.** Done in 0.37.0 and 0.38.0, from the briefs' parts that need no model:
-   - Brief 4: "Likely scam? 32% of sold price" and "Too cheap?" marks from a trusted sold median; Marketplace's
+   - Brief 4: "Likely scam?" and "Too cheap?" marks ("Sold ones go for $300" since 0.39.0) from a trusted sold median; Marketplace's
      "Joined Facebook in …" warns on an account made this year. 0.38.0: **Same photo as 2 other listings** on
      Marketplace, from fingerprints (dHash) of thumbnails on screen, kept 90 days; the same file or the same title
      doesn't count, and scans are told. *Still open:* eBay, which needs the seller on each card first (sellers there
@@ -57,6 +57,13 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    - Brief 2: how long a listing has been up, how a saved one moved since you saved it, "the seller may take less",
      and saved listings' history kept past the 90-day prune. *Still open:* relists.
    - Brief 6, part 1: saved listings as a spreadsheet (CSV), from Saved and from settings. *Still open:* sync.
+   - 0.39.0, from dabloonery's first live look: a **free read** on every listing before a scan ("Good price · $53 under sold"; prices against sold are said in dollars everywhere now, not "% of sold",
+     "Check first", "Off-topic"), which also orders the list; **Work one out from sold prices** on a listing page
+     gives the offer without an analysis; the Marketplace home feed hides **off-topic** posts (rentals, services,
+     jobs, pets, "looking for", $1 placeholders: `TKRules.offTopic`), on by default there, one click to show; search
+     ideas on the feed; color back (navy dark theme, tags tinted by verdict); the toolbar icon opens Tirekick's page as
+     a popup off the stores, and its right-click menu has one entry of ours ("Open Tirekick in a tab"). *Still open:* learning what you skip
+     on the feed (titles you mark Not interested) to hide more like them.
 3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far
@@ -69,12 +76,12 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 
 ### For dabloonery, in order (2026-10-14)
 
-1. **Review and merge PR #24** (0.38.0) on GitHub: open it and press **Merge pull request**.
-2. **Install 0.38.0 in Vivaldi.** Unzip `tirekick-0.38.0.zip` into the folder Vivaldi already loads Tirekick from,
+1. **Review and merge the 0.39.0 PR** on GitHub: open it and press **Merge pull request** (or ask Claude to).
+2. **Install 0.39.0 in Vivaldi.** Unzip `tirekick-0.39.0.zip` into the folder Vivaldi already loads Tirekick from,
    replacing its files (same folder name and place, so your saved data stays), then press the reload arrow on
-   Tirekick in `vivaldi://extensions`. The card there should say 0.38.0.
+   Tirekick in `vivaldi://extensions`. The card there should say 0.39.0. (Or ask Claude to update the folder.)
 3. **The live check, about 20 minutes.** Each one is something the tests can't reach:
-   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "% of sold"
+   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "$… under sold"
      on the cards? Any "Too cheap?" chips look right?
    - Press **Scan** once with your key. Tags on the cards, and the ranked list?
    - Open a listing from that search: is there an **Offer** box with a message you can copy? Type a price under
@@ -82,16 +89,20 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    - A Marketplace search, then one listing: does it say how long ago it was listed, and warn if the seller joined
      Facebook this year? Scroll a while: any **Same photo as … other listings** marks, and do they look right?
    - Saved: **Download (CSV)** opens in a spreadsheet.
-   - Vivaldi: the toolbar icon and its number, Alt+Shift+L, right-click a photo ("Check this photo"), right-click
+   - eBay: open a new listing or search tab without refreshing: does the panel's tab appear by itself? Click a card
+     in the panel's list: is the outline on top of its neighbors, and do the reasons pop-ups sit above other tags?
+   - The Marketplace home page: are rentals, massages and "looking for" posts gone, and **Hide off-topic** off
+     brings them back? Anything real hidden by mistake?
+   - Vivaldi: the toolbar icon opens a popup on other sites and the panel on eBay and Marketplace; its number, Alt+Shift+L (change it at `vivaldi://extensions/shortcuts`), right-click a photo ("Check this photo"), right-click
      selected text ("Look up").
    - Tell Claude what broke, with a screenshot if you can.
 4. **Save real pages for the tests** while you're there (right-click the page, **Save as**, "Webpage, HTML only"):
    an eBay search, an eBay sold search, an eBay listing, a Marketplace search and a Marketplace listing. Put them in
    your Second-Look folder under `tests/fixtures/real/` and say so.
-5. **Decide on a domain.** Not required: a free GitHub Pages address works for the privacy policy. If you want
+5. **Decide on a domain** (dabloonery: "I might"). Not required: a free GitHub Pages address works for the privacy policy. If you want
    tirekick.app, register it; either way, set up a contact email address for the store listing.
-6. **Store accounts, when you're ready to launch:** a Chrome Web Store developer account (one-time fee, needs a
-   Google account with 2-Step Verification) and trader or non-trader status.
+6. **Store accounts:** ~~a Chrome Web Store developer account~~ (done: dabloonery paid the fee, 2026-10-15). Still to
+   set: trader or non-trader status in the developer dashboard.
 7. **Screenshots 1 and 2** from real eBay pages (steps in the store checklist below).
 8. **Before going public:** decide whether to rewrite history to remove your email from old commits, and turn on
    GitHub's "Keep my email address private".
@@ -131,9 +142,9 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 ### 1. Accounts and domain (dabloonery)
 
 - [ ] Register **tirekick.app**. `.app` domains only work over HTTPS, which any of the hosts below handle for free.
-- [ ] Set up a contact address on it (for example `hello@tirekick.app`, forwarded to your inbox). The store
+- [ ] Set up a contact address on it (support@tirekick.app, forwarded to your inbox). The store
       shows it publicly, and the privacy policy needs one.
-- [x] (Paid, 2026-10-15.) Create a Chrome Web Store developer account at https://chrome.google.com/webstore/devconsole
+- [x] Create a Chrome Web Store developer account (done, 2026-10-15) at https://chrome.google.com/webstore/devconsole
       (one-time registration fee; needs a Google account with 2-Step Verification).
 - [ ] In the developer account, declare **trader or non-trader** status (an EU requirement). A free hobby
       project with no income is usually non-trader. Traders must show a public address and phone number.

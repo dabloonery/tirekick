@@ -43,6 +43,8 @@ keep that and add a little warmth and a recognizable name, not to bolt on a pers
    reason right after, in the same breath.
 2. **Be straight about money and data.** Every cost, every thing sent anywhere, said plainly and before
    it happens. "Costs about 1¢." "Nothing leaves your browser until you press Scan."
+   Be straight about the AI too: Tirekick has AI features, so never call it "no AI" or AI-free. Say the
+   core features work without the AI and the AI is optional; for one action, "your AI isn't used".
 3. **Confident, not certain.** Tirekick judges; it doesn't rule. Scam marks say "Likely scam" or
    "Scam?", never "Scam". Estimates say *est.*
 4. **Short and kind under pressure.** Errors say what happened and the one thing to do next. No blame,
@@ -148,9 +150,9 @@ Both lead with what Tirekick does and name the stores last, so adding a store on
 > small score dot, prices are checked against what the same thing actually sold for, likely scams are
 > marked, and it remembers what you've already seen.
 >
-> **Free, with no account. These work without the optional AI features**
+> **Free, no account, no AI needed**
 > • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
-> • How far under or over the usual eBay sold price each listing is ("$53 under sold"), plus price drops, "new to you" and auctions ending soon
+> • How far under or over the sold price each card is ("$53 under sold") once sold prices are in, plus price drops, "new to you" and auctions ending soon
 > • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
 > • Save listings and searches; the Home tab shows what got cheaper and what you've spent
 > • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
@@ -180,7 +182,7 @@ recent sales, and warning about likely scams.
 | `contextMenus` row | "Check this photo with Second Look", "Open Second Look home" | "Check this photo with Tirekick", "Open Tirekick home" |
 | Reviewer notes | the "Second Look" tab at the right edge | the "Tirekick" tab at the right edge |
 | Homepage URL | github.com/dabloonery/Second-Look | tirekick.app once registered (or the renamed repo) |
-| Support contact | support@tirekick.app | Live once dabloonery sets up tirekick.app and the mailbox |
+| Support contact | support@tirekick.app | works once the domain and mailbox are set up |
 
 ---
 
@@ -539,7 +541,7 @@ Every permission is used, and none can be dropped without losing a feature:
 |---|---|
 | `storage` | settings, saved items, seen-listing memory, score cache |
 | `scripting` | registering the page script on eBay and Facebook, injecting it on click, reading sold results through an open eBay tab |
-| `contextMenus` | "Check this photo" and "Open Tirekick home" |
+| `contextMenus` | "Check this photo", "Look up …" and "Open Tirekick in a tab" |
 | eBay, Facebook, image CDNs | the two sites it works on, and photo checks |
 | AI service hosts | the services a user can pick in settings |
 | localhost `:11434`, `:1234` | Ollama and LM Studio |
@@ -603,7 +605,7 @@ it. The privacy page says keys stay in the browser profile. **No change needed.*
 
 - `homepage_url` points at `github.com/dabloonery/Second-Look`. Update it to `https://tirekick.app`
   once the domain is live (or to the renamed repo).
-- The privacy policy and listing use support@tirekick.app, which goes live once dabloonery sets up the tirekick.app domain and mailbox.
+- The privacy policy and listing use support@tirekick.app, which works once dabloonery sets up the domain and mailbox.
 - The 128 px icon is a full-bleed navy tile. The store's guidelines suggest 96 px of artwork inside
   16 px of transparent padding for the store tile; the current one is acceptable but will look a little
   larger than neighbors in search results.
@@ -625,7 +627,7 @@ A few things that are Vivaldi's own UI rather than the extension, worth a look i
 |---|---|---|
 | Toolbar icon and badge | Vivaldi can tuck extension icons into its extensions menu, which hides the badge number | Is the icon showing, and does the badge appear after a saved listing gets cheaper? |
 | Alt+Shift+L shortcut | Vivaldi has its own shortcut system, and a Vivaldi shortcut on the same keys would win | Does the shortcut open the panel? If not, set it at vivaldi://extensions/shortcuts |
-| "Open Tirekick home" on the icon's right-click menu | That entry uses the `action` menu context, which depends on how Vivaldi draws extension icons | Right-click the icon and look for it. The same thing is reachable by clicking the icon on any non-eBay page |
+| The toolbar popup, and "Open Tirekick in a tab" on the icon's right-click menu | The popup is set per tab (the panel clears it on store pages, `panelTab`), and the menu entry uses the `action` context, both of which depend on how Vivaldi draws extension icons | Click the icon on a non-store page: a popup? On eBay: the panel? Right-click the icon and look for the entry |
 | "Check this photo with Tirekick" | Standard page right-click menu | Right-click a listing photo on eBay |
 
 This part wasn't tested in Vivaldi here; the automated tests run in Chromium. dabloonery's daily use of the

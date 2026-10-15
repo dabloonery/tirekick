@@ -4,8 +4,8 @@ Three pages the Chrome Web Store listing links to. Plain HTML and CSS, no script
 served from here. Every link is relative, so the folder works at any address (a GitHub Pages address
 such as `https://dabloonery.github.io/tirekick-site/`, or a domain later). Not published yet.
 
-- `index.html`: the landing page, led by what resellers want (see `research/reseller-demand-2026-10.md` in the
-  project files). The "Add to Chrome" button waits for the store link.
+- `index.html`: the landing page, for both audiences: everyday buyers (scam marks, a big purchase) and resellers
+  (sold prices on Marketplace, Reseller mode). See `plans/tirekick-future.md` in the project files. The "Add to Chrome" button waits for the store link.
 - `privacy.html`: the privacy policy, kept in step with `store/PRIVACY.md` (change both together). The store's
   **privacy policy URL** is this page.
 - `support.html`: getting started, what to send when something breaks, common questions and the contact

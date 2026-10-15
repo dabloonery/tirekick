@@ -105,7 +105,7 @@ await o.ev(`chrome.storage.local.clear()`);
 const op = await open(`chrome-extension://${EXT}/options/options.html`);
 await sleep(800);
 const fresh = await op.ev(`({ pick: document.getElementById('service').value, title: document.getElementById('statusTitle').textContent, boxes: ['anthropicBox','oaiBox','ollamaBox'].every(id => document.getElementById(id).hidden), link: document.getElementById('keyLink').hidden, n: document.getElementById('service').options.length })`);
-ok("a fresh install picks no AI service: one menu lists them side by side", fresh?.pick === "" && /choose an AI service/.test(fresh.title) && fresh.boxes && fresh.link && fresh.n === 11, fresh);
+ok("a fresh install picks no AI service: one menu lists them side by side", fresh?.pick === "" && /^Ready: price checks/.test(fresh.title) && fresh.boxes && fresh.link && fresh.n === 11, fresh);
 await op.ev(`(()=>{const s=document.getElementById('service'); s.value='openai:gemini'; s.dispatchEvent(new Event('change'));})()`);
 await sleep(600);
 const gem = await op.ev(`chrome.storage.local.get(['provider','oaiPreset','oaiUrl']).then(s => ({ ...s, box: !document.getElementById('oaiBox').hidden, link: document.getElementById('keyLink').href }))`);

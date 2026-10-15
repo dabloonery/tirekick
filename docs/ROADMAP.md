@@ -250,6 +250,17 @@ for each, one PR per change.*
    a chip's lead word is bold ("**Good price** $53 below typical"), lists of numbers use commas, "Filter (2)". Kept
    where nothing else separates the parts (model menu entries, saved-row details). The panel's own copy of the
    spending summary now uses `TKShared.usageSummary`.
+5. ~~**Holistic review**~~ (0.47.0, before the beta):
+   - Settings open on what works without an AI: On the page, Filters, then **AI scores** (optional), Judging,
+     Spending, Backup. With no AI chosen the banner says "Ready: price checks and scam marks", not "One step left".
+   - The panel's AI buttons open Settings at AI scores; the budget link at Spending; a storage error at Backup.
+   - On a results page the "Scores are optional" card comes after the typical price, not before it.
+   - Home's getting-started steps that are done shrink to their title.
+   - Fixes: "Unhide all" cleared a shared record with a direct write (now `storeEdit`); "Open it" on a listing
+     that scrolled away now goes through `safeUrl`; a storage error pointed at Home for storage use (now in Settings).
+   - Checked and fine: no dead functions or unused message handlers, no stray `console.log`, the 1-second
+     page tick is cheap when nothing changed.
+   - Left as is: `content/panel.js` is 4,400 lines; splitting it is worth doing after launch, not before.
 
 ## Tirekick: Chrome Web Store submission checklist
 

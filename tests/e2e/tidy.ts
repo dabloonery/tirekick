@@ -45,6 +45,7 @@ ok("turning it off shows them again", (await shown()).split(",").length === 8, a
 await R(f, `[...r.querySelectorAll('.lb-quick .qt')].find(b=>b.textContent==='Hide off-topic').click()`);
 await sleep(600);
 ok("search ideas are offered on the feed (no search yet)", await R(f, `const b=r.querySelector('[data-act=ideas]'); return !b.hidden && b.textContent==='Find searches for what I want'`));
+ok("no browser box of past entries on the panel's text boxes", await R(f, `return [...r.querySelectorAll('input:not([type=checkbox]), textarea')].every(i => i.autocomplete === 'off')`));
 // Click the page: the panel tucks away.
 await f.ev(`document.querySelector('main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }))`);
 await sleep(400);
@@ -61,8 +62,8 @@ const reads = await R(e, `return [...r.querySelectorAll('.list .row')].map(x => 
 ok("unscored rows carry a free read from sold prices", reads?.includes?.("Good price $97") && reads.includes("Fair price $140"), reads);
 ok("…and best first puts good prices first before any scan", /^Good price/.test(reads?.[0] || ""), reads);
 ok("…but a broken one gets no price word: it's cheap for a reason", reads?.includes?.("- $35"), reads);
-const cardChips = await e.ev(`[...document.querySelectorAll('.tk-chip')].map(c=>c.textContent).filter(t=>/ (under|over) sold$|about the sold price$/.test(t))`);
-ok("the card's sold chip says it in a word too", cardChips?.includes?.("Good price · $53 under sold") && cardChips.includes("$115 under sold"), cardChips);
+const cardChips = await e.ev(`[...document.querySelectorAll('.tk-chip')].map(c=>c.textContent).filter(t=>/ (below|above) typical$|about typical$/.test(t))`);
+ok("the card's sold chip says it in a word too", cardChips?.includes?.("Good price · $53 below typical") && cardChips.includes("$115 below typical"), cardChips);
 await e.close();
 
 // ---------- an offer without an analysis ----------
@@ -79,7 +80,7 @@ const calls = await (await fetch("http://localhost:1234/calls")).json();
 ok("…without calling the model", !calls.length, calls);
 // Color is back: the dark panel is navy with an orange main button.
 const col = await R(it, `const w=r.querySelector('.wrap'); w.dataset.theme='dark'; const cs=getComputedStyle(w); return cs.getPropertyValue('--paper').trim()+' '+cs.getPropertyValue('--btn').trim()`);
-ok("the dark theme is navy with an orange button again", col === "#1A2B4C #FF8F3A", col);
+ok("the dark theme is a quiet navy with an orange button", col === "#1C2433 #FF8F3A", col);
 await it.close();
 
 // ---------- the toolbar icon: a popup everywhere, the panel on the stores ----------

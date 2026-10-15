@@ -87,6 +87,7 @@
   // Small DOM builder: always uses textContent, so listing text can't inject HTML.
   const h = (tag, attrs = {}, ...kids) => {
     const el = document.createElement(tag);
+    if (tag === "input" || tag === "textarea") el.autocomplete = "off"; // no browser box of past entries over ours
     for (const [k, v] of Object.entries(attrs)) {
       if (k === "class") el.className = v;
       else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
@@ -678,10 +679,10 @@
           <button class="scan" data-act="open-settings">Open settings</button></div>
         <div class="hint mode-hint"></div>
         <div class="inputs">
-        <div class="want-field"><label for="want">What I want</label><input id="want" placeholder="e.g. working, with charger, under $150"></div>
-        <div class="feewrap"><label for="fee">Selling fees (%)</label><input id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
+        <div class="want-field"><label for="want">What I want</label><input autocomplete="off" id="want" placeholder="e.g. working, with charger, under $150"></div>
+        <div class="feewrap"><label for="fee">Selling fees (%)</label><input autocomplete="off" id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
         <div class="q-sum"><span class="q-sum-text"></span> <button data-act="edit-q" title="Compare prices against other words">Change</button></div>
-        <div class="qwrap"><label for="q">Compare prices against</label><input id="q" placeholder="e.g. Pentax K1000">
+        <div class="qwrap"><label for="q">Compare prices against</label><input autocomplete="off" id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page, so Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
@@ -702,11 +703,11 @@
         <button class="qt qf-toggle" aria-expanded="false" aria-controls="qf-box" title="Filter by words and price, hide listings you've seen, set your deal price">Filter</button>
         <div class="qf" id="qf-box" role="search" aria-label="Filter this search" hidden>
           <div class="qf-row">
-            <span class="qf-wordwrap"><input class="qf-words" placeholder="Words: working -parts" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
-            <span class="qf-price"><input class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
+            <span class="qf-wordwrap"><input autocomplete="off" class="qf-words" placeholder="Words: working -parts" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
+            <span class="qf-price"><input autocomplete="off" class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input autocomplete="off" class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
           </div>
           <div class="qf-row qf-toggles">
-            <label class="qf-deal" title="Listings at or under it get a star, and a saved search tells you on Home">Your price \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
+            <label class="qf-deal" title="Listings at or under it get a star, and a saved search tells you on Home">Your price \u2264 <input autocomplete="off" class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
           </div>
         </div>
         <div class="lb-quick" role="group" aria-label="Quick filters">
@@ -715,7 +716,7 @@
           <button class="qt" data-q="junk" aria-pressed="false" title="Hide rentals, services, jobs, pets, “looking for” posts and $1 placeholder prices: things that aren't an item for sale">Hide off-topic</button>
         </div>
         <label class="sortpick">Sort <select class="sort">
-          <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest under sold price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest margin</option><option value="new">new or cheaper first</option>
+          <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest below typical price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest margin</option><option value="new">new or cheaper first</option>
         </select></label>
         <div class="skipwrap" title="Listings judged Skip or Likely scam, and other likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
       </div>
@@ -1565,7 +1566,7 @@
       .tirekick-sticker.tk-compact { padding:0; background:none; box-shadow:none; }
       .tirekick-sticker.tk-compact .tk-score { width:44px; height:44px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3)) drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
       .tirekick-sticker.tk-compact .tk-score b { font-size:17px; }
-      /* ...and its one line about the listing ("$53 under sold") becomes the first chip under it, in full */
+      /* ...and its one line about the listing ("$53 below typical") becomes the first chip under it, in full */
       .tirekick-sticker.tk-compact .tk-text { display:none; }
       .tirekick-sticker:not(.tk-compact) .tk-subchip { display:none; }
       .tirekick-sticker .tk-sub { font-size:12px; color:var(--tk-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1852,12 +1853,12 @@
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const cheap = f.vsSold != null && TKRules.tooCheap(f, lastMarket);
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Sold ones go for ${dollars(Math.round(lastMarket.median))}`, `This is ${cheap.pct}% of the sold median: far under what the same thing sells for is the usual bait.`]);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(lastMarket.median))}`, `This is ${cheap.pct}% of the typical price (the middle of ${lastMarket.n} recent eBay sales): far below what the same thing sells for is the usual bait.`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null && !cheap) {
       const pw = f.project ? null : TKRules.priceWord(f.vsSold); // broken ones: just the number
-      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough" })}`, `Sold ones go for about ${dollars(Math.round(lastMarket.median))} (the middle of ${lastMarket.n} eBay sales).`]);
+      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(lastMarket.median))}, the middle of ${lastMarket.n} recent eBay sales.`]);
     }
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
@@ -2433,7 +2434,7 @@
   // How a listing's total compares with the eBay sold median for this search. Lots and auctions
   // (where the price is only a bid) aren't compared with one item's selling price.
   let cacheTried = false;
-  let marketFor = ""; // the search the cards' "under/over sold" is for
+  let marketFor = ""; // the search the cards' "below/above typical" is for
   const vsSoldOf = (f) => (lastMarket?.median > 0 && f.total != null && !f.lot && !f.auction ? f.total / lastMarket.median : null);
   const applyMarket = (market) => {
     lastMarket = market;
@@ -3187,7 +3188,7 @@
     piBar.hidden = !scored.length;
     const scamN = n((f) => likelyScam(f) && !f.hidden);
     const bits = [`<b>${all.length}</b> listings`];
-    if (scamN) bits.push(`<b>${scamN}</b> look like scams`);
+    if (scamN) bits.push(`<b>${scamN}</b> ${scamN === 1 ? "looks like a scam" : "look like scams"}`);
     const dealN = dealCount();
     if (dealN) bits.push(`<b>${dealN}</b> at your price`);
     if (newN) bits.push(`<b>${newN}</b> new to you`);
@@ -3239,7 +3240,7 @@
     // With sold prices known, suggest 70% of the median as a starting point.
     const hint = lastMarket?.median > 0 ? Math.round(lastMarket.median * 0.7) : 0;
     qfDeal.placeholder = hint ? `$${hint}?` : "$";
-    qfDeal.title = hint ? `Your price for this search. 70% of the eBay sold median would be $${hint}.` : "Your price for this search: listings at or under it are marked, and counted on the tab.";
+    qfDeal.title = hint ? `Your price for this search. 70% of the typical price (from eBay sales) would be $${hint}.` : "Your price for this search: listings at or under it are marked, and counted on the tab.";
     root.querySelectorAll("[data-q]").forEach((b) => b.setAttribute("aria-pressed", String(!!quick[b.dataset.q])));
     // The broken-listing toggle follows the lens: Use hides them; Fix & flip can show only them.
     // A filter that's already on always shows, so it can be turned off.
@@ -3640,7 +3641,7 @@
       applyMarket(market);
       if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used.`);
       const n = [...facts.values()].filter((f) => f.vsSold != null).length;
-      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used. Sort by \u201cfurthest under sold price\u201d to see the cheapest for what they are.`);
+      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used. Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
     } catch (e) {
       setStatus(e.message, true);
     } finally {
@@ -3904,7 +3905,7 @@
     const score = clamp100(r.score | 0);
     const vs =
       (listing.vsWorking != null ? ` · ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +
-      (listing.vsParts != null ? ` · ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("sold median", "for-parts median")}` : "");
+      (listing.vsParts != null ? ` · ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("the typical price", "typical for parts")}` : "");
     const rep = r.repair;
     const margin = listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (rep?.partsCost || 0) : null;
     const questions = (r.questions || []).slice(0, 6);

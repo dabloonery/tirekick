@@ -9,9 +9,9 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 ## 1. Accounts and domain (dabloonery)
 
 - [ ] Register **tirekick.app**. `.app` domains only work over HTTPS, which any of the hosts below handle for free.
-- [ ] Set up a contact address on it (for example `hello@tirekick.app`, forwarded to your inbox). The store
+- [ ] Set up a contact address on it (support@tirekick.app, forwarded to your inbox). The store
       shows it publicly, and the privacy policy needs one.
-- [ ] Create a Chrome Web Store developer account at https://chrome.google.com/webstore/devconsole
+- [x] (Paid, 2026-10-15.) Create a Chrome Web Store developer account at https://chrome.google.com/webstore/devconsole
       (one-time registration fee; needs a Google account with 2-Step Verification).
 - [ ] In the developer account, declare **trader or non-trader** status (an EU requirement). A free hobby
       project with no income is usually non-trader. Traders must show a public address and phone number.
@@ -19,14 +19,22 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 
 ## 2. Website and privacy policy (Claude drafts, dabloonery deploys)
 
-- [x] Draft landing page and privacy page: `site/index.html`, `site/privacy.html` (static, no scripts,
-      no tracking, fonts self-hosted).
-- [ ] Fill in the contact address in `site/privacy.html`, `site/index.html` and `store/PRIVACY.md`.
-- [ ] Pick a host and point the domain at it. Simplest free options: **GitHub Pages** (publish the
-      `site/` folder from this repo, add `tirekick.app` as the custom domain) or **Cloudflare Pages** /
-      **Netlify** (drag in the folder). Claude can set up the GitHub Pages workflow once you choose.
-- [ ] Check `https://tirekick.app/privacy` loads in a private window. This is the **privacy policy URL**
-      for the store.
+- [x] Landing, privacy and help pages: `site/index.html`, `site/privacy.html`, `site/support.html` (static,
+      no scripts, no tracking, fonts self-hosted, links relative so any address works). The pages speak to
+      both audiences dabloonery agreed on (`plans/tirekick-future.md`): everyday buyers (free scam marks, checking a big
+      purchase) and resellers (sold prices on Marketplace, Reseller mode), with AI last and optional. The help page
+      answers the "will this get my account banned" worry. Colors brighter than the extension's light theme on purpose.
+- [ ] Set up support@tirekick.app (already filled in on the site, in `store/PRIVACY.md` and the listing):
+      register tirekick.app and forward the mailbox.
+- [ ] Launch the site with the extension: once the store listing is approved, replace `STORE_LISTING_URL` in
+      `site/index.html` with its address, then publish the site (steps in `site/README.md`).
+- [ ] Publish it. GitHub Pages is free for **public** repositories only (private ones need a paid plan), and this
+      one stays private until 1.0.0, so: make a small public repository just for the site (steps in
+      `site/README.md`), giving `https://dabloonery.github.io/<name>/`. At launch, when this repository goes
+      public, the **Website** workflow (`.github/workflows/pages.yml`, run by hand) can publish `site/` from here
+      instead. A domain such as tirekick.app is optional; either host can use one later.
+- [ ] Check `<site address>/privacy` loads in a private window. That is the **privacy policy URL** for the
+      store; `<site address>/support` is the support page.
 
 ## 3. Code and repo
 

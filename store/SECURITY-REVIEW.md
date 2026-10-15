@@ -103,7 +103,7 @@ it. The privacy page says keys stay in the browser profile. **No change needed.*
 
 - `homepage_url` points at `github.com/dabloonery/Second-Look`. Update it to `https://tirekick.app`
   once the domain is live (or to the renamed repo).
-- The privacy policy and listing still have `<your contact email>` placeholders.
+- The privacy policy and listing use support@tirekick.app, which goes live once dabloonery sets up the tirekick.app domain and mailbox.
 - The 128 px icon is a full-bleed navy tile. The store's guidelines suggest 96 px of artwork inside
   16 px of transparent padding for the store tile; the current one is acceptable but will look a little
   larger than neighbors in search results.

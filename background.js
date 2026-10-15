@@ -865,7 +865,9 @@ async function getPageSettings() {
   return { ...rest, scanModel: scanModelOf(rest), hasKey: !!anthropicKey, hasOaiKey: !!oaiKey, oaiName: rest.oaiUrl ? oaiName(rest.oaiUrl) : "", scanRate: await perListingCost() };
 }
 
-const openOptions = async () => chrome.runtime.openOptionsPage();
+// Settings, or one section of it ("model" for the AI setup the panel's setup card points at).
+const openOptions = async ({ section } = {}) =>
+  ["model", "spending", "backup"].includes(section) ? chrome.tabs.create({ url: chrome.runtime.getURL(`options/options.html#sec-${section}`) }) : chrome.runtime.openOptionsPage();
 
 // Saved searches, opened in background tabs in one go (a page can only open one tab per click).
 // Only search addresses on the sites this works on (lib/sites.js), and at most 12.

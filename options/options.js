@@ -290,8 +290,9 @@ async function showStatus() {
   const keyLink = document.getElementById("keyLink");
   let ready = false, title, text;
   if (!chosen) {
-    title = "One step left: choose an AI service";
-    text = "Pick any service you have a key for under Model, or a free model on your own computer (Ollama or LM Studio). The free marks and price tools work without one.";
+    ready = true; // the price checks, scam marks and filters need no AI
+    title = "Ready: price checks and scam marks";
+    text = "Open an eBay or Marketplace search to see them. AI scores are optional: to add them, choose an AI service under AI scores below.";
   } else if (provider === "anthropic") {
     ready = !!s.anthropicKey;
     const m = s.anthropicModel || "claude-sonnet-5-5";

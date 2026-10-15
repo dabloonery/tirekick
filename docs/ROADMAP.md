@@ -159,10 +159,27 @@ Steps for dabloonery, in order. None of these can be done from the project, and 
    would still be reachable through them. Either way, first turn on GitHub's Settings, Emails, "Keep my email
    address private" and "Block command line pushes that expose my email", and set that private address as
    `git config --global user.email` on your computer. Claude can prepare the clean copy when you say so.
-2. **GitHub owner (recommended: a free "tirekick" organization).** Create a GitHub organization named
-   `tirekick` and transfer both repos to it; old addresses redirect. Then the code lives at
-   `github.com/tirekick/...` and the site is already on tirekick.app. Your account still shows as a member
-   and on your own commits. Install the Claude GitHub App on the new organization afterwards.
+2. **GitHub owner (recommended: a free "tirekick" organization, not a second account).** An organization
+   you own keeps one login (no second password or two-factor setup), GitHub redirects the old addresses,
+   and your personal account only shows if someone opens the members list (set your membership to
+   private) or your own commits. A second personal account would mean juggling two logins and SSH keys,
+   and its name would still show on every commit made from it. Steps, best done after the open PRs merge:
+   1. On github.com, your picture, "Your organizations", "New organization", the Free plan, name `tirekick`
+      (if taken, `tirekick-app`). In the organization's People page, set your membership to Private.
+   2. In each repo (`tirekick`, then `tirekick-site`): Settings, General, Danger Zone, "Transfer", choose
+      the organization. Issues, PRs, stars and history move with it.
+   3. Site: in `tirekick-site`, Settings, Pages, check the custom domain still reads tirekick.app (re-enter
+      it if blank) and that "Enforce HTTPS" is on. The Cloudflare DNS records don't change for a custom
+      domain, but if a record points at `dabloonery.github.io`, change it to `tirekick.github.io`.
+   4. Claude: install the Claude GitHub App on the new organization
+      (github.com/apps/claude/installations/select_target, pick `tirekick`, allow both repos). Then in
+      this project's settings, under repositories, remove the old `dabloonery/...` entries and add
+      `tirekick/tirekick` and `tirekick/tirekick-site`, and reconnect GitHub at
+      claude.ai/connect-github if asked. Tell Claude when it's done so it can check access.
+   5. Your computer: in `~/Second-Look` run
+      `git remote set-url origin https://github.com/tirekick/tirekick.git` (the old address keeps working
+      through the redirect, but this is cleaner).
+   6. Claude, in the next PR: update the `dabloonery` links left in the docs and `site/README.md`.
 3. **Chrome Web Store account (recommended: publisher name "Tirekick").** In the developer dashboard's
    Account page, set the publisher display name to "Tirekick" and the contact email to support@tirekick.app
    (it must be verified, so set up forwarding first). Stay a non-trader, which keeps a home address off the

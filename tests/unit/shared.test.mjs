@@ -101,6 +101,16 @@ test("usageSummary: today, this month, last month, and the models behind this mo
   assert.deepEqual(S.usageSummary(undefined, now), { today: 0, month: 0, last: 0, calls: 0, models: {} });
 });
 
+test("localDay: YYYY-MM-DD in local time, whatever locale data the runtime has", () => {
+  assert.equal(S.localDay(new Date(2026, 0, 5, 23, 30)), "2026-01-05");
+  assert.equal(S.localDay(new Date(2026, 9, 15)), "2026-10-15");
+});
+
+test("applyEdit clear: starts from nothing, other ops still apply", () => {
+  assert.deepEqual(S.applyEdit({ a: 1, b: 2 }, { clear: true }), {});
+  assert.deepEqual(S.applyEdit({ a: 1 }, { clear: true, set: { c: 3 } }), { c: 3 });
+});
+
 test("applyEdit: changes to a shared record, described rather than written whole", () => {
   const now = 1_000_000;
   const base = { a: { t: "one", a: 10, p: 5 }, b: { t: "two", a: 20 } };

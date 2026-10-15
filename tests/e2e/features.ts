@@ -202,7 +202,7 @@ ok("looking at Home clears the number", (await badge()) === "" && !!(await get("
 ok("Home only links to eBay and Facebook", await R(p, `return [...r.querySelectorAll('.view-home a[href]')].every(a=>/^https:\\/\\/www\\.(ebay|facebook)\\.com\\//.test(a.href))`));
 const tiles = await R(p, `return [...r.querySelectorAll('.hm-tile span')].map(s=>s.textContent).join('|')`);
 ok("Home's numbers are what you saved, not spending", tiles === "Saved listings|Price drops|Saved searches|At your price", tiles);
-ok("30 days of spend: one labelled chart, a table view, model names", await R(p, `const plot=r.querySelector('.hm .plot'); return plot.getAttribute('role')==='img' && /30 days/.test(plot.getAttribute('aria-label')) && r.querySelectorAll('.hm-table tbody tr').length===2 && /Haiku 5.5/.test(r.querySelector('.view-home').textContent) && !r.querySelector('.hm .col[tabindex], button.col')`));
+ok("30 days of spend: one labeled chart, a table view, model names", await R(p, `const plot=r.querySelector('.hm .plot'); return plot.getAttribute('role')==='img' && /30 days/.test(plot.getAttribute('aria-label')) && r.querySelectorAll('.hm-table tbody tr').length===2 && /Haiku 5.5/.test(r.querySelector('.view-home').textContent) && !r.querySelector('.hm .col[tabindex], button.col')`));
 ok("no usage counters on Home", await R(p, `return !/What you use/.test(r.querySelector('.view-home').textContent)`));
 const version = await o.ev(`chrome.runtime.getManifest().version`);
 ok("Home shows the version", await R(p, `return r.querySelector('.hm-foot').textContent.includes(${JSON.stringify(version)})`));

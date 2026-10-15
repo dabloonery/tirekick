@@ -1,7 +1,7 @@
 #!/bin/sh
 # Everything: the fixture pages and plain rules, then the real extension. Fails if any line says FAIL.
 # Usage: tests/all.sh   (or: deno task test)
-# (Deno colours "error:", so a crash is caught by "Uncaught" alone.)
+# (Deno colors "error:", so a crash is caught by "Uncaught" alone.)
 cd "$(dirname "$0")" || exit 1
 export NO_COLOR=1 # deno colors "error: Uncaught", which the checks below look for
 out=$(./run.sh); echo "$out"

@@ -191,13 +191,20 @@ async function showMemory() {
     `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops, price history, reposted scams and reused photos (kept 90 days, only in this browser).` +
     (sv ? ` ${sv} saved (listings and searches), kept until you remove them in the panel.` : "");
 }
+// Shared records change only through the background script, one edit at a time (storeEdit), so an open
+// tab saving or hiding a listing at the same moment isn't undone.
+async function storeEdit(name, edit) {
+  const res = await chrome.runtime.sendMessage({ type: "storeEdit", payload: { name, edit } });
+  if (!res?.ok) throw new Error(res?.error || "Couldn't save that.");
+}
 document.getElementById("clearHidden").addEventListener("click", async () => {
-  await chrome.storage.local.remove("notInterested");
+  await storeEdit("notInterested", { clear: true });
   showMemory();
   note("Everything you hid is visible again.");
 });
 document.getElementById("clearMemory").addEventListener("click", async () => {
-  await chrome.storage.local.remove(["listingMemory", "codeStems", "photoSeen"]);
+  await chrome.storage.local.remove("listingMemory");
+  await Promise.all(["codeStems", "photoSeen"].map((name) => storeEdit(name, { clear: true })));
   showMemory();
   note("Seen listings forgotten.");
 });
@@ -406,7 +413,7 @@ document.getElementById("backup").addEventListener("click", async () => {
   for (const k of BACKUP_SETS) if (all[k]) data[k] = all[k];
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-  a.download = `tirekick-backup-${new Date().toLocaleDateString("en-CA")}.json`;
+  a.download = `tirekick-backup-${TKShared.localDay()}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   const n = Object.keys(data.saved || {}).length;
@@ -420,7 +427,7 @@ document.getElementById("exportCsv").addEventListener("click", async () => {
   if (!rows.length) return note("No saved listings yet. Save one from a card or the panel first.");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" }));
-  a.download = `tirekick-saved-${new Date().toLocaleDateString("en-CA")}.csv`;
+  a.download = `tirekick-saved-${TKShared.localDay()}.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   note(`Downloaded ${rows.length} saved listing${rows.length === 1 ? "" : "s"} as a spreadsheet (CSV).`);
@@ -455,6 +462,12 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
       for (const [key, r] of Object.entries(v)) if (!m[key] || r.a > (m[key].a || 0)) m[key] = r;
       out.listingMemory = m;
     } else out[k] = { ...v, ...(here[k] || {}) }; // what's here wins where both have it
+  }
+  // Shared records are added as edits ("add": what's here wins), so a tab changing one meanwhile isn't undone.
+  const shared = Object.keys(out).filter((k) => TKShared.SHARED.includes(k));
+  for (const k of shared) {
+    await storeEdit(k, { add: sets[k] });
+    delete out[k];
   }
   // Settings go through the same limits as typing them here; one that doesn't make sense is left out.
   const settings = {};

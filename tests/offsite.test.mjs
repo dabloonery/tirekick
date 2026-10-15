@@ -3,7 +3,8 @@
 globalThis.window = globalThis;
 globalThis.location = { hostname: "www.facebook.com", href: "https://www.facebook.com/" };
 globalThis.document = { querySelector: () => null, querySelectorAll: () => [] };
-(0, eval)(Deno.readTextFileSync(new URL("../content/adapters.js", import.meta.url)));
+const src = new URL("../content/adapters.js", import.meta.url);
+(0, eval)(globalThis.Deno ? Deno.readTextFileSync(src) : (await import("node:fs")).readFileSync(src, "utf8"));
 const TK = globalThis.Tirekick;
 const check = (name, ok, why = "") => console.log(`${ok ? "PASS" : "FAIL"} ${name}${ok ? "" : ": " + why}`);
 const sure = (t) => TK.offSite(t)?.sure === true;

@@ -10,6 +10,9 @@
   const THEME = window.TKTheme; // colors, type, the tread dot and glyphs (lib/theme.js)
   if (!TK || !TKShared || !TKRules || !TKHome || !THEME || window.__tirekickPanel) return;
   window.__tirekickPanel = true;
+  // Ends every listener this copy puts on the page itself (document and window), at teardown.
+  const life = new AbortController();
+  const until = { signal: life.signal };
 
   // A tab left open across the update from Second Look (the old name) still holds that version's panel
   // and card tags. Its script is cut off from the extension (it removes its own panel, not the tags),
@@ -338,6 +341,8 @@
     .status:empty { display:none; }
     .status.err { color:var(--v-suspicious); border-left:2px solid currentColor; padding-left:10px; }
     .readwarn { margin-top:10px; }
+    .status.readwarn button { display:block; margin-left:0; text-decoration:none; margin-top:8px; border:var(--bw) solid currentColor; background:none; color:inherit; border-radius:999px; padding:4px 12px; font:600 13px/1.3 var(--ui); cursor:pointer; }
+    .status.readwarn button:hover { background:var(--v-suspicious); color:var(--on-v); }
     .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:10px; height:10px; margin-right:8px; vertical-align:-1px;
       border:1.5px solid var(--rule); border-top-color:var(--ink); border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
@@ -946,7 +951,7 @@
       if (path.includes(host) || path.some((n) => n instanceof Element && n.matches?.(".tirekick-sticker, .tirekick-marks")) || (toastRoot && path.includes(toastRoot.host))) return;
       showOpen(false);
     },
-    true
+    { capture: true, signal: life.signal }
   );
 
   // Tabs and Buyer/Reseller/Skipped-style radios: arrow keys (and Home/End) move and choose; only the
@@ -1149,7 +1154,7 @@
     }
     if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName}, ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
     opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama, ${cfg.textModel || "qwen3:4b"} (free)`]);
-    if (cfg.provider === "anthropic" && !cfg.hasKey) opts.unshift(["", "", "No AI yet: pick one in settings"]);
+    if (cfg.provider === "anthropic" && !cfg.hasKey) opts.unshift(["", "", "No AI service yet: add one in settings"]);
     modelSel.replaceChildren(...opts.map(([prov, m, label, more]) => h("option", { value: `${prov}|${m}`, title: more || label }, label)));
     $(".model-pick").title =
       cfg.provider === "anthropic"
@@ -1190,7 +1195,7 @@
     if (e.composedPath().includes(host)) return; // inside the panel: the handler below decides
     if (e.target.closest?.("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return;
     setOpen(false);
-  });
+  }, until);
   root.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !wrap.classList.contains("open")) return;
     if (e.composedPath().some(isOpenMenu)) return; // Esc closes the Sort or model menu, not the panel
@@ -1273,7 +1278,7 @@
     if (!spendDetail.hidden && !e.composedPath().some((n) => n === spendDetail || n === spendBtn)) showSpend(false);
   };
   root.addEventListener("click", offSpend);
-  document.addEventListener("pointerdown", offSpend, true);
+  document.addEventListener("pointerdown", offSpend, { capture: true, signal: life.signal });
   const loadFooter = async () => {
     try {
       cfg = await send("getSettings");
@@ -1708,8 +1713,8 @@
     clearTimeout(memoryTimer);
     memoryTimer = setTimeout(() => (window.requestIdleCallback ? requestIdleCallback(saveMemoryNow, { timeout: 2000 }) : saveMemoryNow()), 1500);
   };
-  window.addEventListener("pagehide", saveMemoryNow);
-  document.addEventListener("visibilitychange", () => document.hidden && saveMemoryNow());
+  window.addEventListener("pagehide", saveMemoryNow, until);
+  document.addEventListener("visibilitychange", () => document.hidden && saveMemoryNow(), until);
   chrome.storage.onChanged.addListener((changes) => {
     if (!changes.listingMemory || !alive()) return;
     const next = changes.listingMemory.newValue;
@@ -2199,14 +2204,14 @@
     home.markStale();
     if (view === "home") home.wake().catch(() => {});
   };
-  document.addEventListener("visibilitychange", () => home.seen());
+  document.addEventListener("visibilitychange", () => home.seen(), until);
   // The toolbar icon (and its right-click menu) can bring up a particular tab.
   // From the toolbar icon (detail.toggle): with Home already on screen, the click tucks the panel away as usual.
   window.addEventListener("tirekick-show", (e) => {
     if (e.detail?.toggle && view === "home" && wrap.classList.contains("open")) return setOpen(false);
     setView(e.detail?.view === "home" ? "home" : view);
     setOpen(true);
-  });
+  }, until);
   const siteName = (k) => TKSites.nameOf(k);
   const removeStored = async (name, k) => {
     const next = await writeStored(name, { set: { [k]: null } });
@@ -2274,7 +2279,7 @@
     const csv = h("button", {
       onclick: () => {
         const rows = TKShared.savedRows(saved, scansCache || {});
-        const a = h("a", { href: URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" })), download: `tirekick-saved-${new Date().toLocaleDateString("en-CA")}.csv` });
+        const a = h("a", { href: URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" })), download: `tirekick-saved-${TKShared.localDay()}.csv` });
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
         csv.textContent = "Downloaded";
@@ -3089,9 +3094,9 @@
     }
     await chrome.storage.local.set({ scans: scansCache }).catch(storeFailed);
   };
-  window.addEventListener("pagehide", () => flushScans());
+  window.addEventListener("pagehide", () => flushScans(), until);
   // Switching to a tab you just opened (a listing from the results, say) hides this one: save first.
-  document.addEventListener("visibilitychange", () => document.hidden && flushScans());
+  document.addEventListener("visibilitychange", () => document.hidden && flushScans(), until);
   const loadScans = async () => (scansCache = (await chrome.storage.local.get("scans")).scans || {});
   const storedScan = (key, forLens = lens) => scansCache?.[key]?.[forLens] || null;
   // Bring back what an earlier scan or analysis (here or in another tab) said about listings on this page.
@@ -4328,7 +4333,7 @@
 
   let lastHref = "";
   let lastType = null;
-  window.addEventListener("tirekick-toggle", toggleOpen); // toolbar icon, if you use it
+  window.addEventListener("tirekick-toggle", toggleOpen, until); // toolbar icon, if you use it
   const sync = () => {
     if (location.href === lastHref) return;
     if (lastType === "results") saveScan(lastHref);
@@ -4404,15 +4409,19 @@
     pagePass(true);
     if (TK.pageType() === "item" && itemFacts?.key !== keyOf(location.href)) itemPass();
   };
-  document.addEventListener("prerenderingchange", () => wake(true));
-  window.addEventListener("pageshow", (e) => e.persisted && wake(false));
-  document.addEventListener("visibilitychange", () => !document.hidden && wake(false));
+  document.addEventListener("prerenderingchange", () => wake(true), until);
+  window.addEventListener("pageshow", (e) => e.persisted && wake(false), until);
+  document.addEventListener("visibilitychange", () => !document.hidden && wake(false), until);
   // After an update this copy can't reach the extension any more: get out of the way so the new one can load.
   const teardown = () => {
     retired = true;
     clearInterval(timer);
     clearTimeout(photoTimer);
     photoObserver?.disconnect();
+    life.abort();
+    try {
+      clearStickers(); // the card tags too, so a page left open after an update isn't left with stale ones
+    } catch {}
     host.remove();
     toastRoot?.host.remove();
     window.removeEventListener("tirekick-toggle", toggleOpen);

@@ -45,7 +45,7 @@ Still a judgment: scores are a model's reading of a card, not an inspection. Pho
 
 ## Spending estimates
 
-Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labelled an estimate; the real balance is at console.anthropic.com.
+Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labeled an estimate; the real balance is at console.anthropic.com.
 
 ## Sources
 

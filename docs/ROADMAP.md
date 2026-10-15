@@ -141,14 +141,19 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 
 ### 2. Website and privacy policy (Claude drafts, Myer deploys)
 
-- [x] Draft landing page and privacy page: `site/index.html`, `site/privacy.html` (static, no scripts,
-      no tracking, fonts self-hosted).
-- [ ] Fill in the contact address in `site/privacy.html`, `site/index.html` and `store/PRIVACY.md`.
-- [ ] Pick a host and point the domain at it. Simplest free options: **GitHub Pages** (publish the
-      `site/` folder from this repo, add `tirekick.app` as the custom domain) or **Cloudflare Pages** /
-      **Netlify** (drag in the folder). Claude can set up the GitHub Pages workflow once you choose.
-- [ ] Check `https://tirekick.app/privacy` loads in a private window. This is the **privacy policy URL**
-      for the store.
+- [x] Landing, privacy and help pages: `site/index.html`, `site/privacy.html`, `site/support.html` (static,
+      no scripts, no tracking, fonts self-hosted, links relative so any address works). 0.38.1 leads with
+      resellers (eBay sold prices and scam marks on Marketplace, free, no account), from
+      `research/reseller-demand-2026-10.md`, and the help page answers the "will this get my account banned" worry.
+- [ ] Fill in the contact address: `CONTACT_EMAIL` in `site/privacy.html`, `site/index.html`, `site/support.html`,
+      and `store/PRIVACY.md`.
+- [ ] Publish it. GitHub Pages is free for **public** repositories only (private ones need a paid plan), and this
+      one stays private until 1.0.0, so: make a small public repository just for the site (steps in
+      `site/README.md`), giving `https://dabloonery.github.io/<name>/`. At launch, when this repository goes
+      public, the **Website** workflow (`.github/workflows/pages.yml`, run by hand) can publish `site/` from here
+      instead. A domain such as tirekick.app is optional; either host can use one later.
+- [ ] Check `<site address>/privacy` loads in a private window. That is the **privacy policy URL** for the
+      store; `<site address>/support` is the support page.
 
 ### 3. Code and repo
 

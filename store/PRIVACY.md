@@ -61,4 +61,4 @@ Each permission and what it's for is listed in `store/LISTING.md`.
 ## Changes and contact
 
 If this policy changes, the new version will be posted here with a new date.
-Questions: **<your contact email>**
+Questions: **support@tirekick.app**

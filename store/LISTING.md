@@ -11,7 +11,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 - **Language:** English
 - **Privacy policy URL:** the public address of `store/PRIVACY.md`. The repository is private for now, so its GitHub page isn't public: host it elsewhere (a GitHub Gist, a GitHub Pages site from a small public repository, or any web page you control) until the repository is opened
 - **Homepage URL:** https://github.com/dabloonery/Second-Look (set in the manifest)
-- **Support contact:** `<your contact email>` (a dedicated address is better than a personal one: it will be public)
+- **Support contact:** support@tirekick.app (not live yet: dabloonery sets up the tirekick.app domain and mailbox before submitting). Support URL: the site's `support` page
 
 ## Description
 
@@ -84,7 +84,7 @@ Scores and analysis need an API key, which the reviewer is not expected to have.
 ## Before you submit
 
 - [ ] A Chrome Web Store developer account (one-time fee)
-- [ ] Fill in the two `<your contact email>` placeholders (here and in `store/PRIVACY.md`) and host the privacy policy at a public address
+- [ ] Set up the support@tirekick.app mailbox (the address is already filled in here, in `store/PRIVACY.md` and on the site) and host the privacy policy at a public address
 - [ ] Replace screenshots 1 and 2 with real captures
 - [ ] `deno task test`, then `deno task pack`; unzip the package into a folder and load it with Load unpacked to check it runs
 - [ ] Reread the marketplaces' rules about automated access: the README's "Ground rules" explain what the extension does and won't do

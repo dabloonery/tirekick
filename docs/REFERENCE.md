@@ -180,7 +180,7 @@ recent sales, and warning about likely scams.
 | `contextMenus` row | "Check this photo with Second Look", "Open Second Look home" | "Check this photo with Tirekick", "Open Tirekick home" |
 | Reviewer notes | the "Second Look" tab at the right edge | the "Tirekick" tab at the right edge |
 | Homepage URL | github.com/dabloonery/Second-Look | tirekick.app once registered (or the renamed repo) |
-| Support contact | `<your contact email>` | e.g. hello@tirekick.app once the domain is set up |
+| Support contact | support@tirekick.app | Live once dabloonery sets up tirekick.app and the mailbox |
 
 ---
 
@@ -248,7 +248,7 @@ Each permission and what it's for is listed in `store/LISTING.md`.
 ## Changes and contact
 
 If this policy changes, the new version will be posted here with a new date.
-Questions: **<your contact email>**
+Questions: **support@tirekick.app**
 ```
 
 ---
@@ -603,7 +603,7 @@ it. The privacy page says keys stay in the browser profile. **No change needed.*
 
 - `homepage_url` points at `github.com/dabloonery/Second-Look`. Update it to `https://tirekick.app`
   once the domain is live (or to the renamed repo).
-- The privacy policy and listing still have `<your contact email>` placeholders.
+- The privacy policy and listing use support@tirekick.app, which goes live once dabloonery sets up the tirekick.app domain and mailbox.
 - The 128 px icon is a full-bleed navy tile. The store's guidelines suggest 96 px of artwork inside
   16 px of transparent padding for the store tile; the current one is acceptable but will look a little
   larger than neighbors in search results.

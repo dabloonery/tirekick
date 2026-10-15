@@ -12,7 +12,7 @@ such as `https://dabloonery.github.io/tirekick-site/`, or a domain later). Not p
   address. The store's **support URL** is this page.
 - `style.css`: colors, type, the tread and the verdict glyphs copied from `lib/theme.js`.
 - `promo-tile.html`: source for the store's small promo tile, not linked from the site.
-- Replace `CONTACT_EMAIL` in all three pages before publishing.
+- The contact address is support@tirekick.app. It works once the tirekick.app domain and mailbox are set up.
 
 ## Publishing on GitHub Pages while this repository is private
 

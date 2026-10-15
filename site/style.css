@@ -59,7 +59,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; line-height: 1.08; l
 .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px; font: 700 16px/1 var(--ui); text-decoration: none; border: 2px solid transparent; }
 .btn.primary { background: var(--btn); color: var(--on-btn); }
-.btn.primary[aria-disabled="true"] { cursor: default; }
 .btn.ghost { color: var(--ink); border-color: var(--rule); }
 .btn.ghost:hover { border-color: var(--muted); }
 .soon { font-size: 14px; color: var(--muted); }

@@ -19,15 +19,17 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 Tirekick looks over second-hand listings with you, on the stores where you shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
 
-**Free, no account, no AI needed**
+Tirekick has optional AI features. The checks below are free and work without them; turn on an AI only if you want scores and write-ups.
+
+**Works without AI: free, no account**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
-• "% of sold" on every card once sold prices are in, plus price drops, "new to you" and auctions ending soon
+• How far under or over the sold price each card is ("$53 under sold") once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
 • Save listings and searches; the Home tab shows what got cheaper and what you've spent
 • From any page: select a thing's name, right-click, "Look up": what it has sold for on eBay, and a search on eBay, Marketplace or both
 • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
 
-**Add an AI you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
+**Optional: add an AI you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
 • A score and verdict for every listing, one line on the price, and the reasons on hover
 • Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
 • Reseller mode for people who fix and flip: the likely fault, how hard it is, parts, and your margin after eBay fees
@@ -52,7 +54,7 @@ Help people buying second-hand online judge the listings they are viewing on sup
 | `storage` | Keeps the user's settings, saved and hidden listings, the memory of what they've seen, and cached scores, all in this browser. |
 | `unlimitedStorage` | Lifts the 10 MB limit on that same local storage, so a few months of kept scores and seen listings can't fill it and make saving a listing fail. Nothing more is stored and nothing leaves the browser; old entries are still pruned. |
 | `scripting` | Registers the page script that draws the score tags and the panel on eBay and Facebook pages (and injects it on demand when the "slim tab" setting is off), and reads eBay sold-price results from an open eBay tab when the user is on Facebook. |
-| `contextMenus` | Three entries: "Check this photo with Tirekick" on images on eBay and Facebook, "Look up “…” on eBay and Marketplace" on text the user selects (it opens the extension's own page with that text; nothing is read from the page), and "Open Tirekick home" on the toolbar icon. |
+| `contextMenus` | Three entries: "Check this photo with Tirekick" on images on eBay and Facebook, "Look up “…” on eBay and Marketplace" on text the user selects (it opens the extension's own page with that text; nothing is read from the page), and "Open Tirekick in a tab" on the toolbar icon (the icon itself opens the same page as a popup off eBay and Marketplace). |
 | Host: `https://www.ebay.com/*`, `https://www.facebook.com/*` | The two sites it works on: reading the listings the user is viewing, and fetching eBay sold-listing pages for price comparison when the user asks (at most eight an hour, paused at the first sign of eBay's browser check). |
 | Host: `https://i.ebayimg.com/*`, `https://*.fbcdn.net/*` | Fetching a listing's photo when the user asks for a photo check, and Marketplace thumbnails already on screen (without cookies) to fingerprint them on the user's computer, for the "same photo as other listings" mark. |
 | Host: `https://api.anthropic.com/*`, `https://openrouter.ai/*`, `https://api.openai.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.deepseek.com/*`, `https://api.mistral.ai/*`, `https://api.x.ai/*` | The AI services the user can choose. Sent only when the user presses Scan, Analyze, Better searches or Check photo, or has turned on automatic scanning. |

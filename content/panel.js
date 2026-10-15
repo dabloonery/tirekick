@@ -269,6 +269,8 @@
     @container (max-width: 350px) { .nav button { margin-right:12px; } .modebar button { padding:4px 8px; } }
     .head, .nav { flex:none; }
     @media (max-height: 620px) { .head { padding-top:8px; padding-bottom:0; } .nav button { padding:9px 0 8px; } }
+    /* a short window or 200% zoom: the header and footer give their room to the list */
+    @media (max-height: 480px) { .panel { height:calc(100vh - 16px); } .head { padding:4px 10px 0 16px; } .nav button { padding:5px 0 4px; } .foot-row { padding:4px 12px 4px 14px; } }
     .hint { color:var(--muted); font-size:13px; }
     .inputs { display:grid; gap:12px; }
     .knows-modes .mode-hint, .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
@@ -331,6 +333,9 @@
     .actions a, .actions button { color:var(--ink); background:none; border:0; padding:3px 0; margin:-3px 0; font:inherit; line-height:18px; cursor:pointer;
       text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; text-decoration-thickness:1px; }
     .actions a:hover, .actions button:hover:not(:disabled) { text-decoration-color:currentColor; }
+    /* small text links keep their look but get a 24px-high target (WCAG 2.5.8) */
+    .actions a, .actions button, a.open, .pi-line button { position:relative; }
+    .actions a::after, .actions button::after, a.open::after, .pi-line button::after { content:""; position:absolute; inset:-4px -3px; }
 
     /* footer: model switch and what it's costing */
     .foot { position:relative; flex:none; border-top:var(--bw) solid var(--rule); background:var(--paper); }
@@ -338,7 +343,7 @@
     .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
     .model-pick { margin:0; display:block; min-width:0; text-transform:none; letter-spacing:normal; }
     .model { max-width:210px; appearance:none; -webkit-appearance:none; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper);
-      color:var(--ink); font:600 12px/1 var(--ui); padding:6px 24px 6px 9px; cursor:pointer; text-overflow:ellipsis;
+      color:var(--ink); font:600 12px/1 var(--ui); padding:6px 24px 6px 9px; min-height:28px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; /* one line; the full name is on hover */
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size:4px 4px; background-repeat:no-repeat; }
     .model:focus { outline:none; border-color:var(--ink); }
@@ -451,7 +456,7 @@
     .pi-head { margin-bottom:3px; color:var(--ink); font:600 23px/1.2 var(--display); letter-spacing:-.015em; }
     .pi-head .mono { font-family:var(--mono); }
     .pi-line b { color:var(--ink); font-weight:600; }
-    .pi-line button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .pi-line button { all:unset; position:relative; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
     .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
     .seg button { min-height:24px; border:0; background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:5px 11px; border-radius:999px; cursor:pointer; }
@@ -1586,12 +1591,14 @@
       .tk-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--tk-paper); color:var(--tk-ink);
         font:600 12px/1.35 ${UI}; white-space:nowrap; letter-spacing:normal; text-transform:none; box-shadow:0 2px 6px -2px rgba(0,0,0,.35); }
       .tk-chip svg { width:11px; height:11px; }
+      .tirekick-marks .tk-chip, .tk-under .tk-chip { max-width:100%; white-space:normal; } /* a long tag wraps inside the card */
       .tk-chip.k-new, .tk-chip.k-deal { background:var(--tk-new-bg); color:var(--tk-new-fg); } .tk-chip.k-good { background:var(--tk-good-bg); color:var(--tk-good-fg); }
       .tk-chip.k-warn { background:var(--tk-warn-bg); color:var(--tk-warn-fg); }
       .tk-chip.k-plain { box-shadow:inset 0 0 0 1px var(--tk-line), 0 2px 6px -2px rgba(0,0,0,.3); }
       .tirekick-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:var(--tk-fit, calc(100% - 20px));
         filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); pointer-events:auto; }
       .tirekick-marks button, .tirekick-sticker .tk-under button { cursor:pointer; border:0; }
+      .tk-acts { display:contents; }
       /* Hover-only actions stay in the DOM (clipped, not display:none) so the keyboard can reach them; they show on hover or focus. */
       .tk-x { position:absolute !important; width:1px !important; height:1px !important; margin:-1px !important; padding:0 !important; overflow:hidden !important; clip-path:inset(50%) !important; }
       [data-tirekick-key]:hover .tk-x, .tirekick-marks:focus-within .tk-x, .tirekick-sticker:focus-within .tk-x, .tk-x:focus-visible
@@ -1863,7 +1870,7 @@
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null && !cheap) {
       const pw = f.project ? null : TKRules.priceWord(f.vsSold); // broken ones: just the number
-      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(lastMarket.median))}, the middle of ${lastMarket.n} recent eBay sales.`]);
+      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(lastMarket.median))}, the middle of ${lastMarket.n} recent eBay sales.`]);
     }
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
@@ -2010,8 +2017,8 @@
         node.style.setProperty("--tk-fit", `${Math.round(w - 20)}px`);
         if (w - 20 < 150) node.classList.add("tk-compact"); // a small photo: the score alone fits, the rest is on hover
       }
-      // Photos that fill the card (Marketplace): the chips wrap at the card's width instead of running past its left edge.
-      else if (!cards.fitToPhoto && m.hostW > 80) node.style.setProperty("--tk-fit", `${Math.round((w > 80 ? Math.min(w, m.hostW) : m.hostW) - 20)}px`);
+      // Photos that fill the card (Marketplace, and most eBay grids): the chips wrap at the card's width instead of running past its edge.
+      else if ((!cards.fitToPhoto || w > 80) && m.hostW > 80) node.style.setProperty("--tk-fit", `${Math.round((w > 80 ? Math.min(w, m.hostW) : m.hostW) - 20)}px`);
       if (cards.corner === "right") node.classList.add("tk-right");
       // On a narrow card the long verdict ("Great deal") would be cut off; the tag's own word says it already.
       if (cards.compactUnder && m.hostW < cards.compactUnder) node.classList.add("tk-compact");
@@ -2075,14 +2082,33 @@
   const hideChip = (key) => h("button", { class: "tk-chip k-plain tk-x", title: "Hide this listing everywhere (undo it under Saved)", onclick: own(() => setInterested(key, false)) }, "Not interested");
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
-  // What every card offers on hover. A saved listing keeps its star showing.
-  const hoverChips = (key, f) => [
+  // "$55", not "$55–$55", when the two ends meet.
+  const offerRange = (r) => (r.offerLow >= r.offerHigh ? `$${r.offerHigh}` : `$${r.offerLow}\u2013$${r.offerHigh}`);
+  // What every card offers on hover. A saved listing keeps its star showing. They make one toolbar with a
+  // single Tab stop per card (arrow keys move between them), so a page of 60 cards isn't 180 Tab presses.
+  const hoverChips = (key, f) => [toolbar([
     saved[key]
       ? h("button", { class: "tk-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
       : h("button", { class: "tk-chip k-plain tk-x", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
     f.title ? h("button", { class: "tk-chip k-plain tk-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
-  ];
+  ])];
+  const toolbar = (btns) => {
+    const list = btns.filter(Boolean);
+    list.forEach((b, i) => {
+      b.tabIndex = i ? -1 : 0;
+      b.addEventListener("keydown", (e) => {
+        const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+        if (!d) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const next = list[(i + d + list.length) % list.length];
+        list.forEach((x) => (x.tabIndex = x === next ? 0 : -1));
+        next.focus();
+      });
+    });
+    return h("span", { class: "tk-acts", role: "toolbar", "aria-label": "Tirekick: save or hide this listing" }, list);
+  };
 
   // ---------- saved listings and searches (kept in this browser, across both sites) ----------
   // Several tabs may write at once, so a change is sent as an edit (TKShared.applyEdit) and the background
@@ -3203,7 +3229,7 @@
     if (hidN || filN) {
       piLine.append(
         ` \u00b7 ${[hidN && `${hidN} not interested`, filN && `${filN} filtered`].filter(Boolean).join(", ")} `,
-        h("button", { onclick: () => setShowHidden(!showHidden) }, showHidden ? "hide them" : "show")
+        h("button", { onclick: () => setShowHidden(!showHidden) }, showHidden ? "Hide them again" : `Show ${hidN + filN === 1 ? "it" : "them"}`)
       );
     }
     listBar.hidden = !facts.size;
@@ -3244,7 +3270,7 @@
     }
     // With sold prices known, suggest 70% of the median as a starting point.
     const hint = lastMarket?.median > 0 ? Math.round(lastMarket.median * 0.7) : 0;
-    qfDeal.placeholder = hint ? `$${hint}?` : "$";
+    qfDeal.placeholder = hint ? `~$${hint}` : "$";
     qfDeal.title = hint ? `Your price for this search. 70% of the typical price (from eBay sales) would be $${hint}.` : "Your price for this search: listings at or under it are marked, and counted on the tab.";
     root.querySelectorAll("[data-q]").forEach((b) => b.setAttribute("aria-pressed", String(!!quick[b.dataset.q])));
     // The broken-listing toggle follows the lens: Use hides them; Fix & flip can show only them.
@@ -3939,7 +3965,7 @@
           "div",
           { class: "offer" },
           `Auction: ${listing.bids || 0} bid${listing.bids === 1 ? "" : "s"}${listing.timeLeft ? `, ${listing.timeLeft} left` : ""}. `,
-          r.offerHigh > 0 ? ["Suggested max bid: ", h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`)] : listing.bidCap > 0 ? ["Worth bidding up to about ", h("b", {}, dollars(listing.bidCap))] : "The price will rise."
+          r.offerHigh > 0 ? ["Suggested max bid: ", h("b", {}, offerRange(r))] : listing.bidCap > 0 ? ["Worth bidding up to about ", h("b", {}, dollars(listing.bidCap))] : "The price will rise."
         )
       );
     } else if (r.offerHigh > 0) {
@@ -3950,7 +3976,7 @@
           "div",
           { class: "offer" },
           `${listing.bestOffer ? "Accepts offers. " : ""}Suggested offer: `,
-          h("b", {}, `$${r.offerLow}\u2013$${r.offerHigh}`),
+          h("b", {}, offerRange(r)),
           listing.offerPlan ? h("div", { class: "meta" }, `Kept near the plan from sold prices (open at ${dollars(listing.offerPlan.open)}, walk away above ${dollars(listing.offerPlan.walkAway)}).`) : null,
           messageArea(messages, { open: r.offerLow, walkAway: r.offerHigh }, listing)
         )

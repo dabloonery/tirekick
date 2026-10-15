@@ -298,7 +298,7 @@
     button.hm-tile:hover { border-left-color:var(--ink); }
     button.hm-tile:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     /* the detail sections fold: a heading you can open */
-    .hm-fold > summary { list-style:none; cursor:pointer; }
+    .hm-fold > summary { list-style:none; cursor:pointer; min-height:24px; }
     .hm-fold > summary::-webkit-details-marker { display:none; }
     .hm-fold > summary h3 { margin-bottom:0; }
     .hm-fold > summary h3::after { content:"+"; margin-left:auto; padding-left:10px; color:var(--muted); font:400 16px/1 var(--ui); }

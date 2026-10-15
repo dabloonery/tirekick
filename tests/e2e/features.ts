@@ -251,6 +251,11 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   ok("sold prices leave out best-offer sales, lots, parts, other things and far-off prices", sm.n === 10 && sm.median === 58 && JSON.stringify(sm.dropped) === JSON.stringify({ offers: 1, lots: 1, parts: 1, unrelated: 1, outliers: 1, foreign: 0, ranges: 0 }), sm);
   ok("…say what buyers paid to ship, and how much to trust them", sm.ship === 9 && sm.confidence === "fair", sm);
   ok("…with Home below, as in the panel", view.home);
+  // One saved search: no "Open all" button, and nothing in its place (it used to print "null")
+  await store(`{savedSearches:{'ebay|pentax':{site:'ebay',q:'pentax',v:1}}}`);
+  await sleep(500);
+  const one = await hub.ev(`document.querySelector('#saved').textContent`);
+  ok("one saved search leaves no stray \"null\" in Saved", !/null/.test(one) && /pentax/.test(one), one.slice(0, 200));
   await hub.close();
 }
 

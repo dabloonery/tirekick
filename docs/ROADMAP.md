@@ -69,6 +69,13 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
      on the feed (titles you mark Not interested) to hide more like them.
    - 0.40.0: the price chip says "typical" instead of "sold" ("$53 below typical", the source on hover); no browser
      box of past entries over Tirekick's text boxes; a quieter slate navy in dark; "1 possible scam" in the page summary. The AI choice is neutral: one "AI service" menu lists every supported service side by side, a fresh install picks none, and the panel's menu offers only the services you set up.
+   - 0.40.2, the review pass's clear-cut fixes: no stray "null" in the toolbar popup with one saved search; each
+     card's Save / Sold / Not interested are one toolbar with one Tab stop (arrow keys inside); long tags wrap inside
+     the card; "$55" instead of "$55–$55"; "$39 above typical" said once; the footer's AI menu on one line; a tighter
+     header and footer in short windows; 24px targets on the small text links; settings fields stay clear of the
+     sticky section links; the website's skip link, footer targets and the navy band's link line contrast. The
+     choices that are dabloonery's (which verdict wins when price and score disagree, a bigger text floor, "sold" wording,
+     the offer warning, the search-ideas name, the light theme's main button) wait on dabloonery.
 3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far

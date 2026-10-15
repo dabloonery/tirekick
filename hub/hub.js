@@ -145,7 +145,7 @@
             h("h3", { class: "hint" }, `Searches · ${searches.length}`),
             h("div", { class: "rows" }, searchRows),
             searches.length > 1 ? h("div", { class: "acts" }, h("button", { type: "button", onclick: openAll(searches) }, `Open all ${searches.length} searches`)) : null,
-          ]
+          ].filter(Boolean) // replaceChildren would print a null as the word "null"
         : [])
     );
   };

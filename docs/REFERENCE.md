@@ -152,7 +152,7 @@ Both lead with what Tirekick does and name the stores last, so adding a store on
 >
 > **Free, no account, no AI needed**
 > • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
-> • "% of sold" on every card once sold prices are in, plus price drops, "new to you" and auctions ending soon
+> • How far under or over the sold price each card is ("$53 under sold") once sold prices are in, plus price drops, "new to you" and auctions ending soon
 > • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
 > • Save listings and searches; the Home tab shows what got cheaper and what you've spent
 > • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools

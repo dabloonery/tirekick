@@ -46,7 +46,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 
 1. **0.37.0 housekeeping**: the version check, L1, test docs, this section.
 2. **More free features, and better ones.** Done in 0.37.0 and 0.38.0, from the briefs' parts that need no model:
-   - Brief 4: "Likely scam? 32% of sold price" and "Too cheap?" marks from a trusted sold median; Marketplace's
+   - Brief 4: "Likely scam?" and "Too cheap?" marks ("Sold ones go for $300" since 0.39.0) from a trusted sold median; Marketplace's
      "Joined Facebook in …" warns on an account made this year. 0.38.0: **Same photo as 2 other listings** on
      Marketplace, from fingerprints (dHash) of thumbnails on screen, kept 90 days; the same file or the same title
      doesn't count, and scans are told. *Still open:* eBay, which needs the seller on each card first (sellers there
@@ -57,7 +57,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    - Brief 2: how long a listing has been up, how a saved one moved since you saved it, "the seller may take less",
      and saved listings' history kept past the 90-day prune. *Still open:* relists.
    - Brief 6, part 1: saved listings as a spreadsheet (CSV), from Saved and from settings. *Still open:* sync.
-   - 0.39.0, from Myer's first live look: a **free read** on every listing before a scan ("Good price · 62% of sold",
+   - 0.39.0, from Myer's first live look: a **free read** on every listing before a scan ("Good price · $53 under sold"; prices against sold are said in dollars everywhere now, not "% of sold",
      "Check first", "Off-topic"), which also orders the list; **Work one out from sold prices** on a listing page
      gives the offer without an analysis; the Marketplace home feed hides **off-topic** posts (rentals, services,
      jobs, pets, "looking for", $1 placeholders: `TKRules.offTopic`), on by default there, one click to show; search
@@ -81,7 +81,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    replacing its files (same folder name and place, so your saved data stays), then press the reload arrow on
    Tirekick in `vivaldi://extensions`. The card there should say 0.39.0. (Or ask Claude to update the folder.)
 3. **The live check, about 20 minutes.** Each one is something the tests can't reach:
-   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "% of sold"
+   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "$… under sold"
      on the cards? Any "Too cheap?" chips look right?
    - Press **Scan** once with your key. Tags on the cards, and the ranked list?
    - Open a listing from that search: is there an **Offer** box with a message you can copy? Type a price under

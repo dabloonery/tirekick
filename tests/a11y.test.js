@@ -90,6 +90,11 @@
     const save = marks && [...marks.querySelectorAll(".tk-x")].find((b) => /Save/.test(b.textContent));
     check("card marks are on the fixture", !!save, "no hover action found");
     if (save) {
+      const acts = [...save.closest("[role=toolbar]").querySelectorAll("button")];
+      check("one Tab stop per card: the actions are a toolbar", acts.filter((b) => b.tabIndex === 0).length === 1 && acts.length >= 2, acts.map((b) => b.tabIndex).join(","));
+      save.focus();
+      save.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      check("arrow keys move along the card's actions", document.activeElement === acts[1] && acts[1].tabIndex === 0 && save.tabIndex === -1, `focus is on ${document.activeElement.textContent}`);
       save.focus();
       check("hover action takes keyboard focus", document.activeElement === save, "focus did not move");
       const r = save.getBoundingClientRect();

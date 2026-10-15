@@ -69,6 +69,22 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
      on the feed (titles you mark Not interested) to hide more like them.
    - 0.40.0: the price chip says "typical" instead of "sold" ("$53 below typical", the source on hover); no browser
      box of past entries over Tirekick's text boxes; a quieter slate navy in dark; "1 possible scam" in the page summary. The AI choice is neutral: one "AI service" menu lists every supported service side by side, a fresh install picks none, and the panel's menu offers only the services you set up.
+   - 0.40.2, the review pass's clear-cut fixes: no stray "null" in the toolbar popup with one saved search; each
+     card's Save / Sold / Not interested are one toolbar with one Tab stop (arrow keys inside); long tags wrap inside
+     the card; "$55" instead of "$55–$55"; "$39 above typical" said once; the footer's AI menu on one line; a tighter
+     header and footer in short windows; 24px targets on the small text links; settings fields stay clear of the
+     sticky section links; the website's skip link, footer targets and the navy band's link line contrast. The
+     choices that are dabloonery's (which verdict wins when price and score disagree, a bigger text floor, "sold" wording,
+     the offer warning, the search-ideas name, the light theme's main button) wait on dabloonery.
+   - 0.41.0, dabloonery's six choices from the review pass: when the score and the price disagree the **price check
+     wins** (`TKRules.priceVerdict`: far under the typical price reads "Great price, if it's real" in the scam color
+     and counts as a skip; over 125% of it is no better than Fair price); a **13px floor** for chips and labels and
+     **14px** for reasons, price lines and the welcome; **"typical price (recent eBay sales)"** instead of "sold" in
+     the panel (the cards' "Sold ↗" stays: it opens eBay's sold listings); a one-line **warning** when an offer is
+     under half the ask; one name, **Search ideas**; the **orange main button** in light mode too.
+   - 0.42.0, a light shift toward everyday buyers (dabloonery, 2026-10-15): the store summary and description lead with
+     "Good price or scam?"; reseller tools stay, with neutral words ("price gap after fees", not "margin";
+     "to sell on", not "fix up and flip"); resale gets one quiet line in the listing.
 3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far

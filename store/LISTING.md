@@ -6,7 +6,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 - **Name:** Tirekick
 - **Summary** (132 characters at most; this is the manifest's description, checked by `deno task pack`):
-  Deal scores, price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
+  Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
 - **Category:** Shopping
 - **Language:** English
 - **Privacy policy URL:** the public address of `store/PRIVACY.md`. The repository is private for now, so its GitHub page isn't public: host it elsewhere (a GitHub Gist, a GitHub Pages site from a small public repository, or any web page you control) until the repository is opened
@@ -15,7 +15,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 ## Description
 
-**Kick the tires before you buy.**
+**Kick the tires before you buy.** Is it a good price? Is it a scam?
 
 Tirekick looks over listings with you on secondhand marketplaces, where you already shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
 
@@ -32,17 +32,16 @@ Tirekick has optional AI features. The checks below are free and work without th
 **Optional: add an AI you choose** (Anthropic's Claude, DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
 • A score and verdict for every listing, one line on the price, and the reasons on hover
 • Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
-• Reseller mode for people who fix and flip: the likely fault, how hard it is, parts, and your margin after eBay fees
-• Better searches: the misspellings sellers make, other model names, tighter or looser words
+• Selling things on? Reseller mode adds the likely fault, how hard it is to fix, parts, and the price gap after eBay fees
+• Search ideas: the misspellings sellers make, other model names, tighter or looser words
 • Optional: scan new listings automatically as a search page you're looking at loads them, up to your monthly budget
 
-**It only looks when you do.** Tirekick works on the page in front of you, when you ask (or, if you turn on automatic scanning, as the search you're looking at loads). Nothing browses or checks prices in the background. Everything it keeps stays in your browser, and the only things sent anywhere go to the AI service you picked, because you pressed a button. Bring your own API key: a scan of 50 listings with the default model (Claude Haiku 5.5) costs less than a cent.
+**It only looks when you do.** Tirekick works on the page in front of you, when you ask (or, if you turn on automatic scanning, as the search you're looking at loads). Nothing browses or checks prices in the background. Everything it keeps stays in your browser, and the only things sent anywhere go to the AI service you picked, because you pressed a button. Bring your own API key: a scan of 50 listings with a small model usually costs less than a cent.
 
-Scores, prices, margins and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.
+Scores, prices, price gaps and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.
 
 Not affiliated with or endorsed by eBay or Meta. eBay and Facebook are trademarks of their owners.
 
-Not affiliated with or endorsed by eBay or Meta. 
 ## Single purpose
 
 Help people buying secondhand online judge the listings they are viewing on supported marketplaces (currently eBay and Facebook Marketplace): scoring them, comparing prices with recent sales, and warning about likely scams.
@@ -81,7 +80,7 @@ Regenerate with `tests/e2e/run.sh screenshots.ts` (the real extension on test pa
 
 ## Notes for the reviewer
 
-Scores and analysis need an API key, which the reviewer is not expected to have. Without one, everything else works: open an eBay search, open the panel (the "Tirekick" tab at the right edge, or Alt+Shift+L), press "Sold prices", try the filter bar, save a listing, and open the Home tab. Select any text on another site and right-click "Look up" for the extension's own page.
+Scores and analysis need an API key, which the reviewer is not expected to have. Without one, everything else works: open an eBay search, open the panel (the "Tirekick" tab at the right edge, or Alt+Shift+L), press "Typical price", try the filter bar, save a listing, and open the Home tab. Select any text on another site and right-click "Look up" for the extension's own page.
 
 ## Before you submit
 

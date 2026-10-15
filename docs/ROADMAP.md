@@ -22,6 +22,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 8: Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) (plan; check first that it helps)
   - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then Safari)
   - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
+  - [Brief 11: Side panel mode](#brief-11-side-panel-mode) (idea from the 2026-10-15 UI audit)
 
 ---
 
@@ -529,6 +530,7 @@ The briefs (1 to 7 written 2026-10-14, 8 to 10 on 2026-10-15) are written so ano
 | 8 | [Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) | Small to medium | A check on 30 real listings first |
 | 9 | [More browsers](#brief-9-more-browsers) | Small (Edge) to large (Safari) | Nothing new |
 | 10 | [More AI options](#brief-10-more-ai-options) | Small | 0.40.0 service menu |
+| 11 | [Side panel mode](#brief-11-side-panel-mode) | Medium | Nothing new; must keep the drawer for Vivaldi |
 
 Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
@@ -1017,3 +1019,17 @@ side, and a fresh install picks none. What's left:
   one code path.
 - **How to know it's done:** with each service set up against the mock server, the panel menu offers the same three
   choices, and scans, Analyze and photo checks work.
+
+### Brief 11: Side panel mode
+
+Added 2026-10-15 from an outside UI audit. Idea only, not planned yet. On 1366×768 and 1280×800 laptops the
+380px drawer covers one or two columns of listings; Chrome's side panel would sit beside the page instead of over it.
+
+- **What:** an optional "Open in the side panel" setting that shows the same three tabs (Home, This page, Saved) in
+  `chrome.sidePanel`, talking to the page script by message for the page's listings and flashing a card.
+- **Costs:** a new `sidePanel` permission (needs its reason in `store/LISTING.md` and the security review), and the
+  panel's views must run outside the page, which is most of the work.
+- **Vivaldi:** it doesn't offer Chrome's side panel API the same way, so the on-page drawer stays the default and
+  the fallback everywhere. Check there before building.
+- **How to know it's done:** with the setting on, a 1280px-wide eBay search shows every column, the panel's rows
+  still flash their cards, and with it off nothing changes.

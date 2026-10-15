@@ -389,20 +389,18 @@
     .welcome .w-points { margin:0; padding-left:18px; display:grid; gap:5px; line-height:1.45; }
     .welcome .w-points li::marker { color:var(--accent); }
     .welcome .w-points b { font:600 14px/1.45 var(--ui); }
-    .welcome .tip { color:var(--muted); }
     .welcome .w-note { font-size:13px; }
     .welcome .go { justify-self:start; }
-    /* No model yet: the key is step 1 and the only call to action; the steps after it are plain text until it's done */
+    /* No model yet: a quiet note after the points; the free features come first */
     .welcome .step-key { display:grid; gap:4px; padding:10px 12px; border-radius:var(--r-sm); background:var(--paper-2); }
     .welcome .step-key b { font:600 14px/1.4 var(--ui); }
     .welcome .step-key .setup-text { color:var(--muted); }
     .welcome .step-key .setup-go { justify-self:start; margin-top:6px; min-height:36px; padding:9px 14px; font:600 13px/1 var(--ui); }
-    .welcome:has(.step-key:not([hidden])) .w-points { color:var(--muted); }
     /* Model-only controls wait until there is a model: Compare prices against and free sold prices still work */
     .no-model .want-field, .no-model .feewrap, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
 
     /* first run, list bar */
-    .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:14px; }
+    .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:14px; }
     .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 8px;
       border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:13px; color:var(--muted); }
     .listbar + .list > .row:first-child { border-top:0; }
@@ -685,26 +683,23 @@
         <div class="hint other-note">Nothing to look over here. Open a search, a category or a listing. Your saved listings and searches are under Saved.</div>
         <div class="welcome" hidden>
           <b>Welcome to Tirekick</b>
-          <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
-            <button class="scan setup-go" data-act="open-settings">Open settings</button></div>
           <ul class="w-points">
-            <li><b>Scan</b> gives every listing here a score, the reason, and how its price compares with the typical price (recent eBay sales).</li>
-            <li><b>Buyer or Reseller</b>, top right, changes what scores high.</li>
-            <li>Point at a card's tag for the reasons, <i>Save</i> and <i>Not interested</i>.</li>
+            <li>Cards are marked for likely scams and odd prices as they load.</li>
+            <li><b>Typical price</b> compares every listing with recent eBay sales, free. Point at a card for its own, and for <i>Save</i> and <i>Not interested</i>.</li>
+            <li>With an AI (optional), <b>Scan</b> scores each listing and says why. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
           </ul>
-          <div class="tip">No key yet? The free marks on the cards already flag likely scams.</div>
+          <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
+            <button class="ghost setup-go" data-act="open-settings">Open settings</button></div>
           <div class="hint w-note">Scores, prices and warnings are estimates to help you decide, not a guarantee: check the listing and the seller yourself.</div>
           <button class="ghost go" data-act="intro-done">Got it</button>
         </div>
-        <div class="setup" hidden><b class="setup-title">Add an AI to start scoring.</b> <span class="setup-text">Pick any AI service you have a key for (Anthropic, Google Gemini, OpenAI, OpenRouter and others), or a free model on your own computer, in settings.</span>
-          <button class="scan" data-act="open-settings">Open settings</button></div>
         <div class="hint mode-hint"></div>
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input autocomplete="off" id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="feewrap"><label for="fee">Selling fees (%)</label><input autocomplete="off" id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the typical price for the price gap; eBay's are about 13%.</div></div>
         <div class="q-sum"><span class="q-sum-text"></span> <button data-act="edit-q" title="Compare prices against other words">Change</button></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input autocomplete="off" id="q" placeholder="e.g. Pentax K1000">
-          <div class="hint browse-note" hidden>No search on this page, so Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Typical price</b> on a listing gets real eBay numbers.</div></div>
+          <div class="hint browse-note" hidden>No search here (or only a category), so there's no one typical price for the page. Point at a listing and press <b>Typical price</b> for its own, from recent eBay sales. A scan goes by what you're into and what you want, and its prices are estimates (<i>est.</i>).</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
@@ -714,6 +709,8 @@
           <button class="ghost" data-act="ideas" hidden>Search ideas</button>
           <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own: free, and your AI isn't used">Typical price <span class="cost">free</span></button>
         </div>
+        <div class="setup" hidden><b class="setup-title">Scores are optional.</b> <span class="setup-text">Prices, scam marks and filters work without an AI.</span>
+          <button class="ghost" data-act="open-settings">Open settings</button></div>
         <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
         <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
@@ -790,7 +787,7 @@
   const qwrap = $(".qwrap");
   const browseNote = $(".browse-note");
   // Browse mode: a results page with nothing to compare against (e.g. the Marketplace home feed).
-  const showBrowseNote = () => (browseNote.hidden = TK.pageType() !== "results" || !!queryEl.value.trim());
+  const showBrowseNote = () => (browseNote.hidden = TK.pageType() !== "results" || (!!queryEl.value.trim() && !TKRules.broadQuery(queryEl.value)));
   queryEl.addEventListener("input", showBrowseNote);
   const itemEl = $(".itemout");
   const pageInfo = $(".pageinfo");
@@ -866,7 +863,10 @@
     wrap.classList.toggle("q-folded", qFold);
     if (qFold && $(".q-sum").dataset.shown !== qNow) {
       $(".q-sum").dataset.shown = qNow;
-      $(".q-sum-text").replaceChildren("Typical price from recent eBay sales of ", h("b", {}, `\u201c${qNow}\u201d`));
+      // A category's name gets no one typical price: the line says so, and how to price a listing instead.
+      $(".q-sum-text").replaceChildren(...(TKRules.broadQuery(qNow)
+        ? [h("b", {}, `\u201c${qNow}\u201d`), " is a whole category, too broad for one typical price. Point at a listing and press Typical price for its own."]
+        : ["Typical price from recent eBay sales of ", h("b", {}, `\u201c${qNow}\u201d`)]));
     }
     const fold = done && !editingInputs && !typingHere;
     wrap.classList.toggle("folded", fold);
@@ -1167,7 +1167,9 @@
     wrap.classList.toggle("no-model", !!modelMissing);
     setupCard.hidden = !modelMissing || inWelcome;
     $(".step-key").hidden = !inWelcome;
-    $(".welcome .tip").hidden = !modelMissing;
+    // With no AI, the free typical price is the page's main button; Scan waits until there's an AI.
+    freeRow.classList.toggle("scan", !!modelMissing);
+    freeRow.classList.toggle("ghost", !modelMissing);
     if (!modelMissing) return;
     root.querySelectorAll(".setup-title").forEach((el) => (el.textContent = modelMissing[0]));
     root.querySelectorAll(".setup-text").forEach((el) => (el.textContent = modelMissing[1]));
@@ -1301,7 +1303,7 @@
     const keyless = /LM Studio/.test(cfg.oaiName || "");
     const missing =
       cfg.provider === "anthropic" && !cfg.hasKey
-        ? ["Add an AI to start scoring.", "Pick any AI service you have a key for (Anthropic, Google Gemini, OpenAI, OpenRouter and others), or a free model on your own computer, in settings."]
+        ? ["Scores are optional.", "Prices, scam marks and filters work without one. To score listings too, add any AI service you have a key for, or a free model on your own computer, in settings."]
         : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
@@ -1884,14 +1886,16 @@
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
-    const cheap = f.vsSold != null && TKRules.tooCheap(f, lastMarket);
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(lastMarket.median))}`, `This is ${cheap.pct}% of the typical price (the middle of ${lastMarket.n} recent eBay sales): far below what the same thing sells for is the usual bait.`]);
+    const mk = marketOf(f);
+    const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}`;
+    const cheap = f.vsSold != null && TKRules.tooCheap(f, mk);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null && !cheap) {
       const pw = f.project ? null : TKRules.priceWord(f.vsSold); // broken ones: just the number
-      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(lastMarket.median))}, the middle of ${lastMarket.n} recent eBay sales.`]);
-    }
+      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
+    } else if (f.priceNote) c.push(["plain", "No price check", f.priceNote]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
     if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
@@ -2102,6 +2106,26 @@
   const hideChip = (key) => h("button", { class: "tk-chip k-plain tk-x", title: "Hide this listing everywhere (undo it under Saved)", onclick: own(() => setInterested(key, false)) }, "Not interested");
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
+  // A listing can be priced on its own when it has none yet, and it's one thing (not a lot, not a bid).
+  const canPrice = (f) => cfg.useSoldComps !== false && f.vsSold == null && !f.priceNote && !f.lot && !f.auction && !f.project && f.total != null && !!TK.titleToQuery(f.title || "");
+  // One listing's typical price, from its own title: the answer when the page has no search, or its words
+  // are a whole category. One eBay lookup, paced and cached like the page's.
+  const priceOne = async (key, btn) => {
+    const f = facts.get(key);
+    if (!f) return;
+    const query = TK.titleToQuery(f.title);
+    if (btn) (btn.disabled = true), (btn.textContent = "Checking\u2026");
+    try {
+      const m = await soldMarket(query, "used");
+      if (m?.median > 0) f.ownMarket = { median: m.median, p25: m.p25, p75: m.p75, n: m.n, confidence: m.confidence, query };
+      else f.priceNote = `Not enough recent eBay sales of \u201c${query}\u201d to compare.`;
+    } catch (e) {
+      f.priceNote = e.message;
+    }
+    f.vsSold = vsSoldOf(f);
+    setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used.` : f.priceNote, !f.ownMarket);
+    redecorateAll();
+  };
   // "$55", not "$55–$55", when the two ends meet.
   const offerRange = (r) => (r.offerLow >= r.offerHigh ? `$${r.offerHigh}` : `$${r.offerLow}\u2013$${r.offerHigh}`);
   // What every card offers on hover. A saved listing keeps its star showing. They make one toolbar with a
@@ -2110,7 +2134,10 @@
     saved[key]
       ? h("button", { class: "tk-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
       : h("button", { class: "tk-chip k-plain tk-x", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
-    f.title ? h("button", { class: "tk-chip k-plain tk-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
+    // No price for it yet: one free lookup of its own title. Otherwise eBay's sold listings, to look yourself.
+    f.title && canPrice(f)
+      ? h("button", { class: "tk-chip k-plain tk-x", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d: free, and your AI isn't used`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
+      : f.title ? h("button", { class: "tk-chip k-plain tk-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ])];
   const toolbar = (btns) => {
@@ -2484,7 +2511,9 @@
   // (where the price is only a bid) aren't compared with one item's selling price.
   let cacheTried = false;
   let marketFor = ""; // the search the cards' "below/above typical" is for
-  const vsSoldOf = (f) => (lastMarket?.median > 0 && f.total != null && !f.lot && !f.auction ? f.total / lastMarket.median : null);
+  // A listing's own typical price (looked up from its title, from its hover) wins over the page's.
+  const marketOf = (f) => f?.ownMarket || lastMarket;
+  const vsSoldOf = (f) => (marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction ? f.total / marketOf(f).median : null);
   const applyMarket = (market) => {
     lastMarket = market;
     marketFor = queryEl.value.trim().toLowerCase();
@@ -2644,7 +2673,7 @@
   };
   const sc = (it) => it.score ?? -1;
   // Before a scan, "best first" goes by the free read: good prices up, warnings and off-topic down.
-  const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, lastMarket)?.rank ?? 0.5);
+  const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, marketOf(facts.get(keyOf(it.url)) || it))?.rank ?? 0.5);
   const dealOf = (it) => (facts.get(keyOf(it.url))?.deal ? 1 : 0);
   const perItem = (it) => (it.total == null ? Infinity : it.lot ? it.total / it.lot : it.total);
   const vsSold = (it) => it.vsWorking ?? facts.get(keyOf(it.url))?.vsSold ?? Infinity;
@@ -2691,7 +2720,8 @@
         const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
         // Not scored (yet): the price is the headline, with what's known for free.
         if (it.score == null) {
-          const vs = f.vsSold != null ? ` \u00b7 ${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough", long: true })} (${dollars(Math.round(lastMarket.median))})` : "";
+          const mk = marketOf(f);
+          const vs = f.vsSold != null ? ` \u00b7 ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true })} (${dollars(Math.round(mk.median))})` : "";
           const each = it.lot && it.total != null ? ` \u00b7 lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
           listEl.append(
             h(
@@ -2702,7 +2732,7 @@
                 {},
                 h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
                 (() => {
-                  const read = !likelyScam(f) && TKRules.freeRead(f, lastMarket);
+                  const read = !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
                   return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " \u00b7 free read") : null;
                 })(),
                 likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
@@ -2952,8 +2982,14 @@
   // Working price from used sales (falling back to any condition when there are too few);
   // for Fix & flip also what broken ones sell for, the floor you can always resell at.
   let lastMarket = null;
+  // A whole category has no one typical price: say so, and what works instead.
+  const broadNote = (query) => `\u201c${query}\u201d is a whole category, too broad for one typical price. Point at a listing and press Typical price for its own, or type a model under \u201cCompare prices against\u201d.`;
   const getMarket = async (settings, query, forLens) => {
     if (!settings.useSoldComps || !query) return null;
+    if (TKRules.broadQuery(query)) {
+      marketEl.replaceChildren(h("div", { class: "mnote" }, broadNote(query)));
+      return null;
+    }
     const epoch = pageEpoch;
     setStatus(`Checking recent eBay sales for "${query}"…`);
     let market = null;
@@ -3164,7 +3200,7 @@
   const refreshPending = () => {
     updateFold();
     showIdeasBtn();
-    freeRow.hidden = scanning || TK.pageType() !== "results" || !queryEl.value.trim() || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
+    freeRow.hidden = scanning || TK.pageType() !== "results" || !queryEl.value.trim() || TKRules.broadQuery(queryEl.value) || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
     if (scanning || TK.pageType() !== "results") return;
     let n = 0;
     if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);
@@ -3541,7 +3577,8 @@
       const query = queryEl.value.trim();
       const want = wantEl.value.trim();
       const forLens = lens;
-      const browse = query ? "" : TK.browseContext(); // no search: interests guide, prices are estimates
+      // No search, or only a category's name: interests guide, and prices are the model's estimates.
+      const browse = query && !TKRules.broadQuery(query) ? "" : TK.browseContext();
       items.forEach((it) => (it.browse = !!browse));
       const market = await getMarket(settings, query, forLens);
       if (stopRequested) {

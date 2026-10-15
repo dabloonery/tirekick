@@ -233,11 +233,12 @@ for each, one PR per change.*
 
 ### Still to do in this round
 
-1. **Before a scan:** a free "Typical price" on every card's hover, from that listing's own title; the free price check
-   as the first step on a search, Scan after. Not automatic when a page opens (Ground rules: nothing fetched you didn't ask for).
+1. ~~**Before a scan**~~ (0.45.0): a free "Typical price" on a card's hover, from that listing's own title; with no
+   AI set up, the free price check is the panel's main button and the AI note is a quiet card after it. Not automatic
+   when a page opens (Ground rules: nothing fetched you didn't ask for).
 2. **Scores, in two parts:** the price verdict (free, from sales) and the AI's **Fit** (condition, what you want,
    risk). Tags lead with the words; the number moves into the reasons.
-3. **Broad words and category pages:** no page-wide comparison against a category ("Electronics"): Tirekick says the
+3. ~~**Broad words and category pages**~~ (0.45.0, `TKRules.broadQuery`): no page-wide comparison against a category ("Electronics"): Tirekick says the
    words are too broad, and each listing gets its own typical price from its title. When no lookup can be made
    (eBay blocks it, too few sales, turned off) the card says so and why, with a link to eBay's sold listings.
 4. **Audit and clean-up**, in small PRs: code and design, including dropping "·" separators where color or weight

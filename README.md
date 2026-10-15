@@ -205,8 +205,11 @@ key, and runs only on pages you're looking at.
   any page in the last 90 days: a stolen or stock photo. Tirekick works out a small fingerprint from each thumbnail
   you scroll past (on your computer; only the code is kept), so it catches a photo uploaded again, not just the same
   file. The seller's own relists and identical titles don't count. Not on eBay, where sellers reuse their own photos.
-- **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
-  ✕ **Not interested**.
+- **On hover**: ☆ **Save**, **Typical price** (free: one eBay sold lookup of that listing's own title,
+  for a page with no search or only a category's name; "No price check" and why when it can't be made) or,
+  once it has a price, **Sold ↗** (eBay's sold listings for that title, in a new tab), and ✕ **Not interested**.
+- **A category isn't a price.** Words like "Electronics" or "Home & Garden" get no page-wide comparison: the
+  panel says they're too broad, and each listing can be priced from its own title.
 
 **Filtering a search.** **New only**, **Hide broken** and **Hide off-topic** sit above the list, one click each.
 The **Filter** button opens the words, price range and your price, and says how many are set; Enter or Esc

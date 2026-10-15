@@ -138,7 +138,7 @@
   host.style.cssText = "position:fixed;right:0;bottom:20px;z-index:2147483646;pointer-events:none;";
   const root = host.attachShadow({ mode: "open" });
   // The mark: an orange tread dot with a navy hub, as in the toolbar icon.
-  const MARK = `<svg class="m-vec" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="${THEME.ORANGE}"/><g fill="none" stroke="#B9692F" stroke-width="1.25" stroke-linecap="round"><path d="M12 2.4l1.3 1.75" transform="rotate(0 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(30 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(60 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(90 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(120 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(150 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(180 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(210 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(240 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(270 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(300 12 12)"/><path d="M12 2.4l1.3 1.75" transform="rotate(330 12 12)"/></g><circle cx="12" cy="12" r="3.7" fill="${THEME.NAVY}"/></svg>`;
+  const MARK = `<svg class="m-vec" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="${THEME.ORANGE}"/>${THEME.logoTread(12, 11, 22)}<circle cx="12" cy="12" r="3.7" fill="${THEME.NAVY}"/></svg>`;
 
   // The two palettes come from lib/theme.js (contrast measured there). --on-v and --on-accent are the text
   // colors that sit on a verdict or accent fill; --btn/--on-btn the main button.

@@ -43,6 +43,8 @@ keep that and add a little warmth and a recognizable name, not to bolt on a pers
    reason right after, in the same breath.
 2. **Be straight about money and data.** Every cost, every thing sent anywhere, said plainly and before
    it happens. "Costs about 1¢." "Nothing leaves your browser until you press Scan."
+   Be straight about the AI too: Tirekick has AI features, so never call it "no AI" or AI-free. Say the
+   core features work without the AI and the AI is optional; for one action, "your AI isn't used".
 3. **Confident, not certain.** Tirekick judges; it doesn't rule. Scam marks say "Likely scam" or
    "Scam?", never "Scam". Estimates say *est.*
 4. **Short and kind under pressure.** Errors say what happened and the one thing to do next. No blame,

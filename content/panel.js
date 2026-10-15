@@ -690,7 +690,7 @@
         <label class="autoscan" hidden><input type="checkbox" class="auto-in" role="switch"><span>Scan new listings automatically</span></label>
         <div class="alts">
           <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
-          <button class="ghost freeprices" data-act="prices" hidden title="The eBay sold-price lookup on its own: free, no AI">Sold prices <span class="cost">free</span></button>
+          <button class="ghost freeprices" data-act="prices" hidden title="The eBay sold-price lookup on its own: free, and your AI isn't used">Sold prices <span class="cost">free</span></button>
         </div>
         <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
@@ -2645,7 +2645,7 @@
                 h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
                 (() => {
                   const read = !likelyScam(f) && TKRules.freeRead(f, lastMarket);
-                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From sold prices and the free checks, no AI. A scan gives a real score." }, h("span", { class: "verdict" }, read.word), " \u00b7 free read") : null;
+                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From sold prices and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " \u00b7 free read") : null;
                 })(),
                 likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
                 (() => {
@@ -3638,9 +3638,9 @@
       const market = await getMarket(settings, query, "use");
       if (!market?.median) return setStatus(market ? "Not enough working ones sold to compare with." : "");
       applyMarket(market);
-      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d. No AI used.`);
+      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used.`);
       const n = [...facts.values()].filter((f) => f.vsSold != null).length;
-      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. No AI used. Sort by \u201cfurthest under sold price\u201d to see the cheapest for what they are.`);
+      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used. Sort by \u201cfurthest under sold price\u201d to see the cheapest for what they are.`);
     } catch (e) {
       setStatus(e.message, true);
     } finally {
@@ -3836,7 +3836,7 @@
       "Offer ",
       h("b", {}, dollars(plan.open)),
       plan.walkAway > plan.open ? [", walk away above ", h("b", {}, dollars(plan.walkAway))] : null,
-      h("div", { class: "meta" }, `From sold prices, no AI: ${plan.reasons.join("; ")}.${rough}`),
+      h("div", { class: "meta" }, `From sold prices, without your AI: ${plan.reasons.join("; ")}.${rough}`),
       messageArea(messages, plan, f)
     );
   };

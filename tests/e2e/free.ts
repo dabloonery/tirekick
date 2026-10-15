@@ -55,7 +55,7 @@ await R(it, `r.querySelector('[data-act=tab]').click()`);
 await waitFor(() => R(it, `return !!r.querySelector('.pi-line .offer')`));
 const offer = await R(it, `const b=r.querySelector('.pi-line .offer'); return b && { text: b.textContent, msg: b.querySelector('textarea')?.value, kinds: [...b.querySelectorAll('.msg-kind button')].map(o=>o.textContent) }`);
 ok("a listing page offers an opening price and a walk-away price from sold prices, before any analysis", /Offer \$270, walk away above \$290/.test(offer?.text || ""), { words, offer });
-ok("…says where they come from", /From sold prices, no AI: sold ones go for \$250–\$340 \(20 sales\)/.test(offer?.text || ""), offer);
+ok("…says where they come from", /From sold prices, without your AI: sold ones go for \$250–\$340 \(20 sales\)/.test(offer?.text || ""), offer);
 ok("…with a message to edit and three kinds to pick from", offer?.msg === "Hi! Is this still available? Would you take $270?" && offer?.kinds?.join() === "Friendly,Direct,With a reason", offer);
 await R(it, `r.querySelector('.pi-line .offer .msg-kind [data-kind=direct]').click()`);
 ok("…and picking another kind changes the message", /^Hi, I can offer \$270\. Let me know/.test(await R(it, `return r.querySelector('.pi-line .offer textarea').value`)));

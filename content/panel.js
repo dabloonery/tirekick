@@ -57,6 +57,20 @@
   // After the extension is reloaded or updated, this copy of the script is cut off from it.
   const alive = () => !!chrome.runtime?.id;
   const STALE = "Tirekick was updated. Reload this page to keep using it.";
+  // After the extension is updated or reloaded, this copy stays on the open page but can't reach the
+  // extension: any chrome.* call still under way then fails with "Extension context invalidated". Those
+  // failures are expected, not errors: swallow them and stop this copy (teardown, below) so it goes quiet.
+  let retired = false;
+  const orphaned = (err) => !alive() && /Extension context invalidated|context invalidated|Receiving end does not exist/i.test(String(err?.message ?? err ?? "")) || err?.message === STALE;
+  const retire = () => {
+    if (retired) return;
+    retired = true;
+    try {
+      teardown();
+    } catch {} // the panel may not be built yet
+  };
+  window.addEventListener("unhandledrejection", (e) => orphaned(e.reason) && (e.preventDefault(), retire()));
+  window.addEventListener("error", (e) => orphaned(e.error ?? e.message) && (e.preventDefault(), retire()));
 
   const send = (type, payload) =>
     new Promise((resolve, reject) => {
@@ -2390,6 +2404,7 @@
   let pageHadKnown = null; // first visit to a search: nothing is "new to you" yet
   let passing = false;
   const pagePass = async (force = false) => {
+    if (retired) return;
     if (TK.pageType() !== "results" || passing) return;
     const keysNow = currentKeys();
     if (!force && keysNow.size === passKeys.size && [...keysNow].every((k) => passKeys.has(k))) return;
@@ -3724,6 +3739,7 @@
   let itemFacts = null;
   let itemTries = 0;
   const itemPass = async () => {
+    if (retired) return;
     if (TK.pageType() !== "item") return;
     await Promise.all([memoryReady, prefsReady]);
     const listing = TK.extractItem();
@@ -4345,7 +4361,7 @@
   // listings, and Facebook dropping our stickers when it recycles cards.
   let ticks = 0;
   const tick = () => {
-    if (!alive()) return teardown();
+    if (!alive()) return retire();
     sync();
     if (document.hidden) return;
     syncPageTheme(); // the page's own light or dark (cheap: it only writes when that changes)
@@ -4358,7 +4374,7 @@
   // A page loaded ahead of time (eBay prerenders the listings you're likely to open) or brought back from the
   // back-forward cache: read it again as soon as it's the page you're looking at, instead of waiting for a reload.
   const wake = (fresh) => {
-    if (!alive()) return teardown();
+    if (!alive()) return retire();
     if (fresh) (lastHref = ""), (lastType = null);
     sync();
     pagePass(true);
@@ -4369,7 +4385,10 @@
   document.addEventListener("visibilitychange", () => !document.hidden && wake(false));
   // After an update this copy can't reach the extension any more: get out of the way so the new one can load.
   const teardown = () => {
+    retired = true;
     clearInterval(timer);
+    clearTimeout(photoTimer);
+    photoObserver?.disconnect();
     host.remove();
     toastRoot?.host.remove();
     window.removeEventListener("tirekick-toggle", toggleOpen);

@@ -2,7 +2,7 @@
 
 *Last updated: October 2026*
 
-Tirekick is a browser extension for people buying second-hand online. It currently works on eBay and
+Tirekick is a browser extension for people buying secondhand online. It currently works on eBay and
 Facebook Marketplace. This page says what it keeps, what it sends, and to whom.
 
 **The short version:** Tirekick has no server and no analytics. The developer receives nothing.

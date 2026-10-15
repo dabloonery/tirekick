@@ -4,7 +4,7 @@ Status: a plan. Step 1 (the sites table) is done as of 0.36.0, with no change in
 
 ## Why
 
-Both are where second-hand buying happens locally, and both have the problems Tirekick is for: no sold prices on the page, scams, and long feeds to skim. eBay's sold listings stay the price reference for all four sites (OfferUp and Craigslist publish no sales).
+Both are where secondhand buying happens locally, and both have the problems Tirekick is for: no sold prices on the page, scams, and long feeds to skim. eBay's sold listings stay the price reference for all four sites (OfferUp and Craigslist publish no sales).
 
 ## What each site is like
 

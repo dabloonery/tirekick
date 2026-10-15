@@ -6,7 +6,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 - **Name:** Tirekick
 - **Summary** (132 characters at most; this is the manifest's description, checked by `deno task pack`):
-  Deal scores, sold-price checks and scam warnings for second-hand listings, starting with eBay and Facebook Marketplace.
+  Deal scores, price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
 - **Category:** Shopping
 - **Language:** English
 - **Privacy policy URL:** the public address of `store/PRIVACY.md`. The repository is private for now, so its GitHub page isn't public: host it elsewhere (a GitHub Gist, a GitHub Pages site from a small public repository, or any web page you control) until the repository is opened
@@ -17,19 +17,19 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 **Kick the tires before you buy.**
 
-Tirekick looks over second-hand listings with you, on the stores where you shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
+Tirekick looks over listings with you on secondhand marketplaces, where you already shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
 
 Tirekick has optional AI features. The checks below are free and work without them; turn on an AI only if you want scores and write-ups.
 
 **Works without AI: free, no account**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
-• How far under or over the sold price each card is ("$53 under sold") once sold prices are in, plus price drops, "new to you" and auctions ending soon
+• How far below or above the typical price each card is ("$53 below typical", from recent eBay sales) once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
 • Save listings and searches; the Home tab shows what got cheaper and what you've spent
 • From any page: select a thing's name, right-click, "Look up": what it has sold for on eBay, and a search on eBay, Marketplace or both
 • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
 
-**Optional: add an AI you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
+**Optional: add an AI you choose** (Anthropic's Claude, DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
 • A score and verdict for every listing, one line on the price, and the reasons on hover
 • Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
 • Reseller mode for people who fix and flip: the likely fault, how hard it is, parts, and your margin after eBay fees
@@ -45,7 +45,7 @@ Not affiliated with or endorsed by eBay or Meta. eBay and Facebook are trademark
 Not affiliated with or endorsed by eBay or Meta. 
 ## Single purpose
 
-Help people buying second-hand online judge the listings they are viewing on supported marketplaces (currently eBay and Facebook Marketplace): scoring them, comparing prices with recent sales, and warning about likely scams.
+Help people buying secondhand online judge the listings they are viewing on supported marketplaces (currently eBay and Facebook Marketplace): scoring them, comparing prices with recent sales, and warning about likely scams.
 
 ## Permission justifications
 

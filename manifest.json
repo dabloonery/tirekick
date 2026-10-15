@@ -46,7 +46,8 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Tirekick: open or hide the panel",
+    "default_title": "Tirekick",
+    "default_popup": "hub/hub.html?popup",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -59,7 +60,7 @@
       "suggested_key": {
         "default": "Alt+Shift+L"
       },
-      "description": "Open or tuck away the Tirekick panel"
+      "description": "Open Tirekick (the panel on eBay and Marketplace)"
     }
   }
 }

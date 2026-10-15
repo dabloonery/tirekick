@@ -67,6 +67,9 @@
       });
     });
 
+  // On this tab the toolbar icon opens the panel, not the popup it opens everywhere else.
+  if (window === window.top) send("panelTab").catch(() => {});
+
   // The typeface ships inside the extension and is added with the FontFace API from bytes the background
   // provides, once the page is idle: one file, registered as the UI and the display face (THEME.FONTS).
   // Until then (or if it fails) the stacks fall back to system fonts, so nothing waits on it.

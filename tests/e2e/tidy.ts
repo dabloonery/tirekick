@@ -82,6 +82,22 @@ const col = await R(it, `const w=r.querySelector('.wrap'); w.dataset.theme='dark
 ok("the dark theme is navy with an orange button again", col === "#1A2B4C #FF8F3A", col);
 await it.close();
 
+// ---------- the toolbar icon: a popup everywhere, the panel on the stores ----------
+const pop = await o.ev(`chrome.action.getPopup({})`);
+ok("the icon opens Tirekick's page as a popup", /\/hub\/hub\.html\?popup$/.test(pop), pop);
+const st = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");
+await sleep(2000);
+const tabPop = await o.ev(`chrome.tabs.query({ url: 'https://www.ebay.com/sch/*' }).then(([t]) => chrome.action.getPopup({ tabId: t.id }))`);
+ok("…but on an eBay page it opens the panel instead", tabPop === "", tabPop);
+await st.close();
+const hp = await open(`chrome-extension://${EXT}/hub/hub.html?popup`);
+await sleep(800);
+const hub = await hp.ev(`({ popup: document.documentElement.classList.contains('popup'), width: document.body.offsetWidth, tab: getComputedStyle(document.querySelector('.tab-link')).display !== 'none', look: !!document.querySelector('#look-form'), saved: !!document.querySelector('#saved') })`);
+ok("the popup is the same page, narrow, with a link to open it in a tab", hub?.popup && hub.width === 400 && hub.tab && hub.look && hub.saved, hub);
+const menus = await o.ev(`chrome.runtime.getManifest().action.default_title`);
+ok("the icon's name is just Tirekick", menus === "Tirekick", menus);
+await hp.close();
+
 ok("no page logged an error", !errors.length, errors.slice(0, 5));
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

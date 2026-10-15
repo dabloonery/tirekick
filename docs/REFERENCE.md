@@ -539,7 +539,7 @@ Every permission is used, and none can be dropped without losing a feature:
 |---|---|
 | `storage` | settings, saved items, seen-listing memory, score cache |
 | `scripting` | registering the page script on eBay and Facebook, injecting it on click, reading sold results through an open eBay tab |
-| `contextMenus` | "Check this photo" and "Open Tirekick home" |
+| `contextMenus` | "Check this photo", "Look up …" and "Open Tirekick in a tab" |
 | eBay, Facebook, image CDNs | the two sites it works on, and photo checks |
 | AI service hosts | the services a user can pick in settings |
 | localhost `:11434`, `:1234` | Ollama and LM Studio |
@@ -625,7 +625,7 @@ A few things that are Vivaldi's own UI rather than the extension, worth a look i
 |---|---|---|
 | Toolbar icon and badge | Vivaldi can tuck extension icons into its extensions menu, which hides the badge number | Is the icon showing, and does the badge appear after a saved listing gets cheaper? |
 | Alt+Shift+L shortcut | Vivaldi has its own shortcut system, and a Vivaldi shortcut on the same keys would win | Does the shortcut open the panel? If not, set it at vivaldi://extensions/shortcuts |
-| "Open Tirekick home" on the icon's right-click menu | That entry uses the `action` menu context, which depends on how Vivaldi draws extension icons | Right-click the icon and look for it. The same thing is reachable by clicking the icon on any non-eBay page |
+| The toolbar popup, and "Open Tirekick in a tab" on the icon's right-click menu | The popup is set per tab (the panel clears it on store pages, `panelTab`), and the menu entry uses the `action` context, both of which depend on how Vivaldi draws extension icons | Click the icon on a non-store page: a popup? On eBay: the panel? Right-click the icon and look for the entry |
 | "Check this photo with Tirekick" | Standard page right-click menu | Right-click a listing photo on eBay |
 
 This part wasn't tested in Vivaldi here; the automated tests run in Chromium. dabloonery's daily use of the

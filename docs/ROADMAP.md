@@ -17,6 +17,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 5: More stores](#brief-5-more-stores)
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
   - [Brief 7: Built-in browser AI](#brief-7-built-in-browser-ai) (first after the 1.0.0 launch)
+  - [Brief 8: Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) (plan; check first that it helps)
 
 ---
 
@@ -353,6 +354,7 @@ Six briefs, one per file, written 2026-10-14 so another agent can pick one up co
 | 5 | [More stores](#brief-5-more-stores) | Large (one PR per store) | 0.36.0 port (site table) |
 | 6 | [Sync and export](#brief-6-sync-and-export) | Small (export) to medium (sync) | Nothing new |
 | 7 | [Built-in browser AI](#brief-7-built-in-browser-ai) | Medium | Nothing new. First after the 1.0.0 launch (dabloonery, 2026-10-14) |
+| 8 | [Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) | Small to medium | A check on 30 real listings first |
 
 Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
@@ -610,7 +612,7 @@ Read [the briefs intro](#read-this-before-any-brief) first (ground rules, Vivald
 
 #### Goal
 
-Make Tirekick work on more second-hand stores, one at a time, through the site table: **OfferUp and Craigslist first, then Mercari, then Poshmark.** One draft PR per store.
+Make Tirekick work on more secondhand stores, one at a time, through the site table: **OfferUp and Craigslist first, then Mercari, then Poshmark.** One draft PR per store.
 
 #### User story
 
@@ -775,3 +777,35 @@ Sources: [Chrome's Prompt API](https://developer.chrome.com/docs/ai/prompt-api),
 - A batch of the mock scans scored by Gemini Nano in Chrome is compared with Haiku's on the same listings, and the
   README says honestly how they differ.
 - dabloonery has tried it in Chrome; in Vivaldi the choice doesn't appear and nothing breaks.
+
+### Brief 8: Price data beyond eBay sold listings
+
+Added 2026-10-15. dabloonery: worth it "if it also makes the product better". Plan only; nothing built.
+
+#### Why
+The "typical price" today comes only from recent eBay sold listings (`lib/sold.js`). That fails in three common cases:
+local pickup items that rarely sell on eBay (furniture, appliances, bikes), very new or niche items with
+few sales, and regional prices (Marketplace in a big city vs. eBay's national market). In those cases the
+chip is missing or misleading, and the free read says nothing.
+
+#### Options, best first
+1. **Asking prices you've already seen (recommended first).** `listingMemory` already keeps the price of
+   every listing on the pages you looked at, for 90 days. A "typical asking price" from those (median of at
+   least 8 similar titles, same store, same area when the page says it) fills the gap when eBay has too few
+   sales. It costs nothing, fetches nothing, and keeps to the ground rules. Asking prices run higher than
+   selling prices, so the chip must say so: "about typical asking price", never "typical", and the tooltip
+   names the source. Matching "similar" reuses the sold-price query words.
+2. **Sold prices from the next stores as they're added (Brief 5).** Mercari and others show sold listings on
+   their own search pages. When a store is added, its sold results are read from pages you open, the same
+   way the eBay ones are, and pooled with eBay's into one typical price with the sources listed.
+3. **Not recommended: paid price APIs** (for example, collectibles or electronics price guides). They need
+   keys, cost money, cover narrow categories, and would send your searches to another company.
+
+#### How to know it helps
+Before building, take 30 real Marketplace listings dabloonery looked at and compare three things: the eBay sold
+typical price, the asking-price typical from `listingMemory`, and what dabloonery judges each item is worth. Build
+option 1 only if it gives a sensible number for clearly more of them without making the eBay cases worse.
+
+#### Size and files
+Small to medium: `content/rules.js` (a pure `askingTypical`, unit tested), `content/panel.js` (chip and
+tooltip wording), `lib/shared.js` (nothing new in storage). One PR, version bump, light and dark screenshots.

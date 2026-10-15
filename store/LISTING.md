@@ -6,7 +6,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 - **Name:** Tirekick
 - **Summary** (132 characters at most; this is the manifest's description, checked by `deno task pack`):
-  Deal scores, sold-price checks and scam warnings for second-hand listings, starting with eBay and Facebook Marketplace.
+  Deal scores, price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
 - **Category:** Shopping
 - **Language:** English
 - **Privacy policy URL:** the public address of `store/PRIVACY.md`. The repository is private for now, so its GitHub page isn't public: host it elsewhere (a GitHub Gist, a GitHub Pages site from a small public repository, or any web page you control) until the repository is opened
@@ -17,7 +17,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 **Kick the tires before you buy.**
 
-Tirekick looks over second-hand listings with you, on the stores where you shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
+Tirekick looks over listings with you on secondhand marketplaces, where you already shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
 
 Tirekick has optional AI features. The checks below are free and work without them; turn on an AI only if you want scores and write-ups.
 
@@ -45,7 +45,7 @@ Not affiliated with or endorsed by eBay or Meta. eBay and Facebook are trademark
 Not affiliated with or endorsed by eBay or Meta. 
 ## Single purpose
 
-Help people buying second-hand online judge the listings they are viewing on supported marketplaces (currently eBay and Facebook Marketplace): scoring them, comparing prices with recent sales, and warning about likely scams.
+Help people buying secondhand online judge the listings they are viewing on supported marketplaces (currently eBay and Facebook Marketplace): scoring them, comparing prices with recent sales, and warning about likely scams.
 
 ## Permission justifications
 

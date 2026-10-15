@@ -118,6 +118,17 @@
     if (f.vsSold == null || f.project) return f.drop ? { v: "good", word: "Price dropped", rank: 1 } : null;
     return R.priceWord(f.vsSold);
   };
+  // The price against a reference, in dollars rather than a percentage ("65% of sold" read as confusing):
+  // "$53 under sold", "$20 over sold", "about the sold price" (within 5%). est: the model's typical price.
+  R.vsText = (total, ref, { rough = false, est = false, long = false } = {}) => {
+    if (!(ref > 0) || total == null) return "";
+    const what = est ? "typical" : long ? "the sold median" : "sold";
+    const d = Math.round(total - ref);
+    const t = Math.abs(total - ref) <= ref * 0.05 ? `about ${est ? "the typical price" : "the sold price"}` : `$${Math.abs(d)} ${d < 0 ? "under" : "over"} ${what}`;
+    return `${rough || est ? "~" : ""}${t}${est ? " (est.)" : ""}`;
+  };
+  R.SOLD_CHIP = / (under|over) sold$|about the sold price$/; // the cards' sold chip, to leave out where it would repeat
+
   // The price against the sold median, in a word.
   R.priceWord = (vs) =>
     vs <= 0.6 ? { v: "great", word: "Great price", rank: 4 }

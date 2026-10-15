@@ -1480,7 +1480,7 @@
       if (broken && it.partsCost > 0) return `~$${it.partsCost} parts`;
     }
     if (it.vsWorking == null) return "";
-    return it.refIsEstimate ? `~${Math.round(it.vsWorking * 100)}% of typical price (est.)` : `${it.refRough ? "~" : ""}${Math.round(it.vsWorking * 100)}% of sold price`;
+    return TKRules.vsText(it.total, it.refWorking, { rough: it.refRough, est: it.refIsEstimate });
   };
 
   const priceStr = (it) =>
@@ -1565,7 +1565,7 @@
       .tirekick-sticker.tk-compact { padding:0; background:none; box-shadow:none; }
       .tirekick-sticker.tk-compact .tk-score { width:44px; height:44px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3)) drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
       .tirekick-sticker.tk-compact .tk-score b { font-size:17px; }
-      /* ...and its one line about the listing ("82% of sold price") becomes the first chip under it, in full */
+      /* ...and its one line about the listing ("$53 under sold") becomes the first chip under it, in full */
       .tirekick-sticker.tk-compact .tk-text { display:none; }
       .tirekick-sticker:not(.tk-compact) .tk-subchip { display:none; }
       .tirekick-sticker .tk-sub { font-size:12px; color:var(--tk-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1852,12 +1852,12 @@
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "% of sold".
     const cheap = f.vsSold != null && TKRules.tooCheap(f, lastMarket);
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} ${cheap.pct}% of sold price`]);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Sold ones go for ${dollars(Math.round(lastMarket.median))}`, `This is ${cheap.pct}% of the sold median: far under what the same thing sells for is the usual bait.`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null && !cheap) {
       const pw = f.project ? null : TKRules.priceWord(f.vsSold); // broken ones: just the number
-      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw ? `${pw.word} \u00b7 ` : ""}${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold`]);
+      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough" })}`, `Sold ones go for about ${dollars(Math.round(lastMarket.median))} (the middle of ${lastMarket.n} eBay sales).`]);
     }
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
@@ -2505,7 +2505,7 @@
     const sub = lensLine(item);
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
-      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !/% of sold$/.test(t))
+      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t))
       .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, text));
     if (item.photoAdjust) {
       const chip = h("span", { class: "tk-chip", title: "Photo check" }, signed(item.photoAdjust));
@@ -2627,13 +2627,13 @@
         const still = shownKeys.has(key);
         shownKeys.add(key);
         const known = chipsFor(f)
-          .filter(([, t]) => !/^Auction|^Lot of|% of sold$/.test(t))
+          .filter(([, t]) => !/^Auction|^Lot of/.test(t) && !TKRules.SOLD_CHIP.test(t))
           .map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
         const saveBtn = h("button", { class: saved[key] ? "on" : null, onclick: () => toggleSave(key) }, saved[key] ? "Saved" : "Save");
         const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
         // Not scored (yet): the price is the headline, with what's known for free.
         if (it.score == null) {
-          const vs = f.vsSold != null ? ` \u00b7 ${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold median` : "";
+          const vs = f.vsSold != null ? ` \u00b7 ${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough", long: true })} (${dollars(Math.round(lastMarket.median))})` : "";
           const each = it.lot && it.total != null ? ` \u00b7 lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
           listEl.append(
             h(
@@ -2675,8 +2675,8 @@
         const vsMarket =
           it.vsWorking != null && !it.auction && !it.lot
             ? it.refIsEstimate
-              ? ` \u00b7 ~${Math.round(it.vsWorking * 100)}% of typical (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-              : ` \u00b7 ${it.refRough ? "~" : ""}${Math.round(it.vsWorking * 100)}% of sold median${it.sold ? ` (${it.sold.n} sales)` : ""}`
+              ? ` \u00b7 ${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
+              : ` \u00b7 ${TKRules.vsText(it.total, it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
             : "";
         const line = lensLine(it);
         const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
@@ -3844,7 +3844,7 @@
     const f = itemFacts;
     if (!f || TK.pageType() !== "item") return;
     // After an analysis its own line says the % of sold; the chip would say it twice.
-    const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && /% of sold$/.test(t))).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+    const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && TKRules.SOLD_CHIP.test(t))).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
     const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
     const scam = scamWarning(f);
     // Every price you've seen it at: "$70 (Sep 30) → $60 (Oct 5) → $55 now".
@@ -3903,8 +3903,8 @@
     const v = VERDICT[r.verdict] || VERDICT.fair;
     const score = clamp100(r.score | 0);
     const vs =
-      (listing.vsWorking != null ? ` · ${listing.refRough ? "~" : ""}${Math.round(listing.vsWorking * 100)}% of sold median` : "") +
-      (listing.vsParts != null ? ` · ${Math.round(listing.vsParts * 100)}% of for-parts median` : "");
+      (listing.vsWorking != null ? ` · ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +
+      (listing.vsParts != null ? ` · ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("sold median", "for-parts median")}` : "");
     const rep = r.repair;
     const margin = listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (rep?.partsCost || 0) : null;
     const questions = (r.questions || []).slice(0, 6);

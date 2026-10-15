@@ -116,7 +116,7 @@ scam warning stays readable.
   **Skips and scams** above the list.
 - **Before any scan, each row has a free read**: Great, Good or Fair price, or Over sold price, from the sold
   prices; Check first or Likely scam from the free warnings; Off-topic. "Best first" sorts by it until a scan
-  gives real scores, and the cards' sold chip says the same word ("Good price · 62% of sold").
+  gives real scores, and the cards' sold chip says the same word ("Good price · $53 under sold").
 - **A row's links**: **Open ↗** is always there; Sold, Save and Not interested appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
@@ -190,10 +190,12 @@ key, and runs only on pages you're looking at.
 **On the cards**, as soon as a results page loads:
 
 - **Scam marks**: reposts under new codes, codes in titles, contact off the site (see Scams).
-- **% of sold**: once sold prices are known for the search, every card says how its price
-  (with shipping) compares, in green when it's 70% or less. Lots and auctions are left out.
-- **Too cheap**: under 40% of a trusted sold median reads "Likely scam? 32% of sold price", under 55% "Too
-  cheap? 47% of sold price" (not for broken ones, lots or auctions, and not when the sold prices are only a rough guide).
+- **Under or over sold**: once sold prices are known for the search, every card says how far its price
+  (with shipping) is from what sold ones go for, in dollars: "Good price · $53 under sold", "$20 over sold",
+  "about the sold price". Pointing at it shows the sold median. Lots and auctions are left out.
+- **Too cheap**: under 40% of a trusted sold median reads "Likely scam? Sold ones go for $300", under 55%
+  "Too cheap? Sold ones go for $300" (not for broken ones, lots or auctions, and not when the sold prices are
+  only a rough guide).
 - **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" straight away.
 - **New to you** on a search you've looked at before (not on feeds, and not when most of the
   page is new anyway).

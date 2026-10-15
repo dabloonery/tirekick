@@ -61,8 +61,8 @@ const reads = await R(e, `return [...r.querySelectorAll('.list .row')].map(x => 
 ok("unscored rows carry a free read from sold prices", reads?.includes?.("Good price $97") && reads.includes("Fair price $140"), reads);
 ok("…and best first puts good prices first before any scan", /^Good price/.test(reads?.[0] || ""), reads);
 ok("…but a broken one gets no price word: it's cheap for a reason", reads?.includes?.("- $35"), reads);
-const cardChips = await e.ev(`[...document.querySelectorAll('.tk-chip')].map(c=>c.textContent).filter(t=>/% of sold$/.test(t))`);
-ok("the card's sold chip says it in a word too", cardChips?.includes?.("Good price · 65% of sold") && cardChips.includes("23% of sold"), cardChips);
+const cardChips = await e.ev(`[...document.querySelectorAll('.tk-chip')].map(c=>c.textContent).filter(t=>/ (under|over) sold$|about the sold price$/.test(t))`);
+ok("the card's sold chip says it in a word too", cardChips?.includes?.("Good price · $53 under sold") && cardChips.includes("$115 under sold"), cardChips);
 await e.close();
 
 // ---------- an offer without an analysis ----------

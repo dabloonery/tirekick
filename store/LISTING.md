@@ -21,7 +21,7 @@ Tirekick looks over second-hand listings with you, on the stores where you shop.
 
 **Free, with no account. These work without the optional AI features**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
-• How far below or above the usual eBay sold price each listing is ("38% below sold"), plus price drops, "new to you" and auctions ending soon
+• How far under or over the usual eBay sold price each listing is ("$53 under sold"), plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
 • Save listings and searches; the Home tab shows what got cheaper and what you've spent
 • From any page: select a thing's name, right-click, "Look up": what it has sold for on eBay, and a search on eBay, Marketplace or both

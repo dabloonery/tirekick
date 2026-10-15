@@ -165,7 +165,7 @@
     return level ? { level, pct: Math.round(pct * 100) } : null;
   };
 
-  // When the score and the price disagree, the price check wins (dabloonery, 2026-10-15). Far under the typical
+  // When the score and the price disagree, the price check wins (2026-10-15). Far under the typical
   // price: the bait, so the verdict turns to a warning ("Great price, if it's real"); well over it: no better
   // than Fair price. `it` needs total (and auction/lot/project); market is { median, confidence }.
   // Returns { v, label? }: the verdict to show, and a label when it isn't the verdict's usual one.

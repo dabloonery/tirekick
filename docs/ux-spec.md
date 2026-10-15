@@ -6,7 +6,7 @@ The design direction is set: *minimal and elegant*, in the Tread Dot look (a qui
 
 ## 1. The job
 
-Someone shopping second-hand on eBay or Facebook Marketplace wants to know, without opening every listing: which ones are worth a look, which are overpriced next to what really sold, and which are scams. A reseller wants the same with a different question: which ones can be fixed and sold at a margin.
+Someone shopping secondhand on eBay or Facebook Marketplace wants to know, without opening every listing: which ones are worth a look, which are overpriced next to what really sold, and which are scams. A reseller wants the same with a different question: which ones can be fixed and sold at a margin.
 
 Tirekick answers on the page itself (a tag on each card) and in a panel beside it (a ranked list). The core loop is **search → Scan → read the ranking → open, save or hide → come back later**.
 

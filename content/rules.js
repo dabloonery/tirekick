@@ -78,8 +78,52 @@
     if (quick.fresh && f.known) return "seen before";
     if (quick.broken === "only" && !f.project) return "not broken";
     if (quick.broken === "hide" && f.project) return `“${f.project}”`;
+    if (quick.junk) {
+      const off = R.offTopic(f);
+      if (off) return `off-topic: ${off}`;
+    }
     return "";
   };
+
+  // Off-topic: a card that isn't an item for sale, the clutter of a browse feed like the Marketplace home
+  // page. Rentals and housing, services (massage, cleaning, hair), jobs, pets, "looking for" posts, and $0–$1
+  // placeholder prices on something that isn't free. Returns a short reason, or "" for an ordinary listing.
+  // Kept narrow on purpose: a word that also names an item ("apartment-size fridge", "kitten heels") doesn't count.
+  const OFF = [
+    ["wanted post", /^(?:looking for|lf\b|wtb\b|iso\b|in search of|searching for|seeking|need(?:ing)? (?:a|an|someone|help)\b|wanted\b)|\b(?:looking to (?:rent|buy)|want to buy)\b/i],
+    ["rental", /\b(?:for rent|for lease|rentals?|rent to own|room(?:s)? (?:for|available)|roommate|sublease|sublet|casita|\d\s?(?:bd|br|bed(?:room)?s?)\b.*\b(?:\d\s?(?:ba|bath)s?|rent|house|home|apt)|apartments? (?:for|available)|house for|move[- ]in)\b/i],
+    ["service", /\b(?:massages?|massage therapy|cleaning services?|house cleaning|handyman|lawn (?:care|service|mowing)|landscaping services?|hair (?:braid(?:ing|s)?|stylist)|lash(?:es)? (?:extensions?|tech)|nail tech|tattoos? (?:artist|shop)|tutor(?:ing)?|photography services?|dj services?|junk removal|moving services?|services? (?:available|offered)|we (?:buy|fix|repair|clean|install)|free (?:estimate|quote)s?|call (?:now|today)|now booking|book (?:now|today|your))\b/i],
+    ["job", /\b(?:now hiring|we(?:'re| are) hiring|hiring|job (?:opening|opportunity)|positions? available|work from home|earn \$|make money)\b/i],
+    ["pets", /\b(?:kittens?|puppies|puppy|rehom(?:e|ing)|for adoption|adopt me)\b(?!.*\b(?:food|toys?|beds?|crate|cage|carrier|collar|leash|supplies|figure|plush|heels)\b)/i],
+    ["adult", /\b(?:escorts?|sugar (?:daddy|baby|mama)|onlyfans|companionship|feel (?:good|relaxed) tonight|incall|outcall)\b/i],
+  ];
+  const THING = /\b(?:chairs?|guns?|tables?|pillows?|cushions?|seats?|pads?|devices?|machines?|massagers?|kits?|books?|dvds?)\b/i; // "massage chair" is an item
+  R.offTopic = (f = {}) => {
+    const t = `${f.title || ""}`;
+    for (const [why, re] of OFF) if (re.test(t) && !(why === "service" && THING.test(t))) return why;
+    if (f.price != null && f.price > 0 && f.price <= 1) return "$1 placeholder";
+    return "";
+  };
+
+  // A free read of a listing before any AI: one word from what's known without a model (sold prices,
+  // scam signs, the seller, off-topic). null when there's nothing to go on. `v` uses the verdict names so
+  // it takes their colors and glyphs; `rank` sorts unscored listings (higher first).
+  R.freeRead = (f = {}, market) => {
+    const cheap = f.vsSold != null ? R.tooCheap(f, market) : null;
+    if (R.likelyScam(f) || cheap?.level === "far") return { v: "suspicious", word: "Likely scam", rank: -2 };
+    if (f.photoTwins || f.sellerWarn || f.offSite || cheap || f.dup) return { v: "suspicious", word: "Check first", rank: -1 };
+    const off = R.offTopic(f);
+    if (off) return { v: "pass", word: "Off-topic", rank: -1 };
+    // A broken or untested one is compared with working ones' prices: cheap for a reason, so no price word.
+    if (f.vsSold == null || f.project) return f.drop ? { v: "good", word: "Price dropped", rank: 1 } : null;
+    return R.priceWord(f.vsSold);
+  };
+  // The price against the sold median, in a word.
+  R.priceWord = (vs) =>
+    vs <= 0.6 ? { v: "great", word: "Great price", rank: 4 }
+    : vs <= 0.8 ? { v: "good", word: "Good price", rank: 3 }
+    : vs <= 1.05 ? { v: "fair", word: "Fair price", rank: 2 }
+    : { v: "pass", word: "Over sold price", rank: 0 };
 
   // A likely scam without asking a model: a reposted listing, a code on the end of the title (until a
   // scan says it's the real model number), or a disguised way to get in touch off the site.

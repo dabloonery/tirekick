@@ -659,7 +659,7 @@ async function suggestSearches({ site, query, intent, titles, market, lens = "us
     : [
         `site: ${site}`,
         IDEAS_LENS[lensOf(lens)],
-        query && `current search: ${query}`,
+        query ? `current search: ${query}` : "this is a browse feed, not a search: suggest searches for the kinds of item that come up more than once in it",
         market && market.median != null && `sold-price reference: median $${market.median}, middle half $${market.p25}-$${market.p75}${market.parts ? `; for parts: median $${market.parts.median}` : ""}`,
         titles?.length ? `result titles so far:\n${titles.map((t) => `- ${t}`).join("\n")}` : "no results seen yet",
       ];
@@ -974,6 +974,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // default (a new model, say) reaches every install that never chose otherwise.
   await upgradeStorage().catch((e) => console.warn("[Tirekick] storage upgrade:", e.message));
   await syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
+  refreshOpenTabs().catch(() => {});
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
@@ -1028,6 +1029,16 @@ chrome.runtime.onStartup.addListener(() => {
   syncAutoScripts().catch(() => {});
   updateBadge().catch(() => {});
 });
+
+// After an install or an update, eBay and Marketplace tabs that are already open get the new page scripts, so
+// you don't have to reload them. The old copy steps aside within a second (teardown in content/panel.js).
+async function refreshOpenTabs() {
+  const { showTab } = await getSettings();
+  if (!showTab) return;
+  const tabs = await chrome.tabs.query({ url: TKSites.matches() });
+  await sleep(1500);
+  for (const t of tabs) if (t.id >= 0 && !t.discarded) await ensureInjected(t.id).catch(() => {});
+}
 
 // ---------- Nothing runs on eBay/Facebook until you ask (when the tab is off) ----------
 // No content scripts are declared in the manifest, so page loads are untouched.

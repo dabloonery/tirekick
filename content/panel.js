@@ -404,7 +404,8 @@
       /* Sort sits at the right edge: its menu drops down, right-aligned to it, over the list it sorts */
       .sort::picker(select) { position-area:block-end span-inline-start; position-try-order:normal; position-try-fallbacks:flip-block; }
     }
-    .skipwrap { display:flex; align-items:center; gap:8px; }
+    .skipwrap { display:flex; align-items:center; gap:8px; flex:1 1 100%; order:4; }
+    .lb-quick { display:flex; flex-wrap:wrap; gap:6px; margin-right:auto; }
     .qf { flex:1 1 100%; order:5; display:grid; gap:6px; margin-bottom:4px; }
     .qf[hidden] { display:none; }
     .qf-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
@@ -609,7 +610,7 @@
     .offer-acts { margin-top:8px; }
     .msg-preview { margin-top:8px; color:var(--muted); font-style:italic; }
     .msg-edit { display:block; width:100%; box-sizing:border-box; margin-top:8px; font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); padding:7px 9px; resize:vertical; }
-    .offer-acts select { margin-right:8px; }
+    .msg-kind { display:flex; width:max-content; margin-top:10px; }
     .said-row { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; color:var(--muted); }
     .said { width:7em; font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); padding:4px 7px; }
     .said-answer { margin-top:6px; }
@@ -702,15 +703,18 @@
             <span class="qf-price"><input class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
           </div>
           <div class="qf-row qf-toggles">
-            <button class="qt" data-q="fresh" aria-pressed="false" title="Hide every listing you've seen before">New only</button>
-            <button class="qt qt-broken" aria-pressed="false"></button>
             <label class="qf-deal" title="Listings at or under it get a star, and a saved search tells you on Home">Your price \u2264 <input class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
           </div>
-          <div class="qf-row skipwrap" title="Listings judged Skip or Likely scam, and other likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
+        </div>
+        <div class="lb-quick" role="group" aria-label="Quick filters">
+          <button class="qt" data-q="fresh" aria-pressed="false" title="Hide every listing you've seen before">New only</button>
+          <button class="qt qt-broken" aria-pressed="false"></button>
+          <button class="qt" data-q="junk" aria-pressed="false" title="Hide rentals, services, jobs, pets, “looking for” posts and $1 placeholder prices: things that aren't an item for sale">Hide off-topic</button>
         </div>
         <label class="sortpick">Sort <select class="sort">
           <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest under sold price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest margin</option><option value="new">new or cheaper first</option>
         </select></label>
+        <div class="skipwrap" title="Listings judged Skip or Likely scam, and other likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
       </div>
       <div class="list"></div>
       <div class="itemout"></div>
@@ -906,6 +910,18 @@
     else if (inside) $('[data-act="tab"]').focus({ preventScroll: true });
   };
   const toggleOpen = () => setOpen(!wrap.classList.contains("open"));
+  // A click on the page itself (a listing, a menu, a filter) tucks the panel away, as a menu would. Clicks on
+  // Tirekick's own tags and chips on the cards don't: they're part of it.
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (!wrap.classList.contains("open") || e.button > 0) return;
+      const path = e.composedPath();
+      if (path.includes(host) || path.some((n) => n instanceof Element && n.matches?.(".tirekick-sticker, .tirekick-marks")) || (toastRoot && path.includes(toastRoot.host))) return;
+      showOpen(false);
+    },
+    true
+  );
 
   // Tabs and Buyer/Reseller/Skipped-style radios: arrow keys (and Home/End) move and choose; only the
   // chosen one is in the Tab order, as the ARIA patterns say. attr is the state attribute the code already sets.
@@ -1530,6 +1546,8 @@
       .tirekick-sticker div { padding:0; margin:0; }
       .tirekick-sticker[data-v="great"] { --c:var(--v-great); } .tirekick-sticker[data-v="good"] { --c:var(--v-good); }
       .tirekick-sticker[data-v="pass"] { --c:var(--v-pass); } .tirekick-sticker[data-v="suspicious"] { --c:var(--v-suspicious); }
+      /* color is a cue: the pill takes a tint and an edge of its verdict's color, so a page of tags reads at a glance */
+      .tirekick-sticker:not(.tk-compact) { background:color-mix(in srgb, var(--c) 15%, var(--tk-paper)); box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--c) 60%, transparent), var(--tk-shadow); }
       /* the score: a tread dot, filled in the verdict's color, its tread lit as far as the score (as in the panel) */
       ${THEME.dotCss(".tk-score", { paper: "var(--tk-paper)", muted: "var(--tk-muted)" }).replace(/var\(--dot-/g, "var(--tk-dot-")}
       .tirekick-sticker .tk-score { flex:none; width:38px; height:38px; box-sizing:border-box; display:grid; place-content:center; text-align:center; line-height:1; }
@@ -1595,8 +1613,11 @@
       .tirekick-sticker .tk-pop b .tk-pw { color:var(--c); font:700 15px/1.25 ${UI}; letter-spacing:normal; }
       ${THEME.glyphCss(".tk-pw")}
       .tirekick-sticker .tk-flags { margin-top:6px; color:var(--tk-muted); }
-      .tirekick-flash { outline:2px solid ${THEME.ORANGE} !important; outline-offset:4px; animation:tk-flash 2s ease-out both; }
-      @keyframes tk-flash { 0%, 60% { outline-color:${THEME.ORANGE}; } 100% { outline-color:transparent; } }`;
+      /* The card you picked in the panel: a ring drawn inside its edge (so neighbors and clipped grids can't hide it),
+         held for a few seconds, then fading. Its cell is lifted above the rest while it shows. */
+      .tirekick-flash { outline:3px solid ${THEME.ORANGE} !important; outline-offset:-3px !important; border-radius:12px;
+        box-shadow:0 0 0 4px color-mix(in srgb, ${THEME.ORANGE} 30%, transparent), 0 10px 30px -10px rgba(0,0,0,.5) !important; animation:tk-flash 3.5s ease-out both; }
+      @keyframes tk-flash { 0%, 70% { outline-color:${THEME.ORANGE}; } 100% { outline-color:transparent; box-shadow:none; } }`;
     document.head.append(st);
   };
 
@@ -1802,11 +1823,11 @@
   // deal: your own price for this search. Not a filter: cards at or under it are marked, and the tab
   // on the page edge counts them even with the panel closed.
   // broken: "hide" drops listings that say broken/untested/for parts (Use), "only" keeps just those (Fix).
-  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", deal: 0 };
+  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, deal: 0 };
   let quick = { ...NO_QUICK };
   let quickReady = Promise.resolve(); // this search's saved filter, loaded on each page change
   const quickReason = (f) => TKRules.quickReason(f, quick);
-  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken);
+  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk);
   const isDeal = (f) => TKRules.isDeal(f, quick.deal);
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
@@ -1831,7 +1852,10 @@
     if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} ${cheap.pct}% of sold price`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
-    if (f.vsSold != null && !cheap) c.push([f.vsSold <= 0.7 ? "good" : "plain", `${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold`]);
+    if (f.vsSold != null && !cheap) {
+      const pw = f.project ? null : TKRules.priceWord(f.vsSold); // broken ones: just the number
+      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw ? `${pw.word} \u00b7 ` : ""}${lastMarket?.confidence === "rough" ? "~" : ""}${Math.round(f.vsSold * 100)}% of sold`]);
+    }
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
     if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
@@ -1985,10 +2009,12 @@
       if (m.hostW > 0) node.style.setProperty("--tk-popw", `${Math.max(220, Math.round(m.hostW - 8))}px`);
       node.addEventListener("pointerenter", () => keepInView(node));
       node.addEventListener("focusin", () => keepInView(node));
-      if (cards.overlaps) {
-        node.addEventListener("pointerenter", () => cell.setAttribute("data-tk-lift", ""));
-        node.addEventListener("pointerleave", () => cell.removeAttribute("data-tk-lift"));
-      }
+      // Lift the card whose tag you're pointing at (or tabbing through) above its neighbors, so its card of
+      // reasons isn't drawn under the next card's tag or photo, on every site.
+      node.addEventListener("pointerenter", () => cell.setAttribute("data-tk-lift", ""));
+      node.addEventListener("pointerleave", () => cell.removeAttribute("data-tk-lift"));
+      node.addEventListener("focusin", () => cell.setAttribute("data-tk-lift", ""));
+      node.addEventListener("focusout", () => cell.removeAttribute("data-tk-lift"));
       return node;
     };
     fadeParts(cell, host, it ? it.verdict === "pass" || it.verdict === "suspicious" : likelyScam(f));
@@ -2525,7 +2551,7 @@
           "div",
           { class: "tk-acts" },
           // Save, Sold and Not interested sit just above as chips; this adds what they don't.
-          item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation(), title: "Reverse image search: is this photo used elsewhere?" }, "Find this photo elsewhere \u2197") : null
+          item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation(), title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null
         )
         )
       )
@@ -2556,6 +2582,8 @@
     return out;
   };
   const sc = (it) => it.score ?? -1;
+  // Before a scan, "best first" goes by the free read: good prices up, warnings and off-topic down.
+  const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, lastMarket)?.rank ?? 0.5);
   const dealOf = (it) => (facts.get(keyOf(it.url))?.deal ? 1 : 0);
   const perItem = (it) => (it.total == null ? Infinity : it.lot ? it.total / it.lot : it.total);
   const vsSold = (it) => it.vsWorking ?? facts.get(keyOf(it.url))?.vsSold ?? Infinity;
@@ -2563,7 +2591,7 @@
   let sortMode = "score";
   // Ties keep the page's own order (sort is stable).
   const SORTS = {
-    score: (a, b) => (a.score == null) - (b.score == null) || (a.related === false) - (b.related === false) || sc(b) - sc(a) || dealOf(b) - dealOf(a), // your search first
+    score: (a, b) => (a.score == null) - (b.score == null) || (a.related === false) - (b.related === false) || sc(b) - sc(a) || freeRank(b) - freeRank(a) || dealOf(b) - dealOf(a), // your search first
     price: (a, b) => perItem(a) - perItem(b) || sc(b) - sc(a),
     value: (a, b) => vsSold(a) - vsSold(b) || perItem(a) - perItem(b),
     margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || sc(b) - sc(a),
@@ -2612,6 +2640,10 @@
                 "div",
                 {},
                 h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
+                (() => {
+                  const read = !likelyScam(f) && TKRules.freeRead(f, lastMarket);
+                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From sold prices and the free checks, no AI. A scan gives a real score." }, h("span", { class: "verdict" }, read.word), " \u00b7 free read") : null;
+                })(),
                 likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
                 (() => {
                   // The tag already shows the price; the line adds only what it doesn't say.
@@ -2667,6 +2699,7 @@
               { class: "actions row-acts" },
               it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
               it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Have the AI look at the photo (can change the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
+              it.imageUrl ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null,
               saveBtn,
               hideBtn
             ),
@@ -2694,10 +2727,13 @@
     const c = card.getBoundingClientRect();
     if (wrap.classList.contains("open") && c.right > panel.getBoundingClientRect().left) showOpen(false);
     ensureStickerStyles();
+    const cell = card.closest("[data-tk-cell]") || card;
     card.classList.remove("tirekick-flash");
     void card.offsetWidth; // restart the animation if it's still running
     card.classList.add("tirekick-flash");
-    setTimeout(() => card.classList.remove("tirekick-flash"), 2200);
+    cell.setAttribute("data-tk-lift", "");
+    clearTimeout(card._tkFlash);
+    card._tkFlash = setTimeout(() => (card.classList.remove("tirekick-flash"), cell.removeAttribute("data-tk-lift")), 3600);
   };
 
   // Browsing: one real eBay sold-price check for one listing, using the search the model wrote for it.
@@ -3222,7 +3258,7 @@
   const syncFilterToggle = () => {
     qf.hidden = !qfOpen;
     qfToggle.setAttribute("aria-expanded", String(qfOpen));
-    const n = [quick.words.trim(), quick.min, quick.max, quick.fresh, quick.broken, quick.deal].filter(Boolean).length;
+    const n = [quick.words.trim(), quick.min, quick.max, quick.deal].filter(Boolean).length;
     qfToggle.textContent = n ? `Filter \u00b7 ${n}` : "Filter";
     qfToggle.classList.toggle("on", n > 0);
   };
@@ -3243,7 +3279,9 @@
   onLensShown = () => showQuick();
   const loadQuick = async () => {
     const { quickFilters = {} } = await chrome.storage.local.get("quickFilters");
-    const stored = quickFilters[quickKey()] || {};
+    // A feed with no search (the Marketplace home page) starts with off-topic posts hidden; turning it
+    // off is remembered like any other filter (saved as junk:false).
+    const stored = quickFilters[quickKey()] || (!pageSearch() && TK.pageType() === "results" ? { junk: true } : {});
     quick = { ...NO_QUICK, ...stored, ...(stored.projects && !stored.broken && { broken: "only" }) }; // older "Projects only"
     delete quick.projects;
     qfOpen = false;
@@ -3264,7 +3302,8 @@
     const key = quickKey();
     const value = { ...quick, a: Date.now() };
     quickTimer = setTimeout(async () => {
-      await writeStored("quickFilters", { set: { [key]: quickActive() || value.deal ? value : null }, cap: { max: 200, by: "a" } }).catch(() => {});
+      const keep = quickActive() || value.deal || (!pageSearch() && !value.junk); // a feed's "off-topic shown" choice is kept too
+      await writeStored("quickFilters", { set: { [key]: keep ? value : null }, cap: { max: 200, by: "a" } }).catch(() => {});
     }, 400);
   };
   const money0 = (v) => Math.max(0, Math.round(Number(String(v).replace(/[$,\s]/g, "")) || 0));
@@ -3584,6 +3623,7 @@
 
   // The sold-price half of a scan on its own: one eBay lookup, every card gets "% of sold", no model.
   const pricesOnly = async () => {
+    if (TK.pageType() === "item" && !queryEl.value.trim() && itemFacts?.title) queryEl.value = TK.titleToQuery(itemFacts.title);
     const query = queryEl.value.trim();
     if (!query || scanning) return;
     bump("soldLookups");
@@ -3595,6 +3635,7 @@
       const market = await getMarket(settings, query, "use");
       if (!market?.median) return setStatus(market ? "Not enough working ones sold to compare with." : "");
       applyMarket(market);
+      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d. No AI used.`);
       const n = [...facts.values()].filter((f) => f.vsSold != null).length;
       setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. No AI used. Sort by \u201cfurthest under sold price\u201d to see the cheapest for what they are.`);
     } catch (e) {
@@ -3642,8 +3683,11 @@
     const listing = TK.extractItem();
     if (TK.pageType() !== "item") return;
     if (!listing.title) {
-      // Not rendered yet (Facebook can take a while): look again shortly, for up to about 15 seconds.
-      if (itemTries++ < 30) setTimeout(itemPass, 500);
+      // Not rendered yet (Facebook can take a while): look again shortly, for up to about 15 seconds of the
+      // page being on screen. A page loaded ahead of time (eBay prerenders listings) or in a background tab
+      // keeps waiting until you're looking at it.
+      const waiting = document.prerendering || document.hidden;
+      if (waiting || itemTries++ < 30) setTimeout(itemPass, waiting ? 2000 : 500);
       return;
     }
     itemTries = 0;
@@ -3746,8 +3790,21 @@
         }
       },
     }, "Copy message");
+    // The kinds of message as one row of choices (Friendly, Direct, With a reason), like Buyer and Reseller.
     const pick = messages.length > 1
-      ? h("select", { "aria-label": "Kind of message", onchange: (e) => setText(messages.find((m) => m.id === e.target.value)?.text || box.value) }, messages.map((m) => h("option", { value: m.id }, m.label)))
+      ? h(
+          "div",
+          { class: "seg msg-kind", role: "radiogroup", "aria-label": "Kind of message" },
+          messages.map((m, i) =>
+            h("button", {
+              role: "radio", "aria-checked": String(i === 0), "data-kind": m.id,
+              onclick: (e) => {
+                pick.querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b === e.currentTarget)));
+                setText(m.text);
+              },
+            }, m.label)
+          )
+        )
       : null;
     const answer = h("div", { class: "meta said-answer", "aria-live": "polite" });
     const said = h("input", {
@@ -3760,7 +3817,7 @@
         setText(TKRules.counterMessage(c, ctx));
       },
     });
-    return [box, button ? null : h("div", { class: "actions offer-acts" }, pick, copy), h("label", { class: "said-row" }, "They said $", said), answer];
+    return [pick, box, button ? null : h("div", { class: "actions offer-acts" }, copy), h("label", { class: "said-row" }, "They said $", said), answer];
   };
   // The offer helper: an opening offer and a walk-away price from the sold prices (TKRules.offerPlan),
   // with the messages above.
@@ -3783,7 +3840,8 @@
   const renderItemInfo = () => {
     const f = itemFacts;
     if (!f || TK.pageType() !== "item") return;
-    const chips = chipsFor(f).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+    // After an analysis its own line says the % of sold; the chip would say it twice.
+    const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && /% of sold$/.test(t))).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
     const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
     const scam = scamWarning(f);
     // Every price you've seen it at: "$70 (Sep 30) → $60 (Oct 5) → $55 now".
@@ -3797,7 +3855,13 @@
     const age = f.listedDays != null ? `Listed ${agoText(f.listedDays)}.` : "";
     const softLine = soft.level !== "none" ? `${soft.level === "likely" ? "The seller looks ready to take less" : "The seller may take less"}: ${soft.why.join(", ")}.` : "";
     // An offer worked out from sold prices, before (and without) any analysis.
-    const offer = !itemEl.childElementCount ? offerBox(f, soft.level) : "";
+    // No sold prices yet: one free lookup (eBay sold listings, no AI) gets you the offer, without an analysis.
+    const offer = itemEl.childElementCount
+      ? ""
+      : offerBox(f, soft.level) ||
+        (!lastMarket && f.price > 0
+          ? h("div", { class: "offer offer-ask" }, "Want an offer to send? ", h("button", { class: "ghost", "data-act": "offer-prices", onclick: () => pricesOnly() }, "Work one out from sold prices ", h("span", { class: "cost" }, "free")))
+          : "");
     // What an earlier scan or analysis (in a search, another tab, or here) made of this listing.
     const past = storedScan(f.key, lens);
     const pastLine = past && !itemEl.childElementCount
@@ -3921,9 +3985,10 @@
     }
     if (listing.imageUrls?.length) {
       const n = Math.min(3, listing.imageUrls.length);
-      const btn = h("button", { onclick: () => checkPhotos(listing, r, market, photoBox, btn) }, `${r.photos ? "Re-check" : "Check"} ${n} photo${n > 1 ? "s" : ""} (adjusts the score)`);
-      const lensLink = h("a", { href: lensSearchUrl(listing.imageUrls[0]), target: "_blank", rel: "noopener", title: "Reverse image search: is the photo used elsewhere?" }, "Search the main photo");
-      parts.push(h("div", { class: "sect" }, h("div", { class: "actions" }, btn, lensLink), photoBox));
+      const btn = h("button", { onclick: () => checkPhotos(listing, r, market, photoBox, btn), title: `Have the AI look at ${n > 1 ? `the first ${n} photos` : "the photo"} (can change the score)` }, `${r.photos ? "Re-check" : "Check"} photo${n > 1 ? "s" : ""}`);
+      const lensLink = h("a", { href: lensSearchUrl(listing.imageUrls[0]), target: "_blank", rel: "noopener", title: "Reverse image search: is the main photo used elsewhere?" }, "Find photo elsewhere \u2197");
+      // The photo pair sits right under the verdict, the same two, in the same order, as on the panel's rows.
+      parts.splice(1, 0, h("div", { class: "sect photo-acts" }, h("div", { class: "actions" }, btn, lensLink), photoBox));
     }
     itemEl.replaceChildren(...parts);
     renderItemInfo();
@@ -4117,7 +4182,7 @@
       let titles = [];
       if (!want) {
         titles = [...scored.values()].filter((it) => !isHidden(it)).map((it) => it.title);
-        if (!titles.length && TK.pageType() === "results") titles = TK.extract().map((it) => it.title);
+        if (!titles.length && TK.pageType() === "results") titles = TK.extract().filter((it) => !TKRules.offTopic(it)).map((it) => it.title);
         titles = titles.slice(0, 30);
       }
       const ideas = await sendAI("suggestSearches", {
@@ -4156,15 +4221,17 @@
     }
   };
   ideasBtn.addEventListener("click", getIdeas);
-  // On eBay's front page there's no search yet and ideas start one; on a search they're other ways to search it.
+  // With no search yet (eBay's front page, the Marketplace feed) ideas start one, from what you want or what's
+  // in the feed; on a search they're other ways to search it.
+  const noSearch = () => TK.pageType() === "home" || (TK.pageType() === "results" && !queryEl.value.trim());
   const showIdeasBtn = () => {
     const type = TK.pageType();
-    ideasBtn.hidden = !(type === "home" || (type === "results" && queryEl.value.trim()));
-    setIf(ideasBtn, "textContent", type === "home" ? "Find searches for what I want" : "Better searches");
-    setIf(ideasBtn, "title", type === "home" ? "" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)");
+    ideasBtn.hidden = !(type === "home" || type === "results");
+    setIf(ideasBtn, "textContent", noSearch() ? "Find searches for what I want" : "Better searches");
+    setIf(ideasBtn, "title", noSearch() ? "Searches from what you want, or from what's in this feed (uses the AI)" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)");
   };
   queryEl.addEventListener("input", showIdeasBtn);
-  wantEl.addEventListener("keydown", (e) => e.key === "Enter" && TK.pageType() === "home" && getIdeas());
+  wantEl.addEventListener("keydown", (e) => e.key === "Enter" && noSearch() && getIdeas());
 
   // ---------- show only on results pages (FB is a single-page app) ----------
 
@@ -4257,6 +4324,18 @@
     if (++ticks % 2 === 0) refreshPending();
   };
   const timer = setInterval(tick, 1000);
+  // A page loaded ahead of time (eBay prerenders the listings you're likely to open) or brought back from the
+  // back-forward cache: read it again as soon as it's the page you're looking at, instead of waiting for a reload.
+  const wake = (fresh) => {
+    if (!alive()) return teardown();
+    if (fresh) (lastHref = ""), (lastType = null);
+    sync();
+    pagePass(true);
+    if (TK.pageType() === "item" && itemFacts?.key !== keyOf(location.href)) itemPass();
+  };
+  document.addEventListener("prerenderingchange", () => wake(true));
+  window.addEventListener("pageshow", (e) => e.persisted && wake(false));
+  document.addEventListener("visibilitychange", () => !document.hidden && wake(false));
   // After an update this copy can't reach the extension any more: get out of the way so the new one can load.
   const teardown = () => {
     clearInterval(timer);

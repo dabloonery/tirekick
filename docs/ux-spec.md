@@ -2,7 +2,7 @@
 
 Dated 2026-10-12, version 0.34.x; brought up to date with the Tirekick name and the Tread Dot look in 0.36.0. This spec describes the extension as built and the rules future changes keep to. Evidence labels: **Verified** means an automated check observed it on the real extension (headless Chrome 153.0.8010.52, Linux, synthetic eBay and Marketplace pages from `tests/fixtures` and `tests/e2e/server.ts`, a mock Claude API); **Implemented** means the code does it but no check watches it; **Not run** means nobody has looked yet.
 
-The design direction is set: *minimal and elegant*, in the Tread Dot look (graphite dark and white light, hairlines, color only for verdicts, navy and orange kept to the tread-dot logo and small accents, Bricolage Grotesque throughout, and a score dot ringed with tread marks).
+The design direction is set: *minimal and elegant*, in the Tread Dot look (navy dark and white light, hairlines, color as a cue: verdict colors on tags, rows and free reads, an orange main button in dark, Bricolage Grotesque throughout, and a score dot ringed with tread marks).
 
 ## 1. The job
 
@@ -96,18 +96,18 @@ Defined once in `lib/theme.js` (`TKTheme.palette`, the type, the tread dot and t
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--paper` | #FFFFFF | #1E2024 | Surfaces |
-| `--paper-2` | #F4F6F9 | #18191C | Tracks, tints, hover |
-| `--raise` | #FFFFFF | #26292E | The chosen segment, the welcome card |
-| `--ink` | #1A2B4C | #ECEEF1 | Text |
-| `--muted` | #5B6780 | #A6ABB4 | Secondary text (≥ 4.5:1 on paper) |
-| `--rule` | #E3E8F0 | #303339 | Hairlines |
-| `--line` | #7A879E | #73787F | Control borders (≥ 3:1) |
-| `--btn` | #1A2B4C | #ECEEF1 | The one primary button and switches that are on (light on graphite, navy on white) |
+| `--paper` | #FFFFFF | #1A2B4C | Surfaces |
+| `--paper-2` | #F4F6F9 | #13223F | Tracks, tints, hover |
+| `--raise` | #FFFFFF | #20345A | The chosen segment, the welcome card |
+| `--ink` | #1A2B4C | #EEF2F8 | Text |
+| `--muted` | #5B6780 | #A9B5CB | Secondary text (≥ 4.5:1 on paper) |
+| `--rule` | #E3E8F0 | #2C3E63 | Hairlines |
+| `--line` | #7A879E | #7D8BA6 | Control borders (≥ 3:1) |
+| `--btn` | #1A2B4C | #FF8F3A | The one primary button and switches that are on (orange on navy, navy on white) |
 | `--accent` | #B04E0E | #FF8F3A | The chosen tab's line, alerts, the chart's peak. Nothing else |
 | `--danger` | #B42318 | #FF8A80 | Errors and things that clear data |
-| `--v-great` / `good` / `fair` / `pass` / `suspicious` | #12703C / #4D6B05 / #7D5C00 / #5B6780 / #B42318 | #6ED9A0 / #BFE07F / #F0D46A / #A6ABB4 / #F59088 | Verdict words |
-| `--dot-great` … `--dot-suspicious` | #7CD3A2 / #C2DC86 / #F2D472 / #AEB8C9 / #F28B81 | #45C985 / #A8D65E / #EBCF55 / #73787F / #EE7468 | The score dot's fill |
+| `--v-great` / `good` / `fair` / `pass` / `suspicious` | #12703C / #4D6B05 / #7D5C00 / #5B6780 / #B42318 | #5FE39A / #C3EA6E / #FFE16B / #A9B5CB / #FF8A80 | Verdict words |
+| `--dot-great` … `--dot-suspicious` | #7CD3A2 / #C2DC86 / #F2D472 / #AEB8C9 / #F28B81 | #3BDB7E / #B6E35A / #FFE04A / #7D8BA6 / #FF6A5E | The score dot's fill |
 
 | Type | Face | Sizes |
 |---|---|---|
@@ -130,7 +130,8 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | Status line | One line, `role=status`. Errors in the verdict red with a left rule, and the fix button. Stop sits beside it while busy |
 | Verdict bar | One segment per verdict, as wide as its count; `role=img` with the counts as its name |
 | List row | Score dot, title (scrolls to and flashes the card), verdict, why, price with **Open ↗** under it (always shown). The row you point at or Tab into is tinted and shows Check photo / Save / Not interested |
-| Filter bar | Sticky at the top of the list. Filter toggles words, price range, New only, Hide broken, deal price, and Show / Dim / Hide for skips. Enter or Esc folds it; the button keeps the count |
+| Filter bar | Sticky at the top of the list. One-click toggles in sight (New only, Hide broken, Hide off-topic, on by default on a feed with no search), Sort, and Skips and scams (Show / Dim / Hide). Filter opens words, price range and your price; Enter or Esc folds it; the button counts what's set inside |
+| Free read | Before a scan, each row's verdict-colored word from free facts (`TKRules.freeRead`): price against sold, Check first, Likely scam, Off-topic. Orders "best first" until scores arrive |
 | Card tag | Focusable; hover or focus shows the hover card. Never covers Facebook's "Just listed" corner (top right on Marketplace) |
 | Footer | The quality menu and this month's spend (opens the spending detail). With Claude the menu is **Thrifty** (Haiku for both), **Balanced** (Haiku scans, Sonnet for a single listing; the default) or **Thorough** (Sonnet scans, Opus): one choice sets both models, so what it shows is what scans use. Another pair from settings shows as *Custom*. Other services and Ollama are listed by model |
 | Offer helper | On a listing page once sold prices are known, before any analysis: *Offer $270, walk away above $290*, the sales behind it (*From sold prices, no AI*), a message picked from three kinds (Friendly, Direct, With a reason) in a box you can edit, and **Copy message**. eBay listings with Make offer get the amount instead of a message. Nothing is typed into the site |

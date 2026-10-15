@@ -57,6 +57,12 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    - Brief 2: how long a listing has been up, how a saved one moved since you saved it, "the seller may take less",
      and saved listings' history kept past the 90-day prune. *Still open:* relists.
    - Brief 6, part 1: saved listings as a spreadsheet (CSV), from Saved and from settings. *Still open:* sync.
+   - 0.39.0, from Myer's first live look: a **free read** on every listing before a scan ("Good price · 62% of sold",
+     "Check first", "Off-topic"), which also orders the list; **Work one out from sold prices** on a listing page
+     gives the offer without an analysis; the Marketplace home feed hides **off-topic** posts (rentals, services,
+     jobs, pets, "looking for", $1 placeholders: `TKRules.offTopic`), on by default there, one click to show; search
+     ideas on the feed; color back (navy dark theme, tags tinted by verdict). *Still open:* learning what you skip
+     on the feed (titles you mark Not interested) to hide more like them.
 3. **Live check in Vivaldi (Myer)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far
@@ -69,10 +75,10 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 
 ### For Myer, in order (2026-10-14)
 
-1. **Review and merge PR #24** (0.38.0) on GitHub: open it and press **Merge pull request**.
-2. **Install 0.38.0 in Vivaldi.** Unzip `tirekick-0.38.0.zip` into the folder Vivaldi already loads Tirekick from,
+1. **Review and merge the 0.39.0 PR** on GitHub: open it and press **Merge pull request** (or ask Claude to).
+2. **Install 0.39.0 in Vivaldi.** Unzip `tirekick-0.39.0.zip` into the folder Vivaldi already loads Tirekick from,
    replacing its files (same folder name and place, so your saved data stays), then press the reload arrow on
-   Tirekick in `vivaldi://extensions`. The card there should say 0.38.0.
+   Tirekick in `vivaldi://extensions`. The card there should say 0.39.0. (Or ask Claude to update the folder.)
 3. **The live check, about 20 minutes.** Each one is something the tests can't reach:
    - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "% of sold"
      on the cards? Any "Too cheap?" chips look right?
@@ -82,7 +88,11 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    - A Marketplace search, then one listing: does it say how long ago it was listed, and warn if the seller joined
      Facebook this year? Scroll a while: any **Same photo as … other listings** marks, and do they look right?
    - Saved: **Download (CSV)** opens in a spreadsheet.
-   - Vivaldi: the toolbar icon and its number, Alt+Shift+L, right-click a photo ("Check this photo"), right-click
+   - eBay: open a new listing or search tab without refreshing: does the panel's tab appear by itself? Click a card
+     in the panel's list: is the outline on top of its neighbors, and do the reasons pop-ups sit above other tags?
+   - The Marketplace home page: are rentals, massages and "looking for" posts gone, and **Hide off-topic** off
+     brings them back? Anything real hidden by mistake?
+   - Vivaldi: the toolbar icon and its number, Alt+Shift+L (change it at `vivaldi://extensions/shortcuts`), right-click a photo ("Check this photo"), right-click
      selected text ("Look up").
    - Tell Claude what broke, with a screenshot if you can.
 4. **Save real pages for the tests** while you're there (right-click the page, **Save as**, "Webpage, HTML only"):

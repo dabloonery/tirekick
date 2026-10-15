@@ -78,9 +78,9 @@
     await wait(1300);
     check("marks go light on a light page", tkTheme() === "light", `theme was ${tkTheme()}`);
     const tagBox = $(".tag") || null;
-    check("panel is dark unless the browser asks for light", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === (matchMedia("(prefers-color-scheme: light)").matches ? "#FFFFFF" : "#1E2024"), getComputedStyle($(".wrap")).getPropertyValue("--paper"));
+    check("panel is dark unless the browser asks for light", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === (matchMedia("(prefers-color-scheme: light)").matches ? "#FFFFFF" : "#1A2B4C"), getComputedStyle($(".wrap")).getPropertyValue("--paper"));
     $(".wrap").dataset.theme = "dark";
-    check("Setup's Dark forces dark", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === "#1E2024", getComputedStyle($(".wrap")).getPropertyValue("--paper"));
+    check("Setup's Dark forces dark", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === "#1A2B4C", getComputedStyle($(".wrap")).getPropertyValue("--paper"));
     $(".wrap").dataset.theme = "light";
     check("Setup's Light forces light", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === "#FFFFFF", getComputedStyle($(".wrap")).getPropertyValue("--paper"));
     delete $(".wrap").dataset.theme;

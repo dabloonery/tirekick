@@ -223,6 +223,24 @@ test("savedRows: one row per saved listing, newest first, with the latest score"
   assert.deepEqual(S.savedRows(null), []);
 });
 
+test("savedRows: a clean link, and a sold median only when it's really this listing's", () => {
+  const saved = {
+    "ebay:227533148143": { t: "Wii", u: "https://www.ebay.com/itm/227533148143?_skw=wii&itmmeta=01M4&hash=item34", p0: 40, a0: 3 },
+    "fb:1835764070763259": { t: "Backbone One", u: "https://www.facebook.com/marketplace/item/1835764070763259/", p0: 30, a0: 2 },
+    "fb:3": { t: "Netgear switch", p0: 15, a0: 1 },
+  };
+  const scans = {
+    "fb:1835764070763259": { use: { score: 66, verdict: "good", browse: true, refWorking: 125, refIsEstimate: true } },
+    "fb:3": { use: { score: 67, verdict: "good", browse: true, refWorking: 125, sold: { median: 22, n: 9 } } },
+    "ebay:227533148143": { use: { score: 61, verdict: "good", refWorking: 125, related: false } },
+  };
+  const rows = Object.fromEntries(S.savedRows(saved, scans).map((r) => [r.key, r]));
+  assert.equal(rows["ebay:227533148143"].link, "https://www.ebay.com/itm/227533148143", "eBay's tracking is left off");
+  assert.equal(rows["ebay:227533148143"].sold, "", "not part of the search the median was for");
+  assert.equal(rows["fb:1835764070763259"].sold, "", "an estimate isn't a sold median");
+  assert.equal(rows["fb:3"].sold, 22, "a feed listing's own lookup counts");
+});
+
 test("dHash: a photo's fingerprint survives resizing and brightness, and tells pictures apart", () => {
   // 9×8 gray pixels from a smooth pattern, the same pattern brighter, and a different one.
   const pic = (fn) => Array.from({ length: 72 }, (_, i) => fn(i % 9, Math.floor(i / 9)));

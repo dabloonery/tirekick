@@ -2,11 +2,11 @@
 
 Dated 2026-10-12, version 0.34.x; brought up to date with the Tirekick name and the Tread Dot look in 0.36.0. This spec describes the extension as built and the rules future changes keep to. Evidence labels: **Verified** means an automated check observed it on the real extension (headless Chrome 153.0.8010.52, Linux, synthetic eBay and Marketplace pages from `tests/fixtures` and `tests/e2e/server.ts`, a mock Claude API); **Implemented** means the code does it but no check watches it; **Not run** means nobody has looked yet.
 
-The design direction is set: *minimal and elegant*, in the Tread Dot look (navy dark and white light, hairlines, color as a cue: verdict colors on tags, rows and free reads, an orange main button in dark, Bricolage Grotesque throughout, and a score dot ringed with tread marks).
+The design direction is set: *minimal and elegant*, in the Tread Dot look (a quiet slate navy dark and white light, hairlines, color as a cue: verdict colors on tags, rows and free reads, an orange main button in dark, Bricolage Grotesque throughout, and a score dot ringed with tread marks).
 
 ## 1. The job
 
-Someone shopping second-hand on eBay or Facebook Marketplace wants to know, without opening every listing: which ones are worth a look, which are overpriced next to what really sold, and which are scams. A reseller wants the same with a different question: which ones can be fixed and sold at a margin.
+Someone shopping secondhand on eBay or Facebook Marketplace wants to know, without opening every listing: which ones are worth a look, which are overpriced next to what really sold, and which are scams. A reseller wants the same with a different question: which ones can be fixed and sold at a margin.
 
 Tirekick answers on the page itself (a tag on each card) and in a panel beside it (a ranked list). The core loop is **search → Scan → read the ranking → open, save or hide → come back later**.
 
@@ -54,7 +54,7 @@ flowchart LR
 | Step | What the person sees | Primary action | Evidence |
 |---|---|---|---|
 | Install | Nothing opens; the tab appears on the next eBay or Marketplace page | — | Implemented |
-| First open, no model | Welcome card: *Add a Claude API key to start* with **Open settings**, then three short points (what Scan does, Buyer or Reseller, the tag's reasons) and that the free marks already work | Open settings | Verified (`audit.ts` first run) |
+| First open, no model | Welcome card: *Add an AI to start scoring* (any service the user has a key for, or a local model; none is pushed) with **Open settings**, then three short points (what Scan does, Buyer or Reseller, the tag's reasons) and that the free marks already work | Open settings | Verified (`audit.ts` first run) |
 | Settings | Status card: *Ready: Sonnet 5.5, scans with Haiku 5.5* or what's missing; Model section first | Paste key → Test connection | Verified (`tests/options`, `features.ts`) |
 | Search page | Free tags on every card (scam words, off-site contact, "for parts"); the panel has one field (What I want), one line for the compare words (*Prices compared with sold "pentax k1000" · Change*) and **Scan N listings · under 1¢** | Scan | Verified |
 | Scanning | Status line *Ranking 6 listings with Haiku 5.5…*, spinner, **Stop**, a progress hairline under the tabs; the Scan button is disabled | Stop (optional) | Verified (`states.ts`) |
@@ -69,7 +69,7 @@ Every message names what happened and what to do; where the fix is somewhere els
 
 | State | Where | Copy (exact) | Way out |
 |---|---|---|---|
-| No model yet | Welcome card / setup card | *Add a Claude API key to start.* | **Open settings** |
+| No model yet | Welcome card / setup card | *Add an AI to start scoring.* Lists services side by side, none first. | **Open settings** |
 | Key rejected | Status line, error style | *The Claude API key was rejected. Check it in the extension options.* | **Open settings**; Scan stays in view to retry |
 | Rate limit | Status line | *Claude API rate limit hit. Wait a moment and scan again.* (after two quiet retries) | Scan |
 | Overloaded (529/5xx) | Status line | *The Claude API is overloaded right now. Try again in a minute.* | Scan (Implemented) |
@@ -96,13 +96,13 @@ Defined once in `lib/theme.js` (`TKTheme.palette`, the type, the tread dot and t
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--paper` | #FFFFFF | #1A2B4C | Surfaces |
-| `--paper-2` | #F4F6F9 | #13223F | Tracks, tints, hover |
-| `--raise` | #FFFFFF | #20345A | The chosen segment, the welcome card |
-| `--ink` | #1A2B4C | #EEF2F8 | Text |
-| `--muted` | #5B6780 | #A9B5CB | Secondary text (≥ 4.5:1 on paper) |
-| `--rule` | #E3E8F0 | #2C3E63 | Hairlines |
-| `--line` | #7A879E | #7D8BA6 | Control borders (≥ 3:1) |
+| `--paper` | #FFFFFF | #1C2433 | Surfaces |
+| `--paper-2` | #F4F6F9 | #161D29 | Tracks, tints, hover |
+| `--raise` | #FFFFFF | #232D3F | The chosen segment, the welcome card |
+| `--ink` | #1A2B4C | #EDF0F5 | Text |
+| `--muted` | #5B6780 | #A8B1C2 | Secondary text (≥ 4.5:1 on paper) |
+| `--rule` | #E3E8F0 | #2D3749 | Hairlines |
+| `--line` | #7A879E | #7B869A | Control borders (≥ 3:1) |
 | `--btn` | #1A2B4C | #FF8F3A | The one primary button and switches that are on (orange on navy, navy on white) |
 | `--accent` | #B04E0E | #FF8F3A | The chosen tab's line, alerts, the chart's peak. Nothing else |
 | `--danger` | #B42318 | #FF8A80 | Errors and things that clear data |
@@ -137,8 +137,8 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | Offer helper | On a listing page once sold prices are known, before any analysis: *Offer $270, walk away above $290*, the sales behind it (*From sold prices, no AI*), a message picked from three kinds (Friendly, Direct, With a reason) in a box you can edit, and **Copy message**. eBay listings with Make offer get the amount instead of a message. Nothing is typed into the site |
 | Same-photo chip | *Same photo as 2 other listings* (warn), Marketplace only; its tooltip and the hover card say *a stolen or stock photo. Ask the seller for a photo with today's date.* A listing page says the same under the scam note |
 | They said $ | Under the offer helper and the analysis's offer: a number field. *Take it at $285*, *Counter at $260* or *Offer $290 once, then walk away*, with the reason after a colon; the message box is rewritten to match |
-| Sold chip | The price against the sold median in dollars, never a percentage (dabloonery found "65% of sold" confusing): *Good price · $53 under sold*, *$20 over sold*, *about the sold price*; the median on hover (`TKRules.vsText`) |
-| Too-cheap chip | *Likely scam? Sold ones go for $300* under 40% of a trusted median, *Too cheap? Sold ones go for $300* under 55% (the % on hover); in place of the sold chip. Not for broken ones, lots, auctions or a rough reference |
+| Price chip | The price against the typical price (the middle of recent eBay sales) in dollars, never a percentage and without the word "sold" on the card (dabloonery found both confusing): *Good price · $53 below typical*, *$20 above typical*, *about typical*; where "typical" comes from on hover (`TKRules.vsText`) |
+| Too-cheap chip | *Likely scam? Typical is $300* under 40% of a trusted median, *Too cheap? Typical is $300* under 55% (the % on hover); in place of the price chip. Not for broken ones, lots, auctions or a rough reference |
 | Home tiles | Saved listings, price drops, saved searches open Saved; spent this month opens the spending detail |
 
 ## 7. Accessibility acceptance criteria (WCAG 2.2 AA)

@@ -335,7 +335,7 @@ test("freeRead: one word before any AI, from sold prices and scam signs", () => 
   assert.equal(word({ total: 50, vsSold: 0.5 }), "Check first", "too cheap for what sold is a warning, not a bargain");
   assert.equal(word({ total: 30, vsSold: 0.3 }), "Likely scam");
   assert.equal(word({ total: 100, vsSold: 1 }), "Fair price");
-  assert.equal(word({ total: 150, vsSold: 1.5 }), "Over sold price");
+  assert.equal(word({ total: 150, vsSold: 1.5 }), "Above typical");
   assert.equal(word({ total: 70, vsSold: 0.7, sellerWarn: "New seller" }), "Check first");
   assert.equal(word({ total: 70, campaign: ["A1"] }), "Likely scam");
   assert.equal(word({ total: 70 }), null, "nothing to go on");
@@ -343,13 +343,13 @@ test("freeRead: one word before any AI, from sold prices and scam signs", () => 
   assert.equal(R.freeRead({ title: "Room for rent", price: 700 })?.word, "Off-topic");
 });
 
-test("vsText: under or over sold, in dollars", () => {
-  assert.equal(R.vsText(97, 150), "$53 under sold");
-  assert.equal(R.vsText(170, 150), "$20 over sold");
-  assert.equal(R.vsText(152, 150), "about the sold price");
-  assert.equal(R.vsText(97, 150, { long: true }), "$53 under the sold median");
-  assert.equal(R.vsText(97, 150, { rough: true }), "~$53 under sold");
-  assert.equal(R.vsText(97, 150, { est: true }), "~$53 under typical (est.)");
+test("vsText: below or above typical, in dollars", () => {
+  assert.equal(R.vsText(97, 150), "$53 below typical");
+  assert.equal(R.vsText(170, 150), "$20 above typical");
+  assert.equal(R.vsText(152, 150), "about typical");
+  assert.equal(R.vsText(97, 150, { long: true }), "$53 below the typical price");
+  assert.equal(R.vsText(97, 150, { rough: true }), "~$53 below typical");
+  assert.equal(R.vsText(97, 150, { est: true }), "~$53 below typical (est.)");
   assert.equal(R.vsText(97, 0), "");
-  assert.ok(R.SOLD_CHIP.test("Good price · $53 under sold") && !R.SOLD_CHIP.test("Too cheap? Sold ones go for $300"));
+  assert.ok(R.SOLD_CHIP.test("Good price · $53 below typical") && !R.SOLD_CHIP.test("Too cheap? Typical is $300"));
 });

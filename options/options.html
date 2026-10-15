@@ -114,11 +114,57 @@
       </div>
     </div>
   </div>
-  <nav class="jump" aria-label="Sections"><a href="#sec-model">Model</a><a href="#sec-judging">Judging</a><a href="#sec-filters">Filters</a><a href="#sec-page">On the page</a><a href="#sec-spending">Spending</a><a href="#sec-backup">Backup</a></nav>
+  <nav class="jump" aria-label="Sections"><a href="#sec-page">On the page</a><a href="#sec-filters">Filters</a><a href="#sec-model">AI scores</a><a href="#sec-judging">Judging</a><a href="#sec-spending">Spending</a><a href="#sec-backup">Backup</a></nav>
+
+  <section id="sec-page">
+    <h2>On the page</h2>
+    <div class="field check">
+      <input id="useSoldComps" type="checkbox">
+      <label for="useSoldComps">Compare prices with recent eBay sales<span class="hint">One or two eBay sold-listings searches per new search (working, and for parts in Reseller mode), remembered for 6 hours.</span></label>
+    </div>
+    <div class="field">
+      <label for="theme">Theme</label>
+      <select id="theme"><option value="match">Match my browser</option><option value="dark">Dark</option><option value="light">Light</option></select>
+      <span class="hint">Match follows your browser, or dark if it doesn't say. The marks on eBay and Marketplace cards follow the page itself.</span>
+    </div>
+    <div class="field check">
+      <input id="autoScan" type="checkbox">
+      <label for="autoScan">Scan automatically<span class="hint">On an eBay or Marketplace search you're looking at, new listings are scored as they load, so you never press Scan. It only runs while the page is on your screen and stops at your monthly budget (set one under Spending). Same switch as under Scan in the panel.</span></label>
+    </div>
+    <div class="field check">
+      <input id="showTab" type="checkbox">
+      <label for="showTab">Show a slim tab on eBay and Facebook Marketplace<span class="hint">Pull it out to open the panel. If eBay ever misbehaves, turn this off and Tirekick loads only when you click its toolbar icon. Reload open eBay tabs after changing it.</span></label>
+    </div>
+  </section>
+
+  <section id="sec-filters">
+    <details>
+    <summary><h2>Filters and marks</h2><span class="hint">Words to filter by, seller warnings, card marks</span></summary>
+    <p class="hint">Plain checks that run on every results page before any AI: nothing here costs anything, and listings they hide are never sent to a model.</p>
+    <div class="field">
+      <label for="filterWords">Always filter by these words</label>
+      <textarea autocomplete="off" id="filterWords" rows="3"></textarea>
+      <span class="hint">The same words as the Filter box above the results: <code>-word</code> hides listings with it, any other word must be in the title, <code>a/b</code> means either, and quotes keep a phrase together: <code>-repro/reproduction -"box only" tested/working</code>. Matched as whole words in the title.</span>
+    </div>
+    <div class="field">
+      <label id="sellerLabel">Warn about sellers with fewer than</label>
+      <div class="pair" role="group" aria-labelledby="sellerLabel"><input autocomplete="off" id="minSellerRatings" aria-label="Fewest ratings" type="number" min="0" max="100000"> <span>ratings, or under</span> <input autocomplete="off" id="minSellerPct" aria-label="Lowest percent positive" type="number" min="0" max="100" step="0.1"> <span>% positive</span></div>
+      <span class="hint">eBay only (Marketplace cards don't show ratings).</span>
+    </div>
+    <div class="field check">
+      <input id="autoMarks" type="checkbox">
+      <label for="autoMarks">Mark cards before you scan<span class="hint">Scam signs, "New to you", price drops since you last saw a listing, seller warnings, duplicates, auctions and lots, as small chips on each card.</span></label>
+    </div>
+    <div class="field">
+      <span class="hint" id="memoryInfo"></span>
+      <div class="row-btns"><button type="button" class="small" id="clearHidden">Unhide everything</button><button type="button" class="small danger" id="clearMemory">Forget seen listings</button></div>
+    </div>
+      </details>
+  </section>
 
   <section id="sec-model">
-    <h2>Model</h2>
-    <p class="hint">Where the judging runs: any AI service you have a key for, or a model on your own computer (Ollama or LM Studio, private and free). Listing titles and card text go only to the one you choose.</p>
+    <h2>AI scores</h2>
+    <p class="hint">Optional. Where the scoring runs: any AI service you have a key for, or a model on your own computer (Ollama or LM Studio, private and free). Listing titles and card text go only to the one you choose.</p>
     <div class="field">
       <label for="service">AI service</label>
       <select id="service">
@@ -225,52 +271,6 @@
       <span class="hint">Your final value fee for the category; check eBay's fee page. A $0.40 per-order fee is added on top.</span>
     </div>
       </details>
-  </section>
-
-  <section id="sec-filters">
-    <details>
-    <summary><h2>Filters and marks</h2><span class="hint">Words to filter by, seller warnings, card marks</span></summary>
-    <p class="hint">Plain checks that run on every results page before any AI: nothing here costs anything, and listings they hide are never sent to a model.</p>
-    <div class="field">
-      <label for="filterWords">Always filter by these words</label>
-      <textarea autocomplete="off" id="filterWords" rows="3"></textarea>
-      <span class="hint">The same words as the Filter box above the results: <code>-word</code> hides listings with it, any other word must be in the title, <code>a/b</code> means either, and quotes keep a phrase together: <code>-repro/reproduction -"box only" tested/working</code>. Matched as whole words in the title.</span>
-    </div>
-    <div class="field">
-      <label id="sellerLabel">Warn about sellers with fewer than</label>
-      <div class="pair" role="group" aria-labelledby="sellerLabel"><input autocomplete="off" id="minSellerRatings" aria-label="Fewest ratings" type="number" min="0" max="100000"> <span>ratings, or under</span> <input autocomplete="off" id="minSellerPct" aria-label="Lowest percent positive" type="number" min="0" max="100" step="0.1"> <span>% positive</span></div>
-      <span class="hint">eBay only (Marketplace cards don't show ratings).</span>
-    </div>
-    <div class="field check">
-      <input id="autoMarks" type="checkbox">
-      <label for="autoMarks">Mark cards before you scan<span class="hint">Scam signs, "New to you", price drops since you last saw a listing, seller warnings, duplicates, auctions and lots, as small chips on each card.</span></label>
-    </div>
-    <div class="field">
-      <span class="hint" id="memoryInfo"></span>
-      <div class="row-btns"><button type="button" class="small" id="clearHidden">Unhide everything</button><button type="button" class="small danger" id="clearMemory">Forget seen listings</button></div>
-    </div>
-      </details>
-  </section>
-
-  <section id="sec-page">
-    <h2>On the page</h2>
-    <div class="field check">
-      <input id="useSoldComps" type="checkbox">
-      <label for="useSoldComps">Compare prices with recent eBay sales<span class="hint">One or two eBay sold-listings searches per new search (working, and for parts in Reseller mode), remembered for 6 hours.</span></label>
-    </div>
-    <div class="field">
-      <label for="theme">Theme</label>
-      <select id="theme"><option value="match">Match my browser</option><option value="dark">Dark</option><option value="light">Light</option></select>
-      <span class="hint">Match follows your browser, or dark if it doesn't say. The marks on eBay and Marketplace cards follow the page itself.</span>
-    </div>
-    <div class="field check">
-      <input id="autoScan" type="checkbox">
-      <label for="autoScan">Scan automatically<span class="hint">On an eBay or Marketplace search you're looking at, new listings are scored as they load, so you never press Scan. It only runs while the page is on your screen and stops at your monthly budget (set one under Spending). Same switch as under Scan in the panel.</span></label>
-    </div>
-    <div class="field check">
-      <input id="showTab" type="checkbox">
-      <label for="showTab">Show a slim tab on eBay and Facebook Marketplace<span class="hint">Pull it out to open the panel. If eBay ever misbehaves, turn this off and Tirekick loads only when you click its toolbar icon. Reload open eBay tabs after changing it.</span></label>
-    </div>
   </section>
 
   <section id="sec-spending">

@@ -1850,7 +1850,7 @@
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
-    // Far under what the same thing sold for: the usual bait. Said in place of the plain "% of sold".
+    // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const cheap = f.vsSold != null && TKRules.tooCheap(f, lastMarket);
     if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Sold ones go for ${dollars(Math.round(lastMarket.median))}`, `This is ${cheap.pct}% of the sold median: far under what the same thing sells for is the usual bait.`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
@@ -2433,7 +2433,7 @@
   // How a listing's total compares with the eBay sold median for this search. Lots and auctions
   // (where the price is only a bid) aren't compared with one item's selling price.
   let cacheTried = false;
-  let marketFor = ""; // the search the cards' "% of sold" is for
+  let marketFor = ""; // the search the cards' "under/over sold" is for
   const vsSoldOf = (f) => (lastMarket?.median > 0 && f.total != null && !f.lot && !f.auction ? f.total / lastMarket.median : null);
   const applyMarket = (market) => {
     lastMarket = market;
@@ -3624,7 +3624,7 @@
   };
   scanBtn.addEventListener("click", scan);
 
-  // The sold-price half of a scan on its own: one eBay lookup, every card gets "% of sold", no model.
+  // The sold-price half of a scan on its own: one eBay lookup, every card gets "$53 under sold", without the model.
   const pricesOnly = async () => {
     if (TK.pageType() === "item" && !queryEl.value.trim() && itemFacts?.title) queryEl.value = TK.titleToQuery(itemFacts.title);
     const query = queryEl.value.trim();
@@ -3843,7 +3843,7 @@
   const renderItemInfo = () => {
     const f = itemFacts;
     if (!f || TK.pageType() !== "item") return;
-    // After an analysis its own line says the % of sold; the chip would say it twice.
+    // After an analysis its own line says how far under or over sold it is; the chip would say it twice.
     const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && TKRules.SOLD_CHIP.test(t))).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
     const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
     const scam = scamWarning(f);

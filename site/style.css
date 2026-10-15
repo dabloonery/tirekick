@@ -138,7 +138,7 @@ section.band { padding: 72px 0; border-top: 1px solid var(--rule); }
 [data-c="fair"] { --c: var(--dot-fair); --ct: var(--v-fair); }
 [data-c="accent"] { --c: var(--orange); --ct: var(--accent); }
 .band.navy { background: var(--navy); color: #FFFFFF; border-top: 0; }
-.band.navy .sub { color: #C9D2E3; }
+.band.navy .sub, .band.navy > .wrap > p.sub { color: #C9D2E3; } /* the second beats .band > .wrap > p.sub */
 .band.navy b { color: #FFFFFF; }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
 @media (max-width: 860px) { .split { grid-template-columns: 1fr; gap: 28px; } }
@@ -201,7 +201,9 @@ kbd { font: 600 14px/1 var(--ui); padding: 2px 6px; border: 1px solid var(--line
 /* ---------- footer ---------- */
 footer { border-top: 1px solid var(--rule); padding: 32px 0 48px; font-size: 14px; color: var(--muted); }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
-footer a { color: var(--muted); }
+footer a { color: var(--muted); display: inline-block; padding: 4px 0; } /* a 24px-high target */
+.skip { position: absolute; left: 16px; top: -60px; z-index: 10; padding: 10px 16px; border-radius: 8px; background: var(--paper, #FFFFFF); color: var(--ink, #111111); font-weight: 600; }
+.skip:focus { top: 12px; }
 
 /* ---------- the privacy page ---------- */
 .doc { max-width: 760px; padding-top: 24px; padding-bottom: 72px; }

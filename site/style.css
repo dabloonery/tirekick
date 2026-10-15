@@ -221,3 +221,6 @@ footer a { color: var(--muted); }
 .table th { background: var(--paper-2); font-weight: 700; }
 .table tr:last-child td { border-bottom: 0; }
 .placeholder { background: color-mix(in srgb, var(--orange) 25%, transparent); padding: 0 4px; border-radius: 4px; }
+
+#modes .ticks { margin: 18px 0 8px; }
+#modes .quiet { font-size: 15px; margin-top: 18px; }

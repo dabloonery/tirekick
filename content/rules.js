@@ -119,7 +119,7 @@
     return R.priceWord(f.vsSold);
   };
   // The price against the typical price (the middle of recent eBay sales, or the model's estimate), in dollars:
-  // "$53 below typical", "$20 above typical", "about typical" (within 5%). dabloonery found both "65% of sold" and the
+  // "$53 below typical", "$20 above typical", "about typical" (within 5%). testers found both "65% of sold" and the
   // word "sold" confusing on a card, so the chip says "typical" and its hover says where that comes from.
   R.vsText = (total, ref, { rough = false, est = false, long = false } = {}) => {
     if (!(ref > 0) || total == null) return "";

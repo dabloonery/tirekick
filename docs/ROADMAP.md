@@ -8,6 +8,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
 
 - [Next steps](#next-steps) (2026-10-14: the order of work, and what waits on dabloonery)
 - [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone) (2026-10-15)
+- [Public beta launch](#public-beta-launch) (decided 2026-10-15: launch as a public beta before 1.0.0)
 - [Tirekick: Chrome Web Store submission checklist](#tirekick-chrome-web-store-submission-checklist)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
 - [Tirekick feature briefs](#tirekick-feature-briefs)
@@ -251,6 +252,41 @@ for each, one PR per change.*
    where nothing else separates the parts (model menu entries, saved-row details). The panel's own copy of the
    spending summary now uses `TKShared.usageSummary`.
 
+## Public beta launch
+
+*2026-10-15. dabloonery decided to launch on the Chrome Web Store as a **public beta** instead of waiting for 1.0.0.
+Nothing is submitted until dabloonery says so.*
+
+**What "beta" means here.** The store has no beta switch, so the label is in the words: the summary (the
+manifest's description) starts with "Beta.", and the description opens with a short beta note asking for
+feedback at support@tirekick.app. The name stays **Tirekick**, so nothing needs renaming when the beta ends.
+The version stays 0.x during the beta; **1.0.0** marks the end of it, and the open-source step
+([Open source at 1.0.0](#open-source-at-100-decided-2026-10-14)) stays tied to 1.0.0, not to the beta.
+Distribution is **Public**, all regions.
+
+**Gates, in order.** Each must be done before submitting:
+
+1. [x] The open PRs merged: #32 (logo, 0.43.0), #33 to #35 (built-for-one-person cleanup, typical price per
+   listing, panel tidy; 0.44.0 to 0.46.0).
+2. [x] Security item L1 (links through `safeUrl`, 0.37.0) and the review pass's L1 copy fix (0.40.2).
+3. [x] The listing marked Beta (`store/LISTING.md`, manifest description), 0.47.0.
+4. [ ] **The holistic review** (dabloonery, 2026-10-15: "don't forget the holistic review"), run by the Rethink
+   thread: the whole extension, end to end, with its fixes merged.
+5. [ ] **dabloonery's real-site check** on eBay and Marketplace in Vivaldi ("For dabloonery, in order", step 3), and
+   real captures for screenshots 1 and 2.
+6. [ ] **dabloonery's accounts:** non-trader status in the developer dashboard (recommended: it keeps a home
+   address off the listing), support@tirekick.app forwarding, and the contact email verified.
+7. [ ] **Site:** tirekick.app on HTTPS with `/privacy` loading, ready to publish the same day with the store
+   link in place of `STORE_LISTING_URL` and a matching "Beta" mention.
+8. [ ] `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
+9. [ ] **dabloonery's OK to submit.** Then the forms in the checklist below (section 5), Distribution: Public.
+
+**During the beta.** Feedback comes from strangers only (dabloonery doesn't want to involve people they know): the
+support address and, if dabloonery wants, one forum post (r/Flipping or r/eBay). Fixes ship as 0.x updates through
+the store. The beta ends at 1.0.0, when the label comes off.
+
+---
+
 ## Tirekick: Chrome Web Store submission checklist
 
 *2026-10-14. The order to do things in, who does each, and what's ready. Nothing here has been
@@ -299,7 +335,7 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 - [x] **Claude:** set `homepage_url` to `https://tirekick.app`, update the listing link, and replace the contact
       placeholders (0.40.2). The site has a `CNAME` for tirekick.app; publishing steps are in `site/README.md`.
 - [x] **Claude (optional):** the L1 hardening from the security review (links through `safeUrl`). Done in 0.37.0.
-- [ ] **Claude:** bump the version for the store build (suggest **1.0.0** for the first public release).
+- [ ] **Claude:** bump the version for the store build (a 0.x version for the public beta; **1.0.0** when the beta ends, see [Public beta launch](#public-beta-launch)).
 - [ ] Run `deno task test`, then `deno task pack`. Unzip `dist/tirekick-<version>.zip` into a fresh folder,
       load it with **Load unpacked**, and click through: an eBay search, the panel, a scan with your key,
       a Marketplace search, settings, a backup and restore.

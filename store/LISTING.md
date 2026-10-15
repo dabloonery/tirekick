@@ -6,7 +6,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 - **Name:** Tirekick
 - **Summary** (132 characters at most; this is the manifest's description, checked by `deno task pack`):
-  Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
+  Beta. Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
 - **Category:** Shopping
 - **Language:** English
 - **Privacy policy URL:** the public address of `store/PRIVACY.md`. The repository is private for now, so its GitHub page isn't public: host it elsewhere (a GitHub Gist, a GitHub Pages site from a small public repository, or any web page you control) until the repository is opened
@@ -14,6 +14,8 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 - **Support contact:** support@tirekick.app (public; works once the tirekick.app mailbox is set up)
 
 ## Description
+
+**Beta:** Tirekick is new and still improving. If something looks wrong on a page, or a store changes and Tirekick stops reading it, tell us at support@tirekick.app.
 
 **Kick the tires before you buy.** Is it a good price? Is it a scam?
 
@@ -25,7 +27,7 @@ Tirekick has optional AI features. The checks below are free and work without th
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
 • How far below or above the typical price each card is ("$53 below typical", from recent eBay sales) once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
-• Save listings and searches; the Home tab shows what got cheaper and what you've spent
+• Save listings and searches; the Home tab shows what got cheaper
 • From any page: select a thing's name, right-click, "Look up": what it has sold for on eBay, and a search on eBay, Marketplace or both
 • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
 

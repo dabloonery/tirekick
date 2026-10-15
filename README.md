@@ -129,8 +129,8 @@ scam warning stays readable.
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Tirekick".
 - **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
-  "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (free,
-  no AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
+  "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (free, without
+  the AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
   site, with your saved listings and searches (each marked eBay or Marketplace) and Home.
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
@@ -182,9 +182,10 @@ reads "Not your thing" and is grayed out with the skipped listings. Prices are c
 estimate of what that kind of item usually sells for, always marked **est.**; press
 **Sold prices** on a listing for real eBay numbers for that exact item.
 
-## Without any AI
+## Without the AI
 
-Everything here is free, needs no API key, and runs only on pages you're looking at.
+Tirekick has AI features, and they're optional. Everything here works without them: it's free, needs no API
+key, and runs only on pages you're looking at.
 
 **On the cards**, as soon as a results page loads:
 

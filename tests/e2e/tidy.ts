@@ -74,7 +74,7 @@ await waitFor(() => R(it, `return !!r.querySelector('[data-act=offer-prices]')`)
 ok("a listing page with no sold prices offers to work out an offer, free", await R(it, `return /Want an offer to send\\? Work one out from sold prices/.test(r.querySelector('.offer-ask')?.textContent || '')`));
 await R(it, `r.querySelector('[data-act=offer-prices]').click()`);
 await waitFor(() => R(it, `return /Offer \\$/.test(r.querySelector('.pi-line .offer')?.textContent || '')`), 12000);
-ok("…and pressing it gives the offer and the message, with no AI", await R(it, `const b=r.querySelector('.pi-line .offer'); return /Offer \\$/.test(b?.textContent||'') && !!b.querySelector('.msg-kind [data-kind=friendly][aria-checked=true]')`), await R(it, `return r.querySelector('.pi-line')?.textContent`));
+ok("…and pressing it gives the offer and the message, without the AI", await R(it, `const b=r.querySelector('.pi-line .offer'); return /Offer \\$/.test(b?.textContent||'') && !!b.querySelector('.msg-kind [data-kind=friendly][aria-checked=true]')`), await R(it, `return r.querySelector('.pi-line')?.textContent`));
 const calls = await (await fetch("http://localhost:1234/calls")).json();
 ok("…without calling the model", !calls.length, calls);
 // Color is back: the dark panel is navy with an orange main button.

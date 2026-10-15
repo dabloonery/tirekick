@@ -19,7 +19,9 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, repl
 
 Tirekick looks over second-hand listings with you, on the stores where you shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
 
-**Free, no account, no AI needed**
+Tirekick has optional AI features. The checks below are free and work without them; turn on an AI only if you want scores and write-ups.
+
+**Works without AI: free, no account**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
 • "% of sold" on every card once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
@@ -27,7 +29,7 @@ Tirekick looks over second-hand listings with you, on the stores where you shop.
 • From any page: select a thing's name, right-click, "Look up": what it has sold for on eBay, and a search on eBay, Marketplace or both
 • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
 
-**Add an AI you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
+**Optional: add an AI you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
 • A score and verdict for every listing, one line on the price, and the reasons on hover
 • Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
 • Reseller mode for people who fix and flip: the likely fault, how hard it is, parts, and your margin after eBay fees

@@ -4,14 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tirekick: kick the tires before you buy</title>
-<meta name="description" content="A free browser extension for second-hand shopping: deal scores, sold-price checks and scam warnings on eBay and Facebook Marketplace, with more stores to come.">
+<meta name="description" content="A free browser extension for buying second-hand: eBay sold prices and scam marks right on Facebook Marketplace and eBay listings. No account, and nothing leaves your browser.">
 <meta name="theme-color" content="#1E2024">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="stylesheet" href="style.css">
-<link rel="canonical" href="https://tirekick.app/">
 <meta property="og:title" content="Tirekick: kick the tires before you buy">
-<meta property="og:description" content="Deal scores, sold-price checks and scam warnings for second-hand listings.">
-<meta property="og:image" content="https://tirekick.app/icon.png">
+<meta property="og:description" content="eBay sold prices and scam marks right on the listing. Free, no account.">
+<meta property="og:image" content="icon.png">
 </head>
 <body>
 <header class="wrap top">
@@ -20,27 +19,35 @@
     <span class="wordmark" role="img" aria-label="Tirekick">t<span class="wm-i" aria-hidden="true">ı</span>rek<span class="wm-i" aria-hidden="true">ı</span>ck</span>
   </a>
   <nav aria-label="Site">
-    <a href="#how">How it works</a>
+    <a href="#free">What it does</a>
     <a href="privacy.html">Privacy</a>
+    <a href="support.html">Help</a>
   </nav>
 </header>
 
 <main>
   <div class="wrap hero">
     <div>
+      <p class="kicker">For eBay and Facebook Marketplace</p>
       <h1>Kick the tires <em>before you buy.</em></h1>
-      <p class="lede">Tirekick looks over second-hand listings with you, on the stores where you shop. Every listing gets a score, prices are checked against what the same thing actually sold for, and likely scams are marked. It works on eBay and Facebook Marketplace today, with more stores to come.</p>
+      <p class="lede">See what the same thing actually sold for on eBay, right on the Marketplace listing you’re looking at. Likely scams get marked before you message the seller. Free, no account, and nothing leaves your browser.</p>
+      <ul class="chips" aria-label="Marks Tirekick puts on listing cards">
+        <li class="chip good">62% of sold</li>
+        <li class="chip warn">Likely scam? 32% of sold price</li>
+        <li class="chip new">↓ was $180</li>
+        <li class="chip plain">At your $60</li>
+      </ul>
       <div class="cta">
         <!-- Swap for the Chrome Web Store link once the listing is approved. -->
         <a class="btn primary" aria-disabled="true">Add to Chrome</a>
-        <a class="btn ghost" href="privacy.html">What it does with your data</a>
+        <a class="btn ghost" href="#private">Is it safe?</a>
       </div>
-      <p class="soon">Coming soon to the Chrome Web Store. Free, no account.</p>
+      <p class="soon">Coming soon to the Chrome Web Store. Works in Chrome, Vivaldi and other Chromium browsers.</p>
     </div>
 
-    <figure class="panel" aria-label="An example: five listings from one search, each with a score and a verdict">
+    <figure class="panel">
       <div class="panel-head"><b>“film camera”</b><span>5 listings · 1 looks like a scam</span></div>
-      <ol class="rows">
+      <ol class="rows" aria-label="An example: five listings from one search, each with a score and a verdict">
         <li class="row" data-v="great">
           <div class="dot" style="--lit:20"><span>91</span></div>
           <div><div class="t">Canon AE-1 Program with 50mm f/1.8</div><div class="verdict">Great deal</div></div>
@@ -67,64 +74,97 @@
           <div class="p">$300<small>12% of sold</small></div>
         </li>
       </ol>
+      <figcaption>Scores come from an AI you choose. Sold prices and scam marks are free.</figcaption>
     </figure>
   </div>
 
-  <section class="band" id="how">
+  <section class="band" id="free">
     <div class="wrap">
-      <h2>Free on its own. Smarter with an AI you pick.</h2>
-      <p class="sub">The basics need no account and no AI. Add a key from the service you like and every listing gets a score and a reason.</p>
-      <div class="cols">
-        <div class="card">
-          <div class="tag">Free</div>
-          <h3>Spot the scams</h3>
+      <h2>Free, with no account and no AI.</h2>
+      <p class="sub">The marks show up on the cards as the page loads. Open the panel for the rest.</p>
+      <div class="cols four">
+        <div class="card" data-c="great">
+          <div class="tag">Sold prices</div>
+          <h3>Know what it’s worth</h3>
+          <ul>
+            <li>“% of sold” on every card, from real eBay sales</li>
+            <li>The sales behind each number, and how far to trust it</li>
+            <li>Select any product name, right-click, Look up</li>
+          </ul>
+        </div>
+        <div class="card" data-c="suspicious">
+          <div class="tag">Scam marks</div>
+          <h3>Spot the fakes</h3>
           <ul>
             <li>The same listing reposted under new codes</li>
-            <li>Codes tacked onto titles</li>
-            <li>“Message me off the site” tricks</li>
+            <li>A photo you’ve seen on another listing</li>
+            <li>“Text me” and other ways off the site</li>
+            <li>Too cheap to be true, against sold prices</li>
           </ul>
         </div>
-        <div class="card">
-          <div class="tag">Free</div>
-          <h3>Know the real price</h3>
+        <div class="card" data-c="fair">
+          <div class="tag">Offers</div>
+          <h3>Pay less</h3>
           <ul>
-            <li>“% of sold” on every card</li>
-            <li>Price drops and “new to you”</li>
-            <li>Save listings and searches, and see what got cheaper</li>
+            <li>What to open at and when to walk away</li>
+            <li>When they answer, whether to take it</li>
+            <li>Price drops and how long it’s been listed</li>
           </ul>
         </div>
-        <div class="card">
-          <div class="tag">With your AI</div>
-          <h3>Get a second opinion</h3>
+        <div class="card" data-c="accent">
+          <div class="tag">Saved</div>
+          <h3>Keep track</h3>
           <ul>
-            <li>A score and verdict for every listing</li>
-            <li>Red flags, questions for the seller and a fair offer</li>
-            <li>A reseller mode for people who fix and flip</li>
+            <li>Save listings and searches, from both sites</li>
+            <li>See what got cheaper since you saved it</li>
+            <li>Download your list as a spreadsheet</li>
           </ul>
         </div>
       </div>
-      <p class="sub">Works with the Claude API, OpenAI, Gemini, OpenRouter, DeepSeek, Mistral, xAI, or Ollama and LM Studio on your own computer. A scan of 50 listings with the default model costs less than a cent.</p>
     </div>
   </section>
 
-  <section class="band" id="privacy">
+  <section class="band navy" id="flip">
+    <div class="wrap split">
+      <div>
+        <h2>Built for people who flip.</h2>
+        <p class="sub">Switch to Reseller and Tirekick works the way you source: broken and untested listings first, what broken ones sell for, and the margin after eBay’s fee and shipping.</p>
+      </div>
+      <ul class="ticks">
+        <li><b>Broken only</b>, the “any of these words” search Marketplace can’t do</li>
+        <li><b>Your price</b> for a search, with a count of listings at or under it</li>
+        <li><b>Try on eBay</b> or <b>Try on Marketplace</b> with the same words</li>
+        <li><b>With your AI</b>: the likely fault, how hard the fix is, parts and margin</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band" id="ai">
+    <div class="wrap">
+      <h2>A second opinion, if you want one.</h2>
+      <p class="sub">Add a key from the AI service you like and every listing gets a score, a verdict and the reasons. Analyze one listing for red flags, questions for the seller and a fair offer. It’s optional: everything above works without it.</p>
+      <p class="sub small">Works with the Claude API, OpenAI, Gemini, OpenRouter, DeepSeek, Mistral and xAI, or Ollama and LM Studio on your own computer. A scan of 50 listings with the default model costs less than a cent.</p>
+    </div>
+  </section>
+
+  <section class="band" id="private">
     <div class="wrap">
       <h2>It only looks when you do.</h2>
       <ul class="facts">
-        <li><b>No server, no account, no analytics.</b><span>The developer receives nothing.</span></li>
+        <li><b>Nothing runs in the background.</b><span>It reads the page in front of you. It never clicks, posts or messages anyone for you.</span></li>
+        <li><b>No account, no server, no analytics.</b><span>The developer receives nothing.</span></li>
         <li><b>Everything it keeps stays in your browser.</b><span>Settings, saved listings, what you’ve seen.</span></li>
-        <li><b>Nothing runs in the background.</b><span>It works on the page in front of you, when you ask.</span></li>
         <li><b>Your key goes only to the service you chose.</b><span>And only when you press a button.</span></li>
       </ul>
-      <p class="sub"><a href="privacy.html">Read the full privacy policy</a></p>
+      <p class="sub"><a href="privacy.html">Read the full privacy policy</a> · <a href="support.html#faq">Common questions</a></p>
     </div>
   </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <span>© 2026 Tirekick. Not affiliated with or endorsed by eBay or Meta.</span>
-    <span><a href="privacy.html">Privacy</a> · <a href="https://github.com/dabloonery/Second-Look">Source code</a> · <a href="mailto:CONTACT_EMAIL" class="placeholder">CONTACT_EMAIL</a></span>
+    <span>© 2026 Tirekick™. Not affiliated with or endorsed by eBay or Meta.</span>
+    <span><a href="privacy.html">Privacy</a> · <a href="support.html">Help and contact</a></span>
   </div>
 </footer>
 </body>

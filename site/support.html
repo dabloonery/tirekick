@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tirekick help and contact</title>
+<meta name="description" content="Getting started with the Tirekick browser extension, answers to common questions, and how to reach the developer.">
+<meta name="theme-color" content="#1E2024">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="./" aria-label="Tirekick home">
+    <img src="icon.png" alt="" width="36" height="36">
+    <span class="wordmark" role="img" aria-label="Tirekick">t<span class="wm-i" aria-hidden="true">ı</span>rek<span class="wm-i" aria-hidden="true">ı</span>ck</span>
+  </a>
+  <nav aria-label="Site">
+    <a href="./#free">What it does</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="support.html" aria-current="page">Help</a>
+  </nav>
+</header>
+
+<main class="wrap doc">
+  <h1>Help and contact</h1>
+  <p class="date">Tirekick is made by one person. Email is the way to reach them.</p>
+
+  <div class="contact">
+    <div>
+      <b>Questions, bugs and ideas</b>
+      <span>Write to <a href="mailto:CONTACT_EMAIL" class="placeholder">CONTACT_EMAIL</a>. Replies usually take a few days.</span>
+    </div>
+  </div>
+
+  <h2 id="start">Getting started</h2>
+  <ol class="steps">
+    <li><b>Add Tirekick to your browser.</b> The settings page opens. You can skip the AI part for now.</li>
+    <li><b>Search eBay or Facebook Marketplace.</b> Marks such as “Scam: reposted” and “% of sold” show up on the cards by themselves.</li>
+    <li><b>Open the panel</b> with the slim Tirekick tab on the right edge of the page, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>.</li>
+    <li><b>Press Sold prices</b> to compare the whole page with what the same thing sold for on eBay. It’s free.</li>
+    <li><b>Want scores?</b> Paste a key from an AI service in settings, then press <b>Scan</b>.</li>
+  </ol>
+
+  <h2 id="broken">When something looks wrong</h2>
+  <p>eBay and Facebook change their pages without warning, and that’s what breaks first. When a scan finds no listings, the panel offers <b>Check this page</b>. It copies a short report: how many cards it found, what it could read on them, and three public listing titles. Nothing else. Paste that into an email with the store’s address bar link, and say which browser you use.</p>
+
+  <h2 id="faq">Common questions</h2>
+  <div class="faq">
+    <details>
+      <summary>Can it get my Facebook or eBay account in trouble?</summary>
+      <p>Tirekick reads the page you already have open. It never logs in, clicks, posts, messages a seller or browses on its own. Sold-price lookups are a few eBay searches an hour at most, from your own browser, and stop at the first sign of eBay’s “checking your browser” page. We can’t speak for eBay or Meta, but it does nothing a person reading the page wouldn’t.</p>
+    </details>
+    <details>
+      <summary>Do I need an AI key?</summary>
+      <p>No. Scam marks, sold prices, “% of sold”, price drops, the offer helper, filters and saved searches all work without one. A key adds a score and verdict for each listing and a closer look at one listing. Ollama or LM Studio on your own computer works too, and costs nothing.</p>
+    </details>
+    <details>
+      <summary>What does the AI cost?</summary>
+      <p>You pay the AI service directly, at their prices. A scan of 50 listings with the default model costs less than a cent. Settings has a monthly budget, and Home shows what you’ve spent.</p>
+    </details>
+    <details>
+      <summary>Why doesn’t a card show “% of sold”?</summary>
+      <p>Sold prices need search words to compare against, so they don’t show on the Marketplace home feed or a category page. Lots and auctions are left out on purpose. If eBay paused lookups, the panel says so and tries again later. Vague words give vague prices: “Pentax K1000 body” beats “camera”.</p>
+    </details>
+    <details>
+      <summary>Is a “Likely scam” mark always right?</summary>
+      <p>No. It means the listing has signs scams often have, such as a code tacked onto the title or a price far under what it sells for. Look at the listing and the seller yourself before you decide. Scores, prices and offers are estimates to help you, not a guarantee.</p>
+    </details>
+    <details>
+      <summary>Does it work on my phone?</summary>
+      <p>Not yet. Browser extensions don’t run in the Facebook or eBay apps. Tirekick works in Chrome and Vivaldi on a computer, and should work in other Chromium browsers such as Edge and Brave.</p>
+    </details>
+    <details>
+      <summary>Does it watch my searches when I’m away?</summary>
+      <p>No, on purpose. Tirekick only looks at pages you have open, so nothing runs in the background. Saved listings and searches update the next time they’re on your screen.</p>
+    </details>
+    <details>
+      <summary>How do I move my saved listings to another computer?</summary>
+      <p>In settings, <b>Backup</b> saves everything to a file (never your API keys). Restore it in the other browser; it adds to what’s already there.</p>
+    </details>
+    <details>
+      <summary>How do I remove it and my data?</summary>
+      <p>Remove Tirekick from your browser’s extensions page. Everything it kept is deleted with it, because it was only ever in your browser. See the <a href="privacy.html">privacy policy</a> for the full list.</p>
+    </details>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Tirekick™. Not affiliated with or endorsed by eBay or Meta.</span>
+    <span><a href="./">Home</a> · <a href="privacy.html">Privacy</a></span>
+  </div>
+</footer>
+</body>
+</html>

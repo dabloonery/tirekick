@@ -20,9 +20,10 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 ## 2. Website and privacy policy (Claude drafts, Myer deploys)
 
 - [x] Landing, privacy and help pages: `site/index.html`, `site/privacy.html`, `site/support.html` (static,
-      no scripts, no tracking, fonts self-hosted, links relative so any address works). 0.38.1 leads with
-      resellers (eBay sold prices and scam marks on Marketplace, free, no account), from
-      `research/reseller-demand-2026-10.md`, and the help page answers the "will this get my account banned" worry.
+      no scripts, no tracking, fonts self-hosted, links relative so any address works). The pages speak to
+      both audiences Myer agreed on (`plans/tirekick-future.md`): everyday buyers (free scam marks, checking a big
+      purchase) and resellers (sold prices on Marketplace, Reseller mode), with AI last and optional. The help page
+      answers the "will this get my account banned" worry. Colors brighter than the extension's light theme on purpose.
 - [ ] Fill in the contact address: `CONTACT_EMAIL` in `site/privacy.html`, `site/index.html`, `site/support.html`,
       and `store/PRIVACY.md`.
 - [ ] Publish it. GitHub Pages is free for **public** repositories only (private ones need a paid plan), and this

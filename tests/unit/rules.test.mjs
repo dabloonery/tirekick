@@ -216,7 +216,7 @@ test("offerPlan opens between the cheaper quarter and the median, walks away at 
   const p = R.offerPlan({ price: 120 }, m);
   assert.equal(p.open, 90);
   assert.equal(p.walkAway, 100);
-  assert.match(p.reasons[0], /\$80–\$120 \(24 sales\)/);
+  assert.match(p.reasons[0], /\$80–\$120 \(24 recent eBay sales\)/);
   // a soft seller opens at the cheaper quarter
   assert.equal(R.offerPlan({ price: 120, soft: "likely" }, m).open, 80);
   // shipping comes off: the offer is for the item
@@ -352,4 +352,15 @@ test("vsText: below or above typical, in dollars", () => {
   assert.equal(R.vsText(97, 150, { est: true }), "~$53 below typical (est.)");
   assert.equal(R.vsText(97, 0), "");
   assert.ok(R.SOLD_CHIP.test("Good price · $53 below typical") && !R.SOLD_CHIP.test("Too cheap? Typical is $300"));
+});
+
+test("priceVerdict: when score and price disagree, the price check wins", () => {
+  const m = { median: 300, confidence: "good" };
+  assert.deepEqual(R.priceVerdict("great", { total: 85 }, m), { v: "suspicious", label: "Great price, if it’s real" });
+  assert.deepEqual(R.priceVerdict("good", { total: 295 * 1.3 }, m), { v: "fair" }, "well above typical: no better than Fair");
+  assert.deepEqual(R.priceVerdict("great", { total: 250 }, m), { v: "great" }, "a fair gap keeps the score's verdict");
+  assert.deepEqual(R.priceVerdict("pass", { total: 85 }, m), { v: "pass" });
+  assert.deepEqual(R.priceVerdict("great", { total: 85, auction: true }, m), { v: "great" }, "a bid isn't a price");
+  assert.deepEqual(R.priceVerdict("great", { total: 85 }, { median: 300, confidence: "rough" }), { v: "great" }, "only a trusted typical price");
+  assert.deepEqual(R.priceVerdict("great", { total: 85 }, null), { v: "great" });
 });

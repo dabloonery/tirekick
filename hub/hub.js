@@ -89,7 +89,7 @@
       send("storeEdit", { name: "stats", edit: { inc: { soldLookups: 1 }, add: { since: Date.now() } } }).catch(() => {});
       if (!market) return say(`Not enough eBay sales of “${q}” to give a price. Try fewer or more general words.`);
       answer.replaceChildren(
-        h("div", { class: "mgrid" }, cell(any ? "Sold, any condition" : "Sold, used", market)),
+        h("div", { class: "mgrid" }, cell(any ? "Typical price, any condition" : "Typical price, used", market)),
         h(
           "details",
           { class: "comps" },
@@ -145,7 +145,7 @@
             h("h3", { class: "hint" }, `Searches · ${searches.length}`),
             h("div", { class: "rows" }, searchRows),
             searches.length > 1 ? h("div", { class: "acts" }, h("button", { type: "button", onclick: openAll(searches) }, `Open all ${searches.length} searches`)) : null,
-          ]
+          ].filter(Boolean) // replaceChildren would print a null as the word "null"
         : [])
     );
   };

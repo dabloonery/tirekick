@@ -135,7 +135,7 @@ their substance; only the name changes there (see the table at the end of this s
 
 **Summary** (manifest `description`, 132 characters max; this one is 119):
 
-> Deal scores, price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
+> Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
 
 *Alternative, 129 characters:* "Kick the tires on secondhand listings: deal scores, sold-price checks and scam warnings. Works on eBay and Facebook Marketplace."
 

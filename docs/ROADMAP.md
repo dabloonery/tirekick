@@ -162,7 +162,7 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 
 ### 1. Accounts and domain (Myer)
 
-- [ ] Register **tirekick.app**. `.app` domains only work over HTTPS, which any of the hosts below handle for free.
+- [x] Register **tirekick.app** (Myer, 2026-10-15). `.app` domains only work over HTTPS, which any of the hosts below handle for free.
 - [ ] Set up a contact address on it (support@tirekick.app, forwarded to your inbox). The store
       shows it publicly, and the privacy policy needs one.
 - [x] Create a Chrome Web Store developer account (done, 2026-10-15) at https://chrome.google.com/webstore/devconsole
@@ -197,8 +197,8 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 - [ ] **Myer:** rename the GitHub repo to `tirekick` (Settings, General). GitHub redirects the old address.
 - [ ] **Claude, at 1.0.0:** Apache-2.0 `LICENSE` and README license section; then the repo goes public (see
       [Open source at 1.0.0](#open-source-at-100-decided-2026-10-14) for what to do first).
-- [ ] **Claude:** set `homepage_url` to `https://tirekick.app`, update README and listing links, and
-      replace the contact placeholders. Small PR.
+- [x] **Claude:** set `homepage_url` to `https://tirekick.app`, update the listing link, and replace the contact
+      placeholders (0.40.2). The site has a `CNAME` for tirekick.app; publishing steps are in `site/README.md`.
 - [x] **Claude (optional):** the L1 hardening from the security review (links through `safeUrl`). Done in 0.37.0.
 - [ ] **Claude:** bump the version for the store build (suggest **1.0.0** for the first public release).
 - [ ] Run `deno task test`, then `deno task pack`. Unzip `dist/tirekick-<version>.zip` into a fresh folder,

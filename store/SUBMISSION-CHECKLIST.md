@@ -8,7 +8,7 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 
 ## 1. Accounts and domain (Myer)
 
-- [ ] Register **tirekick.app**. `.app` domains only work over HTTPS, which any of the hosts below handle for free.
+- [x] Register **tirekick.app** (Myer, 2026-10-15). `.app` domains only work over HTTPS, which any of the hosts below handle for free.
 - [ ] Set up a contact address on it (support@tirekick.app, forwarded to your inbox). The store
       shows it publicly, and the privacy policy needs one.
 - [x] (Paid, 2026-10-15.) Create a Chrome Web Store developer account at https://chrome.google.com/webstore/devconsole

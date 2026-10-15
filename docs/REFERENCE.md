@@ -508,7 +508,7 @@ Steps 2 and 4 can be combined into one PR if you would rather ship one release, 
 
 **Verdict: nothing blocks submission.** No remote code, no `eval`, no web-accessible resources, no
 `externally_connectable`, and every network destination is either declared or approved by the user one
-address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 269 KB at 0.35.0; 22 files, about 315 KB at 0.48.0; no tests or
+address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 269 KB at 0.35.0; 22 files, about 316 KB at 0.49.0; no tests or
 source maps). Two items are worth knowing before review starts (M1, M2); the rest are small hardening
 ideas for a later release.
 

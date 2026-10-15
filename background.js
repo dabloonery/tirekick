@@ -182,7 +182,8 @@ async function anthropicMessageOnce({ system, content, schema, maxTokens = 16000
 }
 
 // Batches run a few at a time, so what's already out counts too (at what the last call cost); otherwise
-// each would pass the budget check before any of them had been paid for.
+// each would pass the budget check before any of them had been paid for. Before the first reply, a
+// batch's list-price estimate stands in.
 let paidInFlight = 0;
 let lastPaidUsd = 0;
 async function withBudget(fn) {
@@ -201,7 +202,8 @@ async function withBudget(fn) {
 async function checkBudget(monthlyBudget) {
   if (!(monthlyBudget > 0)) return;
   const spent = monthSpent((await chrome.storage.local.get("usage")).usage);
-  if (spent + paidInFlight * lastPaidUsd >= monthlyBudget) {
+  const each = lastPaidUsd || (paidInFlight ? (await perListingCost()) * Math.max(1, (await getSettings()).batchSize | 0) : 0);
+  if (spent + paidInFlight * each >= monthlyBudget) {
     throw new Error(`This month's budget of $${monthlyBudget} is used up (about $${spent.toFixed(2)} spent). Raise it in settings, or switch to Ollama in the panel's model menu.`);
   }
 }
@@ -886,7 +888,7 @@ async function openTabs({ urls }) {
 // fetch is aborted. (A model may still bill for what it had already read.)
 const inflight = new Map(); // reqId -> AbortController
 async function abort({ ids }) {
-  for (const id of ids || []) inflight.get(id)?.abort();
+  for (const id of ids || []) inflight.get(id)?.forEach((ac) => ac.abort());
   return true;
 }
 
@@ -931,9 +933,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!handler) return false;
   const payload = msg.payload || {};
   const id = typeof payload.reqId === "string" ? payload.reqId : "";
-  if (id) {
-    const ac = new AbortController();
-    inflight.set(id, ac);
+  // Two requests can share an id (a quick rescan): Stop ends both, not just the newer one.
+  const ac = id ? new AbortController() : null;
+  if (ac) {
+    if (!inflight.has(id)) inflight.set(id, new Set());
+    inflight.get(id).add(ac);
     payload.signal = ac.signal;
   }
   (async () => {
@@ -942,7 +946,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } catch (err) {
       sendResponse({ ok: false, error: err.message || String(err) });
     } finally {
-      if (id) inflight.delete(id);
+      if (ac) {
+        inflight.get(id)?.delete(ac);
+        if (!inflight.get(id)?.size) inflight.delete(id);
+      }
     }
   })();
   return true; // keep the channel open for the async reply

@@ -155,10 +155,10 @@ Audit of both repos and the accounts around them:
 
 | Where | What shows now | Status |
 | --- | --- | --- |
-| `LICENSE`, README "License and disclaimer" | was "dabloonery" | Done in 0.42.1: "The Tirekick authors" |
-| `store/LISTING.md` homepage | was the GitHub repo | Done in 0.42.1: `https://tirekick.app` |
-| `manifest.json` `homepage_url` | the GitHub repo | `https://tirekick.app` in PR #30 |
-| Code comments (`rules.js`, `theme.js`, `panel.js`) | dabloonery's name | Done in 0.42.1 |
+| `LICENSE`, README "License and disclaimer" | was "dabloonery" | Done in 0.42.2: "The Tirekick authors" |
+| `store/LISTING.md` homepage | was the GitHub repo | Done in 0.42.2: `https://tirekick.app` |
+| `manifest.json` `homepage_url` | was the GitHub repo | Done in PR #30: `https://tirekick.app` |
+| Code comments (`rules.js`, `theme.js`, `panel.js`) | dabloonery's name | Done in 0.42.2 |
 | Website repo `tirekick-site` | "© 2026 Tirekick™", support@tirekick.app, no personal details, one commit by Claude | Clean |
 | Store listing, privacy policy, site contact | support@tirekick.app | Clean, once the mailbox forwards |
 | Main repo commit history | personal email on 25 commits (24 by dabloonery, 1 by Claude) | dabloonery, step 1 |

@@ -68,6 +68,7 @@
   .status-card .row-btns { margin-top:0; }
   .status-card a.btn { display:inline-block; font:600 13px/1 var(--ui); padding:9px 14px; border-radius:999px; border:var(--bw) solid var(--line); color:var(--ink); text-decoration:none; }
   .status-card a.btn.primary { background:var(--btn); color:var(--on-btn); border-color:var(--btn); }
+  html { scroll-padding-top:72px; } /* a field you tab or jump to isn't left under the sticky section links */
   nav.jump { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:6px 14px; margin:14px -8px 0; padding:10px 8px; font-size:13px;
     background:color-mix(in srgb, var(--paper) 90%, transparent); backdrop-filter:blur(8px); }
   nav.jump a { display:inline-block; padding:2px 0 1px; color:var(--muted); text-decoration:none; border-bottom:1px solid var(--rule); }
@@ -227,7 +228,7 @@
       <span class="hint">Every judgment takes it into account. On a feed or category with no search, it decides what counts as your thing. Leave blank to judge everything the same.</span>
     </div>
     <div class="field">
-      <label for="feePct">Selling fees, for resale margins (% of the sale)</label>
+      <label for="feePct">Selling fees, for the price gap in Reseller mode (% of the sale)</label>
       <input autocomplete="off" id="feePct" type="number" min="0" max="50" step="0.1">
       <span class="hint">Your final value fee for the category; check eBay's fee page. A $0.40 per-order fee is added on top.</span>
     </div>
@@ -245,7 +246,7 @@
     </div>
     <div class="field">
       <label id="sellerLabel">Warn about sellers with fewer than</label>
-      <div class="pair" role="group" aria-labelledby="sellerLabel"><input autocomplete="off" id="minSellerRatings" type="number" min="0" max="100000"> <span>ratings, or under</span> <input autocomplete="off" id="minSellerPct" type="number" min="0" max="100" step="0.1"> <span>% positive</span></div>
+      <div class="pair" role="group" aria-labelledby="sellerLabel"><input autocomplete="off" id="minSellerRatings" aria-label="Fewest ratings" type="number" min="0" max="100000"> <span>ratings, or under</span> <input autocomplete="off" id="minSellerPct" aria-label="Lowest percent positive" type="number" min="0" max="100" step="0.1"> <span>% positive</span></div>
       <span class="hint">eBay only (Marketplace cards don't show ratings).</span>
     </div>
     <div class="field check">
@@ -291,7 +292,7 @@
   </section>
   <div id="msg" role="status" aria-live="polite"></div>
   <footer class="legal">
-    <p>Scores, prices, margins and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.</p>
+    <p>Scores, prices, price gaps and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.</p>
     <p>Not affiliated with or endorsed by eBay or Facebook. eBay and Facebook are trademarks of their owners.</p>
   </footer>
 </main>

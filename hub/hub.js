@@ -3,8 +3,9 @@
 //   on eBay, on Marketplace, or both.
 // - Saved: your saved listings and searches, each marked eBay or Marketplace, ready to open.
 // - Home: the same alerts, numbers and spending as the panel's Home tab.
-// Opened by the toolbar icon on any other site, by right-clicking selected text ("Look up … on eBay and
-// Marketplace"), and by "Open Tirekick home". hub.html?q=words starts with a lookup.
+// The toolbar icon's popup on any other site (hub.html?popup: narrower, Settings in a tab), and a tab from
+// right-clicking selected text ("Look up … on eBay and Marketplace") or the icon ("Open Tirekick in a tab").
+// hub.html?q=words starts with a lookup.
 (() => {
   const TK = window.Tirekick;
   const S = window.TKShared;
@@ -28,6 +29,15 @@
     );
   const money = (n) => `$${Math.round(n)}`;
   const siteName = (k) => (TKSites.get(k) ? TKSites.get(k).name : TKSites.nameOf(k));
+
+  // In the popup, Settings opens in its own tab rather than inside the popup.
+  const isPopup = document.documentElement.classList.contains("popup");
+  if (isPopup)
+    $("#settings-link").addEventListener("click", (e) => {
+      e.preventDefault();
+      chrome.runtime.openOptionsPage();
+      window.close();
+    });
 
   // the theme from settings, like the panel
   const applyTheme = (t) => (t === "dark" || t === "light" ? (document.documentElement.dataset.theme = t) : delete document.documentElement.dataset.theme);

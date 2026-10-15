@@ -72,7 +72,23 @@
   .legal { margin-top:40px; padding-top:14px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; }
   .legal p { margin:0 0 6px; }
   [hidden] { display:none !important; }
+
+  /* The same page as the toolbar icon's popup (hub.html?popup): narrow, tighter, the legal lines folded away */
+  html.popup body { width:400px; }
+  html.popup main { padding:14px 16px 16px; }
+  html.popup header { margin-bottom:14px; gap:10px; }
+  html.popup .mark { width:28px; height:28px; }
+  html.popup h1 { font-size:24px; }
+  html.popup h2 { font-size:18px; margin-bottom:8px; }
+  html.popup .look { padding:14px; }
+  html.popup .look input { flex-basis:180px; min-height:40px; font-size:15px; }
+  html.popup .sites :is(.btn, button) { min-height:32px; padding:6px 10px; }
+  html.popup section.block, html.popup .homebox { margin-top:22px; }
+  html.popup .legal { margin-top:22px; }
+  .tab-link { display:none; }
+  html.popup .tab-link { display:inline; }
 </style>
+<script src="popup-mode.js"></script>
 <style id="home-css"></style>
 </head>
 <body>
@@ -80,7 +96,8 @@
   <header>
     <img class="mark" src="../icons/icon48.png" width="36" height="36" alt="">
     <h1><span role="img" aria-label="Tirekick">t<span class="wm-i" aria-hidden="true">&#305;</span>rek<span class="wm-i" aria-hidden="true">&#305;</span>ck</span></h1>
-    <a href="../options/options.html">Settings</a>
+    <a class="tab-link" href="hub.html" target="_blank" title="This page in its own tab">Open in a tab ↗</a>
+    <a href="../options/options.html" id="settings-link">Settings</a>
   </header>
 
   <section class="look" aria-labelledby="look-h">

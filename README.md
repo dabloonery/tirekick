@@ -57,8 +57,9 @@ below). Saved and Home work on any eBay or Marketplace page.
 - **What you use**: plain counters kept in this browser (scans, sold-price comparisons, analyses,
   search ideas, photo checks, saves, hides, switches to Reseller). **Reset counts** clears them.
 - **Getting started**: four steps with a check beside each one done; **Hide** folds it away.
-- Right-click the toolbar icon for **Open Tirekick home**: Tirekick's own page, with a lookup,
-  your saved listings and searches, and Home. On a page Tirekick doesn't work on, the icon opens it too.
+- On a page Tirekick doesn't work on, the toolbar icon opens **Tirekick's own page as a popup**: a lookup,
+  your saved listings and searches, and Home. **Open in a tab ↗** at its top (or right-click the icon,
+  **Open Tirekick in a tab**) gives it a whole tab. On eBay and Marketplace the icon opens the panel instead.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Fair price,
 Skip, Likely scam) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the
@@ -129,7 +130,7 @@ scam warning stays readable.
 - **Right-click any photo** and choose "Check this photo with Tirekick".
 - **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
   "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (free,
-  no AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page on any other
+  no AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
   site, with your saved listings and searches (each marked eBay or Marketplace) and Home.
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.

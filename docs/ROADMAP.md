@@ -61,7 +61,8 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
      "Check first", "Off-topic"), which also orders the list; **Work one out from sold prices** on a listing page
      gives the offer without an analysis; the Marketplace home feed hides **off-topic** posts (rentals, services,
      jobs, pets, "looking for", $1 placeholders: `TKRules.offTopic`), on by default there, one click to show; search
-     ideas on the feed; color back (navy dark theme, tags tinted by verdict). *Still open:* learning what you skip
+     ideas on the feed; color back (navy dark theme, tags tinted by verdict); the toolbar icon opens Tirekick's page as
+     a popup off the stores, and its right-click menu has one entry of ours ("Open Tirekick in a tab"). *Still open:* learning what you skip
      on the feed (titles you mark Not interested) to hide more like them.
 3. **Live check in Vivaldi (Myer)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
@@ -92,7 +93,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
      in the panel's list: is the outline on top of its neighbors, and do the reasons pop-ups sit above other tags?
    - The Marketplace home page: are rentals, massages and "looking for" posts gone, and **Hide off-topic** off
      brings them back? Anything real hidden by mistake?
-   - Vivaldi: the toolbar icon and its number, Alt+Shift+L (change it at `vivaldi://extensions/shortcuts`), right-click a photo ("Check this photo"), right-click
+   - Vivaldi: the toolbar icon opens a popup on other sites and the panel on eBay and Marketplace; its number, Alt+Shift+L (change it at `vivaldi://extensions/shortcuts`), right-click a photo ("Check this photo"), right-click
      selected text ("Look up").
    - Tell Claude what broke, with a screenshot if you can.
 4. **Save real pages for the tests** while you're there (right-click the page, **Save as**, "Webpage, HTML only"):

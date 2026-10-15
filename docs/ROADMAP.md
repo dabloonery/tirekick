@@ -76,6 +76,12 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
      sticky section links; the website's skip link, footer targets and the navy band's link line contrast. The
      choices that are dabloonery's (which verdict wins when price and score disagree, a bigger text floor, "sold" wording,
      the offer warning, the search-ideas name, the light theme's main button) wait on dabloonery.
+   - 0.41.0, dabloonery's six choices from the review pass: when the score and the price disagree the **price check
+     wins** (`TKRules.priceVerdict`: far under the typical price reads "Great price, if it's real" in the scam color
+     and counts as a skip; over 125% of it is no better than Fair price); a **13px floor** for chips and labels and
+     **14px** for reasons, price lines and the welcome; **"typical price (recent eBay sales)"** instead of "sold" in
+     the panel (the cards' "Sold ↗" stays: it opens eBay's sold listings); a one-line **warning** when an offer is
+     under half the ask; one name, **Search ideas**; the **orange main button** in light mode too.
 3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far

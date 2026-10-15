@@ -241,7 +241,7 @@
     .grow { flex:1; min-width:0; }
     .wordmark { display:block; font:800 23px/1 var(--display); letter-spacing:-.035em; white-space:nowrap; }
     ${THEME.wordmarkCss(".wordmark")}
-    .head small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+    .head small { display:block; color:var(--muted); font-size:13px; margin-top:2px; }
     .icon-btn { flex:none; width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); cursor:pointer; }
     .icon-btn svg { width:16px; height:16px; }
     .icon-btn:hover { background:var(--paper-2); color:var(--ink); }
@@ -253,7 +253,7 @@
       @keyframes scrolled { from { box-shadow:inset 0 0 0 transparent; } to { box-shadow:inset 0 10px 10px -10px rgba(0,0,0,.28); } }
     }
     .controls { padding:14px 16px 12px; display:grid; grid-template-columns:minmax(0, 1fr); gap:12px; }
-    label { display:block; margin-bottom:6px; color:var(--muted); font:600 12px/1.2 var(--ui); }
+    label { display:block; margin-bottom:6px; color:var(--muted); font:600 13px/1.2 var(--ui); }
     input { width:100%; padding:9px 11px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; transition:border-color .15s; }
     input::placeholder { color:var(--muted); opacity:.7; }
     input:focus { outline:2px solid var(--ink); outline-offset:-1px; }
@@ -262,7 +262,7 @@
        What each one means is the first line of This page (.mode-hint). */
     .bar { flex:none; display:flex; align-items:center; gap:10px; padding:0 12px 0 16px; border-bottom:var(--bw) solid var(--rule); }
     .modebar { flex:none; margin-left:auto; display:flex; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
-    .modebar button { min-height:26px; padding:4px 11px; border:0; border-radius:999px; background:none; color:var(--muted); font:600 12px/1 var(--ui); cursor:pointer; transition:background .18s, color .18s, box-shadow .18s; }
+    .modebar button { min-height:26px; padding:4px 11px; border:0; border-radius:999px; background:none; color:var(--muted); font:600 13px/1 var(--ui); cursor:pointer; transition:background .18s, color .18s, box-shadow .18s; }
     .modebar button:hover { color:var(--ink); }
     .modebar button[aria-checked="true"] { background:var(--raise); color:var(--ink); box-shadow:0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,.12); }
     .panel { container-type:inline-size; }
@@ -271,14 +271,14 @@
     @media (max-height: 620px) { .head { padding-top:8px; padding-bottom:0; } .nav button { padding:9px 0 8px; } }
     /* a short window or 200% zoom: the header and footer give their room to the list */
     @media (max-height: 480px) { .panel { height:calc(100vh - 16px); } .head { padding:4px 10px 0 16px; } .nav button { padding:5px 0 4px; } .foot-row { padding:4px 12px 4px 14px; } }
-    .hint { color:var(--muted); font-size:13px; }
+    .hint { color:var(--muted); font-size:14px; }
     .inputs { display:grid; gap:12px; }
     .knows-modes .mode-hint, .folded .inputs, .folded .mode-hint, .no-model .mode-hint, .controls:has(> .welcome:not([hidden])) .mode-hint { display:none; }
     .wrap:not([data-workspace="reseller"]) .feewrap { display:none; }
     .feewrap { display:grid; grid-template-columns:1fr 84px; align-items:center; column-gap:12px; }
     .feewrap label { margin:0; }
     .feewrap .hint { grid-column:1 / -1; margin-top:6px; }
-    .inputs-sum { display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:8px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:12px; color:var(--muted); }
+    .inputs-sum { display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:8px 11px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:13px; color:var(--muted); }
     .inputs-sum b { color:var(--ink); font-weight:600; }
     .inputs-sum .sum-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .inputs-sum button { all:unset; flex:none; padding:3px 4px; margin:-3px -4px; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
@@ -286,7 +286,7 @@
     .inputs-sum button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .browse-note { margin-top:6px; }
     /* The compare words come from the page's search: until you want them changed they're one line, not a box */
-    .q-sum { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; margin-top:-4px; color:var(--muted); font-size:12px; }
+    .q-sum { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; margin-top:-4px; color:var(--muted); font-size:13px; }
     .q-sum b { color:var(--ink); font-weight:600; }
     .q-sum button { all:unset; padding:3px 0; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .q-sum button:hover { text-decoration-color:currentColor; }
@@ -300,7 +300,7 @@
     .scan .cost, .ghost .cost { font-weight:400; opacity:.75; }
     .scan:disabled { opacity:.55; cursor:progress; }
     /* Auto: a switch under Scan. On, new listings are scored as they load and Scan is only for a redo */
-    .autoscan { display:flex; align-items:center; gap:8px; margin:-4px 0 0; color:var(--muted); font:400 12px/1.3 var(--ui); letter-spacing:normal; text-transform:none; cursor:pointer; }
+    .autoscan { display:flex; align-items:center; gap:8px; margin:-4px 0 0; color:var(--muted); font:400 13px/1.3 var(--ui); letter-spacing:normal; text-transform:none; cursor:pointer; }
     .autoscan[hidden] { display:none; }
     .autoscan input { appearance:none; -webkit-appearance:none; flex:none; position:relative; width:30px; height:18px; margin:0; border-radius:999px; background:var(--rule); cursor:pointer; transition:background .15s; }
     .autoscan input::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--raise); box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s; }
@@ -313,12 +313,12 @@
     .alts { display:flex; gap:8px; margin-top:-4px; }
     .alts > * { flex:1 1 0; min-width:0; }
     .alts:not(:has(> :not([hidden]))) { display:none; }
-    .status { color:var(--muted); font-size:13px; white-space:pre-line; }
+    .status { color:var(--muted); font-size:14px; white-space:pre-line; }
     .statusrow { display:flex; align-items:flex-start; gap:10px; }
     .statusrow .status { flex:1; min-width:0; }
     .statusrow:not(:has(.status:not(:empty), .stopbtn:not([hidden]))) { display:none; }
     .stopbtn { flex:none; margin-left:auto; border:var(--bw) solid var(--v-suspicious); background:none; color:var(--v-suspicious); border-radius:999px; padding:4px 12px;
-      font:600 12px/1.3 var(--ui); cursor:pointer; }
+      font:600 13px/1.3 var(--ui); cursor:pointer; }
     .stopbtn:hover:not(:disabled) { background:var(--v-suspicious); color:var(--on-v); }
     .stopbtn:disabled { opacity:.6; cursor:progress; }
     .status:empty { display:none; }
@@ -327,7 +327,7 @@
     .busy .status:not(.err):not(:empty)::before { content:""; display:inline-block; width:10px; height:10px; margin-right:8px; vertical-align:-1px;
       border:1.5px solid var(--rule); border-top-color:var(--ink); border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .actions { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12px; font-weight:600; }
+    .actions { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:13px; font-weight:600; }
     .actions > * { white-space:nowrap; }
     .controls > .actions:not(:has(:not([hidden]))) { display:none; }
     .actions a, .actions button { color:var(--ink); background:none; border:0; padding:3px 0; margin:-3px 0; font:inherit; line-height:18px; cursor:pointer;
@@ -343,22 +343,22 @@
     .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
     .model-pick { margin:0; display:block; min-width:0; text-transform:none; letter-spacing:normal; }
     .model { max-width:210px; appearance:none; -webkit-appearance:none; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper);
-      color:var(--ink); font:600 12px/1 var(--ui); padding:6px 24px 6px 9px; min-height:28px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; /* one line; the full name is on hover */
+      color:var(--ink); font:600 13px/1 var(--ui); padding:6px 24px 6px 9px; min-height:28px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; /* one line; the full name is on hover */
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size:4px 4px; background-repeat:no-repeat; }
     .model:focus { outline:none; border-color:var(--ink); }
     .model:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    .spend { all:unset; padding:4px 0; cursor:pointer; color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .spend { all:unset; padding:4px 0; cursor:pointer; color:var(--muted); font-size:13px; white-space:nowrap; font-variant-numeric:tabular-nums; }
     .spend b { color:var(--ink); font:600 15px/1 var(--display); font-variant-numeric:lining-nums tabular-nums; }
     .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
     .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
     .budget { height:3px; background:var(--rule); }
     .budget i { display:block; height:100%; width:0; background:var(--ink); transition:width .3s; }
     .budget.warn i { background:var(--v-fair); } .budget.over i { background:var(--v-suspicious); }
-    .spend-detail { position:absolute; left:8px; right:8px; bottom:calc(100% + 6px); padding:12px 14px 10px; font-size:12px; display:grid; gap:8px; max-height:40vh; overflow:auto;
+    .spend-detail { position:absolute; left:8px; right:8px; bottom:calc(100% + 6px); padding:12px 14px 10px; font-size:13px; display:grid; gap:8px; max-height:40vh; overflow:auto;
       background:var(--paper); border:var(--bw) solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow); }
     .sd-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
-    .sd-grid span { display:block; color:var(--muted); font-size:12px; }
+    .sd-grid span { display:block; color:var(--muted); font-size:13px; }
     .sd-grid b { font:600 20px/1.2 var(--display); font-variant-numeric:lining-nums; }
     .sd-models { display:grid; gap:3px; }
     .sd-models div { display:flex; justify-content:space-between; gap:8px; }
@@ -368,14 +368,14 @@
     .sd-note button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 
     /* first-run walkthrough */
-    .welcome { display:grid; gap:8px; padding:14px 16px; border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--raise); font-size:13px; }
+    .welcome { display:grid; gap:8px; padding:14px 16px; border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--raise); font-size:14px; }
     .welcome > b:first-child { font:600 19px/1.2 var(--display); letter-spacing:-.01em; }
     .welcome b { font:600 15px/1.2 var(--ui); }
     .welcome .w-points { margin:0; padding-left:18px; display:grid; gap:5px; line-height:1.45; }
     .welcome .w-points li::marker { color:var(--accent); }
-    .welcome .w-points b { font:600 13px/1.45 var(--ui); }
+    .welcome .w-points b { font:600 14px/1.45 var(--ui); }
     .welcome .tip { color:var(--muted); }
-    .welcome .w-note { font-size:12px; }
+    .welcome .w-note { font-size:13px; }
     .welcome .go { justify-self:start; }
     /* No model yet: the key is step 1 and the only call to action; the steps after it are plain text until it's done */
     .welcome .step-key { display:grid; gap:4px; padding:10px 12px; border-radius:var(--r-sm); background:var(--paper-2); }
@@ -387,12 +387,12 @@
     .no-model .want-field, .no-model .feewrap, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
 
     /* first run, list bar */
-    .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:13px; }
+    .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:14px; }
     .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 8px;
-      border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:12px; color:var(--muted); }
+      border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:13px; color:var(--muted); }
     .listbar + .list > .row:first-child { border-top:0; }
     .sortpick { display:flex; align-items:center; gap:6px; margin:0; font:inherit; letter-spacing:normal; text-transform:none; color:var(--muted); }
-    .sort { field-sizing:content; max-width:190px; appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 12px/1 var(--ui); padding:6px 14px 6px 0; cursor:pointer;
+    .sort { field-sizing:content; max-width:190px; appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 13px/1 var(--ui); padding:6px 14px 6px 0; cursor:pointer;
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
       background-position:calc(100% - 6px) 55%, calc(100% - 2px) 55%; background-size:4px 4px; background-repeat:no-repeat; }
     .sort:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
@@ -418,17 +418,17 @@
     .qf { flex:1 1 100%; order:5; display:grid; gap:6px; margin-bottom:4px; }
     .qf[hidden] { display:none; }
     .qf-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-    .qf input { padding:6px 9px; font-size:12px; }
+    .qf input { padding:6px 9px; font-size:13px; }
     .qf-wordwrap { position:relative; flex:1 1 140px; display:flex; }
     .qf-words { flex:1; width:auto; padding-right:26px !important; }
     .qf-price { display:flex; align-items:center; gap:3px; color:var(--muted); }
     .qf-price input { width:58px; }
-    .qt { border:var(--bw) solid var(--line); background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
+    .qt { border:var(--bw) solid var(--line); background:none; color:var(--muted); font:600 13px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
     .qt:hover { color:var(--ink); border-color:var(--muted); }
     .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
     .qt { min-height:26px; }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
-    .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 12px/1 var(--ui); letter-spacing:normal; text-transform:none; }
+    .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 13px/1 var(--ui); letter-spacing:normal; text-transform:none; }
     .qf-deal input { width:62px; }
     .qf-deal:has(input:not(:placeholder-shown)) input { border-color:var(--accent); }
     .qf-clear { position:absolute; right:2px; top:50%; transform:translateY(-50%); width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:var(--r-sm);
@@ -438,7 +438,7 @@
     .skipwrap .seg button { padding:6px 8px; }
 
     /* what's on this page */
-    .pageinfo { font-size:13px; color:var(--muted); }
+    .pageinfo { font-size:14px; color:var(--muted); }
     .pi-reset { all:unset; padding:3px 0; cursor:pointer; color:var(--muted); font-weight:400; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .actions .pi-reset { color:var(--muted); font-weight:400; }
     .pi-reset:hover, .actions .pi-reset:hover { color:var(--ink); text-decoration-color:currentColor; }
@@ -447,7 +447,7 @@
     .pi-acts a, .pi-acts button { color:var(--ink) !important; font-weight:600 !important; }
     .pi-search { margin-top:8px; }
     .pi-search:not(:has(> :not([hidden]))) { display:none; }
-    .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:13px; line-height:1.45; }
+    .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:14px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
     .pi-bar { display:flex; gap:2px; height:6px; margin:8px 0 10px; }
     .pi-bar i { min-width:6px; border-radius:3px; background:var(--c); }
@@ -459,12 +459,12 @@
     .pi-line button { all:unset; position:relative; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
     .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
-    .seg button { min-height:24px; border:0; background:none; color:var(--muted); font:600 12px/1 var(--ui); padding:5px 11px; border-radius:999px; cursor:pointer; }
+    .seg button { min-height:24px; border:0; background:none; color:var(--muted); font:600 13px/1 var(--ui); padding:5px 11px; border-radius:999px; cursor:pointer; }
     .seg button:hover { color:var(--ink); }
     .seg button[aria-checked="true"] { background:var(--raise); color:var(--ink); box-shadow:0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,.12); }
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-    .fchip { font-size:12px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
+    .fchip { font-size:13px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
     .fchip.k-new { background:var(--new-bg); color:var(--new-fg); } .fchip.k-good { background:var(--good-bg); color:var(--good-fg); } .fchip.k-warn { background:var(--warn-bg); color:var(--warn-fg); }
     .fchip.k-plain { background:none; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line); }
     .fchip.k-deal { background:var(--new-bg); color:var(--new-fg); }
@@ -473,21 +473,21 @@
     @keyframes pop { 0% { transform:scale(.6); } 60% { transform:scale(1.25); } 100% { transform:none; } }
 
     /* sold prices */
-    .market { font-size:12px; }
+    .market { font-size:13px; }
     .market:empty { display:none; }
     .market:not(:empty) { background:var(--paper-2); padding:11px 12px; border-radius:var(--r-sm); }
-    .market:has(> .mnote:only-child) { padding:7px 10px; color:var(--muted); font-size:12px; }
+    .market:has(> .mnote:only-child) { padding:7px 10px; color:var(--muted); font-size:13px; }
     .mnote a { color:var(--ink); font-weight:600; text-underline-offset:3px; }
     .mgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); gap:12px; }
-    .mlabel { color:var(--muted); font-size:12px; }
+    .mlabel { color:var(--muted); font-size:13px; }
     .mval { display:block; font:600 24px/1.15 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; margin:2px 0 1px; }
-    .msub { color:var(--muted); font-size:12px; }
+    .msub { color:var(--muted); font-size:13px; }
     .comps { margin-top:8px; }
-    .comps summary { cursor:pointer; color:var(--ink); font-weight:600; font-size:12px; list-style:none; }
+    .comps summary { cursor:pointer; color:var(--ink); font-weight:600; font-size:13px; list-style:none; }
     .comps summary::-webkit-details-marker { display:none; }
     .comps summary::before { content:"+ "; color:var(--muted); }
     .comps[open] summary::before { content:"\\2212  "; }
-    .comps b { display:block; margin:8px 0 2px; color:var(--muted); font-size:12px; font-weight:600; }
+    .comps b { display:block; margin:8px 0 2px; color:var(--muted); font-size:13px; font-weight:600; }
     .comps ul { list-style:none; margin:0; padding:0; }
     .comps li a { display:flex; gap:10px; padding:3px 0; color:var(--ink); text-decoration:none; }
     .comps li a:hover .ct { text-decoration:underline; }
@@ -532,12 +532,13 @@
     button.title:hover { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
     .verdict { color:var(--c); font-weight:600; white-space:nowrap; }
     ${THEME.glyphCss(".verdict")}
-    .meta { color:var(--muted); font-size:13px; margin-top:3px; }
-    .lensinfo { margin-top:4px; font-size:12px; font-weight:600; }
+    .meta { color:var(--muted); font-size:14px; margin-top:3px; }
+    .meta.lowball { color:var(--v-suspicious); font-weight:600; }
+    .lensinfo { margin-top:4px; font-size:13px; font-weight:600; }
     .lensinfo.neg { color:var(--v-suspicious); }
-    .reason { margin-top:6px; font-size:13px; }
+    .reason { margin-top:6px; font-size:14px; }
     .flags { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
-    .flag { font-size:12px; padding:1px 8px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
+    .flag { font-size:13px; padding:1px 8px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
     .row .actions { margin-top:8px; }
     .row { row-gap:0; }
     .row > .row-acts, .row > .row-acts ~ div { grid-column:2 / -1; }
@@ -556,10 +557,10 @@
     .list .actions a, .list .actions button { color:var(--muted); font-weight:400; text-decoration-color:var(--line); }
     .list .actions a:hover, .list .actions button:hover:not(:disabled) { color:var(--ink); text-decoration-color:currentColor; }
     /* Open, under the price, on every row: the title shows the card on the page, Open goes to the listing */
-    .pr .open { display:block; margin-top:4px; font:600 12px/18px var(--ui); letter-spacing:normal; color:var(--ink); text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; white-space:nowrap; }
+    .pr .open { display:block; margin-top:4px; font:600 13px/18px var(--ui); letter-spacing:normal; color:var(--ink); text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; white-space:nowrap; }
     .pr .open:hover { text-decoration-color:currentColor; }
     .pr .open:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-    .photo { margin-top:8px; font-size:12px; padding:8px 10px; background:var(--paper-2); border-left:2px solid var(--ink); border-radius:0 var(--r-sm) var(--r-sm) 0; }
+    .photo { margin-top:8px; font-size:13px; padding:8px 10px; background:var(--paper-2); border-left:2px solid var(--ink); border-radius:0 var(--r-sm) var(--r-sm) 0; }
     .photo.drop { border-left-color:var(--v-suspicious); }
     [hidden] { display:none !important; }
 
@@ -582,11 +583,11 @@
     .srow .down { color:var(--v-great); font-weight:600; }
     .sv-acts { margin:4px 0 10px; }
     .hidden-box { margin-top:12px; border-top:var(--bw) solid var(--rule); padding-top:4px; }
-    .hidden-box summary { display:flex; gap:8px; align-items:baseline; min-height:24px; padding:6px 0; cursor:pointer; list-style:none; color:var(--muted); font-size:12px; }
+    .hidden-box summary { display:flex; gap:8px; align-items:baseline; min-height:24px; padding:6px 0; cursor:pointer; list-style:none; color:var(--muted); font-size:13px; }
     .hidden-box summary::-webkit-details-marker { display:none; }
     .hidden-box summary::before { content:"+"; width:10px; color:var(--muted); }
     .hidden-box[open] summary::before { content:"\\2212"; }
-    .hidden-box summary b { color:var(--muted); font-size:12px; font-weight:600; }
+    .hidden-box summary b { color:var(--muted); font-size:13px; font-weight:600; }
     .hidden-box summary:hover, .hidden-box summary:hover b { color:var(--ink); }
     .hidden-box summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .srow.hid a { font-weight:400; color:var(--muted); }
@@ -597,36 +598,36 @@
     .sx { flex:none; width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:var(--r-sm); background:none; color:var(--muted); font:16px/1 var(--ui); cursor:pointer; }
     .sx:hover { background:var(--paper-2); color:var(--ink); }
     /* one quiet text action at the end of every Saved row: Remove, or Unhide */
-    .srow-act { flex:none; padding:3px 0; border:0; background:none; color:var(--muted); font:400 12px/18px var(--ui); cursor:pointer;
+    .srow-act { flex:none; padding:3px 0; border:0; background:none; color:var(--muted); font:400 13px/18px var(--ui); cursor:pointer;
       text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; }
     .srow-act:hover { color:var(--ink); text-decoration-color:currentColor; }
     .actions button.on, .srow-act.on { color:var(--ink) !important; font-weight:600 !important; text-decoration:none; }
     .idea { display:block; padding:10px 0; border-top:1px solid var(--rule); color:var(--ink); text-decoration:none; animation:fade .25s ease both; }
     .idea:hover .q { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
-    .kind { color:var(--muted); font-size:12px; font-weight:600; }
+    .kind { color:var(--muted); font-size:13px; font-weight:600; }
     .idea .q { font:600 15px/1.3 var(--ui); margin-top:2px; word-break:break-word; }
-    .idea .why { color:var(--muted); font-size:12px; margin-top:2px; }
+    .idea .why { color:var(--muted); font-size:13px; margin-top:2px; }
     .idea .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-    .chip { font-size:12px; padding:1px 7px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
+    .chip { font-size:13px; padding:1px 7px; border:1px solid var(--rule); border-radius:999px; color:var(--muted); }
 
     /* one listing */
-    .sect { margin-top:12px; padding-top:12px; border-top:var(--bw) solid var(--rule); font-size:13px; }
+    .sect { margin-top:12px; padding-top:12px; border-top:var(--bw) solid var(--rule); font-size:14px; }
     .sect > strong:first-child { display:block; margin-bottom:4px; }
     .sect ol { margin:4px 0 6px; padding-left:18px; }
     .sect li { margin:2px 0; }
     .sect .actions { margin-top:8px; }
-    .offer { margin-top:12px; padding:11px 12px; background:var(--paper-2); border-radius:var(--r-sm); font-size:13px; }
+    .offer { margin-top:12px; padding:11px 12px; background:var(--paper-2); border-radius:var(--r-sm); font-size:14px; }
     .offer-acts { margin-top:8px; }
     .msg-preview { margin-top:8px; color:var(--muted); font-style:italic; }
     .msg-edit { display:block; width:100%; box-sizing:border-box; margin-top:8px; font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); padding:7px 9px; resize:vertical; }
     .msg-kind { display:flex; width:max-content; margin-top:10px; }
-    .said-row { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; color:var(--muted); }
+    .said-row { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:13px; color:var(--muted); }
     .said { width:7em; font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); padding:4px 7px; }
     .said-answer { margin-top:6px; }
     .offer .said-answer b { font:600 13px/1.4 var(--ui); margin:0; color:var(--ink); }
     .said-answer:empty { display:none; }
     .offer b { font:600 20px/1 var(--display); font-variant-numeric:lining-nums; margin:0 2px; }
-    .adjust { margin-top:6px; font-size:12px; font-weight:600; color:var(--v-suspicious); }
+    .adjust { margin-top:6px; font-size:13px; font-weight:600; color:var(--v-suspicious); }
     .adjust.up { color:var(--v-great); }
 
     .panel:focus { outline:none; } /* focus lands on the panel itself when it opens; the controls inside show their own ring */
@@ -672,7 +673,7 @@
           <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
             <button class="scan setup-go" data-act="open-settings">Open settings</button></div>
           <ul class="w-points">
-            <li><b>Scan</b> gives every listing here a score, the reason, and its price against what sold.</li>
+            <li><b>Scan</b> gives every listing here a score, the reason, and how its price compares with the typical price (recent eBay sales).</li>
             <li><b>Buyer or Reseller</b>, top right, changes what scores high.</li>
             <li>Point at a card's tag for the reasons, <i>Save</i> and <i>Not interested</i>.</li>
           </ul>
@@ -688,15 +689,15 @@
         <div class="feewrap"><label for="fee">Selling fees (%)</label><input autocomplete="off" id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
         <div class="q-sum"><span class="q-sum-text"></span> <button data-act="edit-q" title="Compare prices against other words">Change</button></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input autocomplete="off" id="q" placeholder="e.g. Pentax K1000">
-          <div class="hint browse-note" hidden>No search on this page, so Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Sold prices</b> on a listing gets real eBay numbers.</div></div>
+          <div class="hint browse-note" hidden>No search on this page, so Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Typical price</b> on a listing gets real eBay numbers.</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
         <button class="scan" data-act="analyze" hidden>Analyze this listing</button>
         <label class="autoscan" hidden><input type="checkbox" class="auto-in" role="switch"><span>Scan new listings automatically</span></label>
         <div class="alts">
-          <button class="ghost" data-act="ideas" hidden>Find searches for what I want</button>
-          <button class="ghost freeprices" data-act="prices" hidden title="The eBay sold-price lookup on its own: free, and your AI isn't used">Sold prices <span class="cost">free</span></button>
+          <button class="ghost" data-act="ideas" hidden>Search ideas</button>
+          <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own: free, and your AI isn't used">Typical price <span class="cost">free</span></button>
         </div>
         <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
@@ -851,7 +852,7 @@
     wrap.classList.toggle("q-folded", qFold);
     if (qFold && $(".q-sum").dataset.shown !== qNow) {
       $(".q-sum").dataset.shown = qNow;
-      $(".q-sum-text").replaceChildren("Prices compared with sold ", h("b", {}, `\u201c${qNow}\u201d`));
+      $(".q-sum-text").replaceChildren("Typical price from recent eBay sales of ", h("b", {}, `\u201c${qNow}\u201d`));
     }
     const fold = done && !editingInputs && !typingHere;
     wrap.classList.toggle("folded", fold);
@@ -1554,7 +1555,7 @@
       .tirekick-sticker { --c:var(--v-fair);
         position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--tk-fit, calc(100% - 20px));
         background:var(--tk-paper); color:var(--tk-ink); border-radius:999px; box-shadow:var(--tk-shadow);
-        font:400 12px/1.2 ${UI}; text-align:left; letter-spacing:normal; cursor:help;
+        font:400 13px/1.2 ${UI}; text-align:left; letter-spacing:normal; cursor:help;
         } /* no fade-in: tags appear as cards load, and animating hundreds of them on a long feed cost frames */
       /* the page's own rules for its boxes (a card's "a div { padding }") stay off ours */
       .tirekick-sticker div { padding:0; margin:0; }
@@ -1579,7 +1580,7 @@
       /* ...and its one line about the listing ("$53 below typical") becomes the first chip under it, in full */
       .tirekick-sticker.tk-compact .tk-text { display:none; }
       .tirekick-sticker:not(.tk-compact) .tk-subchip { display:none; }
-      .tirekick-sticker .tk-sub { font-size:12px; color:var(--tk-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .tirekick-sticker .tk-sub { font-size:13px; color:var(--tk-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       /* small chips: under a sticker, or on their own on a card that hasn't been scored */
       .tirekick-sticker .tk-below { position:absolute; left:4px; top:100%; padding-top:5px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
       /* Marketplace: top-right, and never into the top-left corner where Facebook puts "Just listed" */
@@ -1589,7 +1590,7 @@
       .tirekick-sticker.tk-right .tk-under { justify-content:flex-end; }
       .tirekick-sticker .tk-under { display:flex; flex-wrap:wrap; gap:4px; width:max-content; max-width:var(--tk-fit, 320px); }
       .tk-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--tk-paper); color:var(--tk-ink);
-        font:600 12px/1.35 ${UI}; white-space:nowrap; letter-spacing:normal; text-transform:none; box-shadow:0 2px 6px -2px rgba(0,0,0,.35); }
+        font:600 13px/1.35 ${UI}; white-space:nowrap; letter-spacing:normal; text-transform:none; box-shadow:0 2px 6px -2px rgba(0,0,0,.35); }
       .tk-chip svg { width:11px; height:11px; }
       .tirekick-marks .tk-chip, .tk-under .tk-chip { max-width:100%; white-space:normal; } /* a long tag wraps inside the card */
       .tk-chip.k-new, .tk-chip.k-deal { background:var(--tk-new-bg); color:var(--tk-new-fg); } .tk-chip.k-good { background:var(--tk-good-bg); color:var(--tk-good-fg); }
@@ -2000,7 +2001,7 @@
     }
     if (f.hidden || f.filtered) cell.setAttribute("data-tk-hide", f.hidden ? "not-interested" : "filter");
     else cell.removeAttribute("data-tk-hide");
-    if (it || likelyScam(f)) cell.setAttribute("data-tk-v", it ? it.verdict : "suspicious");
+    if (it || likelyScam(f)) cell.setAttribute("data-tk-v", it ? shownV(it, f).v : "suspicious");
     else cell.removeAttribute("data-tk-v");
     // Clear the whole cell, not just this host: on Facebook the host can be a different box than
     // last time (layout settles after load), and old marks left on the other one made two layers.
@@ -2033,10 +2034,10 @@
       node.addEventListener("focusout", () => cell.removeAttribute("data-tk-lift"));
       return node;
     };
-    fadeParts(cell, host, it ? it.verdict === "pass" || it.verdict === "suspicious" : likelyScam(f));
+    fadeParts(cell, host, it ? ["pass", "suspicious"].includes(shownV(it, f).v) : likelyScam(f));
     if (it) {
       it.el = linkEl;
-      host.setAttribute("data-tirekick", it.verdict);
+      host.setAttribute("data-tirekick", shownV(it, f).v);
       host.append(fit(stickerEl(it, f, key)));
       host.dataset.tkHas = "1";
       return;
@@ -2532,7 +2533,7 @@
   };
 
   const stickerEl = (item, f, key) => {
-    const v = VERDICT[item.verdict] || VERDICT.fair;
+    const v = shownV(item, f);
     const CAMERA = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
     const sub = lensLine(item);
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
@@ -2547,8 +2548,8 @@
     const line = (text) => (text ? h("div", { class: "tk-flags" }, text) : null);
     return h(
       "div",
-      { class: "tirekick-sticker", "data-v": item.verdict, tabindex: "0", role: "group", "aria-label": `Tirekick: score ${item.score}, ${v.label}. Tab to the reasons and actions.` },
-      scoreDial(item),
+      { class: "tirekick-sticker", "data-v": v.v, tabindex: "0", role: "group", "aria-label": `Tirekick: score ${item.score}, ${v.label}. Tab to the reasons and actions.` },
+      scoreDial({ ...item, verdict: v.v }),
       h("div", { class: "tk-text" }, h("div", { class: "tk-verdict" }, v.label), sub ? h("div", { class: "tk-sub" }, sub) : null),
       // Below the tag, in one column: the chip row, then (on hover) the card with the reasons. However
       // many rows the chips wrap to, the card sits under them.
@@ -2606,7 +2607,14 @@
     return !showHidden && (!!notInterested[keyOf(it.url)] || !!f?.filtered);
   };
   // Skipped and suspicious listings (and reposted scams, judged without a model) follow the Skipped setting.
-  const isSkip = (it) => it.verdict === "pass" || it.verdict === "suspicious" || (it.score == null && likelyScam(facts.get(keyOf(it.url))));
+  const isSkip = (it) => it.score != null ? ["pass", "suspicious"].includes(shownV(it).v) : likelyScam(facts.get(keyOf(it.url)));
+  // The verdict to show for a scored listing: the price check wins over the score (TKRules.priceVerdict).
+  // The model's own verdict stays stored; this is worked out each time, with the latest typical price.
+  function shownV(it, f = facts.get(keyOf(it.url))) {
+    const market = it.refWorking > 0 && !it.refIsEstimate ? { median: it.refWorking, confidence: it.refRough ? "rough" : "good" } : lastMarket;
+    const pv = TKRules.priceVerdict(it.verdict, { ...f, ...it }, market);
+    return { v: pv.v, label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label };
+  }
 
   // Every listing on the page, scored or not: before a scan the list is the page in a form you
   // can sort, with the free facts; scoring fills in verdicts as they arrive.
@@ -2677,7 +2685,7 @@
                 h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
                 (() => {
                   const read = !likelyScam(f) && TKRules.freeRead(f, lastMarket);
-                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From sold prices and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " \u00b7 free read") : null;
+                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " \u00b7 free read") : null;
                 })(),
                 likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
                 (() => {
@@ -2702,7 +2710,7 @@
           );
           return;
         }
-        const v = VERDICT[it.verdict] || VERDICT.fair;
+        const pv = shownV(it);
         const box = photoBox(it);
         const vsMarket =
           it.vsWorking != null && !it.auction && !it.lot
@@ -2716,12 +2724,12 @@
           h(
             "div",
             { class: still ? "row still" : "row", style: `--i:${Math.min(i, 8)}` },
-            tagEl(it.verdict, it.score),
+            tagEl(pv.v, it.score),
             h(
               "div",
               {},
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
-              h("div", { class: "meta", "data-v": it.verdict }, h("span", { class: "verdict" }, v.label), `${it.related === false ? " (not your search)" : ""}${it.auction || it.shipping > 0 ? ` \u00b7 ${priceStr(it)}` : ""}${it.related === false ? "" : vsMarket}`),
+              h("div", { class: "meta", "data-v": pv.v }, h("span", { class: "verdict" }, pv.label), `${it.related === false ? " (not your search)" : ""}${it.auction || it.shipping > 0 ? ` \u00b7 ${priceStr(it)}` : ""}${it.related === false ? "" : vsMarket}`),
               (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` \u00b7 ${it.fault}` : "")) : null,
               h("div", { class: "reason" }, it.reason || ""),
               // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
@@ -2732,7 +2740,7 @@
             h(
               "div",
               { class: "actions row-acts" },
-              it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `eBay sold listings for \u201c${it.query}\u201d` }, "Sold prices") : null,
+              it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `The typical price from recent eBay sales of \u201c${it.query}\u201d` }, "Typical price") : null,
               it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Have the AI look at the photo (can change the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
               it.imageUrl ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null,
               saveBtn,
@@ -2782,7 +2790,7 @@
       const m = await soldMarket(it.query, "used");
       if (!m) {
         setStatus(`Not enough eBay sales of \u201c${it.query}\u201d to compare. The estimate stays.`);
-        btn.textContent = "No sold data";
+        btn.textContent = "No eBay sales found";
         return;
       }
       it.sold = { median: m.median, n: m.n, p25: m.p25, p75: m.p75 };
@@ -2794,7 +2802,7 @@
     } catch (e) {
       setStatus(e.message, true);
       btn.disabled = false;
-      btn.textContent = "Check sold prices";
+      btn.textContent = "Check the typical price";
     }
   };
 
@@ -2903,8 +2911,8 @@
       market.parts && ["For parts", market.parts.samples],
     ].filter((g) => g && g[1]?.length);
     const cells = [
-      market.median != null && priceCell(`Sold${market.condition === "used" ? ", used" : ""}`, market),
-      market.parts && priceCell("Sold for parts", market.parts),
+      market.median != null && priceCell(`Typical price${market.condition === "used" ? ", used" : ""}`, market),
+      market.parts && priceCell("Typical for parts", market.parts),
     ].filter(Boolean);
     marketEl.replaceChildren(
       ...[
@@ -3201,11 +3209,11 @@
     const filN = n((f) => f.filtered && !f.hidden);
     // After a scan, say what it found in plain words.
     const scored = pageItems().filter((it) => it.score != null && !isHidden(it));
-    const worthN = scored.filter((it) => (it.verdict === "great" || it.verdict === "good") && !likelyScam(facts.get(keyOf(it.url)))).length;
+    const worthN = scored.filter((it) => (shownV(it).v === "great" || shownV(it).v === "good") && !likelyScam(facts.get(keyOf(it.url)))).length;
     piHead.hidden = !scored.length;
     piHead.textContent = !scored.length ? "" : worthN ? `${worthN} worth a look` : "Nothing here is a bargain";
     // How the scored listings split, best to worst: one segment per verdict, as wide as its count.
-    const split = ["great", "good", "fair", "pass", "suspicious"].map((v) => [v, scored.filter((it) => it.verdict === v).length]).filter(([, c]) => c);
+    const split = ["great", "good", "fair", "pass", "suspicious"].map((v) => [v, scored.filter((it) => shownV(it).v === v).length]).filter(([, c]) => c);
     const splitSig = split.join();
     if (piBar.dataset.sig !== splitSig) {
       piBar.dataset.sig = splitSig;
@@ -3854,6 +3862,8 @@
     });
     return [pick, box, button ? null : h("div", { class: "actions offer-acts" }, copy), h("label", { class: "said-row" }, "They said $", said), answer];
   };
+  // An opening offer under half the asking price still shows, with a word on what to expect (dabloonery, 2026-10-15).
+  const lowballNote = (open, ask) => (open > 0 && ask > 0 && open < ask * 0.5 ? h("div", { class: "meta lowball" }, "Much lower than asking; the seller may not reply.") : null);
   // The offer helper: an opening offer and a walk-away price from the sold prices (TKRules.offerPlan),
   // with the messages above.
   const offerBox = (f, soft) => {
@@ -3868,7 +3878,8 @@
       "Offer ",
       h("b", {}, dollars(plan.open)),
       plan.walkAway > plan.open ? [", walk away above ", h("b", {}, dollars(plan.walkAway))] : null,
-      h("div", { class: "meta" }, `From sold prices, without your AI: ${plan.reasons.join("; ")}.${rough}`),
+      h("div", { class: "meta" }, `From recent eBay sales; your AI isn't used: ${plan.reasons.join("; ")}.${rough}`),
+      lowballNote(plan.open, f.total ?? f.price),
       messageArea(messages, plan, f)
     );
   };
@@ -3895,7 +3906,7 @@
       ? ""
       : offerBox(f, soft.level) ||
         (!lastMarket && f.price > 0
-          ? h("div", { class: "offer offer-ask" }, "Want an offer to send? ", h("button", { class: "ghost", "data-act": "offer-prices", onclick: () => pricesOnly() }, "Work one out from sold prices ", h("span", { class: "cost" }, "free")))
+          ? h("div", { class: "offer offer-ask" }, "Want an offer to send? ", h("button", { class: "ghost", "data-act": "offer-prices", onclick: () => pricesOnly() }, "Work one out from the typical price ", h("span", { class: "cost" }, "free")))
           : "");
     // What an earlier scan or analysis (in a search, another tab, or here) made of this listing.
     const past = storedScan(f.key, lens);
@@ -3932,7 +3943,7 @@
   };
 
   const renderItem = (listing, r, market) => {
-    const v = VERDICT[r.verdict] || VERDICT.fair;
+    const v = shownV({ ...listing, verdict: r.verdict }, {});
     const score = clamp100(r.score | 0);
     const vs =
       (listing.vsWorking != null ? ` · ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +
@@ -3946,11 +3957,11 @@
       h(
         "div",
         { class: "row" },
-        tagEl(r.verdict, score),
+        tagEl(v.v, score),
         h(
           "div",
           {},
-          h("div", { class: "title", "data-v": r.verdict }, h("span", { class: "verdict" }, v.label), ` \u00b7 ${score} out of 100`),
+          h("div", { class: "title", "data-v": v.v }, h("span", { class: "verdict" }, v.label), ` \u00b7 ${score} out of 100`),
           h("div", { class: "meta" }, `${priceStr(listing)}${vs}`),
           h("div", { class: "reason" }, r.summary || ""),
           r.photoAdjust ? h("div", { class: r.photoAdjust < 0 ? "adjust" : "adjust up" }, `Photo check ${signed(r.photoAdjust)} (was ${r.baseScore})`) : null,
@@ -3977,7 +3988,8 @@
           { class: "offer" },
           `${listing.bestOffer ? "Accepts offers. " : ""}Suggested offer: `,
           h("b", {}, offerRange(r)),
-          listing.offerPlan ? h("div", { class: "meta" }, `Kept near the plan from sold prices (open at ${dollars(listing.offerPlan.open)}, walk away above ${dollars(listing.offerPlan.walkAway)}).`) : null,
+          listing.offerPlan ? h("div", { class: "meta" }, `Kept near the plan from the typical price (open at ${dollars(listing.offerPlan.open)}, walk away above ${dollars(listing.offerPlan.walkAway)}).`) : null,
+          lowballNote(r.offerLow, listing.total ?? listing.price),
           messageArea(messages, { open: r.offerLow, walkAway: r.offerHigh }, listing)
         )
       );
@@ -3985,7 +3997,7 @@
     if (listing.lot && listing.total != null) parts.push(h("div", { class: "meta" }, `Lot of ${listing.lot}: about ${dollars(Math.round((listing.total / listing.lot) * 100) / 100)} each.`));
     if (margin != null) {
       parts.push(
-        h("div", { class: "offer" }, "Resale margin: ", h("b", {}, `\u2248 ${money(margin)}`), ` after eBay fees${rep?.partsCost ? ` and ~$${rep.partsCost} parts` : ""}, at the sold median.`)
+        h("div", { class: "offer" }, "Resale margin: ", h("b", {}, `\u2248 ${money(margin)}`), ` after eBay fees${rep?.partsCost ? ` and ~$${rep.partsCost} parts` : ""}, at the typical price.`)
       );
     }
     if (rep && (rep.faults?.length || rep.notes)) {
@@ -4262,7 +4274,7 @@
   const showIdeasBtn = () => {
     const type = TK.pageType();
     ideasBtn.hidden = !(type === "home" || type === "results");
-    setIf(ideasBtn, "textContent", noSearch() ? "Find searches for what I want" : "Better searches");
+    setIf(ideasBtn, "textContent", "Search ideas"); // one name everywhere (dabloonery, 2026-10-15)
     setIf(ideasBtn, "title", noSearch() ? "Searches from what you want, or from what's in this feed (uses the AI)" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)");
   };
   queryEl.addEventListener("input", showIdeasBtn);

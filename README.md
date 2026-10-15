@@ -90,7 +90,7 @@ S1337". Tirekick watches for it:
   Telegram shows a "Likely scam" note, and the analysis is Likely scam whatever the model thought.
   A plain phone number ("call or text") is only a hint.
 
-Likely scams are grayed out along with skipped ones (Skips and scams: Show / Dim / Hide, under **Filter**). Dimming fades the card but not its tag or chips, so a
+Likely scams are grayed out along with skipped ones (Skips and scams: Show / Dim / Hide, above the list). Dimming fades the card but not its tag or chips, so a
 scam warning stays readable.
 
 ## Everyday use
@@ -111,8 +111,11 @@ scam warning stays readable.
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
   price, auctions ending soonest, biggest margin, or new and cheaper first.
-- **Skipped and suspicious listings are grayed out** on the page; switch to Show or Hide under
-  **Filter** (Skips and scams).
+- **Skipped and suspicious listings are grayed out** on the page; switch to Show or Hide with
+  **Skips and scams** above the list.
+- **Before any scan, each row has a free read**: Great, Good or Fair price, or Over sold price, from the sold
+  prices; Check first or Likely scam from the free warnings; Off-topic. "Best first" sorts by it until a scan
+  gives real scores, and the cards' sold chip says the same word ("Good price · 62% of sold").
 - **A row's links**: **Open ↗** is always there; Sold, Save and Not interested appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
@@ -202,7 +205,13 @@ Everything here is free, needs no API key, and runs only on pages you're looking
 - **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
   ✕ **Not interested**.
 
-**Filtering a search** (the **Filter** button above the list opens the fields, and says how many are set; Enter or Esc folds them away again, and a search's saved filter applies with the box folded; each search remembers its own):
+**Filtering a search.** **New only**, **Hide broken** and **Hide off-topic** sit above the list, one click each.
+The **Filter** button opens the words, price range and your price, and says how many are set; Enter or Esc
+folds them away again, and a search's saved filter applies with the box folded. Each search remembers its own.
+
+- **Hide off-topic** drops what isn't an item for sale: rentals and rooms, services (massage, cleaning, hair),
+  jobs, pets, "looking for" posts and $1 placeholder prices. It's on by itself on the Marketplace home page, where
+  that clutter lives; turn it off there and Tirekick remembers.
 
 - **Words**, like an eBay search: `dmg -case -game` keeps listings with "dmg" and drops any with
   "case" or "game"; `1000/2000` is either; `"must go"` is a phrase. They match the title and the

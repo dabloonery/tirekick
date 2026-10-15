@@ -13,7 +13,7 @@ Read these before changing anything:
 Standing rules:
 
 - US English only, in code, copy and docs ("tire", "color").
-- Keep the flat "Graphite" Tread Dot look: design tokens live in `lib/theme.js`. No gloss, no 3D.
+- Keep the flat Tread Dot look, in color: navy dark theme, orange main button, verdict colors on tags and rows (dabloonery wants color as a cue; the neutral graphite round was undone in 0.39.0). Design tokens live in `lib/theme.js`. No gloss, no 3D.
 - The extension must work in Vivaldi as well as Chrome.
 - No background polling for alerts. Alerts come only from open tabs and the user-pressed
   "Check my saved searches" button.

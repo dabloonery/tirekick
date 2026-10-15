@@ -307,3 +307,38 @@ test("photoFile: one name for a photo across its sizes", () => {
   assert.equal(R.photoFile("https://scontent-den2-1.xx.fbcdn.net/v/t45.5328-4/4567_8910_n.jpg?stp=c0.43&_nc_cat=1"), "4567_8910_n");
   assert.equal(R.photoFile("not a url"), "");
 });
+
+test("offTopic: the clutter of a browse feed, not ordinary items", () => {
+  const off = (title, price = 40) => R.offTopic({ title, price });
+  assert.equal(off("Looking for rental house edge of town", 1), "wanted post");
+  assert.equal(off("ISO Nintendo DS charger"), "wanted post");
+  assert.equal(off("\"Best Massage in Town – Feel the difference\""), "service");
+  assert.equal(off("3 bed 2 bath house for rent"), "rental");
+  assert.equal(off("Room for rent near UNM"), "rental");
+  assert.equal(off("Now hiring cooks"), "job");
+  assert.equal(off("Kittens free to good home", 0), "pets");
+  assert.equal(off("Stolen and sold", 1), "$1 placeholder");
+  // Ordinary listings, including ones that share a word with the clutter
+  assert.equal(off("Nintendo Wii console FOR PARTS", 8), "");
+  assert.equal(off("Kitten supplies (30$)", 30), "");
+  assert.equal(off("Apartment size refrigerator"), "");
+  assert.equal(off("Massage chair, works great", 120), "", "a massage chair is an item");
+  assert.equal(off("Free couch", 0), "");
+  assert.equal(off("Rental-grade ski boots"), "rental", "known miss, kept simple");
+});
+
+test("freeRead: one word before any AI, from sold prices and scam signs", () => {
+  const m = { median: 100, n: 20, confidence: "good" };
+  const word = (f) => R.freeRead({ title: "Pentax K1000", price: f.total, ...f }, m)?.word ?? null;
+  assert.equal(word({ total: 70, vsSold: 0.7 }), "Good price");
+  assert.equal(word({ total: 58, vsSold: 0.58 }), "Great price");
+  assert.equal(word({ total: 50, vsSold: 0.5 }), "Check first", "too cheap for what sold is a warning, not a bargain");
+  assert.equal(word({ total: 30, vsSold: 0.3 }), "Likely scam");
+  assert.equal(word({ total: 100, vsSold: 1 }), "Fair price");
+  assert.equal(word({ total: 150, vsSold: 1.5 }), "Over sold price");
+  assert.equal(word({ total: 70, vsSold: 0.7, sellerWarn: "New seller" }), "Check first");
+  assert.equal(word({ total: 70, campaign: ["A1"] }), "Likely scam");
+  assert.equal(word({ total: 70 }), null, "nothing to go on");
+  assert.equal(word({ total: 35, vsSold: 0.12, project: "for parts" }), null, "broken ones are cheap for a reason");
+  assert.equal(R.freeRead({ title: "Room for rent", price: 700 })?.word, "Off-topic");
+});

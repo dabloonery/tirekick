@@ -32,6 +32,10 @@ ${deep(`<a href="/marketplace/item/555/"><div class="ph"></div><div>$60</div><di
 // picture a little brighter, b1 another picture.
 const photoCard = (id: number, photo: string, price: number, title: string) =>
   deep(`<a href="/marketplace/item/${id}/"><img alt="" style="width:100%;height:140px;object-fit:cover;display:block" src="https://scontent.test.fbcdn.net/v/t45/${photo}_n.bmp?stp=dst&_nc_cat=1"><div>$${price}</div><div>${title}</div><div>Albuquerque, NM</div></a>`);
+// ?feed: the Marketplace home page, no search, with the clutter people see there among the real items.
+const FEED = [["111", 85, "Pentax K1000 35mm film camera"], ["901", 1, "Looking for rental house edge of town"], ["902", 40, "\"Best Massage in Town – Feel the difference\""],
+  ["444", 140, "Canon AE-1 with 50mm lens"], ["903", 700, "Room for rent near UNM"], ["904", 1, "Stolen and sold"], ["555", 60, "Yashica FX-3, light seals new"], ["905", 0, "Kittens free to good home"]];
+const fbFeedPage = () => fbPage("Marketplace").replace(/<main>[\s\S]*<\/main>/, () => `<main>${FEED.map(([id, p, t]) => deep(`<a href="/marketplace/item/${id}/"><div class="ph"></div><div>${p ? `$${p}` : "Free"}</div><div>${t}</div><div>Albuquerque, NM</div></a>`)).join("\n")}</main>`);
 const fbPhotosPage = (n: string) => `<!doctype html><html><head><meta charset="utf-8"><title>Marketplace</title>
 <style>body{font:14px system-ui;margin:0}main{display:grid;grid-template-columns:repeat(4,200px);gap:16px;padding:20px}a{display:block;color:inherit;text-decoration:none;border:1px solid #ddd}a div{padding:2px 10px}</style></head><body><div role="main"><main>
 ${n === "2"
@@ -107,6 +111,7 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   if (u.hostname === "www.facebook.com" && u.searchParams.has("photos")) return new Response(fbPhotosPage(u.searchParams.get("photos")!), { headers: { "content-type": "text/html" } });
   if (u.pathname === "/photo-hits") return new Response(String(photoHits));
   if (/\.jpg$/.test(u.pathname)) return new Response(Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (x) => x.charCodeAt(0)), { headers: { "content-type": "image/gif" } });
+  if (u.hostname === "www.facebook.com" && u.searchParams.has("feed")) return new Response(fbFeedPage(), { headers: { "content-type": "text/html" } });
   if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace", u.searchParams.has("dark")), { headers: { "content-type": "text/html" } });
   // A sold search for "blockme" is refused, like eBay's browser check.
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /blockme/.test(u.searchParams.get("_nkw") || "")) return new Response("denied", { status: 403 });

@@ -7,6 +7,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
 ## Contents
 
 - [Next steps](#next-steps) (2026-10-14: the order of work, and what waits on dabloonery)
+- [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone) (2026-10-15)
 - [Tirekick: Chrome Web Store submission checklist](#tirekick-chrome-web-store-submission-checklist)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
 - [Tirekick feature briefs](#tirekick-feature-briefs)
@@ -210,6 +211,37 @@ Steps for dabloonery, in order. None of these can be done from the project, and 
 ---
 
 <!-- merged from store-prep/SUBMISSION-CHECKLIST.md -->
+
+## Built for one person, reassessed for everyone
+
+*2026-10-15, from dabloonery: several features were made for dabloonery's own testing and taste. Each was looked at again for
+everyday buyers (the main audience) and resellers. dabloonery's calls are marked; Claude went ahead on its recommendation
+for each, one PR per change.*
+
+| What | Was | Call | Where |
+|---|---|---|---|
+| "What you use" counters on Home | Made to see which features dabloonery used | **Removed.** Only the scan and typical-price counts stay (they drive the first-run checklist and the mode hint) | 0.44.0 |
+| Copyable questions for the seller | Part of every analysis | **Removed** (dabloonery: redundant). The AI no longer writes them, so an analysis costs a little less | 0.44.0 |
+| AI spending | A Home tile, a 30-day chart, the footer, a settings section near the top | **Kept, quieter** (dabloonery). No Home tile; the chart only once something was spent; the footer amount only with a paid service; settings moved it down and folded it | 0.44.0 |
+| Default "What you're into" | Retro tech, consoles and homebrew (dabloonery's taste) for everyone | **Blank by default.** An install already using the old default keeps it (storage upgrade 2) | 0.44.0 |
+| Homebrew line in an analysis | One sentence on a modding scene | **Removed**: it only fits a few consoles | 0.44.0 |
+| Footer model menu | Shown with "No AI yet" before any AI | **Hidden until an AI is set up** | 0.44.0 |
+| Listings per request, storage used | In the main settings and on Home | **Advanced fold** in settings; the storage line moved under Backup | 0.44.0 |
+| Getting started | "Connect a model" first | **AI last and optional**: look at a search, check the typical price, save, then add an AI if you like | 0.44.0 |
+| "Check this page" | Copies a report when a page can't be read | **Kept**: it's how strangers can report a broken store page | |
+| Reseller mode, repair notes | Already quieter since 0.42.0 | **Kept** as is | |
+
+### Still to do in this round
+
+1. **Before a scan:** a free "Typical price" on every card's hover, from that listing's own title; the free price check
+   as the first step on a search, Scan after. Not automatic when a page opens (Ground rules: nothing fetched you didn't ask for).
+2. **Scores, in two parts:** the price verdict (free, from sales) and the AI's **Fit** (condition, what you want,
+   risk). Tags lead with the words; the number moves into the reasons.
+3. **Broad words and category pages:** no page-wide comparison against a category ("Electronics"): Tirekick says the
+   words are too broad, and each listing gets its own typical price from its title. When no lookup can be made
+   (eBay blocks it, too few sales, turned off) the card says so and why, with a link to eBay's sold listings.
+4. **Audit and clean-up**, in small PRs: code and design, including dropping "·" separators where color or weight
+   already separates the words (dabloonery, 2026-10-15).
 
 ## Tirekick: Chrome Web Store submission checklist
 

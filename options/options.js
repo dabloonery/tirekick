@@ -483,3 +483,8 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
 const openSection = (hash) => document.querySelector(`${hash} details`)?.setAttribute("open", "");
 document.querySelectorAll("nav.jump a").forEach((a) => a.addEventListener("click", () => openSection(a.hash)));
 if (/^#sec-[\w-]+$/.test(location.hash)) openSection(location.hash);
+
+// How much Tirekick keeps in this browser, under Backup.
+Promise.resolve().then(() => chrome.storage.local.getBytesInUse(null)).then((bytes) => {
+  document.getElementById("bytesUsed").textContent = `It uses ${bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`} here now.`;
+}).catch(() => {});

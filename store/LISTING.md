@@ -31,7 +31,7 @@ Tirekick has optional AI features. The checks below are free and work without th
 
 **Optional: add an AI you choose** (Anthropic's Claude, DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
 • A score and verdict for every listing, one line on the price, and the reasons on hover
-• Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
+• Analyze one listing: red flags, a fair offer and a ready-to-send message, plus a photo check
 • Selling things on? Reseller mode adds the likely fault, how hard it is to fix, parts, and the price gap after eBay fees
 • Search ideas: the misspellings sellers make, other model names, tighter or looser words
 • Optional: scan new listings automatically as a search page you're looking at loads them, up to your monthly budget

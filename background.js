@@ -30,7 +30,7 @@ const DEFAULTS = {
   useSoldComps: true,
   lens: "use", // "use" (buy to use it yourself) or "project" (fix & flip)
   feePct: 13.6, // eBay fees as % of the sale, for flip margins
-  interests: "Electronics, older and retro tech, video games and consoles, anything with an active homebrew scene.",
+  interests: "", // what the buyer is into, in their words; guides scores where a page has no search
   // Filters and seller rules: plain checks, no AI. Hidden listings are never sent to the model.
   // Same words as the filter bar: -word drops a listing, other words are required, a/b is either, quotes keep a phrase.
   filterWords: '-replica -reproduction -repro -"box only" -"empty box" -"manual only" -"case only" -"photo only" -"picture only"',
@@ -550,10 +550,8 @@ function itemSchema(lens) {
     verdict: { type: "string", enum: ["great", "good", "fair", "pass", "suspicious"] },
     summary: { type: "string" },
     flags: { type: "array", items: { type: "string" } },
-    questions: { type: "array", items: { type: "string" } },
     offerLow: { type: "integer" },
     offerHigh: { type: "integer" },
-    homebrew: { type: "string" },
   };
   if (lens !== "use") {
     const list = { type: "array", items: { type: "string" } };
@@ -572,10 +570,8 @@ Give a 0-100 score for how good a buy it is for this buyer's purpose, and one ve
 ${VERDICT_BANDS}
 summary: 2-3 plain sentences on what it is, whether the price is right, and the main risk.
 flags: up to 5 short red or green flags (1-4 words each), e.g. "price far below market", "no return policy", "clear photos".
-questions: 3-5 specific questions to ask the seller before buying, based on what is missing or unclear. For a broken or untested item, ask what exactly happens when it is powered on and what has been tried.
 offerLow / offerHigh: a sensible whole-dollar offer range if negotiation is possible; 0 for both if the price is already fair or you cannot tell.
 For an auction, offerLow / offerHigh are a sensible maximum-bid range instead, and the summary says the current bid will rise.
-homebrew: one sentence on its homebrew or modding scene and any firmware/model caveat, or "" if it has none or it doesn't apply.
 repair (fix-up and flip lenses): likely faults (most likely first), parts and tools needed, difficulty 1-5 (0 = can't tell), rough partsCost in whole dollars, and notes on teardown risks.
 If the buyer listed wants or must-haves, say which ones the listing meets or misses.
 SCAM_RULE

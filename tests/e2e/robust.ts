@@ -35,7 +35,7 @@ const waitFor = async (fn: () => Promise<unknown>, ms = 8000) => {
   return false;
 };
 
-ok("installing brings storage up to date and notes its version", (await get("storageVersion")) === 1);
+ok("installing brings storage up to date and notes its version", (await get("storageVersion")) === 2);
 
 // ---------- a site that changed its pages ----------
 await reset();
@@ -130,6 +130,7 @@ await reset();
   const chips = async (label: string) => p.ev(`(() => { const b = [...document.querySelectorAll('.tirekick-marks button, .tirekick-sticker button')].find((b) => b.textContent === ${JSON.stringify(label)}); if (b) b.click(); return !!b; })()`);
   const clicked = [await chips("Save"), await chips("Not interested")];
   await R(p, `[...r.querySelectorAll('button')].find(b=>b.textContent==='Save search')?.click()`);
+  await R(p, `r.querySelector('[data-act=prices]').click()`); // counted in stats
   await R(p, `r.querySelector('.qf-toggle').click()`);
   await R(p, `const i=r.querySelector('.qf-words'); i.focus(); i.value='k1000 -parts'; i.dispatchEvent(new Event('input',{bubbles:true}))`);
   await R(p, `r.querySelector('[data-mode=reseller]').click()`);

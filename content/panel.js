@@ -219,7 +219,7 @@
     .nav .cnt:empty { display:none; }
     .nav .cnt.alert { color:var(--accent); font-weight:700; }
 
-    /* ---------- Home: alerts on saved things, numbers, spending, what you use ---------- */
+    /* ---------- Home: alerts on saved things, numbers, paid AI spending ---------- */
     .view-home { padding:4px 16px 16px; }
     ${TKHome.CSS}
     /* how far a scan has got, as a hairline under the tabs (the status says it in words) */
@@ -351,6 +351,7 @@
     .spend { all:unset; padding:4px 0; cursor:pointer; color:var(--muted); font-size:13px; white-space:nowrap; font-variant-numeric:tabular-nums; }
     .spend b { color:var(--ink); font:600 15px/1 var(--display); font-variant-numeric:lining-nums tabular-nums; }
     .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
+    .spend[hidden], .model-pick[hidden] { display:none; }
     .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
     .budget { height:3px; background:var(--rule); }
     .budget i { display:block; height:100%; width:0; background:var(--ink); transition:width .3s; }
@@ -812,7 +813,6 @@
   const sendAI = (type, payload) => {
     if (stopRequested) return Promise.reject(new Error("Stopped."));
     const reqId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    if (type === "checkPhoto") bump("photoChecks");
     live.add(reqId);
     return send(type, { ...payload, reqId }).finally(() => live.delete(reqId));
   };
@@ -1224,6 +1224,7 @@
   const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
   const perCall = (n) => (n < 0.01 ? "under $0.01 each" : `about $${n.toFixed(2)} each`);
   let lastUsage = null;
+  let paidAI = false;
   // Always pass the record explicitly: after a reset it's undefined, and that must show $0.00.
   const renderSpend = (usage) => {
     lastUsage = usage;
@@ -1231,6 +1232,9 @@
     const budget = +cfg.monthlyBudget || 0;
     const share = budget ? s.month / budget : 0;
     const level = share >= 1 ? "over" : share >= 0.8 ? "warn" : "";
+    // Spending is a footnote: shown once a paid service is set up (or something was spent), never pushed.
+    spendBtn.hidden = !(paidAI || s.month > 0);
+    $(".foot").hidden = spendBtn.hidden && $(".model-pick").hidden;
     spendBtn.className = `spend ${level}`;
     spendBtn.replaceChildren(h("b", {}, usd(s.month)), budget ? ` of $${budget} this month` : " this month");
     budgetBar.hidden = !budget;
@@ -1288,6 +1292,8 @@
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
     modelMissing = missing;
+    paidAI = !missing && cfg.provider !== "ollama" && !keyless;
+    $(".model-pick").hidden = !!missing; // nothing to pick until an AI is set up: the setup card says how
     placeSetup();
     renderSpend((await chrome.storage.local.get("usage")).usage);
   };
@@ -1428,7 +1434,6 @@
     lens = next;
     justSwitched = true;
     showModeHint();
-    if (next === "project") bump("flipSwitches");
     if (alive()) chrome.storage.local.set({ lens }).catch(storeFailed);
     applyPrefs();
     showMode();
@@ -2115,8 +2120,8 @@
   // Several tabs may write at once, so a change is sent as an edit (TKShared.applyEdit) and the background
   // script applies them one at a time. Resolves to the record as stored after it.
   const writeStored = (name, edit) => send("storeEdit", { name, edit }).catch(storeFailedThrow); // the caller stops here: nothing says "Saved" when it wasn't
-  // Plain counters of what you use, kept only in this browser (Home shows them; nothing is sent anywhere).
-  // One at a time, so two close together don't overwrite each other.
+  // Two plain counters, kept only in this browser: scans and typical-price checks, for Home's first-run
+  // checklist and the mode hint. One at a time, so two close together don't overwrite each other.
   let bumpQueue = Promise.resolve();
   const bump = (name) => {
     if (!alive()) return;
@@ -2125,7 +2130,6 @@
   const toggleSave = async (key) => {
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     const was = !!saved[key];
-    if (!was) bump("saves");
     saved = await writeStored("saved", { set: { [key]: was ? null : { t: f.title || "", u: f.url || location.href.split("?")[0], img: f.imageUrl || "", p0: f.price ?? null, a0: Date.now(), p: f.price ?? null, a: Date.now() } } });
     afterSavedChange();
     setStatus(was ? "Removed from Saved." : `Saved \u201c${(f.title || "listing").slice(0, 50)}\u201d. It's under Saved at the bottom of the panel.`, false, { label: "Undo", fn: () => toggleSave(key) });
@@ -2153,13 +2157,11 @@
     if (v === "saved") renderSaved();
   };
   root.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
-  // Home: alerts on saved things, a few numbers, spending, what you use. Looking at it marks the alerts seen.
+  // Home: alerts on saved things, a few numbers, paid AI spending. Looking at it marks the alerts seen.
   const homeCount = $('.nav [data-view="home"] .cnt');
   const home = TKHome.mount($(".view-home"), {
     send,
     go: (v) => setView(v),
-    showSpend: () => showSpend(true),
-    getMode: () => MODES[lens].id,
     isShown: () => view === "home" && wrap.classList.contains("open") && !document.hidden,
     onAlerts: (n) => {
       homeCount.textContent = n ? String(n) : "";
@@ -2519,7 +2521,6 @@
 
   // "Not interested": hidden on every page from now on (undo from the panel or settings).
   const setInterested = async (key, interested) => {
-    if (!interested) bump("hides");
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     notInterested = await writeStored("notInterested", { set: { [key]: interested ? null : { t: f.title || "", a: Date.now() } }, cap: { max: 3000, by: "a" } });
     if (facts.has(key)) facts.get(key).hidden = !interested;
@@ -3952,7 +3953,6 @@
       (listing.vsParts != null ? ` · ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("the typical price", "typical for parts")}` : "");
     const rep = r.repair;
     const margin = listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (rep?.partsCost || 0) : null;
-    const questions = (r.questions || []).slice(0, 6);
     const photoBox = h("div");
     (r.photos || []).forEach((p, i) => photoBox.append(h("div", { class: p.adjust < 0 ? "photo drop" : "photo" }, photoText(p, `Photo ${i + 1}: `))));
     const parts = [
@@ -4016,22 +4016,6 @@
         )
       );
     }
-    if (r.homebrew) parts.push(h("div", { class: "sect" }, h("strong", {}, "Homebrew: "), r.homebrew));
-    if (questions.length) {
-      const copyBtn = h("button", {
-        onclick: async () => {
-          try {
-            await navigator.clipboard.writeText(questions.map((q, i) => `${i + 1}. ${q}`).join("\n"));
-            copyBtn.textContent = "Copied";
-          } catch {
-            copyBtn.textContent = "Couldn't copy";
-          }
-        },
-      }, "Copy questions");
-      parts.push(
-        h("div", { class: "sect" }, h("strong", {}, "Ask the seller"), h("ol", {}, questions.map((q) => h("li", {}, q))), h("div", { class: "actions" }, copyBtn))
-      );
-    }
     if (listing.imageUrls?.length) {
       const n = Math.min(3, listing.imageUrls.length);
       const btn = h("button", { onclick: () => checkPhotos(listing, r, market, photoBox, btn), title: `Have the AI look at ${n > 1 ? `the first ${n} photos` : "the photo"} (can change the score)` }, `${r.photos ? "Re-check" : "Check"} photo${n > 1 ? "s" : ""}`);
@@ -4085,7 +4069,6 @@
   const analyze = async () => {
     if (analyzing) return;
     analyzing = true;
-    bump("analyses");
     const epoch = pageEpoch;
     const setStatus = (...a) => epoch === pageEpoch && setStatusNow(...a);
     setBusy(true);
@@ -4218,7 +4201,6 @@
     renderSaved();
   };
   const getIdeas = async () => {
-    bump("ideas");
     ideasBtn.disabled = true;
     setBusy(true);
     ideasBox.hidden = false;

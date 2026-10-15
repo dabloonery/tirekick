@@ -1,5 +1,5 @@
 // Tirekick: the Home tab in the panel. What's been kept in this browser (alerts on saved things,
-// a few numbers, spending, which features get used), plus a short checklist for a first visit.
+// a few numbers, paid AI spending when there is any), plus a short checklist for a first visit.
 // It reads storage and draws; nothing is sent anywhere. Everything from storage goes in through
 // textContent (titles come from web pages and from restored backups).
 //
@@ -38,12 +38,7 @@
   const MODEL_NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-5-5": "Haiku 5.5", "claude-haiku-4-5": "Haiku 4.5" };
   const modelName = (id) => MODEL_NAMES[id] || id;
 
-  const USAGE = [
-    ["scans", "Scans"], ["soldLookups", "Sold-price comparisons"], ["analyses", "Listing analyses"], ["ideas", "Search ideas"],
-    ["photoChecks", "Photo checks"], ["saves", "Saved listings"], ["hides", "Marked not interested"], ["flipSwitches", "Switched to Reseller mode"],
-  ];
-
-  function mount(box, { send, go = () => {}, showSpend = () => {}, getMode = () => "buyer", isShown = () => true, onAlerts = () => {} }) {
+  function mount(box, { send, go = () => {}, isShown = () => true, onAlerts = () => {} }) {
     let D = null; // the stored data last drawn
     let lastAlerts = [];
     const root = h("div", { class: "hm" });
@@ -70,10 +65,10 @@
     function start(d) {
       const keyed = d.provider === "ollama" || (d.provider === "openai" && !!d.oaiModel) || (d.provider === "anthropic" && !!d.hasKey);
       const steps = [
-        { done: keyed, title: "Connect a model", text: "Pick any AI service you have a key for, or a free model on your own computer. Card marks, filters and price comparisons work without one.", acts: [h("button", { class: "hm-btn primary", onclick: () => send("openOptions").catch(() => {}) }, "Open settings")] },
-        { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: `Search ${TKSites.all.map((s) => s.name).join(" or ")}, then pick Buyer (to keep and use) or Reseller (to sell on) at the top right of this panel.`, acts: TKSites.all.map((s) => link(s.home, s.name, { class: "hm-btn" })) },
-        { done: (d.stats.scans || 0) + (d.stats.soldLookups || 0) > 0, title: "Press Scan, or check the typical price", text: "Scan scores each listing. “Typical price”, under Scan, is free and needs no model." },
+        { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: `Search ${TKSites.all.map((s) => s.name).join(" or ")}. Tirekick marks likely scams and odd prices on the cards as they load.`, acts: TKSites.all.map((s) => link(s.home, s.name, { class: "hm-btn" })) },
+        { done: (d.stats.scans || 0) + (d.stats.soldLookups || 0) > 0, title: "Check the typical price", text: "“Typical price” in the panel compares every listing with recent eBay sales. It's free." },
         { done: Object.keys(d.saved).length + Object.keys(d.savedSearches).length > 0, title: "Save a listing or a search", text: "Hover a card and press Save, or use Save search in the panel. Price drops show up here and as a number on the toolbar icon." },
+        { done: keyed, title: "Add an AI, if you like", text: "Optional. With any AI service you have a key for, or a free model on your own computer, Scan scores each listing and says why.", acts: [h("button", { class: "hm-btn", onclick: () => send("openOptions").catch(() => {}) }, "Open settings")] },
       ];
       const n = steps.filter((s) => s.done).length;
       const show = !d.startHidden && n < steps.length;
@@ -110,28 +105,18 @@
     }
 
     function numbers(d) {
-      const mode = getMode();
-      const sum = TKShared.usageSummary(d.usage);
       const savedRows = Object.values(d.saved);
       const cheaper = savedRows.filter(dropped);
       const off = cheaper.reduce((s, r) => s + (r.p0 - r.p), 0);
       const searches = Object.values(d.savedSearches);
       const atPrice = searches.reduce((s, r) => s + (r?.deals > 0 ? r.deals : 0), 0);
-      const spent = ["Spent this month", spendMoney(sum.month), d.monthlyBudget > 0 ? `of ${money(d.monthlyBudget)} budget` : "no budget set"];
-      const tiles =
-        mode === "reseller"
-          ? [["Saved listings", savedRows.length], ["Saved searches", searches.length, searches.length ? `${plural(searches.filter((r) => r?.deals > 0).length, "search")} with listings at your price` : ""], ["At your price", atPrice, "across your saved searches, last time you looked"], spent]
-          : [["Saved listings", savedRows.length], ["Price drops", cheaper.length ? money(off) : "$0", cheaper.length ? `across ${plural(cheaper.length, "saved listing")}` : "since you saved them"], ["Saved searches", searches.length], spent];
-      const target = (label) => (/^Saved|^Price drops|^At your price/.test(label) ? () => go("saved") : /^Spent/.test(label) ? showSpend : null);
-      const nodes = tiles.map(([label, value, note]) => {
-        const kids = [h("span", {}, label), h("b", {}, String(value)), note ? h("small", {}, note) : null];
-        const fn = target(label);
-        return fn ? h("button", { class: "hm-tile", onclick: fn, title: /^Spent/.test(label) ? "Spending in detail" : "Open Saved" }, ...kids) : h("div", { class: "hm-tile" }, ...kids);
-      });
-      if (d.monthlyBudget > 0) {
-        const pct = Math.min(100, (sum.month / d.monthlyBudget) * 100);
-        nodes[3].append(h("div", { class: `hm-meter${pct >= 80 ? " hot" : ""}`, role: "img", "aria-label": `${Math.round(pct)}% of the monthly budget used` }, h("i", { style: `width:${pct}%` })));
-      }
+      const tiles = [
+        ["Saved listings", savedRows.length],
+        ["Price drops", cheaper.length ? money(off) : "$0", cheaper.length ? `across ${plural(cheaper.length, "saved listing")}` : "since you saved them"],
+        ["Saved searches", searches.length],
+        ["At your price", atPrice, "across your saved searches, last time you looked"],
+      ];
+      const nodes = tiles.map(([label, value, note]) => h("button", { class: "hm-tile", onclick: () => go("saved"), title: "Open Saved" }, h("span", {}, label), h("b", {}, String(value)), note ? h("small", {}, note) : null));
       return h("section", { class: "hm-sec" }, h("h3", {}, "At a glance"), h("div", { class: "hm-tiles" }, nodes));
     }
 
@@ -168,26 +153,14 @@
       );
     }
 
-    function usage(d) {
-      const s = d.stats;
-      const max = Math.max(1, ...USAGE.map(([k]) => s[k] || 0));
-      return h("details", { class: "hm-sec hm-fold" },
-        h("summary", {}, h("h3", {}, "What you use")),
-        h("p", { class: "hm-hint" }, s.since ? `Counted on this computer since ${dayFmt(s.since)}. A feature at zero is one you haven't tried yet, or one worth rethinking.` : "Nothing counted yet. These are plain counters kept in this browser, so you can see which features you actually use."),
-        h("div", { class: "hm-use" }, ...USAGE.map(([k, label]) => h("div", {}, h("span", {}, label), h("span", { class: "track", role: "img", "aria-label": `${label}: ${s[k] || 0}` }, h("i", { class: s[k] ? "" : "zero", style: `width:${((s[k] || 0) / max) * 100}%` })), h("b", {}, String(s[k] || 0))))),
-        h("div", { class: "acts" }, h("button", { class: "hm-btn small", onclick: () => confirm("Reset the usage counts? This only clears these counters.") && chrome.storage.local.remove("stats") }, "Reset counts"))
-      );
-    }
-
-    async function footer() {
-      const bytes = await chrome.storage.local.getBytesInUse(null).catch(() => 0);
-      return h("div", { class: "hm-foot" }, h("span", {}, `Version ${chrome.runtime.getManifest().version}`), h("span", {}, `Using ${bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`} in this browser`), h("button", { class: "hm-btn small", onclick: () => send("openOptions").catch(() => {}) }, "Settings, backup and restore"));
+    function footer() {
+      return h("div", { class: "hm-foot" }, h("span", {}, `Version ${chrome.runtime.getManifest().version}`), h("button", { class: "hm-btn small", onclick: () => send("openOptions").catch(() => {}) }, "Settings, backup and restore"));
     }
 
     // ---------- load and draw ----------
     let refresh = async function () {
       const d = await chrome.storage.local.get({
-        provider: "anthropic", oaiModel: "", monthlyBudget: 0,
+        provider: "anthropic", oaiModel: "",
         saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {},
       });
       // The API key stays in the background script; the page only learns whether there is one.
@@ -197,9 +170,9 @@
       lastAlerts = list;
       onAlerts(list.filter((a) => a.isNew).length);
       // What's new comes first: it's why you'd come back. Getting started follows while you're new to it;
-      // the numbers lead to the lists behind them; spending and usage fold away.
+      // the numbers lead to the lists behind them; paid AI spending, if any, folds away at the end.
       const first = list.length ? [alertsSection(list), start(d)] : [start(d), alertsSection(list)];
-      root.replaceChildren(...[health(d), ...first, numbers(d), spend(d), usage(d), await footer()].filter(Boolean));
+      root.replaceChildren(...[health(d), ...first, numbers(d), spend(d), footer()].filter(Boolean));
       return list;
     }
 
@@ -232,7 +205,7 @@
         countTimer = setTimeout(() => count().catch(() => {}), 300);
       }
       if (c.alertsAck && Object.keys(c).length === 1) return;
-      if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "monthlyBudget", "provider", "anthropicKey", "oaiModel"].some((k) => c[k])) return;
+      if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "provider", "anthropicKey", "oaiModel"].some((k) => c[k])) return;
       if (!isShown()) return void (stale = true);
       clearTimeout(timer);
       timer = setTimeout(() => refresh().then(seen).catch(() => {}), 400);
@@ -308,9 +281,6 @@
     .hm-tile span { display:block; color:var(--muted); font-size:13px; }
     .hm-tile b { display:block; font:600 24px/1.2 var(--display); font-variant-numeric:lining-nums; letter-spacing:-.01em; }
     .hm-tile small { display:block; color:var(--muted); font-size:13px; line-height:1.35; }
-    .hm-meter { height:3px; border-radius:2px; background:var(--rule); overflow:hidden; margin-top:7px; }
-    .hm-meter i { display:block; height:100%; background:var(--ink); }
-    .hm-meter.hot i { background:var(--accent); }
     .hm-chart { position:relative; padding:20px 0 0 44px; }
     .hm .plot { position:relative; height:96px; display:flex; align-items:flex-end; gap:2px; border-bottom:var(--bw) solid var(--rule); }
     .hm .grid { position:absolute; left:0; right:0; height:0; border-top:var(--bw) solid var(--rule); pointer-events:none; }
@@ -327,13 +297,6 @@
     .hm table { border-collapse:collapse; width:100%; font-size:13px; margin-top:6px; }
     .hm th, .hm td { text-align:left; padding:4px 6px; border-bottom:var(--bw) solid var(--rule); }
     .hm td.n, .hm th.n { text-align:right; font-variant-numeric:tabular-nums; }
-    .hm-use { display:grid; gap:7px; margin-top:8px; }
-    .hm-fold .acts { margin-top:12px; }
-    .hm-use > div { display:grid; grid-template-columns:minmax(110px, 150px) 1fr 34px; gap:10px; align-items:center; font-size:14px; }
-    .hm-use .track { height:8px; }
-    .hm-use .track i { display:block; height:100%; background:var(--ink); border-radius:0 2px 2px 0; min-width:2px; }
-    .hm-use .track i.zero { background:var(--rule); }
-    .hm-use b { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
     .hm-foot { margin-top:14px; padding-top:12px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:13px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
     @media (prefers-reduced-motion: reduce) { .hm .col i, .hm-tip { transition:none; } }
 `;

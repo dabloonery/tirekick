@@ -416,7 +416,7 @@ makes it more certain, not less.`;
 // This prompt is the part most worth tuning yourself. Small local models
 // follow short, concrete rules better than long abstract ones.
 const VERDICT_BANDS = "Pick the verdict first, then a score inside its range: great 75-100, good 60-74, fair 45-59, pass 0-44, suspicious 0-30.";
-const RANK_BASE = `You help a buyer skim second-hand listings. For each listing give a 0-100 score and one verdict: great, good, fair, pass or suspicious.
+const RANK_BASE = `You help a buyer skim secondhand listings. For each listing give a 0-100 score and one verdict: great, good, fair, pass or suspicious.
 ${VERDICT_BANDS}
 suspicious = likely scam, counterfeit, or misleading, whatever the lens.
 related: true if the listing is what the search (or the buyer's wants) is for, false if it is a different kind of item.
@@ -567,7 +567,7 @@ function itemSchema(lens) {
   return { type: "object", properties: props, required: Object.keys(props), additionalProperties: false };
 }
 
-const ITEM_BASE = `You help a buyer decide whether to buy one second-hand listing.
+const ITEM_BASE = `You help a buyer decide whether to buy one secondhand listing.
 Give a 0-100 score for how good a buy it is for this buyer's purpose, and one verdict: great, good, fair, pass or suspicious (likely scam, counterfeit, or misleading).
 ${VERDICT_BANDS}
 summary: 2-3 plain sentences on what it is, whether the price is right, and the main risk.
@@ -632,7 +632,7 @@ const IDEAS_SCHEMA = {
   additionalProperties: false,
 };
 
-const IDEAS_SYSTEM = `You help a buyer find second-hand items on eBay or Facebook Marketplace by suggesting better searches.
+const IDEAS_SYSTEM = `You help a buyer find secondhand items on eBay or Facebook Marketplace by suggesting better searches.
 Return 4 to 6 suggestions. Each has: query (the exact words to type, 2-7 words), kind, why (under 15 words), maxPrice (whole dollars, 0 for no cap), newest (true to sort newest first).
 kind: idea = a different way to phrase what the buyer wants (model names, numbers, what sellers actually call it); narrow = tighter, to cut junk;
 broaden = looser, to include good matches the current words exclude; typo = a realistic misspelling or spacing variant sellers use (fewer buyers find those listings);

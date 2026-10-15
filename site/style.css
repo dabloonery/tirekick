@@ -5,7 +5,7 @@
 :root {
   color-scheme: dark;
   --navy: #1A2B4C; --orange: #FF8F3A;
-  --paper: #1A2B4C; --paper-2: #13223F; --raise: #20345A; --ink: #EEF2F8; --muted: #A9B5CB; --rule: #2C3E63; --tint: #13223F;
+  --paper: #1C2433; --paper-2: #161D29; --raise: #232D3F; --ink: #EDF0F5; --muted: #A8B1C2; --rule: #2D3749; --tint: #161D29;
   --accent: #FF8F3A; --btn: #FF8F3A; --on-btn: #1A2B4C;
   --v-great: #5FE39A; --v-good: #C3EA6E; --v-fair: #FFE16B; --v-pass: #A9B5CB; --v-suspicious: #FF8A80;
   --dot-great: #3BDB7E; --dot-good: #B6E35A; --dot-fair: #FFE04A; --dot-pass: #7D8BA6; --dot-suspicious: #FF6A5E;
@@ -163,7 +163,7 @@ kbd { font: 600 14px/1 var(--ui); padding: 2px 6px; border: 1px solid var(--line
 
 /* ---------- round 2: the navy hero, icons, the two modes ---------- */
 .hero-band { background: var(--navy); color: #FFFFFF; border-bottom: 1px solid var(--rule); }
-@media (prefers-color-scheme: dark) { .hero-band, .band.navy { background: #0F1B33; } }
+@media (prefers-color-scheme: dark) { .hero-band, .band.navy { background: #141A25; } }
 .hero-band .brand, .hero-band .top nav a:hover { color: #FFFFFF; }
 .hero-band .top nav a { color: #C9D2E3; }
 .hero-band .hero h1 { color: #FFFFFF; }

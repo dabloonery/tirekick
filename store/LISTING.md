@@ -33,7 +33,7 @@ Tirekick has optional AI features. The checks below are free and work without th
 • A score and verdict for every listing, one line on the price, and the reasons on hover
 • Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
 • Reseller mode for people who fix and flip: the likely fault, how hard it is, parts, and your margin after eBay fees
-• Better searches: the misspellings sellers make, other model names, tighter or looser words
+• Search ideas: the misspellings sellers make, other model names, tighter or looser words
 • Optional: scan new listings automatically as a search page you're looking at loads them, up to your monthly budget
 
 **It only looks when you do.** Tirekick works on the page in front of you, when you ask (or, if you turn on automatic scanning, as the search you're looking at loads). Nothing browses or checks prices in the background. Everything it keeps stays in your browser, and the only things sent anywhere go to the AI service you picked, because you pressed a button. Bring your own API key: a scan of 50 listings with the default model (Claude Haiku 5.5) costs less than a cent.
@@ -81,7 +81,7 @@ Regenerate with `tests/e2e/run.sh screenshots.ts` (the real extension on test pa
 
 ## Notes for the reviewer
 
-Scores and analysis need an API key, which the reviewer is not expected to have. Without one, everything else works: open an eBay search, open the panel (the "Tirekick" tab at the right edge, or Alt+Shift+L), press "Sold prices", try the filter bar, save a listing, and open the Home tab. Select any text on another site and right-click "Look up" for the extension's own page.
+Scores and analysis need an API key, which the reviewer is not expected to have. Without one, everything else works: open an eBay search, open the panel (the "Tirekick" tab at the right edge, or Alt+Shift+L), press "Typical price", try the filter bar, save a listing, and open the Home tab. Select any text on another site and right-click "Look up" for the extension's own page.
 
 ## Before you submit
 

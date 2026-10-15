@@ -158,7 +158,7 @@ ok("a listing opened from that search in the same tab gets its wants", (await R(
 // ---------- searches, marks and Saved ----------
 await reset();
 p = await openPanel(SEARCH);
-ok("a search has a Better searches button", (await R(p, `const b=r.querySelector('[data-act=ideas]'); return !b.hidden && /better searches/i.test(b.textContent)`)));
+ok("a search has a Search ideas button", (await R(p, `const b=r.querySelector('[data-act=ideas]'); return !b.hidden && b.textContent==='Search ideas'`)));
 it = await openPanel("https://www.ebay.com/itm/184891897312");
 await sleep(1200);
 ok("a listing page doesn't", await R(it, `return r.querySelector('[data-act=ideas]').hidden`));
@@ -245,7 +245,7 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   })`);
   ok("its Saved list marks each listing and search eBay or Marketplace", ["eBay", "Marketplace"].every((x) => view.tags.filter((t: string) => t === x).length === 2), view.tags);
   ok("looking something up links to that search on each site", /ebay\.com\/sch\/i\.html\?_nkw=pentax%20k1000/.test(view.ebay) && /facebook\.com\/marketplace\/search\?query=pentax%20k1000/.test(view.fb), [view.ebay, view.fb]);
-  ok("…and says what it sold for on eBay, and how sure that is", /Sold, used\$58/.test(view.answer) && /10 sales/.test(view.answer) && /Check a few/.test(view.answer), view.answer.slice(0, 200));
+  ok("…and says what it sold for on eBay, and how sure that is", /Typical price, used\$58/.test(view.answer) && /10 sales/.test(view.answer) && /Check a few/.test(view.answer), view.answer.slice(0, 200));
   // what goes into that number: only the thing itself, sold
   const sm = await hub.ev(`fetch(Tirekick.soldUrl("pentax k1000", "3000")).then(r=>r.text()).then(t=>{const m=Tirekick.summarizeSold(t,{query:"pentax k1000"}); return {n:m.n, median:m.median, ship:m.ship, confidence:m.confidence, dropped:m.dropped}})`);
   ok("sold prices leave out best-offer sales, lots, parts, other things and far-off prices", sm.n === 10 && sm.median === 58 && JSON.stringify(sm.dropped) === JSON.stringify({ offers: 1, lots: 1, parts: 1, unrelated: 1, outliers: 1, foreign: 0, ranges: 0 }), sm);

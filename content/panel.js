@@ -57,6 +57,20 @@
   // After the extension is reloaded or updated, this copy of the script is cut off from it.
   const alive = () => !!chrome.runtime?.id;
   const STALE = "Tirekick was updated. Reload this page to keep using it.";
+  // After the extension is updated or reloaded, this copy stays on the open page but can't reach the
+  // extension: any chrome.* call still under way then fails with "Extension context invalidated". Those
+  // failures are expected, not errors: swallow them and stop this copy (teardown, below) so it goes quiet.
+  let retired = false;
+  const orphaned = (err) => !alive() && /Extension context invalidated|context invalidated|Receiving end does not exist/i.test(String(err?.message ?? err ?? "")) || err?.message === STALE;
+  const retire = () => {
+    if (retired) return;
+    retired = true;
+    try {
+      teardown();
+    } catch {} // the panel may not be built yet
+  };
+  window.addEventListener("unhandledrejection", (e) => orphaned(e.reason) && (e.preventDefault(), retire()));
+  window.addEventListener("error", (e) => orphaned(e.error ?? e.message) && (e.preventDefault(), retire()));
 
   const send = (type, payload) =>
     new Promise((resolve, reject) => {
@@ -219,7 +233,7 @@
     .nav .cnt:empty { display:none; }
     .nav .cnt.alert { color:var(--accent); font-weight:700; }
 
-    /* ---------- Home: alerts on saved things, numbers, spending, what you use ---------- */
+    /* ---------- Home: alerts on saved things, numbers, paid AI spending ---------- */
     .view-home { padding:4px 16px 16px; }
     ${TKHome.CSS}
     /* how far a scan has got, as a hairline under the tabs (the status says it in words) */
@@ -349,8 +363,9 @@
     .model:focus { outline:none; border-color:var(--ink); }
     .model:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .spend { all:unset; padding:4px 0; cursor:pointer; color:var(--muted); font-size:13px; white-space:nowrap; font-variant-numeric:tabular-nums; }
-    .spend b { color:var(--ink); font:600 15px/1 var(--display); font-variant-numeric:lining-nums tabular-nums; }
+    .spend b { color:var(--muted); font:500 13px/1 var(--ui); font-variant-numeric:lining-nums tabular-nums; }
     .spend:hover b, .spend[aria-expanded="true"] b { text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
+    .spend[hidden], .model-pick[hidden] { display:none; }
     .spend.warn b { color:var(--v-fair); } .spend.over b { color:var(--v-suspicious); }
     .budget { height:3px; background:var(--rule); }
     .budget i { display:block; height:100%; width:0; background:var(--ink); transition:width .3s; }
@@ -374,20 +389,18 @@
     .welcome .w-points { margin:0; padding-left:18px; display:grid; gap:5px; line-height:1.45; }
     .welcome .w-points li::marker { color:var(--accent); }
     .welcome .w-points b { font:600 14px/1.45 var(--ui); }
-    .welcome .tip { color:var(--muted); }
     .welcome .w-note { font-size:13px; }
     .welcome .go { justify-self:start; }
-    /* No model yet: the key is step 1 and the only call to action; the steps after it are plain text until it's done */
+    /* No model yet: a quiet note after the points; the free features come first */
     .welcome .step-key { display:grid; gap:4px; padding:10px 12px; border-radius:var(--r-sm); background:var(--paper-2); }
     .welcome .step-key b { font:600 14px/1.4 var(--ui); }
     .welcome .step-key .setup-text { color:var(--muted); }
     .welcome .step-key .setup-go { justify-self:start; margin-top:6px; min-height:36px; padding:9px 14px; font:600 13px/1 var(--ui); }
-    .welcome:has(.step-key:not([hidden])) .w-points { color:var(--muted); }
     /* Model-only controls wait until there is a model: Compare prices against and free sold prices still work */
     .no-model .want-field, .no-model .feewrap, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
 
     /* first run, list bar */
-    .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--ink); border-radius:var(--r-sm); font-size:14px; }
+    .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:14px; }
     .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 8px;
       border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:13px; color:var(--muted); }
     .listbar + .list > .row:first-child { border-top:0; }
@@ -456,6 +469,7 @@
     .pi-head { margin-bottom:3px; color:var(--ink); font:600 23px/1.2 var(--display); letter-spacing:-.015em; }
     .pi-head .mono { font-family:var(--mono); }
     .pi-line b { color:var(--ink); font-weight:600; }
+    .pi-line .past .past-why { margin:4px 0 0; }
     .pi-line button { all:unset; position:relative; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
     .pi-line button:hover { text-decoration-color:currentColor; }
     .seg { display:inline-grid; grid-auto-flow:column; gap:2px; padding:2px; background:var(--paper-2); border-radius:999px; }
@@ -465,6 +479,7 @@
     .status button { all:unset; cursor:pointer; margin-left:6px; color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .fchip { font-size:13px; padding:1px 8px; border-radius:999px; background:var(--ink); color:var(--on-ink); font-weight:600; }
+    .fchip b { font-weight:700; } .fchip .tk-rest { font-weight:500; }
     .fchip.k-new { background:var(--new-bg); color:var(--new-fg); } .fchip.k-good { background:var(--good-bg); color:var(--good-fg); } .fchip.k-warn { background:var(--warn-bg); color:var(--warn-fg); }
     .fchip.k-plain { background:none; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line); }
     .fchip.k-deal { background:var(--new-bg); color:var(--new-fg); }
@@ -670,26 +685,23 @@
         <div class="hint other-note">Nothing to look over here. Open a search, a category or a listing. Your saved listings and searches are under Saved.</div>
         <div class="welcome" hidden>
           <b>Welcome to Tirekick</b>
-          <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
-            <button class="scan setup-go" data-act="open-settings">Open settings</button></div>
           <ul class="w-points">
-            <li><b>Scan</b> gives every listing here a score, the reason, and how its price compares with the typical price (recent eBay sales).</li>
-            <li><b>Buyer or Reseller</b>, top right, changes what scores high.</li>
-            <li>Point at a card's tag for the reasons, <i>Save</i> and <i>Not interested</i>.</li>
+            <li>Cards are marked for likely scams and odd prices as they load.</li>
+            <li><b>Typical price</b> compares every listing with recent eBay sales, free. Point at a card for its own, and for <i>Save</i> and <i>Not interested</i>.</li>
+            <li>With an AI (optional), <b>Scan</b> scores each listing and says why. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
           </ul>
-          <div class="tip">No key yet? The free marks on the cards already flag likely scams.</div>
+          <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
+            <button class="ghost setup-go" data-act="open-settings">Open settings</button></div>
           <div class="hint w-note">Scores, prices and warnings are estimates to help you decide, not a guarantee: check the listing and the seller yourself.</div>
           <button class="ghost go" data-act="intro-done">Got it</button>
         </div>
-        <div class="setup" hidden><b class="setup-title">Add an AI to start scoring.</b> <span class="setup-text">Pick any AI service you have a key for (Anthropic, Google Gemini, OpenAI, OpenRouter and others), or a free model on your own computer, in settings.</span>
-          <button class="scan" data-act="open-settings">Open settings</button></div>
         <div class="hint mode-hint"></div>
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input autocomplete="off" id="want" placeholder="e.g. working, with charger, under $150"></div>
         <div class="feewrap"><label for="fee">Selling fees (%)</label><input autocomplete="off" id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the typical price for the price gap; eBay's are about 13%.</div></div>
         <div class="q-sum"><span class="q-sum-text"></span> <button data-act="edit-q" title="Compare prices against other words">Change</button></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input autocomplete="off" id="q" placeholder="e.g. Pentax K1000">
-          <div class="hint browse-note" hidden>No search on this page, so Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Typical price</b> on a listing gets real eBay numbers.</div></div>
+          <div class="hint browse-note" hidden>No search here (or only a category), so there's no one typical price for the page. Point at a listing and press <b>Typical price</b> for its own, from recent eBay sales. A scan goes by what you're into and what you want, and its prices are estimates (<i>est.</i>).</div></div>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
@@ -699,6 +711,8 @@
           <button class="ghost" data-act="ideas" hidden>Search ideas</button>
           <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own: free, and your AI isn't used">Typical price <span class="cost">free</span></button>
         </div>
+        <div class="setup" hidden><b class="setup-title">Scores are optional.</b> <span class="setup-text">Prices, scam marks and filters work without an AI.</span>
+          <button class="ghost" data-act="open-settings">Open settings</button></div>
         <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
         <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
@@ -775,7 +789,7 @@
   const qwrap = $(".qwrap");
   const browseNote = $(".browse-note");
   // Browse mode: a results page with nothing to compare against (e.g. the Marketplace home feed).
-  const showBrowseNote = () => (browseNote.hidden = TK.pageType() !== "results" || !!queryEl.value.trim());
+  const showBrowseNote = () => (browseNote.hidden = TK.pageType() !== "results" || (!!queryEl.value.trim() && !TKRules.broadQuery(queryEl.value)));
   queryEl.addEventListener("input", showBrowseNote);
   const itemEl = $(".itemout");
   const pageInfo = $(".pageinfo");
@@ -812,7 +826,6 @@
   const sendAI = (type, payload) => {
     if (stopRequested) return Promise.reject(new Error("Stopped."));
     const reqId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    if (type === "checkPhoto") bump("photoChecks");
     live.add(reqId);
     return send(type, { ...payload, reqId }).finally(() => live.delete(reqId));
   };
@@ -852,7 +865,10 @@
     wrap.classList.toggle("q-folded", qFold);
     if (qFold && $(".q-sum").dataset.shown !== qNow) {
       $(".q-sum").dataset.shown = qNow;
-      $(".q-sum-text").replaceChildren("Typical price from recent eBay sales of ", h("b", {}, `\u201c${qNow}\u201d`));
+      // A category's name gets no one typical price: the line says so, and how to price a listing instead.
+      $(".q-sum-text").replaceChildren(...(TKRules.broadQuery(qNow)
+        ? [h("b", {}, `\u201c${qNow}\u201d`), " is a whole category, too broad for one typical price. Point at a listing and press Typical price for its own."]
+        : ["Typical price from recent eBay sales of ", h("b", {}, `\u201c${qNow}\u201d`)]));
     }
     const fold = done && !editingInputs && !typingHere;
     wrap.classList.toggle("folded", fold);
@@ -863,7 +879,7 @@
     if (inputsSum.dataset.shown === `${q}\n${want}`) return; // runs every two seconds: only redraw a change
     inputsSum.dataset.shown = `${q}\n${want}`;
     $(".sum-text").replaceChildren(
-      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", want ? [" \u00b7 wants ", h("b", {}, want)] : []].flat()
+      ...[q ? ["Comparing ", h("b", {}, `\u201c${q}\u201d`)] : "No price comparison", want ? [", wants ", h("b", {}, want)] : []].flat()
     );
     // Nothing in What I want: the button says what it's for, instead of the line saying what's missing
     $('[data-act="edit-inputs"]').textContent = want ? "Edit" : "Add what you want";
@@ -1128,13 +1144,13 @@
     // Only the services you've set up are offered, side by side: no one service is pushed before you pick.
     const opts = [];
     if (cfg.hasKey) {
-      opts.push(...QUALITY.map(([id, label, sm, m]) => ["anthropic", `q:${id}`, `Claude \u00b7 ${label} \u00b7 ${sm === m ? short(m) : `${short(sm)} + ${short(m)}`}`]));
-      if (cfg.anthropicModel && !qualityNow()) opts.push(["anthropic", "custom", `Claude \u00b7 Custom \u00b7 ${short(cfg.scanModel || cfg.anthropicModel)} + ${short(cfg.anthropicModel)}`]);
+      opts.push(...QUALITY.map(([id, label, sm, m]) => ["anthropic", `q:${id}`, `Claude, ${label}`, `Scans with ${short(sm)}, single listings with ${short(m)}`]));
+      if (cfg.anthropicModel && !qualityNow()) opts.push(["anthropic", "custom", "Claude, Custom", `Scans with ${short(cfg.scanModel || cfg.anthropicModel)}, single listings with ${short(cfg.anthropicModel)}`]);
     }
-    if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName} \u00b7 ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
-    opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama \u00b7 ${cfg.textModel || "qwen3:4b"} \u00b7 free`]);
-    if (cfg.provider === "anthropic" && !cfg.hasKey) opts.unshift(["", "", "No AI yet \u00b7 pick one in settings"]);
-    modelSel.replaceChildren(...opts.map(([prov, m, label]) => h("option", { value: `${prov}|${m}`, title: label }, label)));
+    if (cfg.oaiModel) opts.push(["openai", cfg.oaiModel, `${cfg.oaiName}, ${cfg.oaiModel.replace(/^[^/]+\//, "")}`]);
+    opts.push(["ollama", cfg.textModel || "qwen3:4b", `Ollama, ${cfg.textModel || "qwen3:4b"} (free)`]);
+    if (cfg.provider === "anthropic" && !cfg.hasKey) opts.unshift(["", "", "No AI yet: pick one in settings"]);
+    modelSel.replaceChildren(...opts.map(([prov, m, label, more]) => h("option", { value: `${prov}|${m}`, title: more || label }, label)));
     $(".model-pick").title =
       cfg.provider === "anthropic"
         ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes straight away; settings has each one.`
@@ -1153,7 +1169,9 @@
     wrap.classList.toggle("no-model", !!modelMissing);
     setupCard.hidden = !modelMissing || inWelcome;
     $(".step-key").hidden = !inWelcome;
-    $(".welcome .tip").hidden = !modelMissing;
+    // With no AI, the free typical price is the page's main button; Scan waits until there's an AI.
+    freeRow.classList.toggle("scan", !!modelMissing);
+    freeRow.classList.toggle("ghost", !modelMissing);
     if (!modelMissing) return;
     root.querySelectorAll(".setup-title").forEach((el) => (el.textContent = modelMissing[0]));
     root.querySelectorAll(".setup-text").forEach((el) => (el.textContent = modelMissing[1]));
@@ -1200,37 +1218,20 @@
     );
   });
 
-  const usageSummary = (usage) => {
-    const days = usage?.days || {};
-    const now = new Date();
-    const day = now.toLocaleDateString("en-CA");
-    const month = day.slice(0, 7);
-    const last = new Date(now.getFullYear(), now.getMonth() - 1, 15).toLocaleDateString("en-CA").slice(0, 7);
-    const sum = { today: 0, month: 0, last: 0, calls: 0, models: {} };
-    for (const [d, v] of Object.entries(days)) {
-      if (d === day) sum.today += v.usd;
-      if (d.startsWith(last)) sum.last += v.usd;
-      if (!d.startsWith(month)) continue;
-      sum.month += v.usd;
-      sum.calls += v.calls;
-      for (const [m, mv] of Object.entries(v.models || {})) {
-        const t = (sum.models[m] ||= { usd: 0, calls: 0 });
-        t.usd += mv.usd;
-        t.calls += mv.calls;
-      }
-    }
-    return sum;
-  };
   const usd = (n) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
   const perCall = (n) => (n < 0.01 ? "under $0.01 each" : `about $${n.toFixed(2)} each`);
   let lastUsage = null;
+  let paidAI = false;
   // Always pass the record explicitly: after a reset it's undefined, and that must show $0.00.
   const renderSpend = (usage) => {
     lastUsage = usage;
-    const s = usageSummary(usage);
+    const s = TKShared.usageSummary(usage);
     const budget = +cfg.monthlyBudget || 0;
     const share = budget ? s.month / budget : 0;
     const level = share >= 1 ? "over" : share >= 0.8 ? "warn" : "";
+    // Spending is a footnote: shown once a paid service is set up (or something was spent), never pushed.
+    spendBtn.hidden = !(paidAI || s.month > 0);
+    $(".foot").hidden = spendBtn.hidden && $(".model-pick").hidden;
     spendBtn.className = `spend ${level}`;
     spendBtn.replaceChildren(h("b", {}, usd(s.month)), budget ? ` of $${budget} this month` : " this month");
     budgetBar.hidden = !budget;
@@ -1283,11 +1284,13 @@
     const keyless = /LM Studio/.test(cfg.oaiName || "");
     const missing =
       cfg.provider === "anthropic" && !cfg.hasKey
-        ? ["Add an AI to start scoring.", "Pick any AI service you have a key for (Anthropic, Google Gemini, OpenAI, OpenRouter and others), or a free model on your own computer, in settings."]
+        ? ["Scores are optional.", "Prices, scam marks and filters work without one. To score listings too, add any AI service you have a key for, or a free model on your own computer, in settings."]
         : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
     modelMissing = missing;
+    paidAI = !missing && cfg.provider !== "ollama" && !keyless;
+    $(".model-pick").hidden = !!missing; // nothing to pick until an AI is set up: the setup card says how
     placeSetup();
     renderSpend((await chrome.storage.local.get("usage")).usage);
   };
@@ -1428,7 +1431,6 @@
     lens = next;
     justSwitched = true;
     showModeHint();
-    if (next === "project") bump("flipSwitches");
     if (alive()) chrome.storage.local.set({ lens }).catch(storeFailed);
     applyPrefs();
     showMode();
@@ -1481,13 +1483,13 @@
   const lensLine = (it) => {
     if (it.related === false) return it.browse ? "Not your thing" : "Not your search";
     // The number that matters first, so a narrow sticker doesn't cut it off.
-    if (it.auction) return [it.bidCap > 0 ? `Bid \u2264 ${dollars(it.bidCap)}` : "Auction", it.timeLeft && `${it.timeLeft} left`].filter(Boolean).join(" \u00b7 ");
-    if (it.lot && it.total != null) return `Lot of ${it.lot} \u00b7 ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
+    if (it.auction) return [it.bidCap > 0 ? `Bid \u2264 ${dollars(it.bidCap)}` : "Auction", it.timeLeft && `${it.timeLeft} left`].filter(Boolean).join(", ");
+    if (it.lot && it.total != null) return `Lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
     // Fix & flip: how hard the fix is (when there is one) and what it should make; whichever is known.
     if (it.lens === "project") {
       const margin = it.margin != null ? `\u2248 ${money(it.margin)} gap after fees${it.refIsEstimate || it.refRough ? " (est.)" : ""}` : "";
       const broken = it.fault && !/^none$/i.test(it.fault);
-      if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`)].filter(Boolean).join(" \u00b7 ");
+      if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`)].filter(Boolean).join(", ");
       if (margin) return margin;
       if (broken && it.partsCost > 0) return `~$${it.partsCost} parts`;
     }
@@ -1592,6 +1594,7 @@
       .tk-chip { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:999px; background:var(--tk-paper); color:var(--tk-ink);
         font:600 13px/1.35 ${UI}; white-space:nowrap; letter-spacing:normal; text-transform:none; box-shadow:0 2px 6px -2px rgba(0,0,0,.35); }
       .tk-chip svg { width:11px; height:11px; }
+      .tk-chip b { font-weight:700; } .tk-chip .tk-rest { font-weight:500; }
       .tirekick-marks .tk-chip, .tk-under .tk-chip { max-width:100%; white-space:normal; } /* a long tag wraps inside the card */
       .tk-chip.k-new, .tk-chip.k-deal { background:var(--tk-new-bg); color:var(--tk-new-fg); } .tk-chip.k-good { background:var(--tk-good-bg); color:var(--tk-good-fg); }
       .tk-chip.k-warn { background:var(--tk-warn-bg); color:var(--tk-warn-fg); }
@@ -1865,14 +1868,16 @@
     if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
-    const cheap = f.vsSold != null && TKRules.tooCheap(f, lastMarket);
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(lastMarket.median))}`, `This is ${cheap.pct}% of the typical price (the middle of ${lastMarket.n} recent eBay sales): far below what the same thing sells for is the usual bait.`]);
+    const mk = marketOf(f);
+    const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}`;
+    const cheap = f.vsSold != null && TKRules.tooCheap(f, mk);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null && !cheap) {
       const pw = f.project ? null : TKRules.priceWord(f.vsSold); // broken ones: just the number
-      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(lastMarket.median))}, the middle of ${lastMarket.n} recent eBay sales.`]);
-    }
+      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
+    } else if (f.priceNote) c.push(["plain", "No price check", f.priceNote]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
     if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
@@ -1880,13 +1885,15 @@
     if (f.sellerWarn) c.push(["warn", f.sellerWarn]);
     if (f.dup) c.push(["warn", `Same title ×${f.dup}`]);
     // An auction in its last few hours, especially with no bids, is when bargains happen.
-    if (f.auction && f.hoursLeft != null && f.hoursLeft <= 3) c.push(["new", `Ends in ${f.timeLeft}${f.bids === 0 ? " · no bids" : ""}`]);
-    else if (f.auction) c.push(["plain", `Auction${f.timeLeft ? ` · ${f.timeLeft} left` : ""}`]);
+    if (f.auction && f.hoursLeft != null && f.hoursLeft <= 3) c.push(["new", `Ends in ${f.timeLeft}${f.bids === 0 ? ", no bids" : ""}`]);
+    else if (f.auction) c.push(["plain", `Auction${f.timeLeft ? `, ${f.timeLeft} left` : ""}`]);
     if (f.lot) c.push(["plain", `Lot of ${f.lot}`]);
     if (f.bestOffer) c.push(["plain", "Offers"]);
     return c.slice(0, 3);
   };
-  const chipEls = (f) => chipsFor(f).map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, text));
+  // A chip's lead word ("Good price") is set in bold, so it needs no "·" to part it from the number.
+  const chipText = (t) => (t.includes(" \u00b7 ") ? [h("b", {}, t.slice(0, t.indexOf(" \u00b7 "))), h("span", { class: "tk-rest" }, ` ${t.slice(t.indexOf(" \u00b7 ") + 3)}`)] : t);
+  const chipEls = (f) => chipsFor(f).map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
 
   // Our own buttons sit inside the site's card (on Facebook, inside the link): keep the click ours.
   const own = (fn) => (e) => {
@@ -2083,6 +2090,26 @@
   const hideChip = (key) => h("button", { class: "tk-chip k-plain tk-x", title: "Hide this listing everywhere (undo it under Saved)", onclick: own(() => setInterested(key, false)) }, "Not interested");
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
+  // A listing can be priced on its own when it has none yet, and it's one thing (not a lot, not a bid).
+  const canPrice = (f) => cfg.useSoldComps !== false && f.vsSold == null && !f.priceNote && !f.lot && !f.auction && !f.project && f.total != null && !!TK.titleToQuery(f.title || "");
+  // One listing's typical price, from its own title: the answer when the page has no search, or its words
+  // are a whole category. One eBay lookup, paced and cached like the page's.
+  const priceOne = async (key, btn) => {
+    const f = facts.get(key);
+    if (!f) return;
+    const query = TK.titleToQuery(f.title);
+    if (btn) (btn.disabled = true), (btn.textContent = "Checking\u2026");
+    try {
+      const m = await soldMarket(query, "used");
+      if (m?.median > 0) f.ownMarket = { median: m.median, p25: m.p25, p75: m.p75, n: m.n, confidence: m.confidence, query };
+      else f.priceNote = `Not enough recent eBay sales of \u201c${query}\u201d to compare.`;
+    } catch (e) {
+      f.priceNote = e.message;
+    }
+    f.vsSold = vsSoldOf(f);
+    setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used.` : f.priceNote, !f.ownMarket);
+    redecorateAll();
+  };
   // "$55", not "$55–$55", when the two ends meet.
   const offerRange = (r) => (r.offerLow >= r.offerHigh ? `$${r.offerHigh}` : `$${r.offerLow}\u2013$${r.offerHigh}`);
   // What every card offers on hover. A saved listing keeps its star showing. They make one toolbar with a
@@ -2091,7 +2118,10 @@
     saved[key]
       ? h("button", { class: "tk-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
       : h("button", { class: "tk-chip k-plain tk-x", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
-    f.title ? h("button", { class: "tk-chip k-plain tk-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
+    // No price for it yet: one free lookup of its own title. Otherwise eBay's sold listings, to look yourself.
+    f.title && canPrice(f)
+      ? h("button", { class: "tk-chip k-plain tk-x", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d: free, and your AI isn't used`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
+      : f.title ? h("button", { class: "tk-chip k-plain tk-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ])];
   const toolbar = (btns) => {
@@ -2115,8 +2145,8 @@
   // Several tabs may write at once, so a change is sent as an edit (TKShared.applyEdit) and the background
   // script applies them one at a time. Resolves to the record as stored after it.
   const writeStored = (name, edit) => send("storeEdit", { name, edit }).catch(storeFailedThrow); // the caller stops here: nothing says "Saved" when it wasn't
-  // Plain counters of what you use, kept only in this browser (Home shows them; nothing is sent anywhere).
-  // One at a time, so two close together don't overwrite each other.
+  // Two plain counters, kept only in this browser: scans and typical-price checks, for Home's first-run
+  // checklist and the mode hint. One at a time, so two close together don't overwrite each other.
   let bumpQueue = Promise.resolve();
   const bump = (name) => {
     if (!alive()) return;
@@ -2125,7 +2155,6 @@
   const toggleSave = async (key) => {
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     const was = !!saved[key];
-    if (!was) bump("saves");
     saved = await writeStored("saved", { set: { [key]: was ? null : { t: f.title || "", u: f.url || location.href.split("?")[0], img: f.imageUrl || "", p0: f.price ?? null, a0: Date.now(), p: f.price ?? null, a: Date.now() } } });
     afterSavedChange();
     setStatus(was ? "Removed from Saved." : `Saved \u201c${(f.title || "listing").slice(0, 50)}\u201d. It's under Saved at the bottom of the panel.`, false, { label: "Undo", fn: () => toggleSave(key) });
@@ -2153,13 +2182,11 @@
     if (v === "saved") renderSaved();
   };
   root.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
-  // Home: alerts on saved things, a few numbers, spending, what you use. Looking at it marks the alerts seen.
+  // Home: alerts on saved things, a few numbers, paid AI spending. Looking at it marks the alerts seen.
   const homeCount = $('.nav [data-view="home"] .cnt');
   const home = TKHome.mount($(".view-home"), {
     send,
     go: (v) => setView(v),
-    showSpend: () => showSpend(true),
-    getMode: () => MODES[lens].id,
     isShown: () => view === "home" && wrap.classList.contains("open") && !document.hidden,
     onAlerts: (n) => {
       homeCount.textContent = n ? String(n) : "";
@@ -2388,6 +2415,7 @@
   let pageHadKnown = null; // first visit to a search: nothing is "new to you" yet
   let passing = false;
   const pagePass = async (force = false) => {
+    if (retired) return;
     if (TK.pageType() !== "results" || passing) return;
     const keysNow = currentKeys();
     if (!force && keysNow.size === passKeys.size && [...keysNow].every((k) => passKeys.has(k))) return;
@@ -2467,7 +2495,9 @@
   // (where the price is only a bid) aren't compared with one item's selling price.
   let cacheTried = false;
   let marketFor = ""; // the search the cards' "below/above typical" is for
-  const vsSoldOf = (f) => (lastMarket?.median > 0 && f.total != null && !f.lot && !f.auction ? f.total / lastMarket.median : null);
+  // A listing's own typical price (looked up from its title, from its hover) wins over the page's.
+  const marketOf = (f) => f?.ownMarket || lastMarket;
+  const vsSoldOf = (f) => (marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction ? f.total / marketOf(f).median : null);
   const applyMarket = (market) => {
     lastMarket = market;
     marketFor = queryEl.value.trim().toLowerCase();
@@ -2519,7 +2549,6 @@
 
   // "Not interested": hidden on every page from now on (undo from the panel or settings).
   const setInterested = async (key, interested) => {
-    if (!interested) bump("hides");
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     notInterested = await writeStored("notInterested", { set: { [key]: interested ? null : { t: f.title || "", a: Date.now() } }, cap: { max: 3000, by: "a" } });
     if (facts.has(key)) facts.get(key).hidden = !interested;
@@ -2539,7 +2568,7 @@
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
       .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t))
-      .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, text));
+      .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
     if (item.photoAdjust) {
       const chip = h("span", { class: "tk-chip", title: "Photo check" }, signed(item.photoAdjust));
       chip.insertAdjacentHTML("afterbegin", CAMERA); // static markup, no page text involved
@@ -2560,7 +2589,7 @@
         h(
         "div",
         { class: "tk-pop" },
-        h("b", {}, String(item.score), " · ", h("span", { class: "tk-pw" }, v.label)),
+        h("b", {}, String(item.score), " ", h("span", { class: "tk-pw" }, v.label)),
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,
@@ -2581,7 +2610,7 @@
         f.dup ? line(`${f.dup} listings on this page share this title or photo: a repost, or one seller with several.`) : null,
         item.fault && !/^none$/i.test(item.fault) ? line(`Likely fault: ${item.fault}${item.difficulty ? ` (difficulty ${item.difficulty}/5)` : ""}`) : null,
         item.photoAdjust ? line(`Photo check ${signed(item.photoAdjust)}: ${(item.photos || []).flatMap((p) => p.why).join("; ") || "see panel"}`) : null,
-        item.flags?.length ? line(item.flags.join(" · ")) : null,
+        item.flags?.length ? line(item.flags.join(", ")) : null,
         item.imageUrl &&
         h(
           "div",
@@ -2628,7 +2657,7 @@
   };
   const sc = (it) => it.score ?? -1;
   // Before a scan, "best first" goes by the free read: good prices up, warnings and off-topic down.
-  const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, lastMarket)?.rank ?? 0.5);
+  const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, marketOf(facts.get(keyOf(it.url)) || it))?.rank ?? 0.5);
   const dealOf = (it) => (facts.get(keyOf(it.url))?.deal ? 1 : 0);
   const perItem = (it) => (it.total == null ? Infinity : it.lot ? it.total / it.lot : it.total);
   const vsSold = (it) => it.vsWorking ?? facts.get(keyOf(it.url))?.vsSold ?? Infinity;
@@ -2670,13 +2699,14 @@
         shownKeys.add(key);
         const known = chipsFor(f)
           .filter(([, t]) => !/^Auction|^Lot of/.test(t) && !TKRules.SOLD_CHIP.test(t))
-          .map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+          .map(([k, t]) => h("span", { class: `fchip k-${k}` }, chipText(t)));
         const saveBtn = h("button", { class: saved[key] ? "on" : null, onclick: () => toggleSave(key) }, saved[key] ? "Saved" : "Save");
         const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
         // Not scored (yet): the price is the headline, with what's known for free.
         if (it.score == null) {
-          const vs = f.vsSold != null ? ` \u00b7 ${TKRules.vsText(f.total, lastMarket.median, { rough: lastMarket.confidence === "rough", long: true })} (${dollars(Math.round(lastMarket.median))})` : "";
-          const each = it.lot && it.total != null ? ` \u00b7 lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
+          const mk = marketOf(f);
+          const vs = f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true })} (${dollars(Math.round(mk.median))})` : "";
+          const each = it.lot && it.total != null ? `, lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
           listEl.append(
             h(
               "div",
@@ -2686,16 +2716,16 @@
                 {},
                 h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
                 (() => {
-                  const read = !likelyScam(f) && TKRules.freeRead(f, lastMarket);
-                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " \u00b7 free read") : null;
+                  const read = !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
+                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
                 })(),
                 likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
                 (() => {
                   // The tag already shows the price; the line adds only what it doesn't say.
                   const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]
                     .filter(Boolean)
-                    .join(" \u00b7 ");
-                  const line = `${bits}${vs}${each}`.replace(/^ \u00b7 /, "");
+                    .join(", ");
+                  const line = `${bits}${vs}${each}`.replace(/^, /, "");
                   return line ? h("div", { class: "meta" }, line) : null;
                 })(),
                 known.length ? h("div", { class: "flags" }, known) : null
@@ -2717,8 +2747,8 @@
         const vsMarket =
           it.vsWorking != null && !it.auction && !it.lot
             ? it.refIsEstimate
-              ? ` \u00b7 ${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-              : ` \u00b7 ${TKRules.vsText(it.total, it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
+              ? `${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
+              : `${TKRules.vsText(it.total, it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
             : "";
         const line = lensLine(it);
         const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
@@ -2731,8 +2761,8 @@
               "div",
               {},
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
-              h("div", { class: "meta", "data-v": pv.v }, h("span", { class: "verdict" }, pv.label), `${it.related === false ? " (not your search)" : ""}${it.auction || it.shipping > 0 ? ` \u00b7 ${priceStr(it)}` : ""}${it.related === false ? "" : vsMarket}`),
-              (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? ` \u00b7 ${it.fault}` : "")) : null,
+              h("div", { class: "meta", "data-v": pv.v }, h("span", { class: "verdict" }, pv.label), ` ${[it.related === false && "(not your search)", (it.auction || it.shipping > 0) && priceStr(it), it.related !== false && vsMarket].filter(Boolean).join(", ")}`),
+              (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? `, ${it.fault}` : "")) : null,
               h("div", { class: "reason" }, it.reason || ""),
               // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
               known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null
@@ -2904,7 +2934,7 @@
       { title: [`The middle of ${m.n} recent eBay sales, shipping included where shown.`, leftOut(m.dropped).length && `Left out: ${leftOut(m.dropped).join(", ")}.`].filter(Boolean).join(" ") },
       h("span", { class: "mlabel" }, label),
       h("span", { class: "mval" }, `${m.confidence === "rough" ? "~" : ""}$${m.median}`),
-      h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75} \u00b7 ${m.n} sales${m.confidence === "rough" ? " \u00b7 a rough guide" : ""}`)
+      h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75}, ${m.n} sales${m.confidence === "rough" ? ", a rough guide" : ""}`)
     );
   const renderMarket = (market) => {
     if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a market price.");
@@ -2936,8 +2966,14 @@
   // Working price from used sales (falling back to any condition when there are too few);
   // for Fix & flip also what broken ones sell for, the floor you can always resell at.
   let lastMarket = null;
+  // A whole category has no one typical price: say so, and what works instead.
+  const broadNote = (query) => `\u201c${query}\u201d is a whole category, too broad for one typical price. Point at a listing and press Typical price for its own, or type a model under \u201cCompare prices against\u201d.`;
   const getMarket = async (settings, query, forLens) => {
     if (!settings.useSoldComps || !query) return null;
+    if (TKRules.broadQuery(query)) {
+      marketEl.replaceChildren(h("div", { class: "mnote" }, broadNote(query)));
+      return null;
+    }
     const epoch = pageEpoch;
     setStatus(`Checking recent eBay sales for "${query}"…`);
     let market = null;
@@ -3148,7 +3184,7 @@
   const refreshPending = () => {
     updateFold();
     showIdeasBtn();
-    freeRow.hidden = scanning || TK.pageType() !== "results" || !queryEl.value.trim() || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
+    freeRow.hidden = scanning || TK.pageType() !== "results" || !queryEl.value.trim() || TKRules.broadQuery(queryEl.value) || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
     if (scanning || TK.pageType() !== "results") return;
     let n = 0;
     if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);
@@ -3159,7 +3195,7 @@
     const est = cfg.provider !== "ollama" && cfg.scanRate > 0 ? toScore * cfg.scanRate : 0;
     const label = changed ? "Rescan with your changes" : n ? `Scan ${n} new listing${n > 1 ? "s" : ""}` : seen.size ? "Scan again" : toScore ? `Scan ${toScore} listing${toScore > 1 ? "s" : ""}` : "Scan this page";
     // This runs every two seconds: only touch what changed (each change makes the browser restyle the panel).
-    const costText = est && (changed || n || !seen.size) ? ` \u00b7 ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}` : "";
+    const costText = est && (changed || n || !seen.size) ? ` ${est < 0.01 ? "under 1\u00a2" : `about $${est.toFixed(2)}`}` : "";
     if (scanBtn.dataset.shown !== label + costText) {
       scanBtn.dataset.shown = label + costText;
       scanBtn.replaceChildren(label, costText ? h("span", { class: "cost" }, costText) : "");
@@ -3235,10 +3271,10 @@
     if (newN) bits.push(`<b>${newN}</b> new to you`);
     if (dropN) bits.push(`<b>${dropN}</b> cheaper than before`);
     if (warnN) bits.push(`<b>${warnN}</b> to be careful with`);
-    piLine.innerHTML = bits.join(" \u00b7 "); // numbers and fixed words only
+    piLine.innerHTML = bits.join(", "); // numbers and fixed words only
     if (hidN || filN) {
       piLine.append(
-        ` \u00b7 ${[hidN && `${hidN} not interested`, filN && `${filN} filtered`].filter(Boolean).join(", ")} `,
+        `, ${[hidN && `${hidN} not interested`, filN && `${filN} filtered`].filter(Boolean).join(", ")} `,
         h("button", { onclick: () => setShowHidden(!showHidden) }, showHidden ? "Hide them again" : `Show ${hidN + filN === 1 ? "it" : "them"}`)
       );
     }
@@ -3304,7 +3340,7 @@
     qf.hidden = !qfOpen;
     qfToggle.setAttribute("aria-expanded", String(qfOpen));
     const n = [quick.words.trim(), quick.min, quick.max, quick.deal].filter(Boolean).length;
-    qfToggle.textContent = n ? `Filter \u00b7 ${n}` : "Filter";
+    qfToggle.textContent = n ? `Filter (${n})` : "Filter";
     qfToggle.classList.toggle("on", n > 0);
   };
   qfToggle.addEventListener("click", () => {
@@ -3525,7 +3561,8 @@
       const query = queryEl.value.trim();
       const want = wantEl.value.trim();
       const forLens = lens;
-      const browse = query ? "" : TK.browseContext(); // no search: interests guide, prices are estimates
+      // No search, or only a category's name: interests guide, and prices are the model's estimates.
+      const browse = query && !TKRules.broadQuery(query) ? "" : TK.browseContext();
       items.forEach((it) => (it.browse = !!browse));
       const market = await getMarket(settings, query, forLens);
       if (stopRequested) {
@@ -3723,6 +3760,7 @@
   let itemFacts = null;
   let itemTries = 0;
   const itemPass = async () => {
+    if (retired) return;
     if (TK.pageType() !== "item") return;
     await Promise.all([memoryReady, prefsReady]);
     const listing = TK.extractItem();
@@ -3889,7 +3927,7 @@
     const f = itemFacts;
     if (!f || TK.pageType() !== "item") return;
     // After an analysis its own line says how far under or over sold it is; the chip would say it twice.
-    const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && TKRules.SOLD_CHIP.test(t))).map(([k, t]) => h("span", { class: `fchip k-${k}` }, t));
+    const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && TKRules.SOLD_CHIP.test(t)) && !(t === f.motivated && softFor(f).level !== "none")).map(([k, t]) => h("span", { class: `fchip k-${k}` }, chipText(t)));
     const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
     const scam = scamWarning(f);
     // Every price you've seen it at: "$70 (Sep 30) → $60 (Oct 5) → $55 now".
@@ -3913,7 +3951,9 @@
     // What an earlier scan or analysis (in a search, another tab, or here) made of this listing.
     const past = storedScan(f.key, lens);
     const pastLine = past && !itemEl.childElementCount
-      ? h("div", {}, h("b", {}, `${past.score} \u00b7 ${VERDICT[past.verdict]?.label || past.verdict}`), ` on ${shortDate(past.at)}${past.m ? ` with ${nameOf(past.m)}` : ""}${past.p != null && f.price != null && past.p !== priceOf(f) ? ` (the price was ${dollars(past.p)} then)` : ""}${past.reason ? `: ${past.reason}` : "."}`)
+      ? h("div", { class: "past", title: past.m ? `Judged with ${nameOf(past.m)}` : null },
+          h("div", { "data-v": past.verdict }, h("span", { class: "verdict" }, VERDICT[past.verdict]?.label || past.verdict), ` ${past.score} out of 100, ${shortDate(past.at)}${past.p != null && f.price != null && past.p !== priceOf(f) ? ` (the price was ${dollars(past.p)} then)` : ""}`),
+          past.reason ? h("p", { class: "past-why" }, past.reason) : null)
       : "";
     const acts = h(
       "div",
@@ -3948,11 +3988,10 @@
     const v = shownV({ ...listing, verdict: r.verdict }, {});
     const score = clamp100(r.score | 0);
     const vs =
-      (listing.vsWorking != null ? ` · ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +
-      (listing.vsParts != null ? ` · ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("the typical price", "typical for parts")}` : "");
+      (listing.vsWorking != null ? `, ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +
+      (listing.vsParts != null ? `, ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("the typical price", "typical for parts")}` : "");
     const rep = r.repair;
     const margin = listing.marginBeforeRepair != null ? listing.marginBeforeRepair - (rep?.partsCost || 0) : null;
-    const questions = (r.questions || []).slice(0, 6);
     const photoBox = h("div");
     (r.photos || []).forEach((p, i) => photoBox.append(h("div", { class: p.adjust < 0 ? "photo drop" : "photo" }, photoText(p, `Photo ${i + 1}: `))));
     const parts = [
@@ -3963,7 +4002,7 @@
         h(
           "div",
           {},
-          h("div", { class: "title", "data-v": v.v }, h("span", { class: "verdict" }, v.label), ` \u00b7 ${score} out of 100`),
+          h("div", { class: "title", "data-v": v.v }, h("span", { class: "verdict" }, v.label), ` ${score} out of 100`),
           h("div", { class: "meta" }, `${priceStr(listing)}${vs}`),
           h("div", { class: "reason" }, r.summary || ""),
           r.photoAdjust ? h("div", { class: r.photoAdjust < 0 ? "adjust" : "adjust up" }, `Photo check ${signed(r.photoAdjust)} (was ${r.baseScore})`) : null,
@@ -4008,28 +4047,12 @@
         h(
           "div",
           { class: "sect" },
-          h("strong", {}, `${DIFFICULTY[rep.difficulty] || DIFFICULTY[0]}${rep.difficulty ? ` (${rep.difficulty}/5)` : ""}${rep.partsCost ? ` · ~$${rep.partsCost} parts` : ""}`),
+          h("strong", {}, `${DIFFICULTY[rep.difficulty] || DIFFICULTY[0]}${rep.difficulty ? ` (${rep.difficulty}/5)` : ""}${rep.partsCost ? `, ~$${rep.partsCost} parts` : ""}`),
           rep.faults?.length ? h("ol", {}, rep.faults.slice(0, 4).map((f) => h("li", {}, f))) : null,
           kv("Parts", rep.parts),
           kv("Tools", rep.tools),
           rep.notes ? h("div", { class: "meta" }, rep.notes) : null
         )
-      );
-    }
-    if (r.homebrew) parts.push(h("div", { class: "sect" }, h("strong", {}, "Homebrew: "), r.homebrew));
-    if (questions.length) {
-      const copyBtn = h("button", {
-        onclick: async () => {
-          try {
-            await navigator.clipboard.writeText(questions.map((q, i) => `${i + 1}. ${q}`).join("\n"));
-            copyBtn.textContent = "Copied";
-          } catch {
-            copyBtn.textContent = "Couldn't copy";
-          }
-        },
-      }, "Copy questions");
-      parts.push(
-        h("div", { class: "sect" }, h("strong", {}, "Ask the seller"), h("ol", {}, questions.map((q) => h("li", {}, q))), h("div", { class: "actions" }, copyBtn))
       );
     }
     if (listing.imageUrls?.length) {
@@ -4085,7 +4108,6 @@
   const analyze = async () => {
     if (analyzing) return;
     analyzing = true;
-    bump("analyses");
     const epoch = pageEpoch;
     const setStatus = (...a) => epoch === pageEpoch && setStatusNow(...a);
     setBusy(true);
@@ -4129,7 +4151,7 @@
       renderItem(listing, r, market);
       setCount(1);
       analyzeBtn.className = "ghost";
-      analyzeBtn.replaceChildren("Analyze again", settings.provider === "anthropic" && r.cost ? h("span", { class: "cost" }, ` \u00b7 last one ${fmtCost(r.cost)}`) : "");
+      analyzeBtn.replaceChildren("Analyze again", settings.provider === "anthropic" && r.cost ? h("span", { class: "cost" }, ` last one ${fmtCost(r.cost)}`) : "");
       editingInputs = false;
       editingQ = false;
       setStatus("");
@@ -4218,7 +4240,6 @@
     renderSaved();
   };
   const getIdeas = async () => {
-    bump("ideas");
     ideasBtn.disabled = true;
     setBusy(true);
     ideasBox.hidden = false;
@@ -4363,7 +4384,7 @@
   // listings, and Facebook dropping our stickers when it recycles cards.
   let ticks = 0;
   const tick = () => {
-    if (!alive()) return teardown();
+    if (!alive()) return retire();
     sync();
     if (document.hidden) return;
     syncPageTheme(); // the page's own light or dark (cheap: it only writes when that changes)
@@ -4376,7 +4397,7 @@
   // A page loaded ahead of time (eBay prerenders the listings you're likely to open) or brought back from the
   // back-forward cache: read it again as soon as it's the page you're looking at, instead of waiting for a reload.
   const wake = (fresh) => {
-    if (!alive()) return teardown();
+    if (!alive()) return retire();
     if (fresh) (lastHref = ""), (lastType = null);
     sync();
     pagePass(true);
@@ -4387,7 +4408,10 @@
   document.addEventListener("visibilitychange", () => !document.hidden && wake(false));
   // After an update this copy can't reach the extension any more: get out of the way so the new one can load.
   const teardown = () => {
+    retired = true;
     clearInterval(timer);
+    clearTimeout(photoTimer);
+    photoObserver?.disconnect();
     host.remove();
     toastRoot?.host.remove();
     window.removeEventListener("tirekick-toggle", toggleOpen);

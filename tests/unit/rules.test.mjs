@@ -364,3 +364,8 @@ test("priceVerdict: when score and price disagree, the price check wins", () => 
   assert.deepEqual(R.priceVerdict("great", { total: 85 }, { median: 300, confidence: "rough" }), { v: "great" }, "only a trusted typical price");
   assert.deepEqual(R.priceVerdict("great", { total: 85 }, null), { v: "great" });
 });
+
+test("broadQuery: a store category is too broad to price, a model isn't", () => {
+  for (const q of ["Electronics", "electronics", "Video Games & Consoles", "Home & Garden", "Cell Phones & Accessories", "stuff"]) assert.equal(R.broadQuery(q), true, q);
+  for (const q of ["", "pentax k1000", "ps2 slim", "electronics lot", "game boy", "vintage watch"]) assert.equal(R.broadQuery(q), false, q);
+});

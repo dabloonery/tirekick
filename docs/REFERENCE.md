@@ -159,7 +159,7 @@ Both lead with what Tirekick does and name the stores last, so adding a store on
 >
 > **Add an AI you choose** (the Claude API, OpenRouter, OpenAI, Gemini, DeepSeek, Mistral, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
 > • A score and verdict for every listing, one line on the price, and the reasons on hover
-> • Analyze one listing: red flags, questions for the seller, a fair offer and a ready-to-send message, plus a photo check
+> • Analyze one listing: red flags, a fair offer and a ready-to-send message, plus a photo check
 > • Reseller mode for people who fix and flip: the likely fault, how hard it is, parts, and your margin after eBay fees
 > • Better searches: the misspellings sellers make, other model names, tighter or looser words
 >

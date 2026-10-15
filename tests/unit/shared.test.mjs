@@ -254,3 +254,9 @@ test("dHash: a photo's fingerprint survives resizing and brightness, and tells p
   assert.equal(S.dHash(pic(() => 200)), "");
   assert.equal(S.dHash([]), "");
 });
+
+test("upgradeStorage: an install on the old default interests keeps them; a new one starts blank", () => {
+  assert.equal(S.upgradeStorage({ storageVersion: 1 }).set.interests, S.OLD_INTERESTS);
+  assert.equal(S.upgradeStorage({ storageVersion: 1, interests: "" }).set.interests, undefined);
+  assert.equal(S.upgradeStorage({}).set.interests, undefined);
+});

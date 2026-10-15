@@ -94,6 +94,25 @@ await o.ev(`document.getElementById('exportCsv').click()`);
 await sleep(400);
 ok("settings can download saved listings as a spreadsheet too", /Downloaded 1 saved listing as a spreadsheet/.test(await o.ev(`document.getElementById('msg').textContent`)));
 
+// ---------- a category's name, and pricing one listing from its own title ----------
+await store(`{useSoldComps:true, soldCache:{}}`);
+const cat = await open("https://www.ebay.com/sch/i.html?_nkw=electronics");
+await sleep(1200);
+await R(cat, `r.querySelector('[data-act=tab]').click()`);
+await sleep(600);
+const qsum = await R(cat, `return r.querySelector('.q-sum-text').textContent`);
+ok("a category's name is called too broad for one typical price", /whole category, too broad for one typical price/.test(qsum), qsum);
+ok("…and gets no page-wide price button", await R(cat, `return r.querySelector('[data-act=prices]').hidden`));
+const cardText = (i: number) => cat.ev(`(()=>{const c=document.querySelectorAll('.s-card')[${i}]; return [...(c.querySelector('.tirekick-sticker')?.shadowRoot || c).querySelectorAll('.tk-chip')].map(x=>x.textContent).join('|')})()`);
+ok("…each card offers its own typical price", /Typical price/.test(await cardText(1)), await cardText(1));
+await cat.ev(`(()=>{const c=document.querySelectorAll('.s-card')[1]; [...(c.querySelector('.tirekick-sticker')?.shadowRoot || c).querySelectorAll('button')].find(b=>b.textContent==='Typical price').click()})()`);
+await waitFor(async () => /typical/.test(await cardText(1)), 15000);
+ok("…which looks up that listing's own title and marks the card", /(below|above) typical/.test(await cardText(1)), await cardText(1));
+const soldKeys = Object.keys((await o.ev(`chrome.storage.local.get('soldCache')`)).soldCache || {});
+ok("…and never the category's name", soldKeys.length === 1 && !soldKeys.some((k) => /electronics/.test(k)), soldKeys);
+await store(`{useSoldComps:false}`);
+await cat.close();
+
 ok("no page logged an error", !errors.length, errors.slice(0, 5));
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

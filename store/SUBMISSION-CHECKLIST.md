@@ -26,6 +26,8 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
       answers the "will this get my account banned" worry. Colors brighter than the extension's light theme on purpose.
 - [ ] Set up support@tirekick.app (already filled in on the site, in `store/PRIVACY.md` and the listing):
       register tirekick.app and forward the mailbox.
+- [ ] Launch the site with the extension: once the store listing is approved, replace `STORE_LISTING_URL` in
+      `site/index.html` with its address, then publish the site (steps in `site/README.md`).
 - [ ] Publish it. GitHub Pages is free for **public** repositories only (private ones need a paid plan), and this
       one stays private until 1.0.0, so: make a small public repository just for the site (steps in
       `site/README.md`), giving `https://dabloonery.github.io/<name>/`. At launch, when this repository goes

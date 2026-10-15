@@ -6,7 +6,7 @@
 
 **Verdict: nothing blocks submission.** No remote code, no `eval`, no web-accessible resources, no
 `externally_connectable`, and every network destination is either declared or approved by the user one
-address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 269 KB, no tests or
+address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 269 KB at 0.35.0; 22 files, about 316 KB at 0.49.0; no tests or
 source maps). Two items are worth knowing before review starts (M1, M2); the rest are small hardening
 ideas for a later release.
 
@@ -39,7 +39,8 @@ Every permission is used, and none can be dropped without losing a feature:
 |---|---|
 | `storage` | settings, saved items, seen-listing memory, score cache |
 | `scripting` | registering the page script on eBay and Facebook, injecting it on click, reading sold results through an open eBay tab |
-| `contextMenus` | "Check this photo", "Open Tirekick home" and, on selected text, "Look up … on eBay and Marketplace" |
+| `unlimitedStorage` | lifts the 10 MB cap on the same local storage so kept scores and seen listings can't fill it (old entries are still pruned) |
+| `contextMenus` | "Check this photo", "Open Tirekick in a tab" and, on selected text, "Look up … on eBay and Marketplace" |
 | eBay, Facebook, image CDNs | the two sites it works on, and photo checks |
 | AI service hosts | the services a user can pick in settings |
 | localhost `:11434`, `:1234` | Ollama and LM Studio |
@@ -101,8 +102,7 @@ it. The privacy page says keys stay in the browser profile. **No change needed.*
 
 ## Housekeeping before submission (not security)
 
-- `homepage_url` points at `github.com/dabloonery/Second-Look`. Update it to `https://tirekick.app`
-  once the domain is live (or to the renamed repo).
+- ~~`homepage_url` points at the old repo~~: it is `https://tirekick.app` since 0.42.1.
 - The privacy policy and listing use support@tirekick.app, which goes live once dabloonery sets up the tirekick.app domain and mailbox.
 - The 128 px icon is a full-bleed navy tile. The store's guidelines suggest 96 px of artwork inside
   16 px of transparent padding for the store tile; the current one is acceptable but will look a little
@@ -125,7 +125,7 @@ A few things that are Vivaldi's own UI rather than the extension, worth a look i
 |---|---|---|
 | Toolbar icon and badge | Vivaldi can tuck extension icons into its extensions menu, which hides the badge number | Is the icon showing, and does the badge appear after a saved listing gets cheaper? |
 | Alt+Shift+L shortcut | Vivaldi has its own shortcut system, and a Vivaldi shortcut on the same keys would win | Does the shortcut open the panel? If not, set it at vivaldi://extensions/shortcuts |
-| "Open Tirekick home" on the icon's right-click menu | That entry uses the `action` menu context, which depends on how Vivaldi draws extension icons | Right-click the icon and look for it. The same thing is reachable by clicking the icon on any non-eBay page |
+| "Open Tirekick in a tab" on the icon's right-click menu | That entry uses the `action` menu context, which depends on how Vivaldi draws extension icons | Right-click the icon and look for it. The same thing is reachable by clicking the icon on any non-eBay page |
 | "Check this photo with Tirekick" | Standard page right-click menu | Right-click a listing photo on eBay |
 | "Look up … on eBay and Marketplace" | Standard right-click menu on selected text | Select a product name on any site and right-click |
 

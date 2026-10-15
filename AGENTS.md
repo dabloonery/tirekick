@@ -15,7 +15,7 @@ Standing rules:
 - US English only, in code, copy and docs ("tire", "color").
 - Never present Tirekick as "no AI" or AI-free: it has AI features. Say the core features work without the
   AI and the AI is optional; for a single action, "your AI isn't used" (Myer, 2026-10-15).
-- Keep the flat Tread Dot look, in color: navy dark theme, orange main button, verdict colors on tags and rows (Myer wants color as a cue; the neutral graphite round was undone in 0.39.0). Design tokens live in `lib/theme.js`. No gloss, no 3D.
+- Keep the flat Tread Dot look, in color: a subtle slate-navy dark theme, orange main button, verdict colors on tags and rows (Myer wants color as a cue; the neutral graphite round was undone in 0.39.0). Design tokens live in `lib/theme.js`. No gloss, no 3D.
 - The extension must work in Vivaldi as well as Chrome.
 - No background polling for alerts. Alerts come only from open tabs and the user-pressed
   "Check my saved searches" button.

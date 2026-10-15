@@ -17,6 +17,9 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 5: More stores](#brief-5-more-stores)
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
   - [Brief 7: Built-in browser AI](#brief-7-built-in-browser-ai) (first after the 1.0.0 launch)
+  - [Brief 8: Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) (plan; check first that it helps)
+  - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then Safari)
+  - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
 
 ---
 
@@ -46,7 +49,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 
 1. **0.37.0 housekeeping**: the version check, L1, test docs, this section.
 2. **More free features, and better ones.** Done in 0.37.0 and 0.38.0, from the briefs' parts that need no model:
-   - Brief 4: "Likely scam?" and "Too cheap?" marks ("Sold ones go for $300" since 0.39.0) from a trusted sold median; Marketplace's
+   - Brief 4: "Likely scam?" and "Too cheap?" marks ("Typical is $300" since 0.40.0) from a trusted sold median; Marketplace's
      "Joined Facebook in …" warns on an account made this year. 0.38.0: **Same photo as 2 other listings** on
      Marketplace, from fingerprints (dHash) of thumbnails on screen, kept 90 days; the same file or the same title
      doesn't count, and scans are told. *Still open:* eBay, which needs the seller on each card first (sellers there
@@ -57,13 +60,15 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    - Brief 2: how long a listing has been up, how a saved one moved since you saved it, "the seller may take less",
      and saved listings' history kept past the 90-day prune. *Still open:* relists.
    - Brief 6, part 1: saved listings as a spreadsheet (CSV), from Saved and from settings. *Still open:* sync.
-   - 0.39.0, from Myer's first live look: a **free read** on every listing before a scan ("Good price · $53 under sold"; prices against sold are said in dollars everywhere now, not "% of sold",
+   - 0.39.0, from Myer's first live look: a **free read** on every listing before a scan ("Good price · $53 below typical"; since 0.40.0 the price is said in dollars against the "typical" price everywhere, not "% of sold",
      "Check first", "Off-topic"), which also orders the list; **Work one out from sold prices** on a listing page
      gives the offer without an analysis; the Marketplace home feed hides **off-topic** posts (rentals, services,
      jobs, pets, "looking for", $1 placeholders: `TKRules.offTopic`), on by default there, one click to show; search
      ideas on the feed; color back (navy dark theme, tags tinted by verdict); the toolbar icon opens Tirekick's page as
      a popup off the stores, and its right-click menu has one entry of ours ("Open Tirekick in a tab"). *Still open:* learning what you skip
      on the feed (titles you mark Not interested) to hide more like them.
+   - 0.40.0: the price chip says "typical" instead of "sold" ("$53 below typical", the source on hover); no browser
+     box of past entries over Tirekick's text boxes; a quieter slate navy in dark; "1 possible scam" in the page summary. The AI choice is neutral: one "AI service" menu lists every supported service side by side, a fresh install picks none, and the panel's menu offers only the services you set up.
 3. **Live check in Vivaldi (Myer)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far
@@ -76,12 +81,12 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 
 ### For Myer, in order (2026-10-14)
 
-1. **Review and merge the 0.39.0 PR** on GitHub: open it and press **Merge pull request** (or ask Claude to).
-2. **Install 0.39.0 in Vivaldi.** Unzip `tirekick-0.39.0.zip` into the folder Vivaldi already loads Tirekick from,
+1. **Review and merge the 0.40.0 PR** on GitHub: open it and press **Merge pull request** (or ask Claude to).
+2. **Install 0.40.0 in Vivaldi.** Unzip `tirekick-0.40.0.zip` into the folder Vivaldi already loads Tirekick from,
    replacing its files (same folder name and place, so your saved data stays), then press the reload arrow on
-   Tirekick in `vivaldi://extensions`. The card there should say 0.39.0. (Or ask Claude to update the folder.)
+   Tirekick in `vivaldi://extensions`. The card there should say 0.40.0. (Or ask Claude to update the folder.)
 3. **The live check, about 20 minutes.** Each one is something the tests can't reach:
-   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "$… under sold"
+   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "$… below typical"
      on the cards? Any "Too cheap?" chips look right?
    - Press **Scan** once with your key. Tags on the cards, and the ranked list?
    - Open a listing from that search: is there an **Offer** box with a message you can copy? Type a price under
@@ -340,7 +345,7 @@ Each is a separate PR so you can stop after any of them.
 
 ## Tirekick feature briefs
 
-Six briefs, one per file, written 2026-10-14 so another agent can pick one up cold. Each is a plan only: nothing here has been built or tested.
+The briefs (1 to 7 written 2026-10-14, 8 to 10 on 2026-10-15) are written so another agent can pick one up cold. Each is a plan only: nothing here has been built or tested.
 
 | # | Brief | Size | Depends on |
 |---|---|---|---|
@@ -351,6 +356,9 @@ Six briefs, one per file, written 2026-10-14 so another agent can pick one up co
 | 5 | [More stores](#brief-5-more-stores) | Large (one PR per store) | 0.36.0 port (site table) |
 | 6 | [Sync and export](#brief-6-sync-and-export) | Small (export) to medium (sync) | Nothing new |
 | 7 | [Built-in browser AI](#brief-7-built-in-browser-ai) | Medium | Nothing new. First after the 1.0.0 launch (Myer, 2026-10-14) |
+| 8 | [Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) | Small to medium | A check on 30 real listings first |
+| 9 | [More browsers](#brief-9-more-browsers) | Small (Edge) to large (Safari) | Nothing new |
+| 10 | [More AI options](#brief-10-more-ai-options) | Small | 0.40.0 service menu |
 
 Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
@@ -608,7 +616,7 @@ Read [the briefs intro](#read-this-before-any-brief) first (ground rules, Vivald
 
 #### Goal
 
-Make Tirekick work on more second-hand stores, one at a time, through the site table: **OfferUp and Craigslist first, then Mercari, then Poshmark.** One draft PR per store.
+Make Tirekick work on more secondhand stores, one at a time, through the site table: **OfferUp and Craigslist first, then Mercari, then Poshmark.** One draft PR per store.
 
 #### User story
 
@@ -773,3 +781,69 @@ Sources: [Chrome's Prompt API](https://developer.chrome.com/docs/ai/prompt-api),
 - A batch of the mock scans scored by Gemini Nano in Chrome is compared with Haiku's on the same listings, and the
   README says honestly how they differ.
 - Myer has tried it in Chrome; in Vivaldi the choice doesn't appear and nothing breaks.
+
+### Brief 8: Price data beyond eBay sold listings
+
+Added 2026-10-15. Myer: worth it "if it also makes the product better". Plan only; nothing built.
+
+#### Why
+The "typical price" today comes only from recent eBay sold listings (`lib/sold.js`). That fails in three common cases:
+local pickup items that rarely sell on eBay (furniture, appliances, bikes), very new or niche items with
+few sales, and regional prices (Marketplace in a big city vs. eBay's national market). In those cases the
+chip is missing or misleading, and the free read says nothing.
+
+#### Options, best first
+1. **Asking prices you've already seen (recommended first).** `listingMemory` already keeps the price of
+   every listing on the pages you looked at, for 90 days. A "typical asking price" from those (median of at
+   least 8 similar titles, same store, same area when the page says it) fills the gap when eBay has too few
+   sales. It costs nothing, fetches nothing, and keeps to the ground rules. Asking prices run higher than
+   selling prices, so the chip must say so: "about typical asking price", never "typical", and the tooltip
+   names the source. Matching "similar" reuses the sold-price query words.
+2. **Sold prices from the next stores as they're added (Brief 5).** Mercari and others show sold listings on
+   their own search pages. When a store is added, its sold results are read from pages you open, the same
+   way the eBay ones are, and pooled with eBay's into one typical price with the sources listed.
+3. **Not recommended: paid price APIs** (for example, collectibles or electronics price guides). They need
+   keys, cost money, cover narrow categories, and would send your searches to another company.
+
+#### How to know it helps
+Before building, take 30 real Marketplace listings Myer looked at and compare three things: the eBay sold
+typical price, the asking-price typical from `listingMemory`, and what Myer judges each item is worth. Build
+option 1 only if it gives a sensible number for clearly more of them without making the eBay cases worse.
+
+#### Size and files
+Small to medium: `content/rules.js` (a pure `askingTypical`, unit tested), `content/panel.js` (chip and
+tooltip wording), `lib/shared.js` (nothing new in storage). One PR, version bump, light and dark screenshots.
+
+### Brief 9: More browsers
+
+Added 2026-10-15 (Myer: platform-agnostic plans belong here). Plan only; nothing built.
+
+- **Already covered:** Chrome, Vivaldi, Brave, Opera and Edge are all Chromium and load the same zip. Edge has its
+  own free store (Microsoft Partner Center): the same zip, a listing copied from `store/LISTING.md`. Cheapest next step.
+- **Firefox (medium).** Firefox runs Manifest V3 but starts `background.js` as an event page, not a service worker:
+  add `"background": { "scripts": [...] }` beside `service_worker` (Firefox reads one, Chrome the other), and a
+  `browser_specific_settings.gecko.id`. Check `chrome.action.openPopup`, `setPopup` per tab, context menus,
+  `optional_host_permissions` (asked at runtime in Firefox) and the shadow-DOM panel. Run the e2e suite in Firefox
+  through its WebDriver BiDi support, or by hand from a checklist at first. Publish on addons.mozilla.org (free;
+  source review is easy since there's no build step).
+- **Safari (large).** Needs Apple's Safari Web Extension converter, an Xcode wrapper app, a Mac to build on and
+  the $99 a year Apple developer program, and ships through the App Store. Host permissions are granted per site by
+  the user. Worth it only after Firefox, if people ask.
+- **How to know it's done:** per browser, the free marks, Scan, Saved, the popup and a restore from backup work on
+  the eBay and Marketplace fixtures; the README says which browsers are supported.
+
+### Brief 10: More AI options
+
+Added 2026-10-15. Plan only. 0.40.0 already made the choice even: one "AI service" menu lists every service side by
+side, and a fresh install picks none. What's left:
+
+- **Quality presets for every service.** The panel's Thrifty, Balanced and Thorough menu only exists for Claude
+  today. Give each preset service (OpenAI, Gemini, OpenRouter and the rest) its own cheap and strong model pair, kept
+  in one table, so every service gets the same menu. Small.
+- **Built-in browser AI:** Brief 7 (Gemini Nano in Chrome, Edge's own model). First after 1.0.0.
+- **Local models:** Ollama and LM Studio work today. Add a short "which model to pull" note in settings, measured
+  on the mock scans, and a clear message when the local server isn't running. Small.
+- **Native Gemini API** only if the OpenAI-style address falls short (photos, structured answers); otherwise keep
+  one code path.
+- **How to know it's done:** with each service set up against the mock server, the panel menu offers the same three
+  choices, and scans, Analyze and photo checks work.

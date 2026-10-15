@@ -96,7 +96,7 @@ The one change: the long label for `suspicious` becomes **Likely scam**, so it m
 
 More stores are planned, so copy about what Tirekick *is* never depends on eBay and Marketplace:
 
-- Describe the product with store-neutral words: "second-hand listings", "the stores where you shop", "the page you're on".
+- Describe the product with store-neutral words: "secondhand marketplaces", "secondhand listings", "the page you're on" (Myer, 2026-10-15). Write "secondhand", one word, the US spelling.
 - Name the supported stores once, near the end, as the current list: "Works on eBay and Facebook Marketplace." Adding a store then means editing that one line.
 - Store names stay where a feature really is store-specific (eBay sold prices, eBay fees, Marketplace scam patterns) and in the privacy page, which must list exactly which sites it reads and contacts, and gets updated with each new store.
 
@@ -135,9 +135,9 @@ their substance; only the name changes there (see the table at the end of this s
 
 **Summary** (manifest `description`, 132 characters max; this one is 119):
 
-> Deal scores, sold-price checks and scam warnings for second-hand listings, starting with eBay and Facebook Marketplace.
+> Deal scores, price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
 
-*Alternative, 129 characters:* "Kick the tires on second-hand listings: deal scores, sold-price checks and scam warnings. Works on eBay and Facebook Marketplace."
+*Alternative, 129 characters:* "Kick the tires on secondhand listings: deal scores, sold-price checks and scam warnings. Works on eBay and Facebook Marketplace."
 
 Both lead with what Tirekick does and name the stores last, so adding a store only changes the end of the line.
 
@@ -145,14 +145,14 @@ Both lead with what Tirekick does and name the stores last, so adding a store on
 
 > **Kick the tires before you buy.**
 >
-> Tirekick looks over second-hand listings with you, on the stores where you shop. It works on eBay and
+> Tirekick looks over secondhand listings with you, on the stores where you shop. It works on eBay and
 > Facebook Marketplace today, with more stores to come. Every listing gets a
 > small score dot, prices are checked against what the same thing actually sold for, likely scams are
 > marked, and it remembers what you've already seen.
 >
 > **Free, no account, no AI needed**
 > • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
-> • How far under or over the sold price each card is ("$53 under sold") once sold prices are in, plus price drops, "new to you" and auctions ending soon
+> • How far below or above the typical price each card is ("$53 below typical", from recent eBay sales) once sold prices are in, plus price drops, "new to you" and auctions ending soon
 > • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
 > • Save listings and searches; the Home tab shows what got cheaper and what you've spent
 > • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
@@ -170,7 +170,7 @@ Both lead with what Tirekick does and name the stores last, so adding a store on
 >
 > Not affiliated with or endorsed by eBay or Meta.
 
-**Single purpose:** Help people buying second-hand online judge the listings they are viewing on
+**Single purpose:** Help people buying secondhand online judge the listings they are viewing on
 supported marketplaces (currently eBay and Facebook Marketplace): scoring them, comparing prices with
 recent sales, and warning about likely scams.
 
@@ -195,7 +195,7 @@ Full replacement for `store/PRIVACY.md`. Same facts as today; the opening is tig
 
 *Last updated: <month> 2026*
 
-Tirekick is a browser extension for people buying second-hand online. It currently works on eBay and
+Tirekick is a browser extension for people buying secondhand online. It currently works on eBay and
 Facebook Marketplace. This page says what it keeps, what it sends, and to whom.
 
 **The short version:** Tirekick has no server and no analytics. The developer receives nothing.
@@ -412,7 +412,7 @@ These are my defaults. Each is easy to change before the rename PR is written.
 
 Wording that leaned on "look" and may read oddly now (my call is to keep all three, flag only):
 - Verdict label "Worth a look" (`content/panel.js`, `VERDICT.good`). Still natural; keep.
-- "Second-hand" in the store copy is unrelated to the name; keep.
+- "Secondhand" in the store copy is unrelated to the name; keep.
 - Console prefixes `[Second Look]` (`background.js:902, 945, 1061`, `content/panel.js:73, 2760`) become `[Tirekick]`.
 
 ### 2. Internal ids (no user sees these, but they must change together)

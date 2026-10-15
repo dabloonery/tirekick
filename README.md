@@ -5,20 +5,22 @@ Kick the tires before you buy.
 > Working on Tirekick (person or agent)? Read [AGENTS.md](AGENTS.md) first: it points to the
 > roadmap and reference docs in [docs/](docs/) and lists the standing rules.
 
-A browser extension for buying second-hand on eBay and Facebook Marketplace. It puts a small
+A browser extension for buying on secondhand marketplaces, starting with eBay and Facebook Marketplace. It puts a small
 score tag on every listing you're looking at, compares prices with what the same thing actually
-sold for, flags likely scams, and remembers what you've already seen. A language model (the
-Claude API, or Ollama on your own computer) does the judging; a lot of the useful parts don't
+sold for, flags likely scams, and remembers what you've already seen. An AI you choose (any
+service you have a key for, such as Anthropic, Google Gemini, OpenAI or OpenRouter, or a free model on
+your own computer) does the judging; a lot of the useful parts don't
 need a model at all.
 
 It only works on pages you're looking at, when you ask. Nothing browses or checks prices in the
 background.
 
-## Quick start (Claude API, about 5 minutes)
+## Quick start (about 5 minutes)
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens.
-2. Paste a Claude API key (from console.anthropic.com). Settings save as you go, the key is checked
+2. Under **AI service**, choose the one you have a key for (or Ollama or LM Studio on your own
+   computer), and paste its key. Settings save as you go, the key is checked
    the moment you paste it, and a banner at the top says whether you're ready (or the one thing missing),
    with links to try it on eBay or Marketplace. **Show** reveals a key to check for typos.
 3. Search eBay or Facebook Marketplace. A slim **Tirekick** tab sits on the right edge of every
@@ -114,9 +116,9 @@ scam warning stays readable.
   price, auctions ending soonest, biggest margin, or new and cheaper first.
 - **Skipped and suspicious listings are grayed out** on the page; switch to Show or Hide with
   **Skips and scams** above the list.
-- **Before any scan, each row has a free read**: Great, Good or Fair price, or Over sold price, from the sold
+- **Before any scan, each row has a free read**: Great, Good or Fair price, or Above typical, from the sold
   prices; Check first or Likely scam from the free warnings; Off-topic. "Best first" sorts by it until a scan
-  gives real scores, and the cards' sold chip says the same word ("Good price · $53 under sold").
+  gives real scores, and the cards' sold chip says the same word ("Good price · $53 below typical").
 - **A row's links**: **Open ↗** is always there; Sold, Save and Not interested appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
@@ -190,11 +192,12 @@ key, and runs only on pages you're looking at.
 **On the cards**, as soon as a results page loads:
 
 - **Scam marks**: reposts under new codes, codes in titles, contact off the site (see Scams).
-- **Under or over sold**: once sold prices are known for the search, every card says how far its price
-  (with shipping) is from what sold ones go for, in dollars: "Good price · $53 under sold", "$20 over sold",
-  "about the sold price". Pointing at it shows the sold median. Lots and auctions are left out.
-- **Too cheap**: under 40% of a trusted sold median reads "Likely scam? Sold ones go for $300", under 55%
-  "Too cheap? Sold ones go for $300" (not for broken ones, lots or auctions, and not when the sold prices are
+- **Below or above typical**: once sold prices are known for the search, every card says how far its price
+  (with shipping) is from the typical price (the middle of recent eBay sales), in dollars: "Good price · $53
+  below typical", "$20 above typical", "about typical". Pointing at it says where "typical" comes from. Lots
+  and auctions are left out.
+- **Too cheap**: under 40% of a trusted typical price reads "Likely scam? Typical is $300", under 55%
+  "Too cheap? Typical is $300" (not for broken ones, lots or auctions, and not when the sold prices are
   only a rough guide).
 - **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" straight away.
 - **New to you** on a search you've looked at before (not on feeds, and not when most of the
@@ -270,7 +273,7 @@ Turn off "Mark cards before you scan" in settings to keep cards untouched until 
 ## Model and cost
 
 Scans use their own model, **Haiku 5.5** by default (about a fortieth of Opus 5.5's price; a scan sends
-many listings at once), set under "Claude model for scans" in settings; analyzing one listing, photo
+many listings at once), set under "Model for scans" in settings; analyzing one listing, photo
 checks and search ideas use the main model. New installs start the main model on **Sonnet 5.5**, and the scan's fixed instructions are marked for the API's prompt cache, so later batches read them cheaper. Existing installs keep the model they chose. The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
 **Sonnet 5.5** (half the price), **Haiku 5.5** (about a fortieth), the other AI service you've set up,
 or your **Ollama** model (free, local). Next to it is this month's spend on paid AI; click it for

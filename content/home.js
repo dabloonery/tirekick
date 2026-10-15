@@ -71,7 +71,7 @@
       const keyed = d.provider === "ollama" || (d.provider === "openai" && !!d.oaiModel) || (d.provider === "anthropic" && !!d.hasKey);
       const steps = [
         { done: keyed, title: "Connect a model", text: "Pick any AI service you have a key for, or a free model on your own computer. Card marks, filters and price comparisons work without one.", acts: [h("button", { class: "hm-btn primary", onclick: () => send("openOptions").catch(() => {}) }, "Open settings")] },
-        { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: `Search ${TKSites.all.map((s) => s.name).join(" or ")}, then pick Buyer (to keep and use) or Reseller (to fix up and flip) at the top right of this panel.`, acts: TKSites.all.map((s) => link(s.home, s.name, { class: "hm-btn" })) },
+        { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: `Search ${TKSites.all.map((s) => s.name).join(" or ")}, then pick Buyer (to keep and use) or Reseller (to sell on) at the top right of this panel.`, acts: TKSites.all.map((s) => link(s.home, s.name, { class: "hm-btn" })) },
         { done: (d.stats.scans || 0) + (d.stats.soldLookups || 0) > 0, title: "Press Scan, or check the typical price", text: "Scan scores each listing. “Typical price”, under Scan, is free and needs no model." },
         { done: Object.keys(d.saved).length + Object.keys(d.savedSearches).length > 0, title: "Save a listing or a search", text: "Hover a card and press Save, or use Save search in the panel. Price drops show up here and as a number on the toolbar icon." },
       ];

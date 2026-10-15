@@ -417,7 +417,7 @@ flagged. Every change keeps to these:
 - **Nothing leaves the browser except to the AI service you chose, and eBay's own search.** No server,
   no analytics, no account; no listing data is republished anywhere.
 - **No logos, no implied endorsement.** "eBay" and "Facebook Marketplace" name what it works with.
-- **Estimates, said to be estimates.** Scores, prices, margins and warnings help you decide; they aren't
+- **Estimates, said to be estimates.** Scores, prices, price gaps and warnings help you decide; they aren't
   advice or a guarantee, and the extension says how far each one can be trusted.
 
 ## License and disclaimer

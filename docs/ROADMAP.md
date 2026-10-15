@@ -82,6 +82,9 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
      **14px** for reasons, price lines and the welcome; **"typical price (recent eBay sales)"** instead of "sold" in
      the panel (the cards' "Sold ↗" stays: it opens eBay's sold listings); a one-line **warning** when an offer is
      under half the ask; one name, **Search ideas**; the **orange main button** in light mode too.
+   - 0.42.0, a light shift toward everyday buyers (dabloonery, 2026-10-15): the store summary and description lead with
+     "Good price or scam?"; reseller tools stay, with neutral words ("price gap after fees", not "margin";
+     "to sell on", not "fix up and flip"); resale gets one quiet line in the listing.
 3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far

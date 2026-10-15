@@ -660,7 +660,7 @@
           <button role="tab" data-view="saved" aria-selected="false">Saved<span class="cnt"></span></button>
         </div>
         <div class="modebar" role="radiogroup" aria-label="Shopping as">
-          <button role="radio" data-mode="buyer" title="Buyer: something to keep and use">Buyer<span class="sr">, to keep and use</span></button><button role="radio" data-mode="reseller" title="Reseller: something to fix up and flip">Reseller<span class="sr">, to fix up and flip</span></button>
+          <button role="radio" data-mode="buyer" title="Buyer: something to keep and use">Buyer<span class="sr">, to keep and use</span></button><button role="radio" data-mode="reseller" title="Reseller: something to sell on">Reseller<span class="sr">, to sell on</span></button>
         </div>
       </div>
       <div class="progress" hidden aria-hidden="true"><i></i></div>
@@ -686,7 +686,7 @@
         <div class="hint mode-hint"></div>
         <div class="inputs">
         <div class="want-field"><label for="want">What I want</label><input autocomplete="off" id="want" placeholder="e.g. working, with charger, under $150"></div>
-        <div class="feewrap"><label for="fee">Selling fees (%)</label><input autocomplete="off" id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the sold price for the margin; eBay's are about 13%.</div></div>
+        <div class="feewrap"><label for="fee">Selling fees (%)</label><input autocomplete="off" id="fee" inputmode="decimal" aria-describedby="fee-hint"><div class="hint" id="fee-hint">Taken off the typical price for the price gap; eBay's are about 13%.</div></div>
         <div class="q-sum"><span class="q-sum-text"></span> <button data-act="edit-q" title="Compare prices against other words">Change</button></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input autocomplete="off" id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search on this page, so Tirekick goes by what you're into and what you want, and prices are estimates (<i>est.</i>). <b>Typical price</b> on a listing gets real eBay numbers.</div></div>
@@ -722,7 +722,7 @@
           <button class="qt" data-q="junk" aria-pressed="false" title="Hide rentals, services, jobs, pets, “looking for” posts and $1 placeholder prices: things that aren't an item for sale">Hide off-topic</button>
         </div>
         <label class="sortpick">Sort <select class="sort">
-          <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest below typical price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest margin</option><option value="new">new or cheaper first</option>
+          <option value="score">best first</option><option value="price">cheapest first</option><option value="value">furthest below typical price</option><option value="ending">auctions ending soonest</option><option value="margin">biggest price gap</option><option value="new">new or cheaper first</option>
         </select></label>
         <div class="skipwrap" title="Listings judged Skip or Likely scam, and other likely scams"><span id="skip-label">Skips and scams</span><div class="seg" role="radiogroup" aria-labelledby="skip-label"><button role="radio" data-skip="show">Show</button><button role="radio" data-skip="dim">Dim</button><button role="radio" data-skip="hide">Hide</button></div></div>
       </div>
@@ -1348,7 +1348,7 @@
       id: "reseller",
       name: "Reseller mode",
       as: "a reseller",
-      hint: "Find ones worth fixing and selling: an easy fix, or a margin after fees and parts. Broken and untested ones are welcome.",
+      hint: "Find ones worth fixing and selling: an easy fix, or a price gap after fees and parts. Broken and untested ones are welcome.",
       want: "e.g. common fault, parts easy to find, sells fast",
       sort: "margin",
     },
@@ -1485,7 +1485,7 @@
     if (it.lot && it.total != null) return `Lot of ${it.lot} \u00b7 ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each`;
     // Fix & flip: how hard the fix is (when there is one) and what it should make; whichever is known.
     if (it.lens === "project") {
-      const margin = it.margin != null ? `\u2248 ${money(it.margin)} margin${it.refIsEstimate || it.refRough ? " (est.)" : ""}` : "";
+      const margin = it.margin != null ? `\u2248 ${money(it.margin)} gap after fees${it.refIsEstimate || it.refRough ? " (est.)" : ""}` : "";
       const broken = it.fault && !/^none$/i.test(it.fault);
       if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`)].filter(Boolean).join(" \u00b7 ");
       if (margin) return margin;
@@ -1569,7 +1569,7 @@
       .tirekick-sticker .tk-score b { display:block; font:800 16px/1 ${DISPLAY}; letter-spacing:-.02em; font-variant-numeric:lining-nums tabular-nums; }
       .tirekick-sticker .tk-score i { display:none; }
       .tirekick-sticker .tk-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
-      .tirekick-sticker .tk-verdict { color:var(--c); font:700 14px/1.15 ${UI}; white-space:nowrap; }
+      .tirekick-sticker .tk-verdict { color:var(--c); font:700 14px/1.15 ${UI}; } /* a long one ("Great price, if it's real") wraps */
       ${THEME.glyphCss(".tk-verdict")}
       .tirekick-sticker.tk-compact .tk-verdict { display:none; }
       /* The verdict is written beside the score, so the box needn't say it again and can cover less of the photo.
@@ -2034,7 +2034,7 @@
       node.addEventListener("focusout", () => cell.removeAttribute("data-tk-lift"));
       return node;
     };
-    fadeParts(cell, host, it ? ["pass", "suspicious"].includes(shownV(it, f).v) : likelyScam(f));
+    fadeParts(cell, host, it ? skipV(shownV(it, f)) : likelyScam(f));
     if (it) {
       it.el = linkEl;
       host.setAttribute("data-tirekick", shownV(it, f).v);
@@ -2569,7 +2569,7 @@
         item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}${item.scannedKind === "scan" || !item.scannedKind ? ", from the card's title, price and text (not the photos or the description)" : ", from the listing's page"}.`) : null,
         // How the numbers were made, and how far to trust them
         item.margin != null && item.lens === "project"
-          ? line(`Margin: resold at ${item.refIsEstimate ? "the estimated" : "the sold"} ${dollars(item.refWorking)}, less ${item.feePct}% + $0.40 fees${item.shipOut ? `, ~${dollars(item.shipOut)} shipping` : " (shipping not known: take it off)"}${item.partsCost ? `, ~${dollars(item.partsCost)} parts` : ""} and the ${dollars(item.total)} price. Before sales tax and your time.`)
+          ? line(`Price gap: sold at ${item.refIsEstimate ? "the estimated" : "the typical"} price of ${dollars(item.refWorking)}, less ${item.feePct}% + $0.40 fees${item.shipOut ? `, ~${dollars(item.shipOut)} shipping` : " (shipping not known: take it off)"}${item.partsCost ? `, ~${dollars(item.partsCost)} parts` : ""} and the ${dollars(item.total)} price. Before sales tax and your time.`)
           : null,
         item.refRough && !item.refIsEstimate ? line("The sold price comes from few sales or a wide spread: a rough guide.") : null,
         f.auction ? line(`Auction: ${f.bids || 0} bid${f.bids === 1 ? "" : "s"}${f.timeLeft ? `, ${f.timeLeft} left` : ""}. The price is only the current bid.${item.bidCap > 0 ? ` Worth bidding up to about ${dollars(item.bidCap)}${item.lens === "project" ? " to break even" : ""}.` : ""}`) : null,
@@ -2607,13 +2607,15 @@
     return !showHidden && (!!notInterested[keyOf(it.url)] || !!f?.filtered);
   };
   // Skipped and suspicious listings (and reposted scams, judged without a model) follow the Skipped setting.
-  const isSkip = (it) => it.score != null ? ["pass", "suspicious"].includes(shownV(it).v) : likelyScam(facts.get(keyOf(it.url)));
+  const isSkip = (it) => it.score != null ? skipV(shownV(it)) : likelyScam(facts.get(keyOf(it.url)));
+  // A price warning recolors the verdict but doesn't gray the listing out: it may still be the real thing.
+  function skipV(sv) { return sv.v === "pass" || (sv.v === "suspicious" && !sv.priceWarn); }
   // The verdict to show for a scored listing: the price check wins over the score (TKRules.priceVerdict).
   // The model's own verdict stays stored; this is worked out each time, with the latest typical price.
   function shownV(it, f = facts.get(keyOf(it.url))) {
     const market = it.refWorking > 0 && !it.refIsEstimate ? { median: it.refWorking, confidence: it.refRough ? "rough" : "good" } : lastMarket;
     const pv = TKRules.priceVerdict(it.verdict, { ...f, ...it }, market);
-    return { v: pv.v, label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label };
+    return { v: pv.v, label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label, priceWarn: pv.v === "suspicious" && it.verdict !== "suspicious" };
   }
 
   // Every listing on the page, scored or not: before a scan the list is the page in a form you
@@ -3997,7 +3999,7 @@
     if (listing.lot && listing.total != null) parts.push(h("div", { class: "meta" }, `Lot of ${listing.lot}: about ${dollars(Math.round((listing.total / listing.lot) * 100) / 100)} each.`));
     if (margin != null) {
       parts.push(
-        h("div", { class: "offer" }, "Resale margin: ", h("b", {}, `\u2248 ${money(margin)}`), ` after eBay fees${rep?.partsCost ? ` and ~$${rep.partsCost} parts` : ""}, at the typical price.`)
+        h("div", { class: "offer" }, "Price gap after fees: ", h("b", {}, `\u2248 ${money(margin)}`), ` after eBay fees${rep?.partsCost ? ` and ~$${rep.partsCost} parts` : ""}, at the typical price.`)
       );
     }
     if (rep && (rep.faults?.length || rep.notes)) {

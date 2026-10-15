@@ -99,10 +99,10 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
 4. **Save real pages for the tests** while you're there (right-click the page, **Save as**, "Webpage, HTML only"):
    an eBay search, an eBay sold search, an eBay listing, a Marketplace search and a Marketplace listing. Put them in
    your Second-Look folder under `tests/fixtures/real/` and say so.
-5. **Decide on a domain.** Not required: a free GitHub Pages address works for the privacy policy. If you want
+5. **Decide on a domain** (Myer: "I might"). Not required: a free GitHub Pages address works for the privacy policy. If you want
    tirekick.app, register it; either way, set up a contact email address for the store listing.
-6. **Store accounts, when you're ready to launch:** a Chrome Web Store developer account (one-time fee, needs a
-   Google account with 2-Step Verification) and trader or non-trader status.
+6. **Store accounts:** ~~a Chrome Web Store developer account~~ (done: Myer paid the fee, 2026-10-15). Still to
+   set: trader or non-trader status in the developer dashboard.
 7. **Screenshots 1 and 2** from real eBay pages (steps in the store checklist below).
 8. **Before going public:** decide whether to rewrite history to remove your email from old commits, and turn on
    GitHub's "Keep my email address private".

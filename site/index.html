@@ -4,13 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tirekick: kick the tires before you buy</title>
-<meta name="description" content="A free browser extension for buying on secondhand marketplaces, starting with eBay and Facebook Marketplace: likely scams marked, prices checked against what the same thing actually sold for, and help with your offer. No account, and nothing leaves your browser.">
+<meta name="description" content="Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace. Free, no account.">
 <meta name="theme-color" content="#1A2B4C">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="stylesheet" href="style.css">
 <meta property="og:title" content="Tirekick: kick the tires before you buy">
-<meta property="og:description" content="Scam marks and price checks for listings on secondhand marketplaces, starting with eBay and Facebook Marketplace. Free, no account.">
-<meta property="og:image" content="icon.png">
+<meta property="og:description" content="Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.">
+<meta property="og:image" content="https://tirekick.app/icon.png">
+<meta property="og:url" content="https://tirekick.app/">
+<link rel="canonical" href="https://tirekick.app/">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -22,7 +24,6 @@
     </a>
     <nav aria-label="Site">
       <a href="#free">What it does</a>
-      <a class="wide" href="#modes">Buyers and resellers</a>
       <a href="privacy.html">Privacy</a>
       <a href="support.html">Help</a>
     </nav>
@@ -32,7 +33,7 @@
     <div>
       <p class="kicker">Free for secondhand marketplaces</p>
       <h1>Kick the tires <em>before you buy.</em></h1>
-      <p class="lede">Is it a deal, or a scam? Tirekick looks over listings with you on secondhand marketplaces, marks the ones with scam signs, and shows what the same thing actually sold for. It works on eBay and Facebook Marketplace today, with more stores to come.</p>
+      <p class="lede">Is it a good price? Is it a scam? Tirekick looks over listings with you on secondhand marketplaces, marks the ones with scam signs, and shows what the same thing actually sold for. It works on eBay and Facebook Marketplace today, with more stores to come.</p>
       <ul class="chips" aria-label="Examples of the marks Tirekick puts on listing cards">
         <li class="chip warn">Scam: reposted</li>
         <li class="chip good">Good price · $53 below typical</li>
@@ -84,11 +85,7 @@
 <main id="main">
   <section class="strip" aria-label="What it works on">
     <div class="wrap">
-      <p>For anything people sell secondhand:</p>
-      <ul>
-        <li>Furniture</li><li>Tools</li><li>Bikes</li><li>Baby gear</li><li>Appliances</li><li>Clothes and shoes</li>
-        <li>Lawn and garden</li><li>Phones and games</li><li>Instruments</li><li>Collectibles</li><li>Sports gear</li>
-      </ul>
+      <p>Works on just about anything people sell secondhand: furniture, tools, bikes, baby gear, appliances, phones, instruments and more.</p>
     </div>
   </section>
 
@@ -141,30 +138,14 @@
 
   <section class="band tint" id="modes">
     <div class="wrap">
-      <h2>Buying to keep, or buying to flip?</h2>
-      <p class="sub">Pick a mode in the panel. Tirekick changes what it looks for.</p>
-      <div class="cols two">
-        <div class="mode" data-c="great">
-          <div class="mode-tag">Buyer</div>
-          <h3>For the things you’ll use</h3>
-          <p>Buying a couch, a stroller or a riding mower from a stranger? Check it before you message the seller.</p>
-          <ul class="ticks">
-            <li>Likely scams grayed out and sorted last</li>
-            <li>Broken and untested listings hidden with one switch</li>
-            <li>A fair offer, and a price to walk away at</li>
-          </ul>
-        </div>
-        <div class="mode" data-c="accent">
-          <div class="mode-tag">Reseller</div>
-          <h3>For the things you’ll sell on</h3>
-          <p>Picking up furniture, tools or anything else to sell on eBay? See the sold prices without leaving the listing.</p>
-          <ul class="ticks">
-            <li>Broken only: the “any of these words” search Marketplace can’t do</li>
-            <li>What broken ones sell for, so you know your worst case</li>
-            <li>Your saved list as a spreadsheet, with prices and dates</li>
-          </ul>
-        </div>
-      </div>
+      <h2>For the things you actually buy.</h2>
+      <p class="sub">Buying a couch, a stroller or a riding mower from a stranger? Check it before you message the seller.</p>
+      <ul class="ticks">
+        <li>Likely scams grayed out and sorted last</li>
+        <li>Broken and untested listings hidden with one switch</li>
+        <li>A fair offer, and a price to walk away at</li>
+      </ul>
+      <p class="sub quiet">Selling things on? Reseller mode adds the likely fault, how hard it is to fix, parts, and the price gap after eBay fees.</p>
     </div>
   </section>
 
@@ -177,7 +158,7 @@
       <ul class="ticks">
         <li>A score from 0 to 100 and a one-line verdict on every listing</li>
         <li>One listing up close: red flags, questions to ask and a fair offer</li>
-        <li>In Reseller mode: the likely fault, how hard it is to fix, parts and your margin after eBay’s fees</li>
+        <li>For something broken: the likely fault, how hard it is to fix and what the parts cost</li>
         <li>Pick any AI service you have a key for (Anthropic, DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI), or a free model on your own computer with Ollama or LM Studio. With a small model, a scan of 50 listings usually costs less than a cent.</li>
       </ul>
     </div>

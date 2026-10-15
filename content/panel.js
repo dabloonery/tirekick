@@ -711,9 +711,9 @@
           <button class="ghost" data-act="ideas" hidden>Search ideas</button>
           <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own: free, and your AI isn't used">Typical price <span class="cost">free</span></button>
         </div>
+        <div class="market"></div>
         <div class="setup" hidden><b class="setup-title">Scores are optional.</b> <span class="setup-text">Prices, scam marks and filters work without an AI.</span>
           <button class="ghost" data-act="open-settings">Open settings</button></div>
-        <div class="market"></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
         <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
         <div class="status err readwarn" role="status" hidden></div>
@@ -808,7 +808,7 @@
     text === STALE
       ? { label: "Reload the page", fn: () => location.reload() }
       : /\b(settings|extension options)\b/.test(text)
-        ? { label: "Open settings", fn: () => send("openOptions").catch(() => {}) }
+        ? { label: "Open settings", fn: () => send("openOptions", { section: "model" }).catch(() => {}) }
         : null;
   const setStatusNow = (text, isErr = false, action = null) => {
     if (isErr && !action) action = fixFor(text);
@@ -905,7 +905,7 @@
     if (!alive() || Date.now() - storeFailedAt < 10 * 60 * 1000) return;
     storeFailedAt = Date.now();
     console.warn("[Tirekick] storage write failed:", e?.message || e);
-    setStatusNow(`Tirekick couldn't save to this browser's storage (${String(e?.message || e).slice(0, 120)}). What you just did may not be kept. Home shows how much is in use; Settings can clear old data.`, true, { label: "Open settings", fn: () => send("openOptions").catch(() => {}) });
+    setStatusNow(`Tirekick couldn't save to this browser's storage (${String(e?.message || e).slice(0, 120)}). What you just did may not be kept. Settings shows how much is in use and can clear old data.`, true, { label: "Open settings", fn: () => send("openOptions", { section: "backup" }).catch(() => {}) });
   };
   const storeFailedThrow = (e) => {
     storeFailed(e);
@@ -1158,9 +1158,10 @@
     const q = qualityNow();
     modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : cfg.hasKey ? `anthropic|${q ? `q:${q[0]}` : "custom"}` : "|";
   };
-  const openSettings = () => send("openOptions").catch(() => {});
-  $('[data-act="settings"]').addEventListener("click", openSettings);
-  root.querySelectorAll('[data-act="open-settings"]').forEach((b) => b.addEventListener("click", openSettings));
+  const openSettings = (section) => send("openOptions", typeof section === "string" ? { section } : {}).catch(() => {});
+  const openAISettings = () => openSettings("model");
+  $('[data-act="settings"]').addEventListener("click", () => openSettings());
+  root.querySelectorAll('[data-act="open-settings"]').forEach((b) => b.addEventListener("click", openAISettings));
   // What's missing before the model can run ([title, text]), or null. With the welcome open it is the
   // welcome's first step, so first run is one card; otherwise it is a card of its own.
   let modelMissing = null;
@@ -1201,7 +1202,7 @@
 
   modelSel.addEventListener("change", async () => {
     const [provider, model] = modelSel.value.split("|");
-    if (!provider) return openSettings();
+    if (!provider) return openAISettings();
     const q = QUALITY.find(([id]) => model === `q:${id}`);
     await chrome.storage.local.set(provider === "anthropic" ? (q ? { provider, anthropicScanModel: q[2], anthropicModel: q[3] } : { provider }) : { provider });
     setStatus(
@@ -1256,7 +1257,7 @@
         "div",
         { class: "hint sd-note" },
         budget ? `${Math.round(share * 100)}% of your $${budget} budget. ` : "Estimates, no budget set. ",
-        h("button", { onclick: openSettings }, "Budget and how it's counted")
+        h("button", { onclick: () => openSettings("spending") }, "Budget and how it's counted")
       )
     );
   };
@@ -2353,8 +2354,8 @@
                         h("button", {
                           onclick: async () => {
                             if (!confirm(`Show all ${hidden.length} hidden listings again?`)) return;
+                            await writeStored("notInterested", { set: Object.fromEntries(Object.keys(notInterested).map((k) => [k, null])) });
                             notInterested = {};
-                            await chrome.storage.local.set({ notInterested: {} }).catch(storeFailedThrow);
                             redecorateAll();
                             renderSaved();
                             sayHere("Everything you hid is back.");
@@ -2794,7 +2795,7 @@
     const key = keyOf(it.url);
     const el = it.el?.isConnected ? it.el : elFor(key) || document.querySelector(`[data-tirekick-key="${CSS.escape(key)}"]`);
     if (!el) {
-      setStatus("That listing isn't on the page anymore. It scrolled away or the page changed.", false, { label: "Open it", fn: () => window.open(it.url, "_blank", "noopener") });
+      setStatus("That listing isn't on the page anymore. It scrolled away or the page changed.", false, { label: "Open it", fn: () => window.open(TKShared.safeUrl(it.url, "about:blank"), "_blank", "noopener") });
       return;
     }
     const card = stickerHost(el);

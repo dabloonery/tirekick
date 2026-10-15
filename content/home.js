@@ -68,7 +68,7 @@
         { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: `Search ${TKSites.all.map((s) => s.name).join(" or ")}. Tirekick marks likely scams and odd prices on the cards as they load.`, acts: TKSites.all.map((s) => link(s.home, s.name, { class: "hm-btn" })) },
         { done: (d.stats.scans || 0) + (d.stats.soldLookups || 0) > 0, title: "Check the typical price", text: "“Typical price” in the panel compares every listing with recent eBay sales. It's free." },
         { done: Object.keys(d.saved).length + Object.keys(d.savedSearches).length > 0, title: "Save a listing or a search", text: "Hover a card and press Save, or use Save search in the panel. Price drops show up here and as a number on the toolbar icon." },
-        { done: keyed, title: "Add an AI, if you like", text: "Optional. With any AI service you have a key for, or a free model on your own computer, Scan scores each listing and says why.", acts: [h("button", { class: "hm-btn", onclick: () => send("openOptions").catch(() => {}) }, "Open settings")] },
+        { done: keyed, title: "Add an AI, if you like", text: "Optional. With any AI service you have a key for, or a free model on your own computer, Scan scores each listing and says why.", acts: [h("button", { class: "hm-btn", onclick: () => send("openOptions", { section: "model" }).catch(() => {}) }, "Open settings")] },
       ];
       const n = steps.filter((s) => s.done).length;
       const show = !d.startHidden && n < steps.length;
@@ -79,7 +79,7 @@
         h("h3", {}, "Getting started", h("span", { class: "hm-grow" }), h("span", { class: "hm-count" }, `${n} of ${steps.length}`), h("button", { class: "hm-btn small", onclick: () => chrome.storage.local.set({ startHidden: true }) }, "Hide")),
         h("div", { class: "hm-bar", "aria-hidden": "true" }, h("i", { style: `width:${(n / steps.length) * 100}%` })),
         h("ol", { class: "hm-steps" }, ...steps.map((s, i) =>
-          h("li", { class: s.done ? "done" : "" }, h("span", { class: "num" }, s.done ? "✓" : String(i + 1)), h("div", {}, h("b", {}, s.title), h("span", { class: "hm-hint" }, s.text), s.done || !s.acts ? null : h("div", { class: "acts" }, s.acts)))
+          h("li", { class: s.done ? "done" : "" }, h("span", { class: "num" }, s.done ? "✓" : String(i + 1)), h("div", {}, h("b", {}, s.title), s.done ? null : h("span", { class: "hm-hint" }, s.text), s.done || !s.acts ? null : h("div", { class: "acts" }, s.acts)))
         ))
       );
     }

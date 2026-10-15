@@ -87,7 +87,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
      "to sell on", not "fix up and flip"); resale gets one quiet line in the listing.
    - 0.43.0, the logo's tread made visible (dabloonery, 2026-10-15, a one-off exception to "don't change the logo"):
      same tire, shape and colors, with fewer, chunkier marks set just in from the rim in a muted orange-navy
-     (`TKTheme.logoTread`, used by the icons, the site and the panel mark).
+     (`TKTheme.logoTread`, used by the icons, the site and the panel mark). The 16 and 32 px icons drop the navy tile, so the toolbar shows just the tire.
 3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far

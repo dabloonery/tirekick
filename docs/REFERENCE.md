@@ -181,7 +181,7 @@ recent sales, and warning about likely scams.
 | Intro line | `dist/second-look-<version>.zip` | `dist/tirekick-<version>.zip` |
 | `contextMenus` row | "Check this photo with Second Look", "Open Second Look home" | "Check this photo with Tirekick", "Open Tirekick home" |
 | Reviewer notes | the "Second Look" tab at the right edge | the "Tirekick" tab at the right edge |
-| Homepage URL | github.com/dabloonery/Second-Look | tirekick.app once registered (or the renamed repo) |
+| Homepage URL | https://tirekick.app | set in the manifest (0.40.2) |
 | Support contact | support@tirekick.app | works once the domain and mailbox are set up |
 
 ---

@@ -114,10 +114,22 @@
     ["adult", /\b(?:escorts?|sugar (?:daddy|baby|mama)|onlyfans|companionship|feel (?:good|relaxed) tonight|incall|outcall)\b/i],
   ];
   const THING = /\b(?:chairs?|guns?|tables?|pillows?|cushions?|seats?|pads?|devices?|machines?|massagers?|kits?|books?|dvds?)\b/i; // "massage chair" is an item
+  // A stand-in asking price: "$1234", "$12,345", "$1111", "$99999" (sellers use them to mean "message me").
+  // Compared with sold prices one read "$12263 above typical" (real-site check, 0.49.1), so it gets no
+  // price comparison and says what it is instead.
+  R.placeholderPrice = (price) => {
+    if (!(price > 0)) return false;
+    const d = String(Math.round(price));
+    return (d.length >= 4 && "1234567890".startsWith(d)) || /^1{4,}$|^9{5,}$/.test(d);
+  };
+  // So far from the typical price (20 times or more) that the two can't be about the same thing: a different
+  // item in the search, or a stand-in price. Either way a dollar gap would mislead.
+  R.tooFarToCompare = (price, typical) => R.placeholderPrice(price) || (price > 0 && typical > 0 && price >= typical * 20);
   R.offTopic = (f = {}) => {
     const t = `${f.title || ""}`;
     for (const [why, re] of OFF) if (re.test(t) && !(why === "service" && THING.test(t))) return why;
     if (f.price != null && f.price > 0 && f.price <= 1) return "$1 placeholder";
+    if (R.placeholderPrice(f.price)) return "placeholder price";
     return "";
   };
 
@@ -127,7 +139,7 @@
   R.freeRead = (f = {}, market) => {
     const cheap = f.vsSold != null ? R.tooCheap(f, market) : null;
     if (R.likelyScam(f) || cheap?.level === "far") return { v: "suspicious", word: "Likely scam", rank: -2 };
-    if (f.photoTwins || f.sellerWarn || f.offSite || cheap || f.dup) return { v: "suspicious", word: "Check first", rank: -1 };
+    if (f.photoTwins || f.sellerWarn || (f.offSite && !f.offSiteOk) || cheap || f.dup) return { v: "suspicious", word: "Check first", rank: -1 };
     const off = R.offTopic(f);
     if (off) return { v: "pass", word: "Off-topic", rank: -1 };
     // A broken or untested one is compared with working ones' prices: cheap for a reason, so no price word.
@@ -162,7 +174,7 @@
   // sellerJoined: the year the seller's account was made, where the site says (Marketplace: "Joined
   // Facebook in 2026"). An account made this year is how most Marketplace scams start.
   R.sellerWarning = (f, { minSellerRatings, minSellerPct }, now = Date.now()) => {
-    if (f.sellerCount != null && f.sellerCount < minSellerRatings) return f.sellerCount === 0 ? "New seller" : `Seller: ${f.sellerCount} ratings`;
+    if (f.sellerCount != null && f.sellerCount < minSellerRatings) return f.sellerCount === 0 ? "New seller" : `Seller: ${f.sellerCount} rating${f.sellerCount === 1 ? "" : "s"}`;
     if (f.sellerPct != null && f.sellerPct < minSellerPct) return `Seller ${f.sellerPct}% positive`;
     if (f.sellerJoined >= new Date(now).getFullYear()) return `Account made in ${f.sellerJoined}`;
     return "";

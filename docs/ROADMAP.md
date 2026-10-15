@@ -36,7 +36,7 @@ plentiful; fill gaps". So the free parts of the feature briefs come before anyth
 
 | Plan | State |
 |---|---|
-| Store checklist | The writing is done. Accounts, a public privacy-policy page and screenshots 1 and 2 wait on dabloonery. Not submitted, and won't be without dabloonery's OK |
+| Store checklist | The writing, accounts, privacy page and screenshots are done. Not submitted, and won't be without dabloonery's OK |
 | Sturdier no-AI features | All 8 items shipped (#14 to #21). Still open: real saved eBay and Marketplace pages in place of the hand-made fixtures |
 | Security review | No blockers. L1 done in 0.37.0 |
 | US English fixes (REFERENCE §5) | Done |
@@ -130,7 +130,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
    tirekick.app, register it; either way, set up a contact email address for the store listing.
 6. **Store accounts:** ~~a Chrome Web Store developer account~~ (done: dabloonery paid the fee, 2026-10-15). Still to
    set: trader or non-trader status in the developer dashboard.
-7. **Screenshots 1 and 2** from real eBay pages (steps in the store checklist below).
+7. ~~**Screenshots 1 and 2** from real eBay pages~~ (done: real captures in 0.49.1).
 8. **Before going public:** decide whether to rewrite history to remove your email from old commits, and turn on
    GitHub's "Keep my email address private".
 
@@ -284,13 +284,16 @@ Distribution is **Public**, all regions.
 3. [x] The listing marked Beta (`store/LISTING.md`, manifest description), 0.48.0.
 4. [x] **The holistic review** (dabloonery, 2026-10-15: "don't forget the holistic review"): done in 0.47.0 (PR #37).
    Its findings are under [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone).
-5. [ ] **dabloonery's real-site check** on eBay and Marketplace in Vivaldi ("For dabloonery, in order", step 3), and
-   real captures for screenshots 1 and 2.
-6. [ ] **dabloonery's accounts:** non-trader status in the developer dashboard (recommended: it keeps a home
+5. [x] **dabloonery's real-site check** on eBay and Marketplace in Vivaldi ("For dabloonery, in order", step 3), and
+   real captures for screenshots 1 to 3 (eBay search, eBay listing, Marketplace), cropped and with personal
+   details removed in 0.49.1. The check turned up three fixes, also in 0.49.1: no dollar gap for placeholder or
+   far-off prices, the off-site chip cleared when the AI calls the contact harmless, and a shorter, honest pause
+   when eBay's sold-price answer just looks odd. Recheck those on the real sites.
+6. [x] **dabloonery's accounts:** non-trader status in the developer dashboard (recommended: it keeps a home
    address off the listing), support@tirekick.app forwarding, and the contact email verified.
-7. [ ] **Site:** tirekick.app on HTTPS with `/privacy` loading, ready to publish the same day with the store
+7. [ ] **Site:** tirekick.app on HTTPS (done 2026-10-15) with `/privacy` loading, ready to publish the same day with the store
    link in place of `STORE_LISTING_URL` and a matching "Beta" mention.
-8. [ ] `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
+8. [ ] The store build is exactly **0.50.0** (dabloonery, 2026-10-15); pre-launch changes stay 0.49.x. `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
 9. [ ] **dabloonery's OK to submit.** Then the forms in the checklist below (section 5), Distribution: Public.
 
 **During the beta.** Feedback comes from strangers only (dabloonery doesn't want to involve people they know): the
@@ -357,20 +360,20 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 | Asset | Size | Status |
 |---|---|---|
 | Store icon | 128 × 128 | ✅ `icons/icon128.png` |
-| Screenshots (1 to 5) | 1280 × 800 | ⚠️ 3, 4 and 5 are ready. **1 and 2 are test pages: replace with real eBay captures** |
+| Screenshots (1 to 5) | 1280 × 800 | ✅ 1 to 3 are dabloonery's real captures (eBay search, eBay listing, Marketplace), 4 and 5 are drawn by `screenshots.ts` |
 | Small promo tile | 440 × 280 | ✅ `store/promo-small.png` (draft) |
 | Marquee promo tile | 1400 × 560 | Optional; only used if the store features the extension. Skip for now |
 
-Taking screenshots 1 and 2 (**dabloonery**, since it needs your eBay session and API key):
+Retaking screenshots 1 to 3 (**dabloonery**, since it needs your eBay session and API key):
 
 1. Set the browser window so the page area is 1280 × 800 (Chrome DevTools device toolbar, "Responsive",
    1280 × 800, zoom 100%), or capture larger and crop to 16:10.
-2. **1-scan:** run a real eBay search with 30+ results (something photogenic: film cameras, guitars,
+2. **1-ebay-search:** run a real eBay search with 30+ results (something photogenic: film cameras, guitars,
    handheld consoles), open the panel, press Scan, wait for the dots. Capture with the panel open.
-3. **2-listing:** open one of the better-scored listings, press Analyze this listing, capture once the
-   verdict, offer and price history show.
+3. **2-ebay-listing:** open one of the better-scored listings, press Analyze this listing, capture once the
+   verdict, offer and price history show. **3-marketplace:** a Marketplace search after a scan.
 4. Check nothing personal shows (your eBay username, saved addresses, browser bookmarks bar, other tabs).
-5. Drop them into `store/screenshots/` with the same names. Claude can crop, resize and check them.
+5. Drop them into `store/screenshots/` with the same names. Claude can crop, resize, remove personal details and check them.
 
 ### 5. Fill in the store forms (dabloonery, with `store/LISTING.md` open)
 

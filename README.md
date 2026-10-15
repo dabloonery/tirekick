@@ -422,7 +422,7 @@ flagged. Every change keeps to these:
 
 ## License and disclaimer
 
-Copyright © 2026 dabloonery, all rights reserved for now (see `LICENSE`, which also has the no-warranty
+Copyright © 2026 The Tirekick authors, all rights reserved for now (see `LICENSE`, which also has the no-warranty
 terms). It's meant to be open-sourced later; that's a change of `LICENSE` (Apache-2.0 or MIT, say), and the
 repository has no keys or secrets in it or its history to clean up first.
 The bundled Bricolage Grotesque font is under the SIL Open Font License (`fonts/LICENSE.md`).

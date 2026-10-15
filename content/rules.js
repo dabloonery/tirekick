@@ -119,7 +119,7 @@
     return R.priceWord(f.vsSold);
   };
   // The price against the typical price (the middle of recent eBay sales, or the model's estimate), in dollars:
-  // "$53 below typical", "$20 above typical", "about typical" (within 5%). Myer found both "65% of sold" and the
+  // "$53 below typical", "$20 above typical", "about typical" (within 5%). testers found both "65% of sold" and the
   // word "sold" confusing on a card, so the chip says "typical" and its hover says where that comes from.
   R.vsText = (total, ref, { rough = false, est = false, long = false } = {}) => {
     if (!(ref > 0) || total == null) return "";
@@ -165,7 +165,7 @@
     return level ? { level, pct: Math.round(pct * 100) } : null;
   };
 
-  // When the score and the price disagree, the price check wins (Myer, 2026-10-15). Far under the typical
+  // When the score and the price disagree, the price check wins (2026-10-15). Far under the typical
   // price: the bait, so the verdict turns to a warning ("Great price, if it's real"); well over it: no better
   // than Fair price. `it` needs total (and auction/lot/project); market is { median, confidence }.
   // Returns { v, label? }: the verdict to show, and a label when it isn't the verdict's usual one.

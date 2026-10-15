@@ -3864,7 +3864,7 @@
     });
     return [pick, box, button ? null : h("div", { class: "actions offer-acts" }, copy), h("label", { class: "said-row" }, "They said $", said), answer];
   };
-  // An opening offer under half the asking price still shows, with a word on what to expect (Myer, 2026-10-15).
+  // An opening offer under half the asking price still shows, with a word on what to expect (2026-10-15).
   const lowballNote = (open, ask) => (open > 0 && ask > 0 && open < ask * 0.5 ? h("div", { class: "meta lowball" }, "Much lower than asking; the seller may not reply.") : null);
   // The offer helper: an opening offer and a walk-away price from the sold prices (TKRules.offerPlan),
   // with the messages above.
@@ -4276,7 +4276,7 @@
   const showIdeasBtn = () => {
     const type = TK.pageType();
     ideasBtn.hidden = !(type === "home" || type === "results");
-    setIf(ideasBtn, "textContent", "Search ideas"); // one name everywhere (Myer, 2026-10-15)
+    setIf(ideasBtn, "textContent", "Search ideas"); // one name everywhere (2026-10-15)
     setIf(ideasBtn, "title", noSearch() ? "Searches from what you want, or from what's in this feed (uses the AI)" : "Other ways to search for this: misspellings sellers make, other model names, tighter or looser words (uses the AI)");
   };
   queryEl.addEventListener("input", showIdeasBtn);

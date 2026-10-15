@@ -150,7 +150,7 @@ Both lead with what Tirekick does and name the stores last, so adding a store on
 >
 > **Free, with no account. These work without the optional AI features**
 > • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
-> • "% of sold" on every card once sold prices are in, plus price drops, "new to you" and auctions ending soon
+> • How far below or above the usual eBay sold price each listing is ("38% below sold"), plus price drops, "new to you" and auctions ending soon
 > • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
 > • Save listings and searches; the Home tab shows what got cheaper and what you've spent
 > • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools

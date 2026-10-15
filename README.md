@@ -125,9 +125,9 @@ scam warning stays readable.
   now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Unhide.
 - **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
   seller (copyable), a suggested offer with a ready-to-send message, and a photo check.
-- **Better searches** (under Scan) suggests other ways to search for what's on the page: the
+- **Search ideas** (under Scan) suggests other ways to search for what's on the page: the
   misspellings sellers make, other model names, tighter or looser words. Click one to run it,
-  Save to keep it, hover for why. On eBay's front page, "Find searches for what I want" does the same
+  Save to keep it, hover for why. On eBay's front page, **Search ideas** does the same
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Tirekick".
 - **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
@@ -182,7 +182,7 @@ On the Marketplace home feed, or a Marketplace or eBay category page, there's no
 against, so your interests (settings) and "What I want" decide what's relevant. Everything else
 reads "Not your thing" and is grayed out with the skipped listings. Prices are compared with the model's
 estimate of what that kind of item usually sells for, always marked **est.**; press
-**Sold prices** on a listing for real eBay numbers for that exact item.
+**Typical price** on a listing for real eBay numbers for that exact item.
 
 ## Without the AI
 
@@ -237,7 +237,7 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
 
 **In the panel**:
 
-- **Sold prices** (under the Scan button, marked free): the eBay sold-price lookup on its own, with
+- **Typical price** (under the Scan button, marked free): the eBay sold-price lookup on its own, with
   no model. Prices already looked up for a search in the last six hours apply by themselves.
 - **The list** shows every listing on the page before any scan, priced with shipping, and sorts
   by cheapest (lots per item), furthest under the sold price, auctions ending soonest, or new and
@@ -417,7 +417,7 @@ flagged. Every change keeps to these:
 - **Nothing leaves the browser except to the AI service you chose, and eBay's own search.** No server,
   no analytics, no account; no listing data is republished anywhere.
 - **No logos, no implied endorsement.** "eBay" and "Facebook Marketplace" name what it works with.
-- **Estimates, said to be estimates.** Scores, prices, margins and warnings help you decide; they aren't
+- **Estimates, said to be estimates.** Scores, prices, price gaps and warnings help you decide; they aren't
   advice or a guarantee, and the extension says how far each one can be trusted.
 
 ## License and disclaimer

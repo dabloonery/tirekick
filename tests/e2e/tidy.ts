@@ -44,7 +44,7 @@ await sleep(600);
 ok("turning it off shows them again", (await shown()).split(",").length === 8, await shown());
 await R(f, `[...r.querySelectorAll('.lb-quick .qt')].find(b=>b.textContent==='Hide off-topic').click()`);
 await sleep(600);
-ok("search ideas are offered on the feed (no search yet)", await R(f, `const b=r.querySelector('[data-act=ideas]'); return !b.hidden && b.textContent==='Find searches for what I want'`));
+ok("search ideas are offered on the feed (no search yet)", await R(f, `const b=r.querySelector('[data-act=ideas]'); return !b.hidden && b.textContent==='Search ideas'`));
 ok("no browser box of past entries on the panel's text boxes", await R(f, `return [...r.querySelectorAll('input:not([type=checkbox]), textarea')].every(i => i.autocomplete === 'off')`));
 // Click the page: the panel tucks away.
 await f.ev(`document.querySelector('main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }))`);
@@ -72,7 +72,7 @@ const it = await open("https://www.ebay.com/itm/184891897312");
 await sleep(2500);
 await R(it, `r.querySelector('[data-act=tab]').click()`);
 await waitFor(() => R(it, `return !!r.querySelector('[data-act=offer-prices]')`));
-ok("a listing page with no sold prices offers to work out an offer, free", await R(it, `return /Want an offer to send\\? Work one out from sold prices/.test(r.querySelector('.offer-ask')?.textContent || '')`));
+ok("a listing page with no sold prices offers to work out an offer, free", await R(it, `return /Want an offer to send\\? Work one out from the typical price/.test(r.querySelector('.offer-ask')?.textContent || '')`));
 await R(it, `r.querySelector('[data-act=offer-prices]').click()`);
 await waitFor(() => R(it, `return /Offer \\$/.test(r.querySelector('.pi-line .offer')?.textContent || '')`), 12000);
 ok("…and pressing it gives the offer and the message, without the AI", await R(it, `const b=r.querySelector('.pi-line .offer'); return /Offer \\$/.test(b?.textContent||'') && !!b.querySelector('.msg-kind [data-kind=friendly][aria-checked=true]')`), await R(it, `return r.querySelector('.pi-line')?.textContent`));

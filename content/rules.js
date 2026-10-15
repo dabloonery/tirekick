@@ -165,6 +165,19 @@
     return level ? { level, pct: Math.round(pct * 100) } : null;
   };
 
+  // When the score and the price disagree, the price check wins (Myer, 2026-10-15). Far under the typical
+  // price: the bait, so the verdict turns to a warning ("Great price, if it's real"); well over it: no better
+  // than Fair price. `it` needs total (and auction/lot/project); market is { median, confidence }.
+  // Returns { v, label? }: the verdict to show, and a label when it isn't the verdict's usual one.
+  R.ABOVE_CAP = 1.25;
+  R.priceVerdict = (verdict, it, market) => {
+    const keep = { v: verdict };
+    if (!(verdict in R.RANK) || verdict === "pass" || !it || it.total == null || !(market?.median > 0)) return keep;
+    if (R.tooCheap(it, market)) return { v: "suspicious", label: "Great price, if it’s real" };
+    if (!it.auction && !it.lot && !it.project && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return { v: "fair" };
+    return keep;
+  };
+
   // "Seller may take less": what a listing shows that usually means room to haggle. Each sign is a short
   // reason; two or more make it likely. drops: price drops you've seen; days: how long it's been listed (or
   // since you first saw it); motivated: "moving sale" and the like; bestOffer: the site's own offer button.
@@ -191,7 +204,7 @@
     if (!(market?.median > 0) || !(market.p25 > 0) || price == null || !(price > 0) || auction || lot || project) return null;
     const ship = Number(shipping) || 0;
     const total = price + ship;
-    const reasons = [`sold ones go for $${market.p25}–$${market.p75} (${market.n} sales)`];
+    const reasons = [`the typical price is $${market.p25}–$${market.p75} (${market.n} recent eBay sales)`];
     if (total <= market.p25) return { cheap: true, open: null, walkAway: null, reasons: [`it's already under most sales: ${reasons[0]}`], confidence: market.confidence };
     const target = soft === "likely" ? market.p25 : (market.p25 + market.median) / 2;
     const open = R.roundOffer(Math.max(price * 0.6, Math.min(price, target - ship)));

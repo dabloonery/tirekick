@@ -298,7 +298,7 @@ const PRICES = [
 
 // Usage per local day and model: { days: { "2026-10-08": { usd, calls, models: { id: { usd, calls } } } } }.
 // Estimates from token counts at list price: a regular API key can't read the real balance.
-const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in your time zone
+const today = () => TKShared.localDay(); // YYYY-MM-DD in your time zone
 function monthSpent(usage, month = today().slice(0, 7)) {
   return Object.entries(usage?.days || {}).reduce((sum, [d, v]) => (d.startsWith(month) ? sum + v.usd : sum), 0);
 }
@@ -840,11 +840,6 @@ async function soldWorkerBlocked() {
 }
 
 // ---------- Fonts ----------
-// Page scripts get the bundled fonts as bytes and add them with the FontFace API. Nothing is
-// exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
-// and a site's font rules can't block them.
-
-// ---------- Fonts ----------
 // Page scripts get the bundled typeface as bytes and add it with the FontFace API. Nothing is
 // exposed as a web-accessible resource, so pages can't detect the extension through its fonts,
 // and a site's font rules can't block them.
@@ -898,7 +893,7 @@ async function abort({ ids }) {
 // ---------- One writer for what tabs share ----------
 // Tabs send changes to shared records here (see TKShared.applyEdit) and they're applied one at a time,
 // so two tabs saving, hiding or filtering at the same moment can't undo each other.
-const SHARED = new Set(["saved", "savedSearches", "stats", "notInterested", "codeStems", "quickFilters", "panelBox", "siteHealth", "soldCache", "searchWants", "modePrefs", "photoSeen"]);
+const SHARED = new Set(TKShared.SHARED);
 let editQueue = Promise.resolve();
 const oneAtATime = (fn) => {
   const run = editQueue.then(fn);
@@ -909,7 +904,8 @@ function storeEdit({ name, edit }) {
   if (!SHARED.has(name)) return Promise.reject(new Error("Not a shared record."));
   return oneAtATime(async () => {
     const next = TKShared.applyEdit((await chrome.storage.local.get(name))[name], edit);
-    await chrome.storage.local.set({ [name]: next });
+    if (edit.clear && !Object.keys(next).length) await chrome.storage.local.remove(name);
+    else await chrome.storage.local.set({ [name]: next });
     return next;
   });
 }

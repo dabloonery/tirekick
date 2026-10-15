@@ -42,10 +42,11 @@ Plain Manifest V3, no build step and no dependencies: the folder loads unpacked 
 
 Conventions that matter:
 
-- **Shared records** (the `SHARED` set in `background.js`: saved items and searches, stats,
+- **Shared records** (`TKShared.SHARED` in `lib/shared.js`: saved items and searches, stats,
   `siteHealth`, `soldCache` and more) are only changed with `send("storeEdit", { name, edit })`,
   never a direct `chrome.storage.local.set`, so two tabs can't undo each other. Edit ops are
-  documented above `applyEdit` in `lib/shared.js`. A new shared record goes in `SHARED`.
+  documented above `applyEdit` in `lib/shared.js`. A new shared record goes in `SHARED`; the options page
+  uses the same message for its clear and restore buttons.
 - **Storage shape changes** go in `TKShared.upgradeStorage` with a bump to `STORAGE_VERSION`; the
   background runs it once per version. Restore (backup import) must accept older shapes too.
 - **A new background message type** goes in `HANDLERS`. The fixture pages stub

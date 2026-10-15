@@ -32,7 +32,7 @@ async function run(label: string, withExtension: boolean) {
   if (Deno.env.get("PERF_JS") && withExtension) await p.ev(Deno.env.get("PERF_JS")!);
   const profile = Deno.env.get("PROFILE_OUT") && (withExtension || Deno.env.get("PROFILE_BASE"));
   if (profile) { await c.send("Profiler.enable", {}, p.sessionId); await c.send("Profiler.setSamplingInterval", { interval: 200 }, p.sessionId); await c.send("Profiler.start", {}, p.sessionId); }
-  // TRACE_OUT: a timeline trace of the scrolling, totalled by event type (Paint, Layout, style, …) for the page's main thread.
+  // TRACE_OUT: a timeline trace of the scrolling, totaled by event type (Paint, Layout, style, …) for the page's main thread.
   const tracing = Deno.env.get("TRACE_OUT") && withExtension;
   const traceEvents: any[] = [];
   if (tracing) {

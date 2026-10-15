@@ -139,7 +139,7 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | They said $ | Under the offer helper and the analysis's offer: a number field. *Take it at $285*, *Counter at $260* or *Offer $290 once, then walk away*, with the reason after a colon; the message box is rewritten to match |
 | Price chip | The price against the typical price (the middle of recent eBay sales) in dollars, never a percentage and without the word "sold" on the card (dabloonery found both confusing): *Good price · $53 below typical*, *$20 above typical*, *about typical*; where "typical" comes from on hover (`TKRules.vsText`) |
 | Too-cheap chip | *Likely scam? Typical is $300* under 40% of a trusted median, *Too cheap? Typical is $300* under 55% (the % on hover); in place of the price chip. Not for broken ones, lots, auctions or a rough reference |
-| Home tiles | Saved listings, price drops, saved searches open Saved; spent this month opens the spending detail |
+| Home tiles | Saved listings, price drops, saved searches and at your price; each opens Saved |
 
 ## 7. Accessibility acceptance criteria (WCAG 2.2 AA)
 

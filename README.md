@@ -52,12 +52,9 @@ below). Saved and Home work on any eBay or Marketplace page.
   that had listings at your price the last time you looked. New ones also show as a number on the
   toolbar icon; clicking the icon then opens the panel on Home, and looking at Home marks them seen.
   Nothing checks in the background: these update when those listings are on your screen.
-- **At a glance**: saved listings and searches, price drops (Buyer) or listings at your price
-  (Reseller), and this month's spend against your budget.
-- **Spent on paid AI, 30 days**: a bar per day (hover for the figure), with **Table view** for the
-  numbers and the cost per model.
-- **What you use**: plain counters kept in this browser (scans, sold-price comparisons, analyses,
-  search ideas, photo checks, saves, hides, switches to Reseller). **Reset counts** clears them.
+- **At a glance**: saved listings, price drops, saved searches and listings at your price.
+- **Spent on paid AI, 30 days** (only once something was spent; folded): a bar per day, with
+  **Table view** for the numbers and the cost per model.
 - **Getting started**: four steps with a check beside each one done; **Hide** folds it away.
 - On a page Tirekick doesn't work on, the toolbar icon opens **Tirekick's own page as a popup**: a lookup,
   your saved listings and searches, and Home. **Open in a tab ↗** at its top (or right-click the icon,
@@ -123,8 +120,7 @@ scam warning stays readable.
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
   now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Unhide.
-- **Analyze this listing** on a listing page gives a verdict, red flags, questions to ask the
-  seller (copyable), a suggested offer with a ready-to-send message, and a photo check.
+- **Analyze this listing** on a listing page gives a verdict, red flags, a suggested offer with a ready-to-send message, and a photo check.
 - **Search ideas** (under Scan) suggests other ways to search for what's on the page: the
   misspellings sellers make, other model names, tighter or looser words. Click one to run it,
   Save to keep it, hover for why. On eBay's front page, **Search ideas** does the same
@@ -147,8 +143,8 @@ scam warning stays readable.
 | **Reseller** | Projects: an easy, cheap fix, a resale margin after selling fees and parts, or both; broken and untested ones are welcome | "Easy fix · ≈ $16 margin", or "≈ $26 margin" for one that works; the likely fault on hover |
 
 Reseller adds a **Selling fees (%)** box (the same setting as in settings) and sorts by **biggest
-margin** to start with. Reseller knows the usual faults for electronics, retro tech and consoles (dirty cartridge
-connectors, tired capacitors, worn disc drives…) and what has a homebrew scene; "What you're
+margin** to start with. Reseller knows the usual faults for electronics and consoles (dirty cartridge
+connectors, tired capacitors, worn disc drives…); "What you're
 into" in settings steers that, and the rules of thumb live in `FIX_KNOWLEDGE` in
 `background.js`. On a listing page it adds a repair plan: likely faults, parts, tools,
 difficulty. Repair guesses come from the listing text only: use them to decide what to ask the
@@ -209,8 +205,11 @@ key, and runs only on pages you're looking at.
   any page in the last 90 days: a stolen or stock photo. Tirekick works out a small fingerprint from each thumbnail
   you scroll past (on your computer; only the code is kept), so it catches a photo uploaded again, not just the same
   file. The seller's own relists and identical titles don't count. Not on eBay, where sellers reuse their own photos.
-- **On hover**: ☆ **Save**, **Sold ↗** (eBay's sold listings for that title, in a new tab) and
-  ✕ **Not interested**.
+- **On hover**: ☆ **Save**, **Typical price** (free: one eBay sold lookup of that listing's own title,
+  for a page with no search or only a category's name; "No price check" and why when it can't be made) or,
+  once it has a price, **Sold ↗** (eBay's sold listings for that title, in a new tab), and ✕ **Not interested**.
+- **A category isn't a price.** Words like "Electronics" or "Home & Garden" get no page-wide comparison: the
+  panel says they're too broad, and each listing can be priced from its own title.
 
 **Filtering a search.** **New only**, **Hide broken** and **Hide off-topic** sit above the list, one click each.
 The **Filter** button opens the words, price range and your price, and says how many are set; Enter or Esc

@@ -9,7 +9,9 @@ const ok = (name: string, cond: unknown, why: unknown = "") => {
   console.log(`${cond ? "PASS" : "FAIL"} ${name}${cond ? "" : ": " + (typeof why === "string" ? why : JSON.stringify(why))}`);
 };
 const errors: string[] = [];
+const worlds: any[] = []; // execution contexts, to reach the extension's own (isolated) world on a page
 c.on((m: any) => {
+  if (m.method === "Runtime.executionContextCreated") worlds.push({ ...m.params.context, sessionId: m.sessionId });
   if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails?.exception?.description || m.params.exceptionDetails?.text);
 });
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
@@ -35,7 +37,7 @@ const waitFor = async (fn: () => Promise<unknown>, ms = 8000) => {
   return false;
 };
 
-ok("installing brings storage up to date and notes its version", (await get("storageVersion")) === 1);
+ok("installing brings storage up to date and notes its version", (await get("storageVersion")) === 2);
 
 // ---------- a site that changed its pages ----------
 await reset();
@@ -130,6 +132,7 @@ await reset();
   const chips = async (label: string) => p.ev(`(() => { const b = [...document.querySelectorAll('.tirekick-marks button, .tirekick-sticker button')].find((b) => b.textContent === ${JSON.stringify(label)}); if (b) b.click(); return !!b; })()`);
   const clicked = [await chips("Save"), await chips("Not interested")];
   await R(p, `[...r.querySelectorAll('button')].find(b=>b.textContent==='Save search')?.click()`);
+  await R(p, `r.querySelector('[data-act=prices]').click()`); // counted in stats
   await R(p, `r.querySelector('.qf-toggle').click()`);
   await R(p, `const i=r.querySelector('.qf-words'); i.focus(); i.value='k1000 -parts'; i.dispatchEvent(new Event('input',{bubbles:true}))`);
   await R(p, `r.querySelector('[data-mode=reseller]').click()`);
@@ -144,6 +147,24 @@ await reset();
   // The one change: a saved listing's photo that was still the page's lazy-load placeholder (nothing shows it).
   const onlyPlaceholder = Object.keys(up.set).every((k) => k === "saved") && Object.values(diff).every((d: any) => /^data:/.test(d.was?.img) && d.now?.img === "");
   ok("…and the storage upgrade leaves it as it is", onlyPlaceholder && !up.remove.length, diff);
+}
+
+// ---------- the extension is reloaded with a page still open ----------
+// The old copy on the page can't reach the extension any more: a storage call it still makes must not
+// surface as "Extension context invalidated", and the old panel should step aside.
+{
+  const p = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");
+  await sleep(1500);
+  const world = worlds.filter((w) => w.sessionId === p.sessionId && w.auxData?.type === "isolated" && w.origin?.includes?.("chrome-extension") || (w.sessionId === p.sessionId && /Tirekick/i.test(w.name))).pop();
+  ok("the panel's own world is found on the page", !!world, worlds.filter((w) => w.sessionId === p.sessionId).map((w) => w.name));
+  await o.ev(`setTimeout(() => chrome.runtime.reload(), 50), true`).catch(() => {});
+  await sleep(1500);
+  const before = errors.length;
+  if (world) await c.send("Runtime.evaluate", { expression: "(async () => { await chrome.storage.local.get('saved'); })(); 1", contextId: world.id }, p.sessionId).catch(() => {});
+  await sleep(2500);
+  ok("…after a reload a late storage call from the old copy is swallowed, not an error", errors.length === before, errors.slice(before));
+  ok("…and the old panel stepped aside: one panel on the page at most", (await p.ev(`document.querySelectorAll('#tirekick-host').length`)) <= 1);
+  await p.close();
 }
 
 ok("no page errors", !errors.length, errors);

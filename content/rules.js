@@ -29,6 +29,22 @@
     return (x >>> 0).toString(36);
   };
 
+  // Words too broad to price: a store's category ("Electronics", "Video Games & Consoles") or a word like
+  // "stuff". A median of everything sold under "electronics" says nothing about one listing, so these get no
+  // page-wide comparison; each listing can still be priced from its own title.
+  const BROAD = new Set(("electronics|video games|video games consoles|games|consoles|cell phones|cell phones accessories|phones|" +
+    "computers|computers tablets networking|tablets|cameras|cameras photo|home|home garden|garden|home improvement|household|" +
+    "furniture|appliances|clothing|clothing shoes accessories|clothes|shoes|accessories|toys|toys hobbies|toys games|hobbies|" +
+    "collectibles|collectibles art|art|antiques|sporting goods|sports|sports outdoors|outdoors|books|books movies music|movies|" +
+    "music|musical instruments|instruments|jewelry|jewelry watches|watches|health beauty|beauty|baby|baby kids|kids|pet supplies|" +
+    "pets|business industrial|office supplies|motors|vehicles|auto parts|parts accessories|tools|tools workshop equipment|" +
+    "crafts|arts crafts|entertainment|family|free|free stuff|garage sale|miscellaneous|misc|other|stuff|things|deals|" +
+    "all|everything|for sale|electronics accessories|video gaming|gaming|tv|tvs|audio|tv audio|tv video home audio").split("|"));
+  R.broadQuery = (q) => {
+    const words = R.normTitle(q).replace(/\b(and|amp)\b/g, " ").replace(/\s+/g, " ").trim();
+    return !!words && BROAD.has(words);
+  };
+
   // A photo can only pull a verdict down (or mark it suspicious), never talk it up.
   R.adjustedVerdict = (base, score, photos) => {
     if (base === "suspicious") return base;

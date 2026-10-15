@@ -40,10 +40,10 @@ left and right pick the side, up and down the width, Home puts it back. Double-c
 puts it back. Each site remembers its own, and the panel always fits the window. Esc tucks it away
 from anywhere on the page (except while you're typing in the site's own boxes).
 
-Under the header, three tabs: **Home** (what's worth another look, a few numbers that lead to their
-lists, and folded away, spending and which features you use), **This page** (everything below) and
+Under the header, three tabs: **Home** (what's worth another look, getting started, and a few numbers
+that lead to their lists), **This page** (everything below) and
 **Saved** (your saved listings and searches; what you've hidden is folded away at the bottom). Beside
-them, **Buyer** (to keep and use) or **Reseller** (to fix up and flip) says how you're shopping (see
+them, **Buyer** (to keep and use) or **Reseller** (to fix up and resell) says how you're shopping (see
 below). Saved and Home work on any eBay or Marketplace page.
 
 ## Home

@@ -146,8 +146,8 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
       both audiences Myer agreed on (`plans/tirekick-future.md`): everyday buyers (free scam marks, checking a big
       purchase) and resellers (sold prices on Marketplace, Reseller mode), with AI last and optional. The help page
       answers the "will this get my account banned" worry. Colors brighter than the extension's light theme on purpose.
-- [ ] Fill in the contact address: `CONTACT_EMAIL` in `site/privacy.html`, `site/index.html`, `site/support.html`,
-      and `store/PRIVACY.md`.
+- [ ] Set up support@tirekick.app (already filled in on the site, in `store/PRIVACY.md` and the listing):
+      register tirekick.app and forward the mailbox.
 - [ ] Publish it. GitHub Pages is free for **public** repositories only (private ones need a paid plan), and this
       one stays private until 1.0.0, so: make a small public repository just for the site (steps in
       `site/README.md`), giving `https://dabloonery.github.io/<name>/`. At launch, when this repository goes

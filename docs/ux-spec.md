@@ -137,7 +137,8 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | Offer helper | On a listing page once sold prices are known, before any analysis: *Offer $270, walk away above $290*, the sales behind it (*From sold prices, no AI*), a message picked from three kinds (Friendly, Direct, With a reason) in a box you can edit, and **Copy message**. eBay listings with Make offer get the amount instead of a message. Nothing is typed into the site |
 | Same-photo chip | *Same photo as 2 other listings* (warn), Marketplace only; its tooltip and the hover card say *a stolen or stock photo. Ask the seller for a photo with today's date.* A listing page says the same under the scam note |
 | They said $ | Under the offer helper and the analysis's offer: a number field. *Take it at $285*, *Counter at $260* or *Offer $290 once, then walk away*, with the reason after a colon; the message box is rewritten to match |
-| Too-cheap chip | *Likely scam? 32% of sold price* under 40% of a trusted median, *Too cheap? 47% of sold price* under 55%; in place of the plain "% of sold" chip. Not for broken ones, lots, auctions or a rough reference |
+| Sold chip | The price against the sold median in dollars, never a percentage (Myer found "65% of sold" confusing): *Good price · $53 under sold*, *$20 over sold*, *about the sold price*; the median on hover (`TKRules.vsText`) |
+| Too-cheap chip | *Likely scam? Sold ones go for $300* under 40% of a trusted median, *Too cheap? Sold ones go for $300* under 55% (the % on hover); in place of the sold chip. Not for broken ones, lots, auctions or a rough reference |
 | Home tiles | Saved listings, price drops, saved searches open Saved; spent this month opens the spending detail |
 
 ## 7. Accessibility acceptance criteria (WCAG 2.2 AA)

@@ -342,3 +342,14 @@ test("freeRead: one word before any AI, from sold prices and scam signs", () => 
   assert.equal(word({ total: 35, vsSold: 0.12, project: "for parts" }), null, "broken ones are cheap for a reason");
   assert.equal(R.freeRead({ title: "Room for rent", price: 700 })?.word, "Off-topic");
 });
+
+test("vsText: under or over sold, in dollars", () => {
+  assert.equal(R.vsText(97, 150), "$53 under sold");
+  assert.equal(R.vsText(170, 150), "$20 over sold");
+  assert.equal(R.vsText(152, 150), "about the sold price");
+  assert.equal(R.vsText(97, 150, { long: true }), "$53 under the sold median");
+  assert.equal(R.vsText(97, 150, { rough: true }), "~$53 under sold");
+  assert.equal(R.vsText(97, 150, { est: true }), "~$53 under typical (est.)");
+  assert.equal(R.vsText(97, 0), "");
+  assert.ok(R.SOLD_CHIP.test("Good price · $53 under sold") && !R.SOLD_CHIP.test("Too cheap? Sold ones go for $300"));
+});

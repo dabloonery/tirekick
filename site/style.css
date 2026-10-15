@@ -5,11 +5,11 @@
 :root {
   color-scheme: dark;
   --navy: #1A2B4C; --orange: #FF8F3A;
-  --paper: #131C2E; --paper-2: #0F1726; --raise: #1B2740; --ink: #EEF1F6; --muted: #A9B4C8; --rule: #26344F; --tint: #182440;
+  --paper: #1A2B4C; --paper-2: #13223F; --raise: #20345A; --ink: #EEF2F8; --muted: #A9B5CB; --rule: #2C3E63; --tint: #13223F;
   --accent: #FF8F3A; --btn: #FF8F3A; --on-btn: #1A2B4C;
-  --v-great: #6ED9A0; --v-good: #BFE07F; --v-fair: #F0D46A; --v-pass: #A6ABB4; --v-suspicious: #F59088;
-  --dot-great: #45C985; --dot-good: #A8D65E; --dot-fair: #EBCF55; --dot-pass: #7A879E; --dot-suspicious: #EE7468;
-  --good-bg: #45C985; --good-fg: #10261A; --warn-bg: #EE7468; --warn-fg: #2A0F0B; --new-bg: #FF8F3A; --new-fg: #1A2B4C;
+  --v-great: #5FE39A; --v-good: #C3EA6E; --v-fair: #FFE16B; --v-pass: #A9B5CB; --v-suspicious: #FF8A80;
+  --dot-great: #3BDB7E; --dot-good: #B6E35A; --dot-fair: #FFE04A; --dot-pass: #7D8BA6; --dot-suspicious: #FF6A5E;
+  --good-bg: #3BDB7E; --good-fg: #1A2B4C; --warn-bg: #FF8A80; --warn-fg: #1A2B4C; --new-bg: #FF8F3A; --new-fg: #1A2B4C;
   --shadow: 0 0 0 1px rgba(255,255,255,.04), 0 18px 44px -12px rgba(5,10,25,.75);
   --ui: "TK Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
   --display: "TK Display", "Arial Narrow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -163,7 +163,8 @@ kbd { font: 600 14px/1 var(--ui); padding: 2px 6px; border: 1px solid var(--line
 .faq details p { margin: 0 0 16px; color: var(--muted); }
 
 /* ---------- round 2: the navy hero, icons, the two modes ---------- */
-.hero-band { background: var(--navy); color: #FFFFFF; }
+.hero-band { background: var(--navy); color: #FFFFFF; border-bottom: 1px solid var(--rule); }
+@media (prefers-color-scheme: dark) { .hero-band, .band.navy { background: #0F1B33; } }
 .hero-band .brand, .hero-band .top nav a:hover { color: #FFFFFF; }
 .hero-band .top nav a { color: #C9D2E3; }
 .hero-band .hero h1 { color: #FFFFFF; }
@@ -173,8 +174,8 @@ kbd { font: 600 14px/1 var(--ui); padding: 2px 6px; border: 1px solid var(--line
 .hero-band .btn.ghost { color: #FFFFFF; border-color: #4A5C80; }
 .hero-band .btn.ghost:hover { border-color: #C9D2E3; }
 .hero-band .kicker { background: rgba(255,143,58,.16); color: var(--orange); }
-.hero-band .chip.good { background: #45C985; color: #10261A; }
-.hero-band .chip.warn { background: #EE7468; color: #2A0F0B; }
+.hero-band .chip.good { background: #3BDB7E; color: var(--navy); }
+.hero-band .chip.warn { background: #FF8A80; color: var(--navy); }
 .hero-band .chip.new { background: var(--orange); color: var(--navy); }
 .hero-band .panel { color: var(--ink); box-shadow: 0 24px 60px -18px rgba(0,0,0,.6); }
 .hero-band :focus-visible { outline-color: #FFFFFF; }

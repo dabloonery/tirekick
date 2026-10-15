@@ -28,7 +28,7 @@ await R(`r.querySelector('.qf-toggle').click()`); await sleep(100);
 await R(`const i=r.querySelector('.qf-words'); i.focus(); i.value='k1000'; i.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(300);
 await p.key("Enter"); await sleep(200);
 ok("Enter folds the filter", await R(`return r.querySelector('.qf').hidden`));
-ok("button keeps the count", /Filter · 1/.test(await R(`return r.querySelector('.qf-toggle').textContent`)), await R(`return r.querySelector('.qf-toggle').textContent`));
+ok("button keeps the count", /Filter \(1\)/.test(await R(`return r.querySelector('.qf-toggle').textContent`)), await R(`return r.querySelector('.qf-toggle').textContent`));
 await R(`r.querySelector('.qf-toggle').click()`); await sleep(100);
 await R(`r.querySelector('.qf-words').focus()`);
 await p.key("Escape"); await sleep(200);

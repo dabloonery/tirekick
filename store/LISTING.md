@@ -23,7 +23,7 @@ Tirekick has optional AI features. The checks below are free and work without th
 
 **Works without AI: free, no account**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
-• How far under or over the sold price each card is ("$53 under sold") once sold prices are in, plus price drops, "new to you" and auctions ending soon
+• How far below or above the typical price each card is ("$53 below typical", from recent eBay sales) once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
 • Save listings and searches; the Home tab shows what got cheaper and what you've spent
 • From any page: select a thing's name, right-click, "Look up": what it has sold for on eBay, and a search on eBay, Marketplace or both

@@ -14,6 +14,7 @@
 
   const h = (tag, attrs = {}, ...kids) => {
     const el = document.createElement(tag);
+    if (tag === "input" || tag === "textarea") el.autocomplete = "off"; // no browser box of past entries over ours
     for (const [k, v] of Object.entries(attrs)) {
       if (k === "class") el.className = v;
       else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);

@@ -118,23 +118,24 @@
     if (f.vsSold == null || f.project) return f.drop ? { v: "good", word: "Price dropped", rank: 1 } : null;
     return R.priceWord(f.vsSold);
   };
-  // The price against a reference, in dollars rather than a percentage ("65% of sold" read as confusing):
-  // "$53 under sold", "$20 over sold", "about the sold price" (within 5%). est: the model's typical price.
+  // The price against the typical price (the middle of recent eBay sales, or the model's estimate), in dollars:
+  // "$53 below typical", "$20 above typical", "about typical" (within 5%). Myer found both "65% of sold" and the
+  // word "sold" confusing on a card, so the chip says "typical" and its hover says where that comes from.
   R.vsText = (total, ref, { rough = false, est = false, long = false } = {}) => {
     if (!(ref > 0) || total == null) return "";
-    const what = est ? "typical" : long ? "the sold median" : "sold";
+    const what = long ? "the typical price" : "typical";
     const d = Math.round(total - ref);
-    const t = Math.abs(total - ref) <= ref * 0.05 ? `about ${est ? "the typical price" : "the sold price"}` : `$${Math.abs(d)} ${d < 0 ? "under" : "over"} ${what}`;
+    const t = Math.abs(total - ref) <= ref * 0.05 ? `about ${what}` : `$${Math.abs(d)} ${d < 0 ? "below" : "above"} ${what}`;
     return `${rough || est ? "~" : ""}${t}${est ? " (est.)" : ""}`;
   };
-  R.SOLD_CHIP = / (under|over) sold$|about the sold price$/; // the cards' sold chip, to leave out where it would repeat
+  R.SOLD_CHIP = / (below|above) typical$|about typical$/; // the cards' price chip, to leave out where it would repeat
 
   // The price against the sold median, in a word.
   R.priceWord = (vs) =>
     vs <= 0.6 ? { v: "great", word: "Great price", rank: 4 }
     : vs <= 0.8 ? { v: "good", word: "Good price", rank: 3 }
     : vs <= 1.05 ? { v: "fair", word: "Fair price", rank: 2 }
-    : { v: "pass", word: "Over sold price", rank: 0 };
+    : { v: "pass", word: "Above typical", rank: 0 };
 
   // A likely scam without asking a model: a reposted listing, a code on the end of the title (until a
   // scan says it's the real model number), or a disguised way to get in touch off the site.

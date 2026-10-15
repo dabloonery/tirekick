@@ -2,7 +2,7 @@
 
 Dated 2026-10-12, version 0.34.x; brought up to date with the Tirekick name and the Tread Dot look in 0.36.0. This spec describes the extension as built and the rules future changes keep to. Evidence labels: **Verified** means an automated check observed it on the real extension (headless Chrome 153.0.8010.52, Linux, synthetic eBay and Marketplace pages from `tests/fixtures` and `tests/e2e/server.ts`, a mock Claude API); **Implemented** means the code does it but no check watches it; **Not run** means nobody has looked yet.
 
-The design direction is set: *minimal and elegant*, in the Tread Dot look (navy dark and white light, hairlines, color as a cue: verdict colors on tags, rows and free reads, an orange main button in dark, Bricolage Grotesque throughout, and a score dot ringed with tread marks).
+The design direction is set: *minimal and elegant*, in the Tread Dot look (a quiet slate navy dark and white light, hairlines, color as a cue: verdict colors on tags, rows and free reads, an orange main button in dark, Bricolage Grotesque throughout, and a score dot ringed with tread marks).
 
 ## 1. The job
 
@@ -96,13 +96,13 @@ Defined once in `lib/theme.js` (`TKTheme.palette`, the type, the tread dot and t
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--paper` | #FFFFFF | #1A2B4C | Surfaces |
-| `--paper-2` | #F4F6F9 | #13223F | Tracks, tints, hover |
-| `--raise` | #FFFFFF | #20345A | The chosen segment, the welcome card |
-| `--ink` | #1A2B4C | #EEF2F8 | Text |
-| `--muted` | #5B6780 | #A9B5CB | Secondary text (≥ 4.5:1 on paper) |
-| `--rule` | #E3E8F0 | #2C3E63 | Hairlines |
-| `--line` | #7A879E | #7D8BA6 | Control borders (≥ 3:1) |
+| `--paper` | #FFFFFF | #1C2433 | Surfaces |
+| `--paper-2` | #F4F6F9 | #161D29 | Tracks, tints, hover |
+| `--raise` | #FFFFFF | #232D3F | The chosen segment, the welcome card |
+| `--ink` | #1A2B4C | #EDF0F5 | Text |
+| `--muted` | #5B6780 | #A8B1C2 | Secondary text (≥ 4.5:1 on paper) |
+| `--rule` | #E3E8F0 | #2D3749 | Hairlines |
+| `--line` | #7A879E | #7B869A | Control borders (≥ 3:1) |
 | `--btn` | #1A2B4C | #FF8F3A | The one primary button and switches that are on (orange on navy, navy on white) |
 | `--accent` | #B04E0E | #FF8F3A | The chosen tab's line, alerts, the chart's peak. Nothing else |
 | `--danger` | #B42318 | #FF8A80 | Errors and things that clear data |
@@ -137,8 +137,8 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | Offer helper | On a listing page once sold prices are known, before any analysis: *Offer $270, walk away above $290*, the sales behind it (*From sold prices, no AI*), a message picked from three kinds (Friendly, Direct, With a reason) in a box you can edit, and **Copy message**. eBay listings with Make offer get the amount instead of a message. Nothing is typed into the site |
 | Same-photo chip | *Same photo as 2 other listings* (warn), Marketplace only; its tooltip and the hover card say *a stolen or stock photo. Ask the seller for a photo with today's date.* A listing page says the same under the scam note |
 | They said $ | Under the offer helper and the analysis's offer: a number field. *Take it at $285*, *Counter at $260* or *Offer $290 once, then walk away*, with the reason after a colon; the message box is rewritten to match |
-| Sold chip | The price against the sold median in dollars, never a percentage (Myer found "65% of sold" confusing): *Good price · $53 under sold*, *$20 over sold*, *about the sold price*; the median on hover (`TKRules.vsText`) |
-| Too-cheap chip | *Likely scam? Sold ones go for $300* under 40% of a trusted median, *Too cheap? Sold ones go for $300* under 55% (the % on hover); in place of the sold chip. Not for broken ones, lots, auctions or a rough reference |
+| Price chip | The price against the typical price (the middle of recent eBay sales) in dollars, never a percentage and without the word "sold" on the card (Myer found both confusing): *Good price · $53 below typical*, *$20 above typical*, *about typical*; where "typical" comes from on hover (`TKRules.vsText`) |
+| Too-cheap chip | *Likely scam? Typical is $300* under 40% of a trusted median, *Too cheap? Typical is $300* under 55% (the % on hover); in place of the price chip. Not for broken ones, lots, auctions or a rough reference |
 | Home tiles | Saved listings, price drops, saved searches open Saved; spent this month opens the spending detail |
 
 ## 7. Accessibility acceptance criteria (WCAG 2.2 AA)

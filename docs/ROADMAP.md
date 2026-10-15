@@ -269,9 +269,9 @@ Distribution is **Public**, all regions.
 1. [x] The open PRs merged: #32 (logo, 0.43.0), #33 to #35 (built-for-one-person cleanup, typical price per
    listing, panel tidy; 0.44.0 to 0.46.0).
 2. [x] Security item L1 (links through `safeUrl`, 0.37.0) and the review pass's L1 copy fix (0.40.2).
-3. [x] The listing marked Beta (`store/LISTING.md`, manifest description), 0.47.0.
-4. [ ] **The holistic review** (dabloonery, 2026-10-15: "don't forget the holistic review"), run by the Rethink
-   thread: the whole extension, end to end, with its fixes merged.
+3. [x] The listing marked Beta (`store/LISTING.md`, manifest description), 0.48.0.
+4. [x] **The holistic review** (dabloonery, 2026-10-15: "don't forget the holistic review"): done in 0.47.0 (PR #37).
+   Its findings are under [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone).
 5. [ ] **dabloonery's real-site check** on eBay and Marketplace in Vivaldi ("For dabloonery, in order", step 3), and
    real captures for screenshots 1 and 2.
 6. [ ] **dabloonery's accounts:** non-trader status in the developer dashboard (recommended: it keeps a home

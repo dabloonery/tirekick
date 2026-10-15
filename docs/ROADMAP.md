@@ -65,7 +65,7 @@ number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (
      a popup off the stores, and its right-click menu has one entry of ours ("Open Tirekick in a tab"). *Still open:* learning what you skip
      on the feed (titles you mark Not interested) to hide more like them.
    - 0.40.0: the price chip says "typical" instead of "sold" ("$53 below typical", the source on hover); no browser
-     box of past entries over Tirekick's text boxes; a quieter slate navy in dark; "1 looks like a scam".
+     box of past entries over Tirekick's text boxes; a quieter slate navy in dark; "1 possible scam" in the page summary. The AI choice is neutral: one "AI service" menu lists every supported service side by side, a fresh install picks none, and the panel's menu offers only the services you set up.
 3. **Live check in Vivaldi (Myer)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
    listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
 4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far

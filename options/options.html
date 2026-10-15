@@ -106,7 +106,7 @@
       <b id="statusTitle">Checking…</b>
       <p id="statusText"></p>
       <div class="row-btns">
-        <a class="btn primary" id="keyLink" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" hidden>Get a Claude API key</a>
+        <a class="btn primary" id="keyLink" href="#" target="_blank" rel="noopener" hidden>Get an API key</a>
         <a class="btn" href="https://www.ebay.com/sch/i.html?_nkw=film+camera" target="_blank" rel="noopener">Try it on eBay</a>
         <a class="btn" href="https://www.facebook.com/marketplace/" target="_blank" rel="noopener">Try it on Marketplace</a>
       </div>
@@ -116,43 +116,47 @@
 
   <section id="sec-model">
     <h2>Model</h2>
-    <p class="hint">Where the judging runs: the Claude API, another AI service (OpenAI, Gemini, OpenRouter and others), or Ollama on your own computer (private, free). Listing titles and card text go to whichever you choose.</p>
+    <p class="hint">Where the judging runs: any AI service you have a key for, or a model on your own computer (Ollama or LM Studio, private and free). Listing titles and card text go only to the one you choose.</p>
     <div class="field">
-      <label for="provider">Model provider</label>
-      <select id="provider"><option value="anthropic">Claude API</option><option value="openai">Other AI services (OpenAI, Gemini, OpenRouter…)</option><option value="ollama">Ollama (local)</option></select>
+      <label for="service">AI service</label>
+      <select id="service">
+        <option value="" disabled>Choose one…</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai:deepseek">DeepSeek</option>
+        <option value="openai:gemini">Google Gemini</option>
+        <option value="openai:mistral">Mistral</option>
+        <option value="openai:openai">OpenAI (ChatGPT models)</option>
+        <option value="openai:openrouter">OpenRouter: many models with one key</option>
+        <option value="openai:xai">xAI (Grok)</option>
+        <option value="ollama">Ollama, on this computer</option>
+        <option value="openai:lmstudio">LM Studio, on this computer</option>
+        <option value="openai:custom">Another OpenAI-compatible service</option>
+      </select>
+      <span class="hint" id="serviceHint"></span>
+      <select id="provider" hidden aria-hidden="true" tabindex="-1"><option value="anthropic"></option><option value="openai"></option><option value="ollama"></option></select>
     </div>
     <div id="anthropicBox">
       <div class="field">
-        <label for="anthropicKey">Claude API key</label>
+        <label for="anthropicKey">API key</label>
         <div class="keyrow"><input id="anthropicKey" type="password" autocomplete="off" placeholder="sk-ant-..."><button type="button" class="small" data-reveal="anthropicKey" aria-label="Show or hide the key">Show</button></div>
-        <span class="hint">Create one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It is checked as soon as you paste it. Stored only in this browser profile.</span>
+        <span class="hint">It is checked as soon as you paste it. Stored only in this browser profile.</span>
       </div>
       <div class="field">
-        <label for="anthropicModel">Claude model</label>
+        <label for="anthropicModel">Model</label>
         <input id="anthropicModel" type="text" autocomplete="off">
-        <span class="hint">Used to analyze a single listing, check photos and think up searches. Pick a model, or choose Another model to type any Claude model ID. You can switch any time from the menu at the bottom of the panel.</span>
+        <span class="hint">Used to analyze a single listing, check photos and think up searches. Pick a model, or choose Another model to type any model ID. You can switch any time from the menu at the bottom of the panel.</span>
       </div>
       <div class="field">
-        <label for="anthropicScanModel">Claude model for scans</label>
+        <label for="anthropicScanModel">Model for scans</label>
         <input id="anthropicScanModel" type="text" autocomplete="off" placeholder="Empty: the same as the model above">
         <span class="hint">A scan scores many listings at once, so a cheaper model keeps it affordable; the Scan button shows what it will cost. Pick a stronger one if its judgments look off, or choose the same as above. The quality menu at the bottom of the panel sets both at once: Thrifty, Balanced or Thorough.</span>
       </div>
     </div>
     <div id="oaiBox">
-      <div class="field">
-        <label for="oaiPreset">Service</label>
-        <select id="oaiPreset">
-          <option value="openrouter">OpenRouter: hundreds of models with one key</option>
-          <option value="openai">OpenAI</option>
-          <option value="gemini">Google Gemini</option>
-          <option value="deepseek">DeepSeek</option>
-          <option value="mistral">Mistral</option>
-          <option value="xai">xAI (Grok)</option>
-          <option value="lmstudio">LM Studio, on this computer</option>
-          <option value="custom">Another OpenAI-compatible service</option>
-        </select>
-        <span class="hint" id="oaiPresetHint"></span>
-      </div>
+      <select id="oaiPreset" hidden aria-hidden="true" tabindex="-1">
+        <option value="openrouter"></option><option value="openai"></option><option value="gemini"></option><option value="deepseek"></option>
+        <option value="mistral"></option><option value="xai"></option><option value="lmstudio"></option><option value="custom"></option>
+      </select>
       <div class="field">
         <label for="oaiUrl">Address</label>
         <input id="oaiUrl" type="text" autocomplete="off" placeholder="https://…/v1">

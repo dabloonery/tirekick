@@ -1,7 +1,7 @@
-// Draws the store screenshots (1280 x 800) into store/screenshots: the real extension on the test pages,
-// with a fake model and some saved things, spending and counters so Home and Saved have something to show.
+// Draws store screenshots 4 (Home) and 5 (Saved), 1280 x 800, into store/screenshots: the real extension on a
+// test page, with a fake model and some saved things so Home and Saved have something to show.
 //   tests/e2e/run.sh screenshots.ts
-// Screenshots 1 and 2 show a test page, not eBay: replace them with real captures before submitting (store/LISTING.md).
+// Screenshots 1 to 3 are real eBay and Marketplace captures (store/LISTING.md); this doesn't touch them.
 import { start, EXT, sleep } from "./lib.ts";
 const { open, c } = await start();
 const OUT = new URL("../../store/screenshots/", import.meta.url).pathname;
@@ -13,7 +13,7 @@ for (let i = 0; i < 30; i++) if (i % 2 === 0 || i < 5) {
   days[new Date(NOW - i * DAY).toLocaleDateString("en-CA")] = { usd, calls: 2 + (i % 4), models: { "claude-haiku-5-5": { usd, calls: 2 + (i % 4) } } };
 }
 const seed = {
-  anthropicKey: "sk-ant-test", anthropicUrl: "http://localhost:1234", useSoldComps: false, introDone: true, theme: "light",
+  anthropicKey: "sk-ant-test", anthropicUrl: "http://localhost:1234", useSoldComps: false, introDone: true, theme: "dark", provider: "anthropic",
   anthropicScanModel: "claude-haiku-5-5", anthropicModel: "claude-sonnet-5-5", usage: { days }, monthlyBudget: 5, alertsAck: {},
   saved: {
     "ebay:100000000001": { t: "Nintendo Game Boy Advance SP AGS-001 Cobalt Blue Working", u: "https://www.ebay.com/itm/100000000001", p0: 70, a0: NOW - 9 * DAY, p: 52, a: NOW - DAY },
@@ -33,23 +33,13 @@ const size = async (p: any) => { await c.send("Emulation.setDeviceMetricsOverrid
 const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host').shadowRoot; ${js}})()`);
 const shot = (p: any, name: string) => p.shot(`${OUT}${name}`, { x: 0, y: 0, width: 1280, height: 800 });
 
-// 1. a scan, 4. Saved, 3. Home
-let p = await open(`https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`); await size(p); await sleep(1200);
+// 4. Home, 5. Saved, after a scan so the page behind has tags
+const p = await open(`https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`); await size(p); await sleep(3000);
 await R(p, `r.querySelector('[data-act=tab]').click()`); await sleep(500);
 await R(p, `r.querySelector('[data-act=scan]').click()`); await sleep(2800);
-await shot(p, "1-scan.png");
-await R(p, `r.querySelector('[data-view=saved]').click()`); await sleep(500);
-await shot(p, "4-saved.png");
 await R(p, `r.querySelector('[data-view=home]').click()`); await sleep(800);
-await shot(p, "3-home.png");
-// 2. one listing
-p = await open(`https://www.ebay.com/itm/184891897312`); await size(p); await sleep(2000);
-await R(p, `r.querySelector('[data-act=tab]').click()`); await sleep(400);
-await R(p, `r.querySelector('[data-act=analyze]').click()`); await sleep(2800);
-await shot(p, "2-listing.png");
-// 5. settings
-// a fresh tab, so it shows the seeded settings (reloading the first one could hang the DevTools call)
-const so = await open(`chrome-extension://${EXT}/options/options.html`); await size(so); await sleep(1200);
-await shot(so, "5-settings.png");
-console.log(`wrote ${[...Deno.readDirSync(OUT)].length} screenshots to store/screenshots`);
+await shot(p, "4-home.png");
+await R(p, `r.querySelector('[data-view=saved]').click()`); await sleep(500);
+await shot(p, "5-saved.png");
+console.log("wrote 4-home.png and 5-saved.png to store/screenshots");
 c.close();

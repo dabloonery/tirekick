@@ -73,7 +73,11 @@ Help people buying secondhand online judge the listings they are viewing on supp
 ## Screenshots (1280 × 800, in `store/screenshots/`)
 
 1 to 3 are real captures in Vivaldi (cropped, with the account name, profile picture, ZIP code, town and seller
-names removed). 4 and 5 are drawn with `tests/e2e/run.sh screenshots.ts` (the real extension on a test page, dark theme).
+names removed; in 2 the panel's verdict header comes from a capture a moment earlier of the same analysis, so it
+reads from the top). 4 and 5 are the real extension's panel, drawn by `tests/e2e/run.sh screenshots.ts` and placed
+over the eBay page from 1. `store/screenshots/captioned/` has the same five under a one-line caption, and
+`store/promo-small.png` (440 × 280) and `store/promo-marquee.png` (1400 × 560) are the promo tiles: all drawn from
+`store/art.html` by `scripts/store-art.sh`. Upload either set of five.
 
 1. `1-ebay-search.png`: an eBay search after a scan, with tags on the cards and the panel's best picks.
 2. `2-ebay-listing.png`: one eBay listing analyzed: the AI's read, its notes and a suggested offer.

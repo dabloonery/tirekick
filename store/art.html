@@ -31,11 +31,13 @@
 
   /* marquee, 1400 x 560 */
   #marquee { width:1400px; height:560px; }
-  #marquee .copy { position:absolute; left:84px; top:0; bottom:0; width:520px; display:flex; flex-direction:column; justify-content:center; gap:26px; }
-  #marquee .brand { font-size:64px; }
-  #marquee h1 { font-size:52px; }
-  #marquee p { font:500 21px/1.4 var(--ui); color:var(--muted); margin:0; max-width:24em; }
-  #marquee .shot { position:absolute; left:652px; top:64px; width:692px; border-radius:14px; box-shadow:var(--shadow); }
+  #marquee .copy { position:absolute; left:96px; top:0; bottom:0; width:640px; display:flex; flex-direction:column; justify-content:center; gap:40px; }
+  #marquee .brand { font-size:84px; }
+  #marquee h1 { font-size:72px; }
+  #marquee .board { position:absolute; right:96px; top:70px; width:420px; height:420px; box-sizing:border-box; border-radius:28px;
+    background:var(--paper-2); box-shadow:inset 0 0 0 2px #2D3749; display:grid; place-items:center; }
+  #marquee .dots { --s:150px; gap:34px; }
+  #marquee [data-v="suspicious"] .dot::after { width:38px !important; height:38px !important; font-size:26px !important; line-height:38px !important; top:-2px !important; right:-2px !important; box-shadow:0 0 0 4px var(--paper-2) !important; }
 
   /* captioned screenshot, 1280 x 800 */
   .cap-art { width:1280px; height:800px; }
@@ -59,11 +61,14 @@
 <div class="art" id="marquee">
   <div class="copy">
     <div class="brand"><svg class="mark"></svg><span class="wm"></span></div>
-    <h1>Good price or scam?<br><em>Know before you buy.</em></h1>
-    <p>Every listing on eBay and Facebook Marketplace gets a fair-price tag and a scam check as you browse. Add your own AI if you want a closer read.</p>
-    <div><span class="beta">Beta</span></div>
+    <h1>Kick the tires<br><em>before you buy.</em></h1>
   </div>
-  <img class="shot" src="screenshots/3-marketplace.png" alt="">
+  <div class="board"><div class="dots">
+    <div data-v="great"><div class="dot" style="--lit:20"><span>91</span></div></div>
+    <div data-v="good"><div class="dot" style="--lit:16"><span>74</span></div></div>
+    <div data-v="fair"><div class="dot" style="--lit:12"><span>55</span></div></div>
+    <div data-v="suspicious"><div class="dot" style="--lit:2"><span>8</span></div></div>
+  </div></div>
 </div>
 
 <div class="art cap-art" id="shot1"><div class="cap"><h1>Good price or scam? <em>See it on every listing.</em></h1><div class="brand"><svg class="mark"></svg></div></div><img src="screenshots/1-ebay-search.png" alt=""></div>
@@ -75,7 +80,7 @@
 <script>
   const T = self.TKTheme;
   // The logo: the orange tire with its tread and navy hub, as on the toolbar icon (no tile: the art is the tile).
-  const MARK = `<circle cx="64" cy="64" r="60" fill="${T.ORANGE}"/>${T.logoTread(64, 60, 128)}<circle cx="64" cy="64" r="20.4" fill="${T.NAVY}"/>`;
+  const MARK = T.logoMark(64, 63, 128);
   for (const s of document.querySelectorAll("svg.mark")) { s.setAttribute("viewBox", "0 0 128 128"); s.innerHTML = MARK; }
   for (const w of document.querySelectorAll(".wm")) w.replaceWith(T.wordmark((tag, attrs, ...kids) => {
     const el = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); el.append(...kids); return el;

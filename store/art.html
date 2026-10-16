@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en-US"><head><meta charset="utf-8"><title>Tirekick store art</title>
+<!-- The store's promo tiles and captioned screenshots, drawn from the site's styles and lib/theme.js so the logo,
+     type and colors match the extension. Not part of the package. Render one piece at a time:
+       scripts/store-art.sh
+     art = small (440 x 280), marquee (1400 x 560), or shot1 to shot5 (1280 x 800, a caption over screenshots/N-*.png).
+     tests/e2e/screenshots.ts redraws 4 and 5; 1 to 3 are real captures. -->
+<link rel="stylesheet" href="../site/style.css">
+<script src="../lib/theme.js"></script>
+<style>
+  :root { color-scheme: dark; --navy:#1A2B4C; --orange:#FF8F3A; --paper:#1C2433; --paper-2:#161D29; --ink:#EDF0F5; --muted:#A8B1C2;
+    --dot-great:#3BDB7E; --dot-good:#B6E35A; --dot-fair:#FFE04A; --dot-pass:#7D8BA6; --dot-suspicious:#FF6A5E; }
+  html, body { margin:0; background:var(--navy); overflow:hidden; }
+  .art { display:none; position:relative; overflow:hidden; background:var(--navy); color:var(--ink); }
+  .brand { display:flex; align-items:center; gap:.32em; }
+  .brand svg { width:1.12em; height:1.12em; flex:none; }
+  .wordmark { font-size:inherit; color:#fff; }
+  h1 { font:800 1em/1.06 var(--display); margin:0; letter-spacing:-.01em; }
+  h1 em, .cap em { font-style:normal; color:var(--orange); }
+  .dots { display:grid; grid-template-columns:repeat(2, var(--s)); gap:calc(var(--s) * .22); }
+  .dots .dot { width:var(--s); height:var(--s); font-size:calc(var(--s) * .34); }
+  [data-v="suspicious"] .dot::after { box-shadow:0 0 0 2px var(--navy); }
+  .beta { display:inline-block; font:700 14px/1 var(--ui); letter-spacing:.06em; text-transform:uppercase; color:var(--navy);
+    background:var(--orange); border-radius:999px; padding:6px 10px 5px; }
+
+  /* small tile, 440 x 280 */
+  #small { width:440px; height:280px; padding:32px 34px; box-sizing:border-box; }
+  #small .brand { font-size:50px; }
+  #small h1 { font-size:26px; position:absolute; left:34px; bottom:32px; }
+  #small .dots { --s:54px; position:absolute; right:30px; bottom:30px; }
+
+  /* marquee, 1400 x 560 */
+  #marquee { width:1400px; height:560px; }
+  #marquee .copy { position:absolute; left:84px; top:0; bottom:0; width:520px; display:flex; flex-direction:column; justify-content:center; gap:26px; }
+  #marquee .brand { font-size:64px; }
+  #marquee h1 { font-size:52px; }
+  #marquee p { font:500 21px/1.4 var(--ui); color:var(--muted); margin:0; max-width:24em; }
+  #marquee .shot { position:absolute; left:652px; top:64px; width:692px; border-radius:14px; box-shadow:var(--shadow); }
+
+  /* captioned screenshot, 1280 x 800 */
+  .cap-art { width:1280px; height:800px; }
+  .cap { position:absolute; left:90px; right:90px; top:0; height:112px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+  .cap h1 { font-size:40px; }
+  .cap .brand { font-size:30px; }
+  .cap-art img { position:absolute; left:90px; top:112px; width:1100px; border-radius:12px 12px 0 0; }
+</style></head>
+<body>
+<div class="art" id="small">
+  <div class="brand"><svg class="mark"></svg><span class="wm"></span></div>
+  <h1>Kick the tires<br><em>before you buy.</em></h1>
+  <div class="dots">
+    <div data-v="great"><div class="dot" style="--lit:20"><span>91</span></div></div>
+    <div data-v="good"><div class="dot" style="--lit:16"><span>74</span></div></div>
+    <div data-v="fair"><div class="dot" style="--lit:12"><span>55</span></div></div>
+    <div data-v="suspicious"><div class="dot" style="--lit:2"><span>8</span></div></div>
+  </div>
+</div>
+
+<div class="art" id="marquee">
+  <div class="copy">
+    <div class="brand"><svg class="mark"></svg><span class="wm"></span></div>
+    <h1>Good price or scam?<br><em>Know before you buy.</em></h1>
+    <p>Every listing on eBay and Facebook Marketplace gets a fair-price tag and a scam check as you browse. Add your own AI if you want a closer read.</p>
+    <div><span class="beta">Beta</span></div>
+  </div>
+  <img class="shot" src="screenshots/3-marketplace.png" alt="">
+</div>
+
+<div class="art cap-art" id="shot1"><div class="cap"><h1>Good price or scam? <em>See it on every listing.</em></h1><div class="brand"><svg class="mark"></svg></div></div><img src="screenshots/1-ebay-search.png" alt=""></div>
+<div class="art cap-art" id="shot2"><div class="cap"><h1>A closer read, and <em>an offer to send.</em></h1><div class="brand"><svg class="mark"></svg></div></div><img src="screenshots/2-ebay-listing.png" alt=""></div>
+<div class="art cap-art" id="shot3"><div class="cap"><h1>Works on <em>Facebook Marketplace</em> too.</h1><div class="brand"><svg class="mark"></svg></div></div><img src="screenshots/3-marketplace.png" alt=""></div>
+<div class="art cap-art" id="shot4"><div class="cap"><h1>Price drops on what you saved, <em>at a glance.</em></h1><div class="brand"><svg class="mark"></svg></div></div><img src="screenshots/4-home.png" alt=""></div>
+<div class="art cap-art" id="shot5"><div class="cap"><h1>Saved listings and searches, <em>in one place.</em></h1><div class="brand"><svg class="mark"></svg></div></div><img src="screenshots/5-saved.png" alt=""></div>
+
+<script>
+  const T = self.TKTheme;
+  // The logo: the orange tire with its tread and navy hub, as on the toolbar icon (no tile: the art is the tile).
+  const MARK = `<circle cx="64" cy="64" r="60" fill="${T.ORANGE}"/>${T.logoTread(64, 60, 128)}<circle cx="64" cy="64" r="20.4" fill="${T.NAVY}"/>`;
+  for (const s of document.querySelectorAll("svg.mark")) { s.setAttribute("viewBox", "0 0 128 128"); s.innerHTML = MARK; }
+  for (const w of document.querySelectorAll(".wm")) w.replaceWith(T.wordmark((tag, attrs, ...kids) => {
+    const el = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); el.append(...kids); return el;
+  }));
+  const st = document.createElement("style"); st.textContent = T.wordmarkCss(""); document.head.append(st);
+  document.getElementById(new URLSearchParams(location.search).get("art") || "small").style.display = "block";
+</script>
+</body></html>

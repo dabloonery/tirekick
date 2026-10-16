@@ -56,8 +56,8 @@ work (PRs #14 to #21). Nothing below is done yet.*
 |---|---|---|
 | Store icon | 128 × 128 | ✅ `icons/icon128.png` |
 | Screenshots (1 to 5) | 1280 × 800 | ✅ 1 to 3 are dabloonery's real captures (eBay search, eBay listing, Marketplace), 4 and 5 are drawn by `screenshots.ts` |
-| Small promo tile | 440 × 280 | ✅ `store/promo-small.png` (draft) |
-| Marquee promo tile | 1400 × 560 | Optional; only used if the store features the extension. Skip for now |
+| Small promo tile | 440 × 280 | ✅ `store/promo-small.png` (with the logo, `scripts/store-art.sh`) |
+| Marquee promo tile | 1400 × 560 | ✅ `store/promo-marquee.png` (optional; used if the store features the extension) |
 
 Retaking screenshots 1 to 3 (**dabloonery**, since it needs your eBay session and API key):
 

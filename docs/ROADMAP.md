@@ -317,7 +317,7 @@ Each post goes up from dabloonery's own account, after dabloonery reads that com
    > only. It's a beta, so I'd like to hear what it gets wrong: support@tirekick.app or here.
    > [store link] · [tirekick.app]
 2. **A second community a week later**, only if the first went well: r/Frugal (buyer side, strict on
-   promotion), or a deal-hunting forum such as Slickdeals' "Tech Support / Browser Extensions" area. Same draft,
+   promotion) or a deal-hunting forum that allows tool posts. Same draft,
    buyer-first.
 3. **Answer, don't advertise.** When someone asks "is this a scam?" or "what's a fair price?" in those
    communities, a plain answer with a link where it truly helps. Slow, but it's how small tools get trusted.

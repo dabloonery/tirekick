@@ -15,6 +15,8 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, then
 
 ## Description
 
+Don't list AI services by name here: the store rejected 0.50.0 for keyword spam over that list (2026-10-16). The site and README can name them.
+
 **Beta:** Tirekick is new and still improving. If something looks wrong on a page, or a store changes and Tirekick stops reading it, tell us at support@tirekick.app.
 
 **Kick the tires before you buy.** Is it a good price? Is it a scam?
@@ -31,7 +33,7 @@ Tirekick has optional AI features. The checks below are free and work without th
 • From any page: select a thing's name, right-click, "Look up": what it has sold for on eBay, and a search on eBay, Marketplace or both
 • Dock the panel left or right in three widths; Buyer and Reseller modes, each with its own tools
 
-**Optional: add an AI you choose** (Anthropic's Claude, DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, any OpenAI-style service, or Ollama / LM Studio on your own computer)
+**Optional: add an AI you choose** (with your own API key from a major AI service, or a model running on your own computer)
 • A score and verdict for every listing, one line on the price, and the reasons on hover
 • Analyze one listing: red flags, a fair offer and a ready-to-send message, plus a photo check
 • Selling things on? Reseller mode adds the likely fault, how hard it is to fix, parts, and the price gap after eBay fees

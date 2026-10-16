@@ -300,6 +300,38 @@ Distribution is **Public**, all regions.
 support address and, if Myer wants, one forum post (r/Flipping or r/eBay). Fixes ship as 0.x updates through
 the store. The beta ends at 1.0.0, when the label comes off.
 
+### Launch outreach (draft, 2026-10-16: Myer picks; nothing is posted without Myer)
+
+Decided so far: no promotion plan, strangers only (never people Myer knows), no ads. This is a menu, smallest first.
+Each post goes up from Myer's own account, after Myer reads that community's current rules on self-promotion
+(many subreddits allow it only in a weekly thread, or only from accounts that take part otherwise).
+
+1. **One beta post, one community** (recommended first). r/Flipping or r/eBay: whichever allows it under its
+   rules that week. Ask for feedback, not installs. Draft:
+   > **I built a free browser extension that tags eBay and Marketplace listings as fair price, overpriced or
+   > likely scam: looking for beta feedback**
+   > It reads the search page you already have open and marks each listing against what the item actually sold
+   > for, plus common scam signs (codes in titles, "contact me outside the site", prices far below sold). It
+   > never logs in, clicks or messages anyone. The core features work without any AI; an AI is optional if you
+   > want a closer read of one listing (you bring your own key, or run a local model). Chrome and Vivaldi, desktop
+   > only. It's a beta, so I'd like to hear what it gets wrong: support@tirekick.app or here.
+   > [store link] · [tirekick.app]
+2. **A second community a week later**, only if the first went well: r/Frugal (buyer side, strict on
+   promotion), or a deal-hunting forum such as Slickdeals' "Tech Support / Browser Extensions" area. Same draft,
+   buyer-first.
+3. **Answer, don't advertise.** When someone asks "is this a scam?" or "what's a fair price?" in those
+   communities, a plain answer with a link where it truly helps. Slow, but it's how small tools get trusted.
+4. **Product directories**, low effort, no audience pressure: AlternativeTo, and later Product Hunt at 1.0.0 (a
+   beta launch there spends the one launch day early).
+
+**Paid ads: not at beta.** A beta wants a few dozen people who write back, not hundreds of quiet installs, and
+ads bring the quiet kind. Reddit and Google ads would cost money per install before the listing has any ratings,
+which is when installs convert worst. Revisit at 1.0.0 with ratings in place, a small test budget (say $50) and
+one clear audience (eBay buyers).
+
+**Watching how it goes:** the store dashboard's installs and uninstalls (weekly), the reviews on the listing, and
+the support mail. One post per community; never reply to criticism defensively; fixes ship as 0.50.x.
+
 ---
 
 ## Tirekick: Chrome Web Store submission checklist

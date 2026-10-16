@@ -34,6 +34,7 @@
   #marquee .copy { position:absolute; left:84px; top:0; bottom:0; width:520px; display:flex; flex-direction:column; justify-content:center; gap:26px; }
   #marquee .brand { font-size:64px; }
   #marquee h1 { font-size:52px; }
+  #marquee .brand .beta { font-size:16px; margin-left:.5em; align-self:center; }
   #marquee p { font:500 21px/1.4 var(--ui); color:var(--muted); margin:0; max-width:24em; }
   #marquee .shot { position:absolute; left:652px; top:64px; width:692px; border-radius:14px; box-shadow:var(--shadow); }
 
@@ -58,10 +59,9 @@
 
 <div class="art" id="marquee">
   <div class="copy">
-    <div class="brand"><svg class="mark"></svg><span class="wm"></span></div>
+    <div class="brand"><svg class="mark"></svg><span class="wm"></span><span class="beta">Beta</span></div>
     <h1>Good price or scam?<br><em>Know before you buy.</em></h1>
     <p>Every listing on eBay and Facebook Marketplace gets a fair-price tag and a scam check as you browse. Add your own AI if you want a closer read.</p>
-    <div><span class="beta">Beta</span></div>
   </div>
   <img class="shot" src="screenshots/3-marketplace.png" alt="">
 </div>
@@ -75,7 +75,7 @@
 <script>
   const T = self.TKTheme;
   // The logo: the orange tire with its tread and navy hub, as on the toolbar icon (no tile: the art is the tile).
-  const MARK = `<circle cx="64" cy="64" r="60" fill="${T.ORANGE}"/>${T.logoTread(64, 60, 128)}<circle cx="64" cy="64" r="20.4" fill="${T.NAVY}"/>`;
+  const MARK = T.logoMark(64, 63, 128);
   for (const s of document.querySelectorAll("svg.mark")) { s.setAttribute("viewBox", "0 0 128 128"); s.innerHTML = MARK; }
   for (const w of document.querySelectorAll(".wm")) w.replaceWith(T.wordmark((tag, attrs, ...kids) => {
     const el = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); el.append(...kids); return el;

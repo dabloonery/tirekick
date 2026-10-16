@@ -77,7 +77,7 @@ names removed; in 2 the panel's verdict header comes from a capture a moment ear
 reads from the top). 4 and 5 are the real extension's panel, drawn by `tests/e2e/run.sh screenshots.ts` and placed
 over the eBay page from 1. `store/screenshots/captioned/` has the same five under a one-line caption, and
 `store/promo-small.png` (440 × 280) and `store/promo-marquee.png` (1400 × 560) are the promo tiles: all drawn from
-`store/art.html` by `scripts/store-art.sh`. Upload either set of five.
+`store/art.html` by `scripts/store-art.sh`. Upload the captioned set (dabloonery's pick, 2026-10-16).
 
 1. `1-ebay-search.png`: an eBay search after a scan, with tags on the cards and the panel's best picks.
 2. `2-ebay-listing.png`: one eBay listing analyzed: the AI's read, its notes and a suggested offer.

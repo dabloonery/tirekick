@@ -55,20 +55,20 @@ work (PRs #14 to #21). Nothing below is done yet.*
 | Asset | Size | Status |
 |---|---|---|
 | Store icon | 128 × 128 | ✅ `icons/icon128.png` |
-| Screenshots (1 to 5) | 1280 × 800 | ⚠️ 3, 4 and 5 are ready. **1 and 2 are test pages: replace with real eBay captures** |
-| Small promo tile | 440 × 280 | ✅ `store/promo-small.png` (draft) |
-| Marquee promo tile | 1400 × 560 | Optional; only used if the store features the extension. Skip for now |
+| Screenshots (1 to 5) | 1280 × 800 | ✅ 1 to 3 are Myer's real captures (eBay search, eBay listing, Marketplace), 4 and 5 are drawn by `screenshots.ts` |
+| Small promo tile | 440 × 280 | ✅ `store/promo-small.png` (with the logo, `scripts/store-art.sh`) |
+| Marquee promo tile | 1400 × 560 | ✅ `store/promo-marquee.png` (optional; used if the store features the extension) |
 
-Taking screenshots 1 and 2 (**Myer**, since it needs your eBay session and API key):
+Retaking screenshots 1 to 3 (**Myer**, since it needs your eBay session and API key):
 
 1. Set the browser window so the page area is 1280 × 800 (Chrome DevTools device toolbar, "Responsive",
    1280 × 800, zoom 100%), or capture larger and crop to 16:10.
-2. **1-scan:** run a real eBay search with 30+ results (something photogenic: film cameras, guitars,
+2. **1-ebay-search:** run a real eBay search with 30+ results (something photogenic: film cameras, guitars,
    handheld consoles), open the panel, press Scan, wait for the dots. Capture with the panel open.
-3. **2-listing:** open one of the better-scored listings, press Analyze this listing, capture once the
-   verdict, offer and price history show.
+3. **2-ebay-listing:** open one of the better-scored listings, press Analyze this listing, capture once the
+   verdict, offer and price history show. **3-marketplace:** a Marketplace search after a scan.
 4. Check nothing personal shows (your eBay username, saved addresses, browser bookmarks bar, other tabs).
-5. Drop them into `store/screenshots/` with the same names. Claude can crop, resize and check them.
+5. Drop them into `store/screenshots/` with the same names. Claude can crop, resize, remove personal details and check them.
 
 ## 5. Fill in the store forms (Myer, with `store/LISTING.md` open)
 

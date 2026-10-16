@@ -419,6 +419,15 @@ flagged. Every change keeps to these:
 - **Estimates, said to be estimates.** Scores, prices, price gaps and warnings help you decide; they aren't
   advice or a guarantee, and the extension says how far each one can be trusted.
 
+## How Tirekick is made
+
+Tirekick is built with AI help, openly. Its maintainer designed and directs it: who it's for, what it does,
+every product, wording and design decision, and what ships when. They test it on real eBay and Facebook
+Marketplace pages in Vivaldi and catch problems the automated tests miss. Claude, Anthropic's AI model, writes
+most of the code and documentation under that direction, through pull requests in this repository. Nothing
+reaches the main branch without the maintainer's approval and a passing test suite (`deno task test`), and
+commits written with Claude say so in their `Co-Authored-By` line.
+
 ## License and disclaimer
 
 Copyright © 2026 The Tirekick authors, all rights reserved for now (see `LICENSE`, which also has the no-warranty

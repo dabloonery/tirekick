@@ -10,7 +10,7 @@ served from here. Every link is relative. It lives at https://tirekick.app and g
 - `support.html`: getting started, what to send when something breaks, common questions and the contact
   address. The store's **support URL** is this page.
 - `style.css`: colors, type, the tread and the verdict glyphs copied from `lib/theme.js`.
-- `promo-tile.html`: source for the store's small promo tile, not linked from the site.
+- The store's promo tiles are drawn from `store/art.html` (which uses this folder's `style.css`) by `scripts/store-art.sh`.
 - `CNAME`: the custom domain, tirekick.app.
 - The contact address is support@tirekick.app. It works once the mailbox is set up.
 

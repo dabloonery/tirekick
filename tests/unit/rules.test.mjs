@@ -369,3 +369,21 @@ test("broadQuery: a store category is too broad to price, a model isn't", () => 
   for (const q of ["Electronics", "electronics", "Video Games & Consoles", "Home & Garden", "Cell Phones & Accessories", "stuff"]) assert.equal(R.broadQuery(q), true, q);
   for (const q of ["", "pentax k1000", "ps2 slim", "electronics lot", "game boy", "vintage watch"]) assert.equal(R.broadQuery(q), false, q);
 });
+
+test("placeholder and far-off prices get no dollar comparison (real-site check, 0.49.1)", () => {
+  for (const p of [1234, 12345, 123456, 1111, 99999]) assert.equal(R.placeholderPrice(p), true, `${p}`);
+  for (const p of [70, 120, 2345, 9999, 5555, 1250]) assert.equal(R.placeholderPrice(p), false, `${p}`);
+  assert.equal(R.tooFarToCompare(12345, 82), true);
+  assert.equal(R.tooFarToCompare(1700, 82), true, "20 times the typical price is a different item");
+  assert.equal(R.tooFarToCompare(150, 82), false);
+  assert.equal(R.offTopic({ title: "Nook e-reader", price: 12345 }), "placeholder price");
+  assert.equal(R.offTopic({ title: "Nook e-reader", price: 45 }), "");
+});
+
+test("an analysis that read the web address clears 'Contact outside the site?' (real-site check, 0.49.1)", () => {
+  const plain = { offSite: { sure: false, why: ["web address “example.org”"] } };
+  assert.equal(R.freeRead(plain)?.word, "Check first");
+  assert.equal(R.freeRead({ ...plain, offSiteOk: true }), null);
+  assert.equal(R.freeRead({ offSite: { sure: true, why: [] }, offSiteOk: true })?.word, "Likely scam", "a disguised address stays a scam sign");
+  assert.equal(R.sellerWarning({ sellerCount: 1 }, { minSellerRatings: 10, minSellerPct: 97 }), "Seller: 1 rating");
+});

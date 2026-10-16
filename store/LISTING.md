@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-Everything the store's forms ask for. Fill in the two `<…>` placeholders, replace screenshots 1 and 2 with real captures (see below), then upload `dist/tirekick-<version>.zip` from `deno task pack`.
+Everything the store's forms ask for. Fill in the two `<…>` placeholders, then upload `dist/tirekick-<version>.zip` from `deno task pack`.
 
 ## Basics
 
@@ -72,13 +72,18 @@ Help people buying secondhand online judge the listings they are viewing on supp
 
 ## Screenshots (1280 × 800, in `store/screenshots/`)
 
-Regenerate with `tests/e2e/run.sh screenshots.ts` (the real extension on test pages).
+1 to 3 are real captures in Vivaldi (cropped, with the account name, profile picture, ZIP code, town and seller
+names removed; in 2 the panel's verdict header comes from a capture a moment earlier of the same analysis, so it
+reads from the top). 4 and 5 are the real extension's panel, drawn by `tests/e2e/run.sh screenshots.ts` and placed
+over the eBay page from 1. `store/screenshots/captioned/` has the same five under a one-line caption, and
+`store/promo-small.png` (440 × 280) and `store/promo-marquee.png` (1400 × 560) are the promo tiles: all drawn from
+`store/art.html` by `scripts/store-art.sh`. Upload either set of five.
 
-1. `1-scan.png`: a results page after a scan, with tags on the cards and the panel. *Draft built on a test page, not on eBay: replace it with a real capture of your own search.*
-2. `2-listing.png`: analyzing one listing: the verdict, a suggested offer and the price history. *Draft: replace with a real capture.*
-3. `3-home.png`: the Home tab in the panel.
-4. `4-saved.png`: the Saved view in the panel.
-5. `5-settings.png`: settings.
+1. `1-ebay-search.png`: an eBay search after a scan, with tags on the cards and the panel's best picks.
+2. `2-ebay-listing.png`: one eBay listing analyzed: the AI's read, its notes and a suggested offer.
+3. `3-marketplace.png`: a Marketplace search after a scan.
+4. `4-home.png`: the Home tab: price drops on saved listings and saved searches.
+5. `5-saved.png`: the Saved view.
 
 ## Notes for the reviewer
 
@@ -88,7 +93,7 @@ Scores and analysis need an API key, which the reviewer is not expected to have.
 
 - [ ] A Chrome Web Store developer account (one-time fee)
 - [ ] Host the privacy policy at a public address
-- [ ] Replace screenshots 1 and 2 with real captures
+- [x] Real captures for screenshots 1 to 3 (0.49.1)
 - [ ] `deno task test`, then `deno task pack`; unzip the package into a folder and load it with Load unpacked to check it runs
 - [ ] Reread the marketplaces' rules about automated access: the README's "Ground rules" explain what the extension does and won't do
 - [ ] Clear the name: search the trademark office (USPTO) for "Tirekick" in software (classes 9 and 42) and the Chrome Web Store for extensions with the same name before publishing; `docs/renaming.md` lists what a rename touches

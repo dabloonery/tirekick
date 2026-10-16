@@ -1871,7 +1871,7 @@
     if (f.campaign) c.push(["warn", "Scam: reposted"]);
     else if (f.offSite?.sure) c.push(["warn", "Scam: off-site contact"]);
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
-    if (f.offSite && !f.offSite.sure) c.push(["warn", "Contact outside the site?"]);
+    if (f.offSite && !f.offSite.sure && !f.offSiteOk) c.push(["warn", "Contact outside the site?"]);
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const mk = marketOf(f);
@@ -1883,7 +1883,9 @@
     if (f.vsSold != null && !cheap) {
       const pw = f.project ? null : TKRules.priceWord(f.vsSold); // broken ones: just the number
       c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
-    } else if (f.priceNote) c.push(["plain", "No price check", f.priceNote]);
+    } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`]);
+    else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`]);
+    else if (f.priceNote) c.push(["plain", "No price check", f.priceNote]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
     if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
@@ -2456,6 +2458,7 @@
           text: (it.raw || "").replace(it.title, "").slice(0, 300),
           hidden: !!notInterested[key],
         });
+        if (prev?.offSiteOk != null) f.offSiteOk = prev.offSiteOk;
         if (prev?.codeOk != null) f.codeOk = prev.codeOk; // a scan judged this code a real model number: keep that
         if (prev?.photoTwins) f.photoTwins = prev.photoTwins;
         f.vsSold = vsSoldOf(f);
@@ -2503,7 +2506,7 @@
   let marketFor = ""; // the search the cards' "below/above typical" is for
   // A listing's own typical price (looked up from its title, from its hover) wins over the page's.
   const marketOf = (f) => f?.ownMarket || lastMarket;
-  const vsSoldOf = (f) => (marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction ? f.total / marketOf(f).median : null);
+  const vsSoldOf = (f) => (marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction && !TKRules.tooFarToCompare(f.price ?? f.total, marketOf(f).median) ? f.total / marketOf(f).median : null);
   const applyMarket = (market) => {
     lastMarket = market;
     marketFor = queryEl.value.trim().toLowerCase();
@@ -2891,14 +2894,14 @@
     const type = TK.pageType();
     const items = type === "results" ? TK.extract() : [];
     const n = (fn) => items.filter(fn).length;
-    const { soldCooldownUntil = 0, soldLog = [], soldCache = {} } = await chrome.storage.local.get(["soldCooldownUntil", "soldLog", "soldCache"]);
+    const { soldCooldownUntil = 0, soldCooldownWhy, soldLog = [], soldCache = {} } = await chrome.storage.local.get(["soldCooldownUntil", "soldCooldownWhy", "soldLog", "soldCache"]);
     const lines = [
       `Tirekick ${chrome.runtime.getManifest().version} on ${TK.currentSite()} (${type}), ${location.origin}${location.pathname}`,
       type === "results" && `Cards on the page: ${document.querySelectorAll(TK.currentSite() === "ebay" ? TK.EBAY_CARDS : TK.listingLinks()).length}; read as listings: ${items.length}`,
       type === "results" && items.length && `With a title ${n((i) => i.title)}, price ${n((i) => i.price != null)}, photo ${n((i) => i.imageUrl)}, shipping known ${n((i) => i.shipping != null)}, seller rating ${n((i) => i.sellerPct != null)}`,
       type === "results" && items.length && `First titles: ${items.slice(0, 3).map((i) => `\u201c${i.title.slice(0, 40)}\u201d`).join(", ")}`,
       type === "item" && (() => { const l = TK.extractItem(); return `Listing read: title ${l.title ? "yes" : "NO"}, price ${l.price != null ? "yes" : "NO"}, photos ${l.imageUrls?.length || 0}, seller ${l.seller ? "yes" : "no"}`; })(),
-      `Sold prices: ${Date.now() < soldCooldownUntil ? `paused ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min (eBay asked for a browser check)` : "not paused"}; ${soldLog.filter((t) => Date.now() - t < 36e5).length} of ${TKSold.PER_HOUR} lookups used this hour; ${Object.keys(soldCache).length} searches remembered`,
+      `Sold prices: ${Date.now() < soldCooldownUntil ? `paused ${Math.ceil((soldCooldownUntil - Date.now()) / 60000)} more min (${soldCooldownWhy === "odd" ? "eBay's answer didn't look like a results page" : "eBay asked for a browser check"})` : "not paused"}; ${soldLog.filter((t) => Date.now() - t < 36e5).length} of ${TKSold.PER_HOUR} lookups used this hour; ${Object.keys(soldCache).length} searches remembered`,
       `Scores kept: ${Object.keys(scansCache || {}).length} listings`,
     ].filter(Boolean);
     const text = lines.join("\n");
@@ -3032,7 +3035,7 @@
     it.refWorking = w > 0 ? w : null;
     it.refParts = pm > 0 ? pm : null;
     it.feePct = feePct;
-    it.vsWorking = it.total != null && w > 0 && !it.lot ? it.total / w : null;
+    it.vsWorking = it.total != null && w > 0 && !it.lot && !TKRules.tooFarToCompare(it.total, w) ? it.total / w : null;
     it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
     it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
   };
@@ -3114,6 +3117,7 @@
       seen.add(key);
       const f = facts.get(key);
       if (f?.titleCode) f.codeOk = it.verdict !== "suspicious";
+      if (f?.offSite) f.offSiteOk = it.verdict !== "suspicious";
       n++;
     }
     return n;
@@ -3131,7 +3135,7 @@
   const useReference = (it, ref, isEstimate) => {
     it.refWorking = ref > 0 ? ref : null;
     it.refIsEstimate = isEstimate;
-    it.vsWorking = it.refWorking && it.total != null && !it.lot ? it.total / it.refWorking : null;
+    it.vsWorking = it.refWorking && it.total != null && !it.lot && !TKRules.tooFarToCompare(it.total, it.refWorking) ? it.total / it.refWorking : null;
     it.margin =
       it.lens === "project" && it.refWorking && it.total != null && !it.lot && !it.auction && it.related
         ? Math.round(resaleNet(it) - it.total - (it.partsCost || 0))
@@ -3166,6 +3170,7 @@
     it.baseVerdict = it.verdict;
     const f = facts.get(keyOf(it.url));
     if (f?.titleCode) f.codeOk = it.verdict !== "suspicious"; // the model judged the code a real model number
+    if (f?.offSite) f.offSiteOk = it.verdict !== "suspicious"; // and read the web address or number in context
   };
   // A reposted scam (see noteCode) needs no model.
   const scamVerdict = (others) => ({
@@ -3932,6 +3937,11 @@
   const renderItemInfo = () => {
     const f = itemFacts;
     if (!f || TK.pageType() !== "item") return;
+    // An earlier scan read the description too: its verdict answers "Contact outside the site?".
+    if (f.offSite && !f.offSite.sure && f.offSiteOk == null) {
+      const seen = storedScan(f.key, lens);
+      if (seen) f.offSiteOk = seen.verdict !== "suspicious";
+    }
     // After an analysis its own line says how far under or over sold it is; the chip would say it twice.
     const chips = chipsFor(f).filter(([, t]) => !(itemEl.childElementCount && TKRules.SOLD_CHIP.test(t)) && !(t === f.motivated && softFor(f).level !== "none")).map(([k, t]) => h("span", { class: `fchip k-${k}` }, chipText(t)));
     const when = f.openedBefore ? `You opened this before, on ${shortDate(f.openedBefore)}` : f.seenBefore ? `It was in your results on ${shortDate(f.seenBefore)}` : "";
@@ -4144,6 +4154,8 @@
       // Certain scam signs (see scamWarning) overrule whatever the model made of the listing.
       if (itemFacts?.key === keyOf(location.href)) {
         itemFacts.offSite = listing.offSite; // the description may have loaded since the first look
+        // A web address or number read in context (a charity link, a store's own site) isn't a question any more.
+        if (itemFacts.offSite && !itemFacts.offSite.sure) itemFacts.offSiteOk = r.verdict !== "suspicious";
         renderItemInfo();
         if (scamWarning(itemFacts)) {
           const flag = itemFacts.campaign ? "reposted scam" : "contact off the site";

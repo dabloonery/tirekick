@@ -1239,7 +1239,7 @@
     spendBtn.hidden = !(paidAI || s.month > 0);
     $(".foot").hidden = spendBtn.hidden && $(".model-pick").hidden;
     spendBtn.className = `spend ${level}`;
-    spendBtn.replaceChildren(h("b", {}, usd(s.month)), budget ? ` of $${budget} this month` : " this month");
+    spendBtn.replaceChildren(h("b", {}, usd(s.month)), budget ? ` of $${budget} AI budget used` : " spent on AI this month");
     budgetBar.hidden = !budget;
     budgetBar.className = `budget ${level}`;
     budgetBar.firstChild.style.width = `${Math.min(100, share * 100)}%`;

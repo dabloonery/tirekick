@@ -293,7 +293,7 @@ Distribution is **Public**, all regions.
    address off the listing), support@tirekick.app forwarding, and the contact email verified.
 7. [ ] **Site:** tirekick.app on HTTPS (done 2026-10-15) with `/privacy` loading, ready to publish the same day with the store
    link in place of `STORE_LISTING_URL` and a matching "Beta" mention.
-8. [ ] The store build is exactly **0.50.0** (Myer, 2026-10-15); pre-launch changes stay 0.49.x. `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
+8. [x] The store build is exactly **0.50.0** (Myer, 2026-10-15); pre-launch changes stay 0.49.x. `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
 9. [ ] **Myer's OK to submit.** Then the forms in the checklist below (section 5), Distribution: Public.
 
 **During the beta.** Feedback comes from strangers only (Myer doesn't want to involve people they know): the

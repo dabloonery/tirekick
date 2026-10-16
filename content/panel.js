@@ -140,8 +140,8 @@
   // take clicks itself: only the tab and the open panel do (see .tab / .open .panel below).
   host.style.cssText = "position:fixed;right:0;bottom:20px;z-index:2147483646;pointer-events:none;";
   const root = host.attachShadow({ mode: "open" });
-  // The mark: an orange tread dot with a navy hub, as in the toolbar icon.
-  const MARK = `<svg class="m-vec" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="${THEME.ORANGE}"/>${THEME.logoTread(12, 11, 22)}<circle cx="12" cy="12" r="3.7" fill="${THEME.NAVY}"/></svg>`;
+  // The mark: the orange tire, as in the toolbar icon.
+  const MARK = `<svg class="m-vec" viewBox="0 0 24 24" aria-hidden="true">${THEME.logoMark(12, 11.5, 22)}</svg>`;
 
   // The two palettes come from lib/theme.js (contrast measured there). --on-v and --on-accent are the text
   // colors that sit on a verdict or accent fill; --btn/--on-btn the main button.

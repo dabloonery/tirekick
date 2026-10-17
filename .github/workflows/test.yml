@@ -1,7 +1,10 @@
 name: Tests
 
+# Pull requests, and main after a merge. Not every push to a PR branch as well: that ran each PR twice and
+# used up the monthly Actions minutes (October 2026).
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:

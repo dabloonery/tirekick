@@ -291,7 +291,7 @@ Distribution is **Public**, all regions.
    when eBay's sold-price answer just looks odd. Recheck those on the real sites.
 6. [x] **Myer's accounts:** non-trader status in the developer dashboard (recommended: it keeps a home
    address off the listing), support@tirekick.app forwarding, and the contact email verified.
-7. [ ] **Site:** tirekick.app on HTTPS (done 2026-10-15) with `/privacy` loading, ready to publish the same day with the store
+7. [x] **Site:** tirekick.app on HTTPS (done 2026-10-15) with `/privacy` loading, ready to publish the same day with the store
    link in place of `STORE_LISTING_URL` and a matching "Beta" mention.
 8. [x] The store build is exactly **0.50.0** (Myer, 2026-10-15); pre-launch changes stay 0.49.x. `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
 9. [ ] **Myer's OK to submit.** Then the forms in the checklist below (section 5), Distribution: Public.
@@ -362,8 +362,8 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
       answers the "will this get my account banned" worry. Colors brighter than the extension's light theme on purpose.
 - [ ] Set up support@tirekick.app (already filled in on the site, in `store/PRIVACY.md` and the listing):
       register tirekick.app and forward the mailbox.
-- [ ] Launch the site with the extension: once the store listing is approved, replace `STORE_LISTING_URL` in
-      `site/index.html` with its address, then publish the site (steps in `site/README.md`).
+- [x] Launch the site with the extension (2026-10-17): the store listing is public and `site/index.html` links to it instead of
+      `STORE_LISTING_URL`.
 - [ ] Publish it. GitHub Pages is free for **public** repositories only (private ones need a paid plan), and this
       one stays private until 1.0.0, so: make a small public repository just for the site (steps in
       `site/README.md`), giving `https://dabloonery.github.io/<name>/`. At launch, when this repository goes

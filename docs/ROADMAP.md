@@ -9,6 +9,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
 - [Next steps](#next-steps) (2026-10-14: the order of work, and what waits on Myer)
 - [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone) (2026-10-15)
 - [Public beta launch](#public-beta-launch) (decided 2026-10-15: launch as a public beta before 1.0.0)
+- [After real use (2026-10-16)](#after-real-use-2026-10-16) (0.50.2 fixes, and design changes for Myer to pick)
 - [Tirekick: Chrome Web Store submission checklist](#tirekick-chrome-web-store-submission-checklist)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
 - [Tirekick feature briefs](#tirekick-feature-briefs)
@@ -331,6 +332,45 @@ one clear audience (eBay buyers).
 
 **Watching how it goes:** the store dashboard's installs and uninstalls (weekly), the reviews on the listing, and
 the support mail. One post per community; never reply to criticism defensively; fixes ship as 0.50.x.
+
+---
+
+## After real use (2026-10-16)
+
+Myer's notes from using the beta on eBay and Marketplace.
+
+**Fixed in 0.50.2** (still to check on the real sites, marked *real site*):
+
+- Messenger pop-ups on Facebook got tags and were read as a listing. Small fixed boxes (chat windows) are skipped
+  (`TK.inChatBox`), and a listing dialog must be at least 560px wide. *Real site.*
+- Marked-down prices were read backward when Facebook put the struck-through old price first or on the same line.
+  The struck-through price is found by its style (`TK.isStruck`) on cards and on the listing page. *Real site.*
+- A listing analyzed on its own page was scored again by a page scan when its shipping showed only on the listing
+  page. A saved analysis now also matches on the asking price.
+- The panel's theme follows the page (light eBay, light panel) when the setting is Match (now "Match the page").
+- eBay's home page opens on Home with no "This page" tab.
+- The compare and "What I want" boxes fold away again with Done or Esc after Change or Edit.
+- "Great price, if it's real" listings sort after clean ones in every sort, and Skipped's Hide leaves them on the
+  page, as the list does.
+- A listing's own Typical price tries a four-word search once when its whole title finds too few sales.
+- Settings and the hub page use the same tire mark as the panel, and have a tab icon.
+
+**Why eBay sold search fails so often** (from the code; can't be checked from here): one browser check pauses every
+lookup for an hour; on Facebook with no eBay tab open, lookups come from the background, which eBay trusts less;
+eight lookups an hour at most; and a long title often matches fewer than five clean sales. Opening any eBay tab
+helps the second.
+
+**For Myer to pick** (not built):
+
+1. *Typical price.* Rename it ("eBay sold price", "Sells for"), show it as one line at the top of the panel and in
+   each card's tag, and when eBay won't answer, offer: the AI's estimate (when set up), the price of similar
+   listings on the page (the asking-price middle, labeled as asking), or the "See sold listings" link.
+2. *AI features without an AI.* With no AI set up, hide Scan, Analyze and the Buyer/Reseller switch behind one
+   "Add an AI for scores" line, so the free tools lead.
+3. *Filters.* Match the sites' own: condition, Buy It Now or auction, free shipping, distance and date listed on
+   Marketplace, sort by price, and saved per search as now.
+4. *Scam check.* One "Check for scams" button that runs the photo check, the reverse image search, the seller and
+   wording checks together and gives one answer, in place of the separate photo buttons.
 
 ---
 

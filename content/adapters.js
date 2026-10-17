@@ -312,6 +312,33 @@
   // them entirely. Every listing card is a link to /marketplace/item/<id>; we read
   // the visible text lines inside that link instead.
 
+  // A price shown struck through (the old one, on a marked-down listing). Facebook styles it, so the tag
+  // alone doesn't say: ask the browser, for the price's own box and the two around it.
+  TK.isStruck = (el) => {
+    for (let n = el, i = 0; n && i < 3; n = n.parentElement, i++) {
+      if (n.matches?.("s, del, strike")) return true;
+      if (/line-through/.test(getComputedStyle(n).textDecorationLine || "")) return true;
+    }
+    return false;
+  };
+  // The boxes in `root` whose whole text is one price ("$165", "Free"), as { el, price, struck }.
+  const PRICE_ONLY = /^(\$\s?[\d,]+(\.\d\d)?|free)$/i;
+  TK.priceBoxes = (root) =>
+    [...root.querySelectorAll("span")]
+      .filter((n) => PRICE_ONLY.test(n.textContent.trim()) && !n.querySelector("span"))
+      .map((el) => ({ el, price: /^free$/i.test(el.textContent.trim()) ? 0 : TK.parsePrice(el.textContent), struck: TK.isStruck(el) }));
+
+  // Facebook's chat windows (Messenger pop-ups, the chats list) float over the page and hold links to the
+  // listing being talked about. Those aren't cards on the page: no tags on them, and they aren't the listing
+  // you're looking at. They're small fixed boxes; a listing opened over the feed is a big one, kept.
+  TK.inChatBox = (el) => {
+    let top = el;
+    while (top.offsetParent) top = top.offsetParent;
+    if (top === document.body || top === document.documentElement) return false;
+    if (getComputedStyle(top).position !== "fixed" || top.querySelector('[role="main"]')) return false; // the feed, pinned under an open listing
+    return top.getBoundingClientRect().width < 560;
+  };
+
   const FB_LABELS = /^(just listed|sponsored|price dropped|partner listing|new listing|shipping available|ships to you|free shipping|pending|sold)$/i;
   // A card that hasn't changed since it was last read (same link, same text) isn't read again: the feed is
   // read whenever more listings load, and reading every card each time made long feeds stutter. The photo
@@ -329,7 +356,12 @@
       const text = a.textContent;
       const hit = fbRead.get(a);
       if (hit && hit.href === href && hit.text === text) {
-        out.push({ ...hit.item, imageUrl: firstImage(a), el: a });
+        if (hit.item) out.push({ ...hit.item, imageUrl: firstImage(a), el: a });
+        return;
+      }
+      if (a.getClientRects().length && TK.inChatBox(a)) {
+        seen.delete(itemId); // the same listing's real card, if it's on the page too, still counts
+        fbRead.set(a, { href, text, item: null });
         return;
       }
 
@@ -347,15 +379,21 @@
       const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l) && !FB_LABELS.test(l));
       const title = squash(rest[0] || "", 160);
       if (!title) return;
-      // A marked-down listing shows the new price first and the old one struck through after it ("$165" "$180").
-      const now = TK.parsePrice(priceLine);
-      const was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (/^\$\s?[\d,]/.test(l) ? TK.parsePrice(l) : null)).find((n) => n != null);
+      // A marked-down listing shows the new price and the old one struck through ("$165" "$180"). Which is
+      // which comes from the strike itself where the card can be measured, else from the order (new first).
+      const boxes = a.getClientRects().length ? TK.priceBoxes(a) : [];
+      const live = boxes.find((b) => !b.struck);
+      const old = boxes.find((b) => b.struck);
+      let now = TK.parsePrice(priceLine);
+      let was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (/^\$\s?[\d,]/.test(l) ? TK.parsePrice(l) : null)).find((n) => n != null);
+      if (live && old) (now = live.price), (was = old.price);
+      else if (old && !live) was = null;
 
       const item = withTotal({
           site: "facebook",
           title,
-          priceText: priceLine,
-          price: /^free$/i.test(priceLine) ? 0 : TK.parsePrice(priceLine),
+          priceText: live && old ? live.el.textContent.trim() : priceLine,
+          price: live && old ? now : /^free$/i.test(priceLine) ? 0 : TK.parsePrice(priceLine),
           shipping: TK.parseShipping(lines.join(" ")), // usually null: most Marketplace sales are local pickup
           url: new URL(href, location.origin).href.split("?")[0],
           imageUrl: firstImage(a),
@@ -440,9 +478,12 @@
       // A listing opened from the feed is an overlay (a dialog) over the feed, with the feed still in
       // [role=main] and the page's og: tags still the feed's; opened directly, it's the main area.
       // Only a dialog you can see: Facebook keeps hidden ones (a "Notifications" flyout) in the page.
-      const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length).at(-1);
+      // A Messenger pop-up about a listing is a small dialog too: the listing is the big one.
+      const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length && d.getBoundingClientRect().width >= 560).at(-1);
       const main = dialog || document.querySelector('[role="main"]') || document.body;
-      const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
+      // The current price, not the old one struck through beside it on a marked-down listing.
+      const boxes = TK.priceBoxes(main);
+      const priceNode = (boxes.find((b) => !b.struck) || boxes[0])?.el;
       const priceText = priceNode ? priceNode.textContent.trim() : "";
       const imgs = [...main.querySelectorAll("img")]
         .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)

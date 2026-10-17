@@ -310,10 +310,9 @@ which is at console.anthropic.com.
 ## Look
 
 Plain and built to be read: dark first, a hairline and a word beside every color, numbers in a
-monospaced face so prices line up. **Settings → On the page → Theme**: *Match my browser* (the
-default; dark if the browser doesn't say), *Dark* or *Light*. The panel follows that; the marks on
-eBay and Marketplace cards follow the page itself (its real background, so a site's dark mode or a
-dark-mode extension counts). One scale everywhere (panel, card marks, photo card, settings): sizes 11, 12, 13, 14, 15, 18, 22 (10 only inside the score tag), weights 400 and 600 (800 for numerals and headings). Buttons come in three tiers: filled (the one action to take: Scan, Analyze, Test connection), outlined (other actions), and plain underlined text for actions inside a list; a red outline means it clears something. Color carries meaning only: the verdict colors, red for scams and clearing things, orange for "new" and "at your price". The tag's word and the line beside it use the same vocabulary (Great / Great deal, Fair / Fair price, Scam? / Suspicious). Type is Bricolage Grotesque (bundled), a
+monospaced face so prices line up. **Settings → On the page → Theme**: *Match the page* (the
+default), *Dark* or *Light*. Match gives the panel and the marks on eBay and Marketplace cards the
+page's own colors (its real background, so a site's dark mode or a dark-mode extension counts). One scale everywhere (panel, card marks, photo card, settings): sizes 11, 12, 13, 14, 15, 18, 22 (10 only inside the score tag), weights 400 and 600 (800 for numerals and headings). Buttons come in three tiers: filled (the one action to take: Scan, Analyze, Test connection), outlined (other actions), and plain underlined text for actions inside a list; a red outline means it clears something. Color carries meaning only: the verdict colors, red for scams and clearing things, orange for "new" and "at your price". The tag's word and the line beside it use the same vocabulary (Great / Great deal, Fair / Fair price, Scam? / Suspicious). Type is Bricolage Grotesque (bundled), a
 narrower cut for the wordmark, headings, scores and prices. Scores are tread dots: the fill is the verdict, the tread
 lights up as far as the score, Skip is hollow and Likely scam carries a "!" badge, and each verdict word has its own
 glyph, so color is never the only cue. Palettes, type, the dot and the glyphs all live in `lib/theme.js`, which the

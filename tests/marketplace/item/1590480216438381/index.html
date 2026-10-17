@@ -5,14 +5,18 @@
 <div role="dialog" style="display:none"><h1>Notifications</h1><p>You have no new notifications.</p></div>
 <div role="main">
   <h1>Nintendo Game Boy Advance SP M2465</h1>
-  <span>$31</span>
+  <span style="text-decoration:line-through">$45</span> <span>$31</span>
   <p>Condition Used - like new</p>
   <p>Listed 3 weeks ago in Albuquerque, NM</p>
   <p>More photos and details are available here: www . jmyzl . com</p>
   <p>Seller details</p><p>Joined Facebook in 2026</p>
 </div>
+<!-- A Messenger pop-up about another listing: small, fixed, with its own h1 and a link to that listing. -->
+<div role="dialog" style="position:fixed;right:80px;bottom:0;width:330px;background:#fff"><h1>Pat · Road bike</h1>
+  <a href="/marketplace/item/444/"><div>$50</div><div>Road bike</div></a><span>$50</span></div>
 <div id="feed">
   <a href="/marketplace/item/111/"><div>$165</div><div>$180</div><div>Nintendo Switch Bundle</div><div>Albuquerque, NM</div></a>
+  <a href="/marketplace/item/333/"><div><span style="text-decoration:line-through">$120</span><span>$100</span></div><div>Xbox Series S</div><div>Albuquerque, NM</div></a>
   <a href="/marketplace/item/222/"><div>Just listed</div><div>$100</div><div>Nintendo Switch</div><div>Albuquerque, NM</div></a>
 </div>
 <script>
@@ -37,6 +41,9 @@
   const sw = cards.find((c) => /Bundle/.test(c.title)), plain = cards.find((c) => c.title === "Nintendo Switch");
   check("marked-down card: current price first", sw && sw.price === 165, `price was ${sw && sw.price}`);
   check("marked-down card: old price kept as wasPrice", sw && sw.wasPrice === 180, `wasPrice was ${sw && sw.wasPrice}`);
+  const xb = cards.find((c) => /Xbox/.test(c.title));
+  check("struck-through old price first, same line: current price read", xb && xb.price === 100 && xb.wasPrice === 120, JSON.stringify(xb && [xb.price, xb.wasPrice]));
+  check("Messenger pop-up's listing link isn't a card", !cards.some((c) => /Road bike/.test(c.title)), cards.map((c) => c.title).join(", "));
   check("normal card has no wasPrice", plain && plain.price === 100 && plain.wasPrice === undefined, JSON.stringify(plain && [plain.price, plain.wasPrice]));
   document.body.insertAdjacentHTML("beforeend", `<pre id="result">${out.join("\n")}</pre>`);
 </script>

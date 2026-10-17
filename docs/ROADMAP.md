@@ -355,6 +355,12 @@ Myer's notes from using the beta on eBay and Marketplace.
 - A listing's own Typical price tries a four-word search once when its whole title finds too few sales.
 - Settings and the hub page use the same tire mark as the panel, and have a tab icon.
 
+**0.50.3**, from the first real-site check (Claude in Chrome, logged in): chips still drew over a Messenger
+window, and the listing page read the struck-through price. Each card's marks now stay in their own layer
+(`isolation:isolate` on the card), chat links count as chat whatever the width of the chat dock, a strike set
+up to six boxes above the price counts, and the listing page never takes a struck price. Switching back to Buyer
+before a scan clears the Reseller line.
+
 **Why eBay sold search fails so often** (from the code; can't be checked from here): one browser check pauses every
 lookup for an hour; on Facebook with no eBay tab open, lookups come from the background, which eBay trusts less;
 eight lookups an hour at most; and a long title often matches fewer than five clean sales. Opening any eBay tab

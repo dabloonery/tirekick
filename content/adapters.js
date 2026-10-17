@@ -312,31 +312,40 @@
   // them entirely. Every listing card is a link to /marketplace/item/<id>; we read
   // the visible text lines inside that link instead.
 
-  // A price shown struck through (the old one, on a marked-down listing). Facebook styles it, so the tag
-  // alone doesn't say: ask the browser, for the price's own box and the two around it.
+  // A price shown struck through (the old one, on a marked-down listing). Facebook styles a box around
+  // the price, and a strike isn't inherited in computed style, so ask the browser for the price's box and
+  // the few boxes around it.
   TK.isStruck = (el) => {
-    for (let n = el, i = 0; n && i < 3; n = n.parentElement, i++) {
-      if (n.matches?.("s, del, strike")) return true;
+    for (let n = el, i = 0; n && n.nodeType === 1 && i < 6; n = n.parentElement, i++) {
+      if (n.matches("s, del, strike")) return true;
       if (/line-through/.test(getComputedStyle(n).textDecorationLine || "")) return true;
     }
     return false;
   };
-  // The boxes in `root` whose whole text is one price ("$165", "Free"), as { el, price, struck }.
+  // The bits of text in `root` that are one price on their own ("$165", "Free"), whatever box holds them,
+  // as { el, price, struck }. Our own tags and chips are left out.
   const PRICE_ONLY = /^(\$\s?[\d,]+(\.\d\d)?|free)$/i;
-  TK.priceBoxes = (root) =>
-    [...root.querySelectorAll("span")]
-      .filter((n) => PRICE_ONLY.test(n.textContent.trim()) && !n.querySelector("span"))
-      .map((el) => ({ el, price: /^free$/i.test(el.textContent.trim()) ? 0 : TK.parsePrice(el.textContent), struck: TK.isStruck(el) }));
+  TK.priceBoxes = (root) => {
+    const out = [];
+    const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const t = n.nodeValue.trim();
+      const el = n.parentElement;
+      if (!PRICE_ONLY.test(t) || !el || el.closest(".tirekick-sticker, .tirekick-marks")) continue;
+      out.push({ el, text: t, price: /^free$/i.test(t) ? 0 : TK.parsePrice(t), struck: TK.isStruck(el) });
+    }
+    return out;
+  };
 
   // Facebook's chat windows (Messenger pop-ups, the chats list) float over the page and hold links to the
   // listing being talked about. Those aren't cards on the page: no tags on them, and they aren't the listing
-  // you're looking at. They're small fixed boxes; a listing opened over the feed is a big one, kept.
+  // you're looking at. They float (fixed) outside the page's main area; two chats side by side can be wide.
   TK.inChatBox = (el) => {
     let top = el;
     while (top.offsetParent) top = top.offsetParent;
     if (top === document.body || top === document.documentElement) return false;
-    if (getComputedStyle(top).position !== "fixed" || top.querySelector('[role="main"]')) return false; // the feed, pinned under an open listing
-    return top.getBoundingClientRect().width < 560;
+    // The feed itself is pinned in place under an open listing; that one holds the page's main area.
+    return getComputedStyle(top).position === "fixed" && !top.querySelector('[role="main"]');
   };
 
   const FB_LABELS = /^(just listed|sponsored|price dropped|partner listing|new listing|shipping available|ships to you|free shipping|pending|sold)$/i;
@@ -392,7 +401,7 @@
       const item = withTotal({
           site: "facebook",
           title,
-          priceText: live && old ? live.el.textContent.trim() : priceLine,
+          priceText: live && old ? live.text : priceLine,
           price: live && old ? now : /^free$/i.test(priceLine) ? 0 : TK.parsePrice(priceLine),
           shipping: TK.parseShipping(lines.join(" ")), // usually null: most Marketplace sales are local pickup
           url: new URL(href, location.origin).href.split("?")[0],
@@ -482,9 +491,19 @@
       const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length && d.getBoundingClientRect().width >= 560).at(-1);
       const main = dialog || document.querySelector('[role="main"]') || document.body;
       // The current price, not the old one struck through beside it on a marked-down listing.
-      const boxes = TK.priceBoxes(main);
-      const priceNode = (boxes.find((b) => !b.struck) || boxes[0])?.el;
-      const priceText = priceNode ? priceNode.textContent.trim() : "";
+      // Never the struck one, even when it's the only box that is just a price.
+      let priceText = TK.priceBoxes(main).find((b) => !b.struck)?.text || "";
+      // No box holds the price alone: the first line that starts with one ("$250 · In stock"), still not struck.
+      if (!priceText) {
+        const walk = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+        for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+          const m = n.nodeValue.trim().match(/^\$\s?[\d,]+(\.\d\d)?\b/);
+          if (m && n.parentElement && !n.parentElement.closest(".tirekick-sticker, .tirekick-marks") && !TK.isStruck(n.parentElement)) {
+            priceText = m[0];
+            break;
+          }
+        }
+      }
       const imgs = [...main.querySelectorAll("img")]
         .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
         .map((i) => i.src);

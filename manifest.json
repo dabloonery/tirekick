@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tirekick",
-  "version": "0.50.2",
+  "version": "0.50.3",
   "description": "Beta. Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.",
   "minimum_chrome_version": "116",
   "homepage_url": "https://tirekick.app",

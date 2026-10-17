@@ -1481,6 +1481,7 @@
           ? `${MODES[lens].name}. Press Analyze to judge this listing as ${MODES[lens].as}.`
           : `${MODES[lens].name}. Scan again to judge these listings as ${MODES[lens].as} (anything already judged this way comes back free).`
       );
+    else setStatus(""); // switching back before scanning: the other mode's line no longer applies
     refreshPending();
   };
   root.querySelectorAll("button[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
@@ -1650,6 +1651,9 @@
       html[data-tk-skip="hide"] :is([data-tk-v="pass"], [data-tk-v="suspicious"]) { display:none !important; }
       /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering (set by fit()) */
       [data-tk-lift] { position:relative; z-index:2147483000 !important; }
+      /* Each card's marks stay inside its own layer, so the page's floating boxes (Facebook's Messenger
+         pop-ups, menus) are drawn over them instead of under them. The lift above still raises a card you point at. */
+      [data-tk-cell] { isolation:isolate; }
       .tirekick-sticker .tk-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--tk-rule); }
       .tirekick-sticker .tk-acts button, .tirekick-sticker .tk-acts a { all:unset; cursor:pointer; color:var(--tk-ink); font-weight:600; font-size:13px;
         text-decoration:underline; text-decoration-color:var(--tk-rule); text-underline-offset:3px; }

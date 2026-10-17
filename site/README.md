@@ -4,7 +4,7 @@ Three pages the Chrome Web Store listing links to. Plain HTML and CSS, no script
 served from here. Every link is relative. It lives at https://tirekick.app and goes live together with the extension.
 
 - `index.html`: the landing page, for both audiences: everyday buyers (scam marks, a big purchase) and resellers
-  (sold prices on Marketplace, Reseller mode). See `plans/tirekick-future.md` in the project files. At launch, replace `STORE_LISTING_URL` in its "Add to Chrome" button with the store listing's address.
+  (sold prices on Marketplace, Reseller mode). See `plans/tirekick-future.md` in the project files. Its "Add to Chrome" button links to the store listing (https://chromewebstore.google.com/detail/lmcpkglegjjamhickcmibcfjebjeoodj).
 - `privacy.html`: the privacy policy, kept in step with `store/PRIVACY.md` (change both together). The store's
   **privacy policy URL** is this page.
 - `support.html`: getting started, what to send when something breaks, common questions and the contact
@@ -67,8 +67,7 @@ tirekick.app.
 **Email.** support@tirekick.app needs mail set up separately at the same company (look for "email
 forwarding") and pointed at your inbox. GitHub Pages doesn't handle email.
 
-**Later changes.** Upload the changed files the same way; they replace the old ones. At launch, change
-`STORE_LISTING_URL` in `index.html` to the store listing's address first.
+**Later changes.** Upload the changed files the same way; they replace the old ones.
 
 ## Publishing from this repository after it goes public
 

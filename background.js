@@ -106,7 +106,7 @@ async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
   if (!res.ok) {
     const text = await res.text();
     if (/not found/i.test(text)) throw new Error(`Model "${model}" isn't installed. Run: ollama pull ${model}`);
-    throw new Error(`Ollama error ${res.status}: ${text.slice(0, 200)}`);
+    throw new Error(`Ollama error ${res.status}: ${apiErrorText(text)}`);
   }
   const data = await res.json();
   return data.message?.content ?? "";
@@ -117,6 +117,18 @@ async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
 // thinking is always on and effort defaults to medium, so we set effort low for these
 // simple tasks; temperature and forced tool_choice are not accepted. Thinking tokens count
 // toward max_tokens, so leave generous room (it's a ceiling, not a charge).
+
+// The readable part of an API's error body: its message, not the JSON around it (the Claude API and the
+// OpenAI-style ones both put it at error.message; some send a bare string or plain text).
+function apiErrorText(text) {
+  let msg = text;
+  try {
+    const j = JSON.parse(text);
+    msg = j?.error?.message || (typeof j?.error === "string" && j.error) || j?.message || text;
+  } catch {}
+  return String(msg).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+}
+const OUT_OF_CREDIT = /credit balance|insufficient[_ ]quota|exceeded your current quota|billing|out of credits?/i;
 
 const anthropicMessage = (opts) => withBudget(() => anthropicMessageOnce(opts));
 async function anthropicMessageOnce({ system, content, schema, maxTokens = 16000, signal, model }) {
@@ -169,9 +181,15 @@ async function anthropicMessageOnce({ system, content, schema, maxTokens = 16000
   if (res.status === 429) throw new Error("The Claude API needs a short break. Wait a moment and scan again.");
   if (res.status === 529) throw new Error("The Claude API is overloaded right now. Try again in a minute.");
   if (!res.ok) {
-    const text = await res.text();
+    const text = await res.text().catch(() => "");
+    const msg = apiErrorText(text);
     if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognize the model "${model}". Check it in the extension options.`);
-    throw new Error(`Claude API error ${res.status}: ${text.slice(0, 300)}`);
+    // Nothing was scored and nothing was charged; say which side the fix is on.
+    if (OUT_OF_CREDIT.test(msg)) throw new Error("Your Anthropic account is out of credit. Add some under Plans & Billing at console.anthropic.com, then scan again.");
+    if (res.status === 403) throw new Error(`The Claude API won't let that key do this (${msg || "permission error"}). Check the key and model in settings.`);
+    if (res.status === 413) throw new Error("That was too much for one request. Lower \"Listings per request\" in settings and try again.");
+    if (res.status >= 500) throw new Error(`The Claude API had a problem on its side (error ${res.status}). Try again in a minute.`);
+    throw new Error(`The Claude API turned this request down (error ${res.status}${msg ? `: ${msg}` : ""}).`);
   }
   const data = await res.json();
   // Billed whatever the answer turns out to be (cut off, declined), so count it first.
@@ -261,13 +279,16 @@ async function openaiChatOnce({ messages, schema, model, signal }) {
     if (res.status === 400 && i < formats.length - 1 && /response_format|json_schema|json_object|structured|schema|not supported/i.test(text)) continue;
     break;
   }
+  if (!res.ok) text ??= await res.text().catch(() => "");
+  // OpenAI says "out of quota" with a 429, which no amount of waiting fixes.
+  if (res.status === 402 || (!res.ok && OUT_OF_CREDIT.test(apiErrorText(text)))) throw new Error(`${name} says the account is out of credit. Add some on its website, then try again.`);
   if (res.status === 401 || res.status === 403) throw new Error(`${name} rejected the key. Check it in settings.`);
   if (res.status === 429) throw new Error(`${name} needs a short break. Wait a moment and try again.`);
-  if (res.status === 402) throw new Error(`${name} says the account is out of credit.`);
   if (!res.ok) {
-    text ??= await res.text();
     if (res.status === 404 && /model/i.test(text)) throw new Error(`${name} doesn't recognize the model "${model}". Pick one in settings (Test connection lists them).`);
-    throw new Error(`${name} error ${res.status}: ${text.slice(0, 300)}`);
+    if (res.status >= 500) throw new Error(`${name} had a problem on its side (error ${res.status}). Try again in a minute.`);
+    const msg = apiErrorText(text);
+    throw new Error(`${name} turned this request down (error ${res.status}${msg ? `: ${msg}` : ""}).`);
   }
   const data = await res.json();
   // Cost: OpenRouter says exactly; otherwise your prices per million tokens, if you entered them.

@@ -169,9 +169,18 @@ Deno.serve({ port: 1234, onListen(){} }, async (req) => {
     // Key "ratelimit": 429. Key "slow": answers after 8 seconds (to see a scan under way, and Stop).
     if (req.headers.get("x-api-key") === "ratelimit") return new Response(JSON.stringify({ error: { message: "rate limited" } }), { status: 429, headers: { ...cors, "content-type": "application/json" } });
     if (req.headers.get("x-api-key") === "slow") await new Promise((r) => setTimeout(r, 8000));
+    // The API's other refusals, with the bodies it really sends: out of credit (400), a key without access (403),
+    // overloaded (529), a fault on its side (500), and an answer that isn't JSON at all.
+    const apiErr = (status: number, type: string, message: string) => new Response(JSON.stringify({ type: "error", error: { type, message } }), { status, headers: { ...cors, "content-type": "application/json" } });
+    const k = req.headers.get("x-api-key");
+    if (k === "nocredit") return apiErr(400, "invalid_request_error", "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.");
+    if (k === "forbidden") return apiErr(403, "permission_error", "Your API key does not have permission to use the specified resource.");
+    if (k === "overloaded") return apiErr(529, "overloaded_error", "Overloaded");
+    if (k === "servererror") return apiErr(500, "api_error", "Internal server error");
     const body = await req.json(); calls.push({ model: body.model, effort: body.output_config?.effort, fallbacks: body.fallbacks, hasSchema: !!body.output_config?.format, cached: JSON.stringify(body.system).includes("ephemeral"), sys: (body.system || "").slice(0, 60), plan: /offer plan from sold prices: [^\\\n]*?\./.exec(JSON.stringify(body.messages))?.[0] || "", scam: [...JSON.stringify(body.messages).matchAll(/SCAM SIGNAL: ([^|\\]*)/g)].map((m) => m[1].trim()), bands: /60% or less is a great price/.test(JSON.stringify(body.system)),
       // Each listing line of a scan, with the scam signals it was sent (real.ts checks which ones get a bait share).
       listings: (typeof body.messages?.[0]?.content === "string" ? body.messages[0].content : "").split("\n").filter((l: string) => /^id \d+ \|/.test(l)).map((l: string) => ({ title: l.split(" | ")[2]?.trim() || "", scam: /SCAM SIGNAL: (.*)$/.exec(l)?.[1].trim() || "" })) });
+    if (k === "garbage") return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: "Sure! Here are the scores you asked for." }], usage: { input_tokens: 2000, output_tokens: 50 } }), { headers: { ...cors, "content-type": "application/json" } });
     // Key "cutoff": billed, but the answer was cut off.
     if (req.headers.get("x-api-key") === "cutoff") return new Response(JSON.stringify({ model: body.model, stop_reason: "max_tokens", content: [{ type: "text", text: "{\"items\": [" }], usage: { input_tokens: 4000, output_tokens: 16000 } }), { headers: { ...cors, "content-type": "application/json" } });
     if (body.output_config?.format?.schema?.properties?.suggestions) return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ suggestions: [

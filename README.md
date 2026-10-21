@@ -450,5 +450,5 @@ Marketplace-shaped pages and a mock Claude API (`tests/e2e/`), ending with a per
 Marketplace feed. Nothing touches the real sites or a real model. `tests/README.md` lists what each file checks and
 what to do when eBay or Facebook change their pages.
 
-Every pull request has to raise the version in `manifest.json` (`deno task version-check`, run by CI), so the
-number on the extensions page always says which copy is running.
+The version in `manifest.json` changes only when a build goes to the Chrome Web Store; pull requests in between
+keep it as it is, and CI fails one that lowers it (`deno task version-check`).

@@ -15,6 +15,7 @@ it) and a fake Claude API that keeps every request, so tests can check the model
 |---|---|
 | `unit/rules.test.mjs` | word matching, the filter bar, scam signs, project words, how a photo check moves a verdict |
 | `unit/shared.test.mjs` | the link check, settings limits, spend totals, the toolbar-number rules, the old word lists → one line |
+| `unit/eval.test.mjs`, `eval/` | the accuracy eval: labeled listings (`eval/cases.mjs`) through the free checks, with floors on scams caught, honest ones marked and price words. `deno task eval` prints the scorecard and what came out wrong (`EVAL_ALL=1` for every listing). Add a listing that fooled the checks here first, labeled, then change the rules |
 | `unit/adapters.test.mjs`, `offsite.test.mjs` | prices, shipping, lots, auctions, seller ratings, the scam code and off-site contact patterns (and ordinary sentences that must not match) |
 | `e2e/adapters.ts` | the site adapters against the saved pages in `fixtures/`: eBay (two layouts and categories), sold prices, a listing page, Marketplace |
 | `e2e/features.ts` | Buyer and Reseller, Home and the toolbar number, which model does what, budget and billing, safe links and restores, settings, the sold-price route from Facebook, no errors logged |

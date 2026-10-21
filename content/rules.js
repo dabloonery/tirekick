@@ -211,6 +211,19 @@
     return level ? { level, pct: Math.round(pct * 100) } : null;
   };
 
+  // A card's facts against the search's typical price, the way the panel works them out on every results page
+  // (and tests/eval runs them on labeled listings). Sets f.accessory, f.offWords and f.cheap; returns the
+  // total as a share of the typical price, or null when the two shouldn't be compared (a lot, an auction, an
+  // accessory, a stand-in price). `query`: the search the typical price is for. A listing priced from its own
+  // title (f.ownMarket) isn't held against the search's words.
+  R.compareFacts = (f, market, query = "") => {
+    f.accessory = (!f.ownMarket && R.accessoryOf(f.title, query)) || "";
+    f.offWords = (!f.ownMarket && R.missingWord(f.title, query)) || "";
+    const vs = market?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
+    f.cheap = (vs != null && R.tooCheap(f, market)?.level) || ""; // backs up a title code (codeBacked)
+    return vs;
+  };
+
   // Sold totals include the shipping buyers paid; a pickup listing (a local site, no shipping on it) has none
   // to pay, so it's compared with the typical price less the typical shipping. Otherwise a $40 pickup price
   // read as 77% of a $52 total that was $40 plus $12 to post. Only when the sales say what shipping cost

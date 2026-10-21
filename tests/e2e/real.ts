@@ -62,7 +62,7 @@ const freeRows = await rows();
 dump("before a scan", free, freeRows);
 ok("the typical price comes from the fake sold search (about $252)", /\$252/.test(JSON.stringify(free)), free.map((x: any) => x.chips));
 ok("bait at 35% of typical is Likely scam", /Likely scam\? Typical is \$252/.test(card(free, "Nintendo Switch OLED console - fast").chips.join()), card(free, "Nintendo Switch OLED console - fast"));
-ok("a game that turned up in the search is only Too cheap?, not Likely scam (its title has no \"oled\")", /Too cheap\?/.test(card(free, "Mario Kart").chips.join()) && !/Likely scam/.test(card(free, "Mario Kart").chips.join()), card(free, "Mario Kart"));
+ok("a game named after the console gets no price check, so no scam mark", /No price check/.test(card(free, "Mario Kart").chips.join()) && !/Too cheap|Likely scam/.test(card(free, "Mario Kart").chips.join()), card(free, "Mario Kart"));
 ok("a case for it gets no price check", /No price check/.test(card(free, "Nintendo Switch OLED carrying case").chips.join()), card(free, "Nintendo Switch OLED carrying case"));
 ok("a console sold \"+ 3 games + case\" is priced as a console", /above typical/.test(card(free, "Nintendo Switch OLED white + 3").chips.join()), card(free, "Nintendo Switch OLED white + 3"));
 ok("a contact-me-on-WhatsApp post is a scam, with no \"Great price\" beside it", /Scam: off-site contact/.test(card(free, "Nintendo Switch OLED white text me").chips.join()) && !PRAISE.test(card(free, "Nintendo Switch OLED white text me").chips.join()), card(free, "Nintendo Switch OLED white text me"));

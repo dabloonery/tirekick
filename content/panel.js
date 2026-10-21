@@ -2526,13 +2526,8 @@
   // A scan's "not your search" counts too, and a title that leaves out a word of the search is never "Likely
   // scam" on price alone (TKRules.tooCheap).
   const vsSoldOf = (f) => {
-    f.accessory = (!f.ownMarket && TKRules.accessoryOf(f.title, marketFor)) || "";
-    f.offWords = (!f.ownMarket && TKRules.missingWord(f.title, marketFor)) || "";
     if (f.url && scored.get(keyOf(f.url))?.related === false) f.related = false;
-    const m = marketOf(f);
-    const vs = m?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !TKRules.tooFarToCompare(f.price ?? f.total, m.median) ? f.total / m.median : null;
-    f.cheap = (vs != null && TKRules.tooCheap(f, m)?.level) || ""; // backs up a title code (TKRules.codeBacked)
-    return vs;
+    return TKRules.compareFacts(f, marketOf(f), marketFor);
   };
   const applyMarket = (market) => {
     lastMarket = market;

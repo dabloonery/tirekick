@@ -206,6 +206,17 @@
     return level ? { level, pct: Math.round(pct * 100) } : null;
   };
 
+  // Sold totals include the shipping buyers paid; a pickup listing (a local site, no shipping on it) has none
+  // to pay, so it's compared with the typical price less the typical shipping. Otherwise a $40 pickup price
+  // read as 77% of a $52 total that was $40 plus $12 to post. Only when the sales say what shipping cost
+  // (market.ship) and it's under half the price. Returns the market as is, or a copy with pickupShip set.
+  R.forPickup = (market, f, local) => {
+    const ship = market?.ship;
+    if (!local || !(ship > 0) || !(market.median > ship * 2) || f?.shipping != null || f?.auction) return market;
+    const r = (n) => Math.round(n * 100) / 100;
+    return { ...market, median: r(market.median - ship), p25: r(Math.max(1, (market.p25 ?? market.median) - ship)), p75: r((market.p75 ?? market.median) - ship), pickupShip: ship };
+  };
+
   // When the score and the price disagree, the price check wins (2026-10-15). Far under the typical
   // price: the bait, so the verdict turns to a warning ("Great price, if it's real"); well over it: no better
   // than Fair price. `it` needs total (and auction/lot/project); market is { median, confidence }.

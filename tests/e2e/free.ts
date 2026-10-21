@@ -47,6 +47,16 @@ const capChips = ((await chips()).find(([pr]: string[]) => pr === "$8.00") || []
 ok("an accessory for the search isn't compared with the thing's typical price, so it's no scam", /No price check/.test(capChips) && !/Too cheap|Likely scam|typical/.test(capChips), capChips);
 await p.close();
 
+// ---------- a pickup listing, against eBay totals that include shipping ----------
+await store(`{soldCache:{"v2:used:pentax k1000":{at:Date.now(), market:${JSON.stringify({ ...MARKET, median: 100, p25: 90, p75: 115, ship: 12 })}}}}`);
+const fb = await open("https://www.facebook.com/marketplace/search?query=pentax+k1000");
+const fbChip = () => fb.ev(`[...document.querySelectorAll('[data-tirekick-key]')].filter(c=>c.querySelector('a[href*="/item/111/"]')||c.matches('a[href*="/item/111/"]')).map(c=>[...c.querySelectorAll('.tk-chip')].map(x=>x.textContent+' ~ '+(x.title||'')).join(' | ')).join(' || ')`);
+await waitFor(async () => /typical/.test(await fbChip()));
+const pick = await fbChip();
+ok("a $85 pickup listing is compared with the typical price less shipping ($88), not eBay's $100 total", /about typical/.test(pick) && !/\$15 below/.test(pick), pick);
+await fb.close();
+await store(`{soldCache:{}}`);
+
 // ---------- the offer helper on a listing page ----------
 const it = await open("https://www.ebay.com/itm/184891897312");
 await sleep(800);

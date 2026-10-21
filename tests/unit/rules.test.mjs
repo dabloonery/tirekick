@@ -421,3 +421,16 @@ test("an analysis that read the web address clears 'Contact outside the site?' (
   assert.equal(R.freeRead({ offSite: { sure: true, why: [] }, offSiteOk: true })?.word, "Likely scam", "a disguised address stays a scam sign");
   assert.equal(R.sellerWarning({ sellerCount: 1 }, { minSellerRatings: 10, minSellerPct: 97 }), "Seller: 1 rating");
 });
+
+test("the scan prompt's price lines are the cards' (priceWord, TOO_CHEAP)", async () => {
+  const bg = await (await import("node:fs/promises")).readFile(new URL("../../background.js", import.meta.url), "utf8");
+  const line = bg.match(/const PRICE_BANDS = `([^`]+)`/)?.[1] || "";
+  assert.match(line, /60% or less is a great price, up to 80% good, up to 105% fair/);
+  assert.match(line, /under 55% with no reason given is too cheap/);
+  assert.equal(R.priceWord(0.6).v, "great");
+  assert.equal(R.priceWord(0.8).v, "good");
+  assert.equal(R.priceWord(1.05).v, "fair");
+  assert.equal(R.priceWord(1.06).v, "pass");
+  assert.equal(R.TOO_CHEAP.low, 0.55);
+  for (const base of ["RANK_BASE", "ITEM_BASE"]) assert.match(bg.match(new RegExp(`const ${base} = \`[^\`]+\``))?.[0] || "", /\$\{PRICE_BANDS\}[\s\S]*\$\{OFFSITE_RULE\}/, base);
+});

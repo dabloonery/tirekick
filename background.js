@@ -418,6 +418,14 @@ makes it more certain, not less.`;
 // This prompt is the part most worth tuning yourself. Small local models
 // follow short, concrete rules better than long abstract ones.
 const VERDICT_BANDS = "Pick the verdict first, then a score inside its range: great 75-100, good 60-74, fair 45-59, pass 0-44, suspicious 0-30.";
+// The same price lines as the cards' free read (TKRules.priceWord, TKRules.TOO_CHEAP), so a scan's verdict starts
+// where the card's price word does and only moves for what the model reads in the listing.
+const PRICE_BANDS = `Price against the sold-price reference ("% of working median"): 60% or less is a great price, up to 80% good, up to 105% fair, above that a pass on price alone.
+Start from that and move it for condition, what the buyer wants, and risk. A working item under 55% with no reason given is too cheap to trust: suspicious.`;
+// Moving the sale off the site: the other sure sign, for a scan and an analysis alike.
+const OFFSITE_RULE = `Moving the sale off the site is the other sure sign: a website (often written with spaces, "www . abc . com", "remove the spaces"),
+a phone number written oddly ("505_507__6507"), WhatsApp, Telegram, email, "text me a screenshot", gift cards, or payment before seeing
+the item. Any of those: suspicious, a score under 10. A plain phone number or a store's own website alone is only a hint.`;
 const RANK_BASE = `You help a buyer skim secondhand listings. For each listing give a 0-100 score and one verdict: great, good, fair, pass or suspicious.
 ${VERDICT_BANDS}
 suspicious = likely scam, counterfeit, or misleading, whatever the lens.
@@ -429,7 +437,9 @@ Red flags: price far below market with no explanation (bait), "replica"/"inspire
 vague or keyword-stuffed titles, shipping that makes the total expensive, seller with very low or no feedback.
 Auctions: the price shown is only the current bid and will rise. Unless it ends within a few hours, don't rate it great or good on
 price alone; judge what it is and what it is likely to sell for, and say it's an auction in the reason. Lots: judge the price per item.
+${PRICE_BANDS}
 SCAM_RULE
+${OFFSITE_RULE}
 Use only the text you are given. Never invent specs or seller details. If information is missing, say so.
 Keep each reason under 20 words. Flags are 1-4 word phrases. Return every id you were given.`.replace("SCAM_RULE", SCAM_RULE);
 
@@ -482,6 +492,8 @@ const scamNotes = (it) =>
     it.titleCode && `title ends with the code "${it.titleCode}"`,
     it.offSite?.why?.length && `off-site contact: ${it.offSite.why.join("; ")}`,
     it.photoTwins > 0 && `the same photo is on ${it.photoTwins} other listing${it.photoTwins > 1 ? "s" : ""} under other titles (a stolen or stock photo)`,
+    it.cheapPct > 0 && `the total is ${it.cheapPct}% of the typical price: far below what the same thing sells for, the usual bait`,
+    it.sellerWarn && `seller warning: ${it.sellerWarn}`,
   ].filter(Boolean);
 
 async function rankBatch({ items, query, market, lens = "use", want = "", browse = "", signal }) {
@@ -576,10 +588,9 @@ offerLow / offerHigh: a sensible whole-dollar offer range if negotiation is poss
 For an auction, offerLow / offerHigh are a sensible maximum-bid range instead, and the summary says the current bid will rise.
 repair (fix-up and flip lenses): likely faults (most likely first), parts and tools needed, difficulty 1-5 (0 = can't tell), rough partsCost in whole dollars, and notes on teardown risks.
 If the buyer listed wants or must-haves, say which ones the listing meets or misses.
+${PRICE_BANDS}
 SCAM_RULE
-Moving the sale off the site is the other sure sign: a website (often written with spaces, "www . abc . com", "remove the spaces"),
-a phone number written oddly ("505_507__6507"), WhatsApp, Telegram, email, "text me a screenshot", gift cards, or payment before seeing
-the item. Any of those: suspicious, a score under 10, and the summary says plainly that it's the classic Marketplace scam.
+${OFFSITE_RULE} When it's sure, the summary says plainly that it's the classic Marketplace scam.
 Use only the information given. Never invent specs, history, or seller details. If something is missing, say so.`.replace("SCAM_RULE", SCAM_RULE);
 
 async function analyzeListing({ listing, query, market, lens = "use", want = "", signal }) {

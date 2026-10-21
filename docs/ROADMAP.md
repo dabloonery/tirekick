@@ -241,9 +241,13 @@ for each, one PR per change.*
 1. ~~**Before a scan**~~ (0.45.0): a free "Typical price" on a card's hover, from that listing's own title; with no
    AI set up, the free price check is the panel's main button and the AI note is a quiet card after it. Not automatic
    when a page opens (Ground rules: nothing fetched you didn't ask for).
-2. **Scores, in two parts** (next, after Myer's live check, since it changes what the AI is asked and needs real
-   listings to tune): the price verdict (free, from sales) and the AI's **Fit** (condition, what you want,
-   risk). Tags lead with the words; the number moves into the reasons.
+2. **Scores, in two parts**: mostly done another way (revised 2026-10-21). The aim was a price verdict and a fit
+   verdict that can't contradict each other. The price side already wins where they disagree (`TKRules.priceVerdict`,
+   0.41.0), and since 0.53.0 the scan and Analyze prompts start from the cards' own price lines (`PRICE_BANDS` in
+   `background.js`, the same as `TKRules.priceWord` and `TOO_CHEAP`, checked by a unit test) and are told the free scam
+   signs, so the AI's word moves away from the card's price word only for what it read. A separate "Fit" field
+   would cost a second judgment per listing in every scan and needs real listings to tune, so it isn't planned.
+   *Still open, after Myer's live check:* tags that lead with the words and move the number into the reasons.
 3. ~~**Broad words and category pages**~~ (0.45.0, `TKRules.broadQuery`): no page-wide comparison against a category ("Electronics"): Tirekick says the
    words are too broad, and each listing gets its own typical price from its title. When no lookup can be made
    (eBay blocks it, too few sales, turned off) the card says so and why, with a link to eBay's sold listings.

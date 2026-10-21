@@ -501,3 +501,35 @@ test("forPickup: a pickup listing is compared without the shipping in eBay's tot
   assert.equal(R.forPickup(null, {}, true), null);
   assert.equal(R.tooCheap({ total: 20 }, R.forPickup(m, { shipping: null }, true)).level, "low", "$20 is half of $40, not a 38% bait price");
 });
+
+test("codeInSearch: a title code that is the searched model number isn't a scammer's code", () => {
+  assert.equal(R.codeInSearch("DCD771C2", "dewalt dcd771"), true);
+  assert.equal(R.codeInSearch("A2337", "macbook air a2337"), true);
+  assert.equal(R.codeInSearch("M2465", "nintendo switch oled"), false);
+  assert.equal(R.codeInSearch("K7Q2", "k7q2x"), true, "the search starts with it");
+  assert.equal(R.codeInSearch("U2X5", "ps5 console"), false, "a word needs letters and digits and 4 or more");
+  assert.equal(R.codeInSearch("ABC1", ""), false);
+});
+
+test("tooCheap: under the softer cutoff from a seller with a warning is far, unless the title says what's missing", () => {
+  const m = { median: 252, confidence: "good" };
+  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 110, sellerWarn: "New seller" }, m), { level: "far", pct: 44, seller: true });
+  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 110 }, m), { level: "low", pct: 44 });
+  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED - missing Joy-Cons", total: 110, sellerWarn: "Seller: 4 ratings" }, m), { level: "low", pct: 44 });
+  assert.deepEqual(R.tooCheap({ title: "Switch OLED", total: 110, sellerWarn: "New seller", offWords: "nintendo" }, m), { level: "low", pct: 44 }, "a title missing a search word stays low");
+  assert.equal(R.tooCheap({ title: "Nintendo Switch OLED", total: 229, sellerWarn: "New seller" }, m), null, "a new seller at a normal price isn't too cheap");
+  const pv = R.priceVerdict("great", { title: "Nintendo Switch OLED", total: 110, sellerWarn: "New seller", score: 90 }, m);
+  assert.equal(pv.v, "suspicious");
+  assert.match(pv.why, /from a seller with a warning \(New seller\)/);
+});
+
+test("accessoryOf: a game in a console search, and two parts joined by and", () => {
+  assert.equal(R.accessoryOf("Pokemon Scarlet Nintendo Switch OLED Game Brand New Sealed", "nintendo switch oled"), "game");
+  assert.equal(R.accessoryOf("Nintendo Switch OLED Handheld Game Console White 64GB", "nintendo switch oled"), "");
+  assert.equal(R.accessoryOf("Nintendo Switch OLED console with game", "nintendo switch oled"), "");
+  assert.equal(R.accessoryOf("Game Boy Advance SP", "game boy advance"), "", "the search says game");
+  assert.equal(R.accessoryOf("Pentax K1000 game camera", "pentax k1000"), "", "only for console searches");
+  assert.equal(R.accessoryOf("Switch OLED dock and charger", "nintendo switch oled"), "charger");
+  assert.equal(R.accessoryOf("Nintendo Switch OLED console and charger", "nintendo switch oled"), "");
+  assert.equal(R.accessoryOf("Nintendo Switch OLED with dock and charger", "nintendo switch oled"), "");
+});

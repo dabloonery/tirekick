@@ -1887,7 +1887,7 @@
     const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
     const unrelated = f.url && scored.get(keyOf(f.url))?.related === false; // a scan said it's something else
     const cheap = f.vsSold != null && !unrelated && TKRules.tooCheap(f, mk);
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.`]);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.seller ? ` The seller has a warning too (${f.sellerWarn}): the two together are how most scams look.` : ""}`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null && !cheap) {
@@ -2474,6 +2474,7 @@
         });
         if (prev?.offSiteOk != null) f.offSiteOk = prev.offSiteOk;
         if (prev?.codeOk != null) f.codeOk = prev.codeOk; // a scan judged this code a real model number: keep that
+        if (f.titleCode && TKRules.codeInSearch(f.titleCode, pageSearch())) f.codeOk = true; // the model number searched for
         if (prev?.photoTwins) f.photoTwins = prev.photoTwins;
         f.known = prev ? prev.known : !!sighting.known;
         f.project = clueOf(PROJECT, `${it.title} ${f.text}`);

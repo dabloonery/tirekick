@@ -17,9 +17,9 @@ const readCard = (c) => {
   const it = { site: c.site, title: c.title, price: c.price, shipping, total: c.price == null ? null : Math.round((c.price + (shipping || 0)) * 100) / 100 };
   Object.assign(it, TK.cardFacts(c.text || "", c.title));
   it.titleCode = TK.titleCode(c.title);
-  // eBay cards are checked for off-site contact in the title only; Marketplace cards not at all, its listing
-  // page in full (with the seller's join date).
-  const contact = c.site === "ebay" ? c.title : c.page || "";
+  // Cards are checked for off-site contact in the title only; a Marketplace listing's page in full (with the
+  // seller's join date) once it's opened.
+  const contact = c.page ? `${c.title} ${c.page}` : c.title;
   if (TK.offSite(contact)) it.offSite = TK.offSite(contact);
   if (c.page) it.sellerJoined = TK.joinedYear(c.page);
   return it;
@@ -44,6 +44,7 @@ export function runCases(cases = CASES) {
       const others = codes ? [...codes].filter((x) => x !== it.titleCode) : [];
       if (others.length) f.campaign = others;
     }
+    if (it.titleCode && R.codeInSearch(it.titleCode, c.query)) f.codeOk = true;
     f.sellerWarn = R.sellerWarning(it, SETTINGS, NOW);
     f.project = R.clueOf(R.PROJECT, `${c.title} ${c.text || ""}`);
     const base = MARKETS[c.query];

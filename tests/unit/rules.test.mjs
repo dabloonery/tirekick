@@ -384,6 +384,9 @@ test("vsText: below or above typical, in dollars", () => {
   assert.equal(R.vsText(97, 150, { est: true }), "~$53 below typical (est.)");
   assert.equal(R.vsText(97, 0), "");
   assert.ok(R.SOLD_CHIP.test("Good price · $53 below typical") && !R.SOLD_CHIP.test("Too cheap? Typical is $300"));
+  assert.equal(R.vsText(105, 252, { working: true }), "$147 below working ones", "a broken one is set against working ones, and says so");
+  assert.equal(R.vsText(105, 252, { working: true, long: true }), "$147 below the typical price of a working one");
+  assert.ok(R.SOLD_CHIP.test("$147 below working ones"));
 });
 
 test("priceVerdict: when score and price disagree, the price check wins", () => {

@@ -1,5 +1,6 @@
-// Fails unless manifest.json's version is higher than on the branch a change is going into, so every
-// change ships with a new number and the extensions page always tells which copy is running.
+// Fails if manifest.json's version is lower than on the branch a change is going into. The same number is
+// fine: the version only moves when Myer uploads a build to the Chrome Web Store (Myer, 2026-10-21), so
+// pull requests in between keep it as it is.
 // Usage: deno run --allow-read --allow-run --allow-env scripts/version-check.mjs origin/main   (CI passes the PR's base)
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -19,8 +20,8 @@ try {
   console.log(`version ${here}: no manifest on ${base} to compare with`);
   process.exit(0);
 }
-if (!newer(here, there)) {
-  console.error(`FAIL version ${here} isn't higher than ${there} on ${base}: bump "version" in manifest.json`);
+if (newer(there, here)) {
+  console.error(`FAIL version ${here} is lower than ${there} on ${base}: put "version" in manifest.json back`);
   process.exit(1);
 }
 console.log(`version ${here} (was ${there} on ${base})`);

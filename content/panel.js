@@ -1867,10 +1867,11 @@
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
   const sellerWarning = (f) => TKRules.sellerWarning(f, prefs);
-  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed", "wasPrice"];
+  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed", "wasPrice", "foreign"];
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(TK.bigImage(img))}`;
 
 
+  const foreignText = (cur) => `Priced in ${cur}, and the typical price is from eBay.com sales in US dollars, so the two aren't compared (no "too cheap" check or price word either).`;
   // The chips a card wears: most useful first, three at most.
   const chipsFor = (f = {}) => {
     const c = [];
@@ -1897,6 +1898,7 @@
     } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`]);
     else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`]);
     else if (f.accessory && mk?.median > 0) c.push(["plain", "No price check", `Looks like a game, accessory or part for it (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price. Typical price prices it from its own title.`]);
+    else if (f.foreign && mk?.median > 0) c.push(["plain", "No price check", foreignText(f.foreign)]);
     else if (f.priceNote) c.push(["plain", "No price check", f.priceNote]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
@@ -2113,7 +2115,7 @@
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
   // A listing can be priced on its own when it has none yet, and it's one thing (not a lot, not a bid).
-  const canPrice = (f) => cfg.useSoldComps !== false && f.vsSold == null && !f.priceNote && !f.lot && !f.auction && !f.project && f.total != null && !!TK.titleToQuery(f.title || "");
+  const canPrice = (f) => cfg.useSoldComps !== false && f.vsSold == null && !f.priceNote && !f.foreign && !f.lot && !f.auction && !f.project && f.total != null && !!TK.titleToQuery(f.title || "");
   // One listing's typical price, from its own title: the answer when the page has no search, or its words
   // are a whole category. One eBay lookup, paced and cached like the page's.
   const priceOne = async (key, btn) => {
@@ -3057,6 +3059,7 @@
   // Before sales tax and before your own time.
   const resaleNet = (it) => it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - (it.shipOut || 0);
   const priceNotes = (it, market, forLens, feePct) => {
+    if (it.foreign) market = null; // another currency: nothing to compare with US sales (foreignText)
     const w = market?.median;
     it.shipOut = market?.ship ?? null;
     it.refRough = market?.confidence === "rough";
@@ -3915,7 +3918,7 @@
   };
   // The offer plan from sold prices (TKRules.offerPlan) for a listing, or null.
   const planFor = (f, market, soft = "none") =>
-    (market = pickupOf(market, f)) ? TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, soft }, market) : null;
+    (market = pickupOf(market, f)) ? TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, foreign: f.foreign, soft }, market) : null;
   // A message to the seller you can edit, a pick of kinds, Copy, and "They said $…" for the seller's answer,
   // which says whether to take it, meet in the middle or make a last offer (TKRules.counterOffer) and
   // rewrites the message to match. Nothing is typed into the site or sent.

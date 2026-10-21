@@ -479,7 +479,12 @@ function parseModelJson(content) {
 
 const priceLine = (it) => {
   const ship = it.shipping == null ? " (shipping not shown)" : it.shipping > 0 ? ` (incl. $${it.shipping} shipping)` : " (free shipping)";
-  const parts = [it.total == null ? `price: ${it.priceText || "unknown"}` : `total: $${it.total}${ship}`];
+  const parts = [
+    it.total == null ? `price: ${it.priceText || "unknown"}`
+    // Another currency (Marketplace shows the buyer's own, "CA$200"): said as is, and kept apart from the sold reference.
+    : it.foreign ? `total: ${it.foreign}${it.total}${ship.replace("$", it.foreign)}, in that currency, not US dollars: don't compare it with the US-dollar sold reference`
+    : `total: $${it.total}${ship}`,
+  ];
   if (it.auction) parts.push(`AUCTION: that is the current bid, ${it.bids || 0} bid${it.bids === 1 ? "" : "s"}${it.timeLeft ? `, ${it.timeLeft} left` : ""}`);
   if (it.lot) parts.push(`lot of ${it.lot}${it.total != null ? ` (about $${Math.round(it.total / it.lot)} each)` : ""}`);
   if (it.bestOffer) parts.push("accepts offers");

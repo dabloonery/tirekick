@@ -55,6 +55,13 @@ await waitFor(async () => /typical/.test(await fbChip()));
 const pick = await fbChip();
 ok("a $85 pickup listing is compared with the typical price less shipping ($88), not eBay's $100 total", /about typical/.test(pick) && !/\$15 below/.test(pick), pick);
 await fb.close();
+// The same card priced in Canadian dollars (a buyer in Canada): not held against US-dollar sales.
+const fbc = await open("https://www.facebook.com/marketplace/search?query=pentax+k1000&currency");
+const fbcChip = () => fbc.ev(`[...document.querySelectorAll('[data-tirekick-key]')].filter(c=>c.querySelector('a[href*="/item/111/"]')||c.matches('a[href*="/item/111/"]')).map(c=>[...c.querySelectorAll('.tk-chip')].map(x=>x.textContent+' ~ '+(x.title||'')).join(' | ')).join(' || ')`);
+await waitFor(async () => /No price check/.test(await fbcChip()));
+const cad = await fbcChip();
+ok("a CA$85 Marketplace listing gets no price check against US-dollar sales, and says why", /No price check ~ Priced in CA\$/.test(cad) && !/typical/.test(cad.split("~")[0]), cad);
+await fbc.close();
 await store(`{soldCache:{}}`);
 
 // ---------- the offer helper on a listing page ----------

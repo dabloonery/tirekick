@@ -137,6 +137,8 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   if (u.pathname === "/photo-hits") return new Response(String(photoHits));
   if (/\.jpg$/.test(u.pathname)) return new Response(Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (x) => x.charCodeAt(0)), { headers: { "content-type": "image/gif" } });
   if (u.hostname === "www.facebook.com" && u.searchParams.has("feed")) return new Response(fbFeedPage(), { headers: { "content-type": "text/html" } });
+  // ?currency: the first card priced in Canadian dollars, as Marketplace shows prices to a buyer in Canada.
+  if (u.hostname === "www.facebook.com" && u.searchParams.has("currency")) return new Response(fbPage("Marketplace").replace("<div>$85</div>", "<div>CA$85</div>"), { headers: { "content-type": "text/html" } });
   if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace", u.searchParams.has("dark")), { headers: { "content-type": "text/html" } });
   // A sold search for "blockme" is refused, like eBay's browser check.
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /blockme/.test(u.searchParams.get("_nkw") || "")) return new Response("denied", { status: 403 });

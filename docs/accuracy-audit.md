@@ -19,7 +19,7 @@ Made from: eBay's sold-listings search for the words, used condition (any condit
 
 What's left out is listed where the number is shown (the panel's price box on hover, the hub under the price).
 
-Still approximate, and said so: the words match titles, not identical items, so a kit or a variant can still count ("Check a few", and the sales closest to the median are one click away). International listings priced in another currency with a "$" (C $, AU $) are read as US dollars; eBay.com usually shows US prices.
+Still approximate, and said so: the words match titles, not identical items, so a kit or a variant can still count ("Check a few", and the sales closest to the median are one click away). Sales and eBay listings priced in another currency ("C $20.00", "AU $35.00", "£15") are left out of the median, or read from eBay's "Approximately US $…" where it gives one; Marketplace listings in the buyer's own currency ("CA$200", "£85") aren't compared with US sales at all (2026-10-21, below).
 
 ## Margins (Reseller)
 
@@ -115,6 +115,13 @@ Fixes from that first run (same day):
 | Off-site contact in a Marketplace card's title was only read once the listing was opened | "PS5 console and 4 games, text 505_507__6507" looked like an ordinary cheap listing in the results | Marketplace card titles are checked, as eBay's are |
 
 After: scams marked Likely scam 15 of 17 (was 11), honest ones marked Likely scam 0 (was 1), honest ones marked Check first 3 (was 5), price words as labeled 48 of 51 (was 47). Left: the Pentax that needs light seals and the Switch missing Joy-Cons (cheap for a reason, Check first is fair) and the new seller at a normal price.
+## Prices in other currencies on Marketplace (2026-10-21)
+
+| Problem | Effect on real listings | Now |
+|---|---|---|
+| Marketplace shows prices in the buyer's own currency, and the card reader took the number after any "$" | For a buyer in Canada, "CA$180" read as US$180 against a US$238 pickup typical price: "Good price · $58 below typical", when CA$180 is about US$130 (55%). A CA$95 bait listing would read "Too cheap?" instead of Likely scam, and the offer helper suggested US-dollar offers. "£85" wasn't read at all | `TK.currencyOf` and `TK.parseAmount` read the price and its currency. A price not in US dollars gets "No price check" with the reason, no price word, no too-cheap mark, no offer plan; the scan is told the currency and not to compare it with the US-dollar reference. Filters and sorting still use the number |
+
+Not converted on purpose: an exchange rate would need a lookup Tirekick doesn't make, and eBay.com's sales are US sales anyway.
 
 ## Spending estimates
 

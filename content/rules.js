@@ -206,7 +206,7 @@
   const INCOMPLETE = /\b(?:missing|without|no (?:joy ?cons?|dock|charger|controllers?|lens|battery|batteries|box|cables?|stand)|(?:console|tablet|body|unit|handheld|screen) only)\b/;
   R.tooCheap = (f, market) => {
     if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
-    if (f.auction || f.lot || f.project || f.accessory || f.related === false) return null;
+    if (f.auction || f.lot || f.project || f.accessory || f.foreign || f.related === false) return null;
     const pct = f.total / market.median;
     // Under the softer cutoff and from a seller with a warning (few ratings, an account made this year): two
     // signs that rarely meet on an honest listing, so it's "far" too. In the eval (tests/eval) every such
@@ -235,7 +235,7 @@
   R.compareFacts = (f, market, query = "") => {
     f.accessory = (!f.ownMarket && R.accessoryOf(f.title, query)) || "";
     f.offWords = (!f.ownMarket && R.missingWord(f.title, query)) || "";
-    const vs = market?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
+    const vs = market?.median > 0 && f.total != null && !f.foreign && !f.lot && !f.auction && !f.accessory && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
     f.cheap = (vs != null && R.tooCheap(f, market)?.level) || ""; // backs up a title code (codeBacked)
     return vs;
   };
@@ -261,7 +261,7 @@
   R.ABOVE_CAP = 1.25;
   R.priceVerdict = (verdict, it, market) => {
     const keep = { v: verdict };
-    if (!(verdict in R.RANK) || verdict === "pass" || !it || it.total == null || !(market?.median > 0)) return keep;
+    if (!(verdict in R.RANK) || verdict === "pass" || !it || it.total == null || it.foreign || !(market?.median > 0)) return keep;
     const typical = R.dollars(Math.round(market.median));
     const pct = Math.round((it.total / market.median) * 100);
     const moved = (v, extra) => ({ v, ...(it.score != null ? { score: R.fitScore(v, it.score) } : {}), ...extra });
@@ -383,8 +383,8 @@
   // Opens midway between the cheaper quarter of sales and the median (at the cheaper quarter when the
   // seller looks soft), never above the asking price, never under 60% of it (lower reads as a lowball
   // and gets ignored). Walk away above the median. Returns null when there's nothing solid to go on.
-  R.offerPlan = ({ price, shipping = 0, auction, lot, project, soft = "none" } = {}, market) => {
-    if (!(market?.median > 0) || !(market.p25 > 0) || price == null || !(price > 0) || auction || lot || project) return null;
+  R.offerPlan = ({ price, shipping = 0, auction, lot, project, foreign, soft = "none" } = {}, market) => {
+    if (!(market?.median > 0) || !(market.p25 > 0) || price == null || !(price > 0) || auction || lot || project || foreign) return null;
     const ship = Number(shipping) || 0;
     const total = price + ship;
     const reasons = [`the typical price is $${market.p25}–$${market.p75} (${market.n} recent eBay sales)`];

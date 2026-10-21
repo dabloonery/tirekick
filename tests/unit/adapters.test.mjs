@@ -136,3 +136,16 @@ test("joinedYear and listedDaysAgo read what a listing page says", () => {
   assert.equal(TK.listedDaysAgo("Listed on Oct 3, 2026", now), 11);
   assert.equal(TK.listedDaysAgo("no date"), null);
 });
+
+test("currencyOf and parseAmount: Marketplace prices in the buyer's own currency", () => {
+  assert.equal(TK.currencyOf("CA$200"), "CA$");
+  assert.equal(TK.currencyOf("C $20.00"), "C$");
+  assert.equal(TK.currencyOf("£85"), "£");
+  assert.equal(TK.currencyOf("€40.50"), "€");
+  assert.equal(TK.currencyOf("$200"), "");
+  assert.equal(TK.currencyOf("US $20.00"), "");
+  assert.equal(TK.parseAmount("CA$1,200"), 1200);
+  assert.equal(TK.parseAmount("£85"), 85);
+  assert.equal(TK.parseAmount("$165"), 165);
+  assert.equal(TK.parseAmount("Free"), null);
+});

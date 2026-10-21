@@ -82,8 +82,8 @@ ok("the analysis is told the offer plan from sold prices", calls.some((c: any) =
 const an = await R(it, `const b=[...r.querySelectorAll('.offer')].find(x=>/Suggested offer/.test(x.textContent)); return b && { text: b.textContent, msg: b.querySelector('textarea')?.value, said: !!b.querySelector('input.said') }`);
 ok("…a lowball range from the model ($230–$260) is kept near the plan ($240–$260)", /Suggested offer: \$240–\$260/.test(an?.text || "") && /Kept near the plan from the typical price/.test(an?.text || ""), an);
 ok("…with the same editable message and \"They said\" box", /Would you take \$240\?/.test(an?.msg || "") && an?.said, an);
-await store(`{anthropicKey:'', useSoldComps:false}`);
 await it.close();
+await store(`{anthropicKey:'', useSoldComps:false}`);
 
 // ---------- saved listings as a spreadsheet ----------
 await store(`{saved:{'ebay:1111111111':{t:'Pentax K1000 body',u:'https://www.ebay.com/itm/1111111111',p0:120,a0:${Date.now() - 864e5},p:97,a:${Date.now()}}}}`);
@@ -117,6 +117,22 @@ const soldKeys = Object.keys((await o.ev(`chrome.storage.local.get('soldCache')`
 ok("…and never the category's name", soldKeys.length === 1 && !soldKeys.some((k) => /electronics/.test(k)), soldKeys);
 await store(`{useSoldComps:false}`);
 await cat.close();
+
+// A scan is told the cards' price lines and the free scam signs, so its verdict starts where the card's word does.
+await store(`{anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:true}`);
+await soldFor("pentax k1000");
+await fetch("http://localhost:1234/calls", { method: "DELETE" });
+const sp = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");
+await sleep(1200);
+await R(sp, `r.querySelector('[data-act=tab]').click()`);
+await sleep(400);
+await R(sp, `r.querySelector('[data-act=scan]').click()`);
+await waitFor(async () => (await (await fetch("http://localhost:1234/calls")).json()).length > 0, 10000);
+const scanCalls = await (await fetch("http://localhost:1234/calls")).json();
+ok("a scan gets the same price lines as the cards' free read", scanCalls.length && scanCalls.every((x: any) => x.bands), scanCalls);
+ok("…and is told a bait price as a scam signal", scanCalls.some((x: any) => x.scam.some((s: string) => /the total is 32% of the typical price/.test(s))), scanCalls.map((x: any) => x.scam));
+await sleep(1500);
+await sp.close();
 
 ok("no page logged an error", !errors.length, errors.slice(0, 5));
 console.log(fails ? `${fails} FAILED` : "all passed");

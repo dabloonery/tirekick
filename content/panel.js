@@ -3592,7 +3592,13 @@
       }
       if (market?.median > 0 && epoch === pageEpoch) applyMarket(market); // every card, scored or not
       items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
-      items.forEach((it) => (it.photoTwins = facts.get(keyOf(it.url))?.photoTwins || 0)); // the model is told
+      // The free scam signs the model is told (background.js scamNotes): a reused photo, a bait price, the seller.
+      items.forEach((it) => {
+        const f = facts.get(keyOf(it.url));
+        it.photoTwins = f?.photoTwins || 0;
+        it.sellerWarn = f?.sellerWarn || "";
+        it.cheapPct = (it.vsWorking != null && TKRules.tooCheap(it, market)?.pct) || 0;
+      });
 
       // Anything already judged in this exact setting comes back from memory, free.
       const model = settings.scanModel; // scans can use their own, cheaper model
@@ -4153,6 +4159,8 @@
       const market = await getMarket(settings, query, forLens);
       priceNotes(listing, market, forLens, settings.feePct);
       if (itemFacts?.photoTwins) listing.photoTwins = itemFacts.photoTwins;
+      listing.sellerWarn = itemFacts?.sellerWarn || sellerWarning(listing);
+      listing.cheapPct = (listing.vsWorking != null && TKRules.tooCheap(listing, market)?.pct) || 0;
       // The free offer plan goes to the model, and its range is kept near it (TKRules.fitOffer).
       const plan = !listing.auction ? planFor(listing, market, itemFacts ? softFor(itemFacts).level : "none") : null;
       listing.offerPlan = plan && !plan.cheap ? { open: plan.open, walkAway: plan.walkAway, confidence: plan.confidence } : null;

@@ -13,6 +13,29 @@ ul{list-style:none;margin:0;padding:20px 24px;display:grid;grid-template-columns
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 body only, untested</div><div class="s-card__price">$60.00</div><span>3 bids · 2d 4h left</span><a href="https://www.ebay.com/itm/5555555555">item</a></li>
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 + 28mm lens, tested, great</div><div class="s-card__price">$110.00</div><span>or Best Offer</span><span>99.5% positive (1.2K)</span><a href="https://www.ebay.com/itm/6666666666">item</a></li>
 </ul></body></html>`;
+// ?real: a search the way buyers meet it (real.ts): "nintendo switch oled", typical about $250, with what turns up
+// beside the consoles: a game, a case, a bait price, a contact-me-off-site post, a for-parts one, an auction, a lot,
+// a new seller and one over the typical price. REAL holds each card and what a model plausibly answers for it,
+// including the answers the panel has to correct (a "great" on an overpriced one, a "great" on the bait).
+export const REAL: [string, string, string, { score: number; verdict: string; related?: boolean; reason: string }][] = [
+  ["Nintendo Switch OLED Model White Console HEG-001 Complete in Box", "$239.00", "<span>Free delivery</span><span>99.8% positive (4.1K)</span>", { score: 70, verdict: "good", reason: "Complete in box at about the typical price, from a well-rated seller." }],
+  ["Nintendo Switch OLED Neon Joy-Con, barely used", "$199.00", "<span>+$12.00 delivery</span>", { score: 72, verdict: "good", reason: "A little under typical with shipping, lightly used." }],
+  ["Nintendo Switch OLED 64GB White - NEW SEALED", "$329.00", "<span>Free delivery</span><span>100% positive (812)</span>", { score: 82, verdict: "great", reason: "New and sealed, a premium over used ones." }],
+  ["Nintendo Switch OLED console - fast shipping", "$89.00", "<span>Free delivery</span>", { score: 91, verdict: "great", reason: "Very low price for an OLED console." }],
+  ["Mario Kart 8 Deluxe - Nintendo Switch", "$38.00", "<span>+$4.99 delivery</span>", { score: 66, verdict: "good", related: false, reason: "A game, not a console; fair price for it." }],
+  ["Nintendo Switch OLED carrying case", "$15.00", "<span>Free delivery</span>", { score: 50, verdict: "fair", related: false, reason: "A case, not the console." }],
+  ["Nintendo Switch OLED white text me 505 555 0123 on WhatsApp", "$150.00", "", { score: 4, verdict: "suspicious", reason: "Asks to move to WhatsApp: a common scam." }],
+  ["Nintendo Switch OLED for parts, no power", "$95.00", "<span>+$10.00 delivery</span>", { score: 35, verdict: "pass", reason: "Doesn't power on; for parts only." }],
+  ["Nintendo Switch OLED Mario Red Edition", "$160.00", "<span>5 bids · 1d 3h left</span><span>+$15.00 delivery</span>", { score: 55, verdict: "fair", reason: "Auction; the bid will rise." }],
+  ["Lot of 2 Nintendo Switch OLED consoles", "$420.00", "<span>Free delivery</span>", { score: 62, verdict: "good", reason: "Two consoles at about $210 each." }],
+  ["Nintendo Switch OLED white + 3 games + case", "$265.00", "<span>Free delivery</span>", { score: 74, verdict: "good", reason: "Bundle with games for a little over typical." }],
+  ["Nintendo Switch OLED Splatoon 3 Edition", "$185.00", "<span>+$15.00 delivery</span><span>100% positive (3)</span>", { score: 68, verdict: "good", reason: "Good price for a special edition; seller has few ratings." }],
+  ["Switch OLED console only (no dock), tested", "$160.00", "<span>Free delivery</span>", { score: 64, verdict: "good", reason: "No dock, but well under typical." }],
+  ["Nintendo Switch OLED", "$120.00", "<span>Free delivery</span>", { score: 50, verdict: "fair", reason: "Low price, few details." }],
+];
+const realPage = () => page("nintendo switch oled").replace(/<ul>[\s\S]*<\/ul>/, `<ul>
+${REAL.map(([t, pr, extra], i) => ` <li class="s-card"><img alt=""><div class="s-card__title">${t}</div><div class="s-card__price">${pr}</div>${extra}<a href="https://www.ebay.com/itm/90000000${String(i).padStart(2, "0")}">item</a></li>`).join("\n")}
+</ul>`);
 // Facebook nests each card's link a dozen boxes inside its grid cell, and a card can link to its listing twice.
 const deep = (inner: string) => "<div>".repeat(14) + inner + "</div>".repeat(14);
 // ?dark: laid out like Marketplace in dark mode (a sidebar, a grid that clips at its edges, square photos), for look checks.
@@ -87,7 +110,9 @@ const soldPage = (q: string) => {
   const t = q.replace(/[<>&"]/g, "");
   const card = (id: number, title: string, price: number, extra = "") => ` <li class="s-card"><a href="https://www.ebay.com/itm/5000000000${id}"><div class="s-card__title">${title}</div></a><div class="s-card__price">$${price}.00</div>${extra}</li>`;
   const ship = '<div class="s-card__attribute-row">+$9.00 delivery</div>';
-  const good = [48, 52, 55, 57, 59, 61, 63, 66, 70, 74].map((p, i) => card(i, `${t} used, working ${i}`, p - 9, i < 7 ? ship : '<div class="s-card__attribute-row">Free delivery</div>'));
+  // A console search (real.ts) sells for about four times as much: median about $250, $12 shipping on most.
+  const k = /switch/i.test(t) ? 4.2 : 1, sh = /switch/i.test(t) ? 12 : 9;
+  const good = [48, 52, 55, 57, 59, 61, 63, 66, 70, 74].map((p, i) => card(i, `${t} used, working ${i}`, Math.round(p * k) - sh, i < 7 ? ship.replace("$9", "$" + sh) : '<div class="s-card__attribute-row">Free delivery</div>'));
   return `<!doctype html><html><head><meta charset="utf-8"><title>sold | eBay</title></head><body><div class="srp-results"><ul>
 ${good.join("\n")}
 ${card(20, `${t} boxed, mint`, 140, '<div class="s-card__attribute-row">Best offer accepted</div>')}
@@ -116,6 +141,7 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   // A sold search for "blockme" is refused, like eBay's browser check.
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /blockme/.test(u.searchParams.get("_nkw") || "")) return new Response("denied", { status: 403 });
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1") return new Response(soldPage(u.searchParams.get("_nkw") || "item"), { headers: { "content-type": "text/html" } });
+  if (u.pathname.startsWith("/sch/") && u.searchParams.has("real")) return new Response(realPage(), { headers: { "content-type": "text/html" } });
   // ?changed: the same results after a redesign the adapter doesn't know (new card class names, links intact).
   if (u.pathname.startsWith("/sch/") && u.searchParams.has("changed")) return new Response(page("Pentax results").replaceAll("s-card", "x-tile"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/sch/")) return new Response(u.searchParams.has("empty") ? "<!doctype html><title>x</title><ul></ul>" : page("Pentax results"), { headers: { "content-type": "text/html" } });
@@ -150,6 +176,14 @@ Deno.serve({ port: 1234, onListen(){} }, async (req) => {
       { query: "pentax km", kind: "alt", why: "Near-identical later model", maxPrice: 120, newest: false }] }) }], usage: { input_tokens: 300, output_tokens: 100 } }), { headers: { ...cors, "content-type": "application/json" } });
     if (body.output_config?.format?.schema?.properties?.summary) return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ score: 64, verdict: "good", summary: "Mock summary of the camera.", flags: ["clear photos"], offerLow: 230, offerHigh: 260 }) }], usage: { input_tokens: 1500, output_tokens: 400 } }), { headers: { ...cors, "content-type": "application/json" } });
     const user = typeof body.messages[0].content === "string" ? body.messages[0].content : "";
+    // The ?real search: each card's scripted answer, found by its title.
+    if (/Nintendo Switch OLED/.test(user)) {
+      const items = [...user.matchAll(/^id (\d+) \| [^|]*\| ([^|]*?) \|/gm)].map((m) => {
+        const a = REAL.find(([t]) => t === m[2].trim())?.[3] || { score: 50, verdict: "fair", reason: "Mock." };
+        return { id: +m[1], related: a.related ?? true, score: a.score, verdict: a.verdict, flags: [], reason: a.reason };
+      });
+      return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ items }) }], usage: { input_tokens: 2000, output_tokens: 500 } }), { headers: { ...cors, "content-type": "application/json" } });
+    }
     const ids = [...user.matchAll(/^id (\d+) \|/gm)].map((m) => +m[1]);
     const items = ids.map((id) => ({ id, related: true, score: [88, 60, 30, 5, 38, 76][id - 1] ?? 50, verdict: ["great","fair","pass","suspicious","pass","good"][id - 1] ?? "fair", flags: [], reason: "Mock reason for listing " + id }));
     return new Response(JSON.stringify({ model: body.model, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ items }) }], usage: { input_tokens: 2000, output_tokens: 500 } }), { headers: { ...cors, "content-type": "application/json" } });

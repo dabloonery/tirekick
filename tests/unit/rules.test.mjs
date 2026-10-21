@@ -224,6 +224,7 @@ test("accessoryOf: an accessory or part for what was searched, not the thing its
     ["game boy sp", "Nintendo Game Boy Advance SP AGS-001 Cobalt Blue Working"], ["game boy sp", "Game Boy Advance SP Pearl Blue w/ charger"],
     ["dewalt drill", "DeWalt 20V MAX drill with 2 batteries"], ["pentax k1000", "Pentax K1000 35mm film camera with 50mm lens"], ["pentax k1000", "Pentax K1000 with 50mm f/2 lens and case"],
     ["ps5", "PS5 Console Disc Edition"], ["xbox one", "Xbox One S 1TB Console"], ["nikon d3100", "Nikon D3100 body only"], ["", "Case for Nintendo Switch"],
+    ["nintendo switch oled", "Nintendo Switch OLED white + 3 games + case"], ["ps5", "PS5 Slim & extra controller"],
   ];
   for (const [q, t] of no) assert.equal(R.accessoryOf(t, q), "", `${t} (search: ${q})`);
   assert.equal(R.accessoryOf("Case for Nintendo Switch", "nintendo switch"), "case", "says which word gave it away");
@@ -387,8 +388,9 @@ test("vsText: below or above typical, in dollars", () => {
 
 test("priceVerdict: when score and price disagree, the price check wins", () => {
   const m = { median: 300, confidence: "good" };
-  assert.deepEqual(R.priceVerdict("great", { total: 85 }, m), { v: "suspicious", label: "Great price, if it’s real" });
-  assert.deepEqual(R.priceVerdict("good", { total: 295 * 1.3 }, m), { v: "fair" }, "well above typical: no better than Fair");
+  const pick = ({ v, label }) => (label ? { v, label } : { v });
+  assert.deepEqual(pick(R.priceVerdict("great", { total: 85 }, m)), { v: "suspicious", label: "Great price, if it’s real" });
+  assert.deepEqual(pick(R.priceVerdict("good", { total: 295 * 1.3 }, m)), { v: "fair" }, "well above typical: no better than Fair");
   assert.deepEqual(R.priceVerdict("great", { total: 250 }, m), { v: "great" }, "a fair gap keeps the score's verdict");
   assert.deepEqual(R.priceVerdict("pass", { total: 85 }, m), { v: "pass" });
   assert.deepEqual(R.priceVerdict("great", { total: 85, auction: true }, m), { v: "great" }, "a bid isn't a price");
@@ -397,6 +399,32 @@ test("priceVerdict: when score and price disagree, the price check wins", () => 
   assert.deepEqual(R.priceVerdict("good", { total: 15, related: false }, m), { v: "good" }, "a scan's 'not your search' isn't compared with the search's price");
   assert.deepEqual(R.priceVerdict("good", { total: 500, related: false }, m), { v: "good" }, "…either way");
   assert.deepEqual(R.priceVerdict("good", { total: 15, accessory: "case" }, m), { v: "good" }, "nor is an accessory");
+
+  // When the verdict moves, the number moves with it and the reason says why (the "Switch OLED" search in real.ts).
+  const bait = R.priceVerdict("great", { total: 89, score: 91 }, { median: 252, confidence: "good" });
+  assert.equal(bait.score, 30, "a 91 on the bait reads 30, inside the warning's range");
+  assert.match(bait.why, /^\$89 is 35% of the typical \$252\. Far under/);
+  const dear = R.priceVerdict("great", { total: 329, score: 82 }, { median: 252, confidence: "good" });
+  assert.deepEqual([dear.v, dear.score], ["fair", 59], "an 82 held at Fair price reads 59");
+  assert.equal(dear.why, "Held at Fair price: $329 is 131% of the typical $252.");
+  assert.equal(R.priceVerdict("good", { total: 239, score: 70 }, { median: 252, confidence: "good" }).score, undefined, "an unchanged verdict keeps the model's score");
+});
+
+test("missingWord: the first word of the search a title leaves out", () => {
+  assert.equal(R.missingWord("Mario Kart 8 Deluxe - Nintendo Switch", "nintendo switch oled"), "oled");
+  assert.equal(R.missingWord("Nintendo Switch OLED Model White", "nintendo switch oled"), "");
+  assert.equal(R.missingWord("Pentax K-1000 35mm SLR", "pentax k1000"), "", "spacing and hyphens don't count");
+  assert.equal(R.missingWord("Nintendo Switch Joy-Con", "nintendo switch joycons"), "", "nor a plural");
+  assert.equal(R.missingWord("Nintendo Switch OLED", "nintendo switch -case"), "", "nor a word the search leaves out");
+  assert.equal(R.missingWord("Lot of 3 Game Boy games", "a game boy"), "", "nor short words");
+  assert.equal(R.missingWord("", "pentax"), "");
+});
+
+test("tooCheap: a title missing a search word is Check first, not Likely scam", () => {
+  const m = { median: 252, confidence: "good" };
+  assert.equal(R.tooCheap({ total: 42.99 }, m).level, "far");
+  assert.equal(R.tooCheap({ total: 42.99, offWords: "oled" }, m).level, "low", "Mario Kart in a Switch OLED search");
+  assert.equal(R.tooCheap({ total: 200, offWords: "oled" }, m), null);
 });
 
 test("broadQuery: a store category is too broad to price, a model isn't", () => {

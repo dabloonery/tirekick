@@ -62,8 +62,8 @@ const reads = await R(e, `return [...r.querySelectorAll('.list .row')].map(x => 
 ok("unscored rows carry a free read from sold prices", reads?.includes?.("Good price $97") && reads.includes("Fair price $140"), reads);
 ok("…and best first puts good prices first before any scan", /^Good price/.test(reads?.[0] || ""), reads);
 ok("…but a broken one gets no price word: it's cheap for a reason", reads?.includes?.("- $35"), reads);
-const cardChips = await e.ev(`[...document.querySelectorAll('.tk-chip')].map(c=>c.textContent).filter(t=>/ (below|above) typical$|about typical$/.test(t))`);
-ok("the card's sold chip says it in a word too, set apart by weight (no dot)", cardChips?.includes?.("Good price $53 below typical") && cardChips.includes("$115 below typical"), cardChips);
+const cardChips = await e.ev(`[...document.querySelectorAll('.tk-chip')].map(c=>c.textContent).filter(t=>/ (below|above) (typical|working ones)$|about typical$/.test(t))`);
+ok("the card's sold chip says it in a word too, set apart by weight (no dot)", cardChips?.includes?.("Good price $53 below typical") && cardChips.includes("$115 below working ones"), cardChips);
 ok("…the word in bold", await e.ev(`[...document.querySelectorAll('.tirekick-marks')].some(m=>[...m.querySelectorAll('.tk-chip b')].some(b=>b.textContent==='Good price'))`));
 await e.close();
 

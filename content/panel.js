@@ -1503,7 +1503,7 @@
       if (broken && it.partsCost > 0) return `~$${it.partsCost} parts`;
     }
     if (it.vsWorking == null) return "";
-    return TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, est: it.refIsEstimate });
+    return TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, est: it.refIsEstimate, working: !!facts.get(keyOf(it.url))?.project });
   };
 
   const priceStr = (it) =>
@@ -1605,6 +1605,8 @@
       .tk-chip svg { width:11px; height:11px; }
       .tk-chip b { font-weight:700; } .tk-chip .tk-rest { font-weight:500; }
       .tirekick-marks .tk-chip, .tk-under .tk-chip { max-width:100%; white-space:normal; } /* a long tag wraps inside the card */
+      .tirekick-marks .tk-chip:has(> b), .tk-under .tk-chip:has(> b) { display:inline-block; } /* "Good price" stays together; the rest wraps after it */
+      .tk-chip > b { white-space:nowrap; }
       .tk-chip.k-new, .tk-chip.k-deal { background:var(--tk-new-bg); color:var(--tk-new-fg); } .tk-chip.k-good { background:var(--tk-good-bg); color:var(--tk-good-fg); }
       .tk-chip.k-warn { background:var(--tk-warn-bg); color:var(--tk-warn-fg); }
       .tk-chip.k-plain { box-shadow:inset 0 0 0 1px var(--tk-line), 0 2px 6px -2px rgba(0,0,0,.3); }
@@ -1612,6 +1614,10 @@
         filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); pointer-events:auto; }
       .tirekick-marks button, .tirekick-sticker .tk-under button { cursor:pointer; border:0; }
       .tk-acts { display:contents; }
+      .tirekick-marks .tk-why { display:none; flex:0 0 auto; width:min(248px, calc(var(--tk-popw, 260px) - 12px)); max-width:none; /* wider than the chips above it, never wider than the card */ box-sizing:border-box; padding:10px 12px; border-radius:12px; background:var(--tk-paper); color:var(--tk-ink);
+        box-shadow:0 0 0 1px var(--tk-line); font:400 13px/1.5 ${UI}; white-space:normal; text-transform:none; }
+      .tirekick-marks .tk-why p { margin:0; } .tirekick-marks .tk-why p + p { margin-top:6px; }
+      [data-tirekick-key]:hover .tirekick-marks .tk-why, .tirekick-marks:focus-within .tk-why { display:block; }
       /* Hover-only actions stay in the DOM (clipped, not display:none) so the keyboard can reach them; they show on hover or focus. */
       .tk-x { position:absolute !important; width:1px !important; height:1px !important; margin:-1px !important; padding:0 !important; overflow:hidden !important; clip-path:inset(50%) !important; }
       [data-tirekick-key]:hover .tk-x, .tirekick-marks:focus-within .tk-x, .tirekick-sticker:focus-within .tk-x, .tk-x:focus-visible
@@ -1871,10 +1877,10 @@
     if (showHidden && f.hidden) c.push(["warn", "Not interested"]);
     else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`]);
     if (f.deal) c.push(["deal", `At your $${quick.deal}`]);
-    if (f.campaign) c.push(["warn", "Scam: reposted"]);
-    else if (f.offSite?.sure) c.push(["warn", "Scam: off-site contact"]);
-    else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`]);
-    if (f.offSite && !f.offSite.sure && !f.offSiteOk) c.push(["warn", "Contact outside the site?"]);
+    if (f.campaign) c.push(["warn", "Scam: reposted", `Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`]);
+    else if (f.offSite?.sure) c.push(["warn", "Scam: off-site contact", `Asks to talk off the site (${f.offSite.why.join("; ")}). That's how most scams start, and off the site you lose its buyer protection.`]);
+    else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`, `Bulk-posted fakes on Marketplace end the title with a code like ${f.titleCode}, and so do real model numbers: check it's this item's model number.${TKRules.codeBacked(f) ? ` With ${TKRules.codeBacked(f)} as well, it's likely a scam.` : ""}`]);
+    if (f.offSite && !f.offSite.sure && !f.offSiteOk) c.push(["warn", "Contact outside the site?", `Contact details in the listing (${f.offSite.why.join("; ")}). Keep the talk and the payment on the site.`]);
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const mk = marketOf(f);
@@ -1887,7 +1893,7 @@
     if (f.vsSold != null && !cheap) {
       // Broken ones, likely scams and what a scan called something else: just the number, no "Great price".
       const pw = f.project || unrelated || likelyScam(f) ? null : TKRules.priceWord(f.vsSold);
-      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
+      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", working: !!f.project })}`, `Typical price${f.project ? " of a working one" : ""}: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
     } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`]);
     else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`]);
     else if (f.accessory && mk?.median > 0) c.push(["plain", "No price check", `Looks like an accessory or part (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price.`]);
@@ -1896,8 +1902,8 @@
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
     if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
     if (f.motivated) c.push(["plain", f.motivated]);
-    if (f.sellerWarn) c.push(["warn", f.sellerWarn]);
-    if (f.dup) c.push(["warn", `Same title ×${f.dup}`]);
+    if (f.sellerWarn) c.push(["warn", f.sellerWarn, `${f.sellerWarn} (your rule: at least ${prefs.minSellerRatings} ratings, ${prefs.minSellerPct}% positive). New and little-rated accounts are where most scams come from.`]);
+    if (f.dup) c.push(["warn", `Same title ×${f.dup}`, `${f.dup} listings on this page share this title or photo: a repost, or one seller with several.`]);
     // An auction in its last few hours, especially with no bids, is when bargains happen.
     if (f.auction && f.hoursLeft != null && f.hoursLeft <= 3) c.push(["new", `Ends in ${f.timeLeft}${f.bids === 0 ? ", no bids" : ""}`]);
     else if (f.auction) c.push(["plain", `Auction${f.timeLeft ? `, ${f.timeLeft} left` : ""}`]);
@@ -2068,7 +2074,9 @@
     const chips = chipEls(f);
     if (showHidden && f.hidden) chips.push(h("button", { class: "tk-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
     else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Sold / Not interested appear when you hover the card
-    host.append(fit(h("div", { class: `tirekick-marks` }, chips)));
+    // The warnings' reasons, on hover or focus: a "Likely scam?" says why without a scan.
+    const whys = chipsFor(f).filter(([kind, , why]) => kind === "warn" && why).map(([, , why]) => why);
+    host.append(fit(h("div", { class: `tirekick-marks` }, chips, whys.length ? h("div", { class: "tk-why" }, whys.map((w) => h("p", {}, w))) : null)));
     host.dataset.tkHas = "1";
   };
   const stick = (item) => decorate(keyOf(item.url), item.el);
@@ -2595,7 +2603,7 @@
     const sub = lensLine(item);
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = chipsFor(f)
-      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t))
+      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t) && !(v.priceWarn && /^(Likely scam|Too cheap)\?/.test(t)))
       .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
     if (item.photoAdjust) {
       const chip = h("span", { class: "tk-chip", title: "Photo check" }, signed(item.photoAdjust));
@@ -2738,7 +2746,7 @@
       // Not scored (yet): the price is the headline, with what's known for free.
       if (it.score == null) {
         const mk = marketOf(f);
-        const vs = f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true })} (${dollars(Math.round(mk.median))})` : "";
+        const vs = f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true, working: !!f.project })} (${dollars(Math.round(mk.median))})` : "";
         const each = it.lot && it.total != null ? `, lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
         listEl.append(
           h(
@@ -2781,7 +2789,7 @@
         it.vsWorking != null && !it.auction && !it.lot
           ? it.refIsEstimate
             ? `${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-            : `${TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refPrice ?? it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
+            : `${TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, long: true, working: !!f.project })} (${dollars(Math.round(it.refPrice ?? it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
           : "";
       const line = lensLine(it);
       const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));

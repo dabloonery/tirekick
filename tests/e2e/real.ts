@@ -67,6 +67,13 @@ ok("a case for it gets no price check", /No price check/.test(card(free, "Ninten
 ok("a console sold \"+ 3 games + case\" is priced as a console", /above typical/.test(card(free, "Nintendo Switch OLED white + 3").chips.join()), card(free, "Nintendo Switch OLED white + 3"));
 ok("a contact-me-on-WhatsApp post is a scam, with no \"Great price\" beside it", /Scam: off-site contact/.test(card(free, "Nintendo Switch OLED white text me").chips.join()) && !PRAISE.test(card(free, "Nintendo Switch OLED white text me").chips.join()), card(free, "Nintendo Switch OLED white text me"));
 ok("a for-parts one isn't too cheap and gets no price word", !/Too cheap|Likely scam|Great price|Good price/.test(card(free, "Nintendo Switch OLED for parts").chips.join()), card(free, "Nintendo Switch OLED for parts"));
+ok("…and is set against working ones, saying so", /\$\d+ below working ones/.test(card(free, "Nintendo Switch OLED for parts").chips.join()) && /typical price of a working one/.test(row(freeRows, "Nintendo Switch OLED for parts").meta), [card(free, "Nintendo Switch OLED for parts").chips, row(freeRows, "Nintendo Switch OLED for parts").meta]);
+// Each warning says why on the card itself (hover or focus), not only in a tooltip.
+const whyOf = (t: string) => p.ev(`[...document.querySelectorAll('.s-card')].find(c => c.querySelector('.s-card__title').textContent.startsWith(${JSON.stringify(t)}))?.querySelector('.tirekick-marks .tk-why')?.textContent || ''`);
+ok("the bait's card says why it's marked", /35% of the typical price.*usual bait/.test(await whyOf("Nintendo Switch OLED console - fast")), await whyOf("Nintendo Switch OLED console - fast"));
+ok("the WhatsApp post's card says what it asks", /Asks to talk off the site \(.*whatsapp.*buyer protection/.test(await whyOf("Nintendo Switch OLED white text me")), await whyOf("Nintendo Switch OLED white text me"));
+ok("the new seller's card says what the rule is", /Seller: 3 ratings \(your rule: at least 10 ratings/.test(await whyOf("Nintendo Switch OLED Splatoon")), await whyOf("Nintendo Switch OLED Splatoon"));
+ok("a card with nothing to warn about has no reasons box", !(await whyOf("Nintendo Switch OLED Model White")), await whyOf("Nintendo Switch OLED Model White"));
 const freeLine = await R(p, `return r.querySelector('.pi-line')?.textContent || ''`);
 const count = (w: string) => freeRows.filter((x: any) => x.meta.startsWith(w)).length;
 ok("the page line counts scams and warnings the way the cards show them", freeLine.includes(`${count("Likely scam")} possible scam`) && freeLine.includes(`${count("Check first")} to be careful with`), { freeLine, scams: count("Likely scam"), careful: count("Check first") });
@@ -89,6 +96,7 @@ const same = (x: any) => afterRows.find((r: any) => r.title === x.title) || {};
 ok("each card and its row say the same", tagged.every((x: any) => same(x).tag?.[0] === x.v && same(x).tag?.[1] === x.score), tagged.map((x: any) => [x.title.slice(0, 30), x.v, x.score, same(x).tag]));
 const bait = card(after, "Nintendo Switch OLED console - fast");
 ok("the model's 91 \"great\" on the bait shows as a warning with a warning's number", bait.v === "suspicious" && bait.score <= 30 && /if it’s real/.test(bait.word), bait);
+ok("…without the too-cheap chip its label already says", !/Likely scam\?|Too cheap\?/.test(bait.chips.join()), bait.chips);
 ok("…and its hover says why, and what the scan said", /usual bait/.test(bait.popText) && /The scan said Great deal \(91\)/.test(bait.popText), bait.popText);
 ok("the bait doesn't head the list", afterRows[0]?.tag?.[0] !== "suspicious", afterRows.map((x: any) => x.tag));
 const dear = card(after, "Nintendo Switch OLED 64GB White - NEW SEALED");

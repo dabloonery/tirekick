@@ -46,7 +46,8 @@ plentiful; fill gaps". So the free parts of the feature briefs come before anyth
 ### Version numbers
 
 PRs #13 to #22 all shipped as 0.36.0, and an older pre-rename build (`second-look-0.36.1.zip`) carries a higher
-number. From 0.37.0 on, CI fails a pull request that doesn't raise the version (`deno task version-check`).
+number. From 0.37.0 to 0.57.0, CI failed a pull request that didn't raise the version. Since 2026-10-21 (Myer) the
+version stays put between Chrome Web Store uploads, and CI only fails one that lowers it (`deno task version-check`).
 
 ### Order
 
@@ -613,7 +614,7 @@ Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
 **Tests.** `deno task test:unit` (unit), `tests/all.sh` (everything, real extension in headless Chrome against a mock AI). Add a unit test for any new pure rule and an e2e check for any new surface. A known flaky one: "Filter button opens the fields" fails on main too (headless timing).
 
-**Shipping.** Draft PR per brief against `main`, bump the minor version, update `docs/ux-spec.md` (states table and components), `README.md`, and `store/PRIVACY.md` / `store/LISTING.md` whenever what's read, stored or requested changes. No Chrome Web Store submission until Myer says.
+**Shipping.** Draft PR per brief against `main`, keep the version as it is (it changes only at a store upload), update `docs/ux-spec.md` (states table and components), `README.md`, and `store/PRIVACY.md` / `store/LISTING.md` whenever what's read, stored or requested changes. No Chrome Web Store submission until Myer says.
 
 ---
 
@@ -1040,7 +1041,7 @@ option 1 only if it gives a sensible number for clearly more of them without mak
 
 #### Size and files
 Small to medium: `content/rules.js` (a pure `askingTypical`, unit tested), `content/panel.js` (chip and
-tooltip wording), `lib/shared.js` (nothing new in storage). One PR, version bump, light and dark screenshots.
+tooltip wording), `lib/shared.js` (nothing new in storage). One PR, light and dark screenshots.
 
 ### Brief 9: More browsers
 

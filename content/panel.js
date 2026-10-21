@@ -2512,7 +2512,9 @@
   // An accessory or part for the search ("Case for Nintendo Switch") isn't compared with the thing's typical price.
   const vsSoldOf = (f) => {
     f.accessory = (!f.ownMarket && TKRules.accessoryOf(f.title, marketFor)) || "";
-    return marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !TKRules.tooFarToCompare(f.price ?? f.total, marketOf(f).median) ? f.total / marketOf(f).median : null;
+    const vs = marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !TKRules.tooFarToCompare(f.price ?? f.total, marketOf(f).median) ? f.total / marketOf(f).median : null;
+    f.cheap = (vs != null && TKRules.tooCheap(f, marketOf(f))?.level) || ""; // backs up a title code (TKRules.codeBacked)
+    return vs;
   };
   const applyMarket = (market) => {
     lastMarket = market;
@@ -2608,7 +2610,7 @@
         h("b", {}, String(item.score), " ", h("span", { class: "tk-pw" }, v.label)),
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
-        !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}: on Marketplace that's usually a bulk-posted fake, unless it's the real model number.`) : null,
+        !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}. Bulk-posted fakes on Marketplace end that way, and so do real model numbers: check it's this item's model number.`) : null,
         f.photoTwins ? line(photoTwinsText(f.photoTwins)) : null,
         item.reason || "",
         item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}${item.scannedKind === "scan" || !item.scannedKind ? ", from the card's title, price and text (not the photos or the description)" : ", from the listing's page"}.`) : null,
@@ -2735,7 +2737,7 @@
                   const read = !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
                   return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
                 })(),
-                likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title. A scan clears it if that's the model number.`) : null,
+                likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
                 (() => {
                   // The tag already shows the price; the line adds only what it doesn't say.
                   const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]

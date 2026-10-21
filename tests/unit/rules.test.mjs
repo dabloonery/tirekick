@@ -434,3 +434,15 @@ test("the scan prompt's price lines are the cards' (priceWord, TOO_CHEAP)", asyn
   assert.equal(R.TOO_CHEAP.low, 0.55);
   for (const base of ["RANK_BASE", "ITEM_BASE"]) assert.match(bg.match(new RegExp(`const ${base} = \`[^\`]+\``))?.[0] || "", /\$\{PRICE_BANDS\}[\s\S]*\$\{OFFSITE_RULE\}/, base);
 });
+
+test("forPickup: a pickup listing is compared without the shipping in eBay's totals", () => {
+  const m = { median: 52, p25: 45, p75: 60, n: 20, confidence: "good", ship: 12 };
+  assert.deepEqual(R.forPickup(m, { shipping: null }, true), { ...m, median: 40, p25: 33, p75: 48, pickupShip: 12 });
+  assert.equal(R.forPickup(m, { shipping: null }, false), m, "only on a local site");
+  assert.equal(R.forPickup(m, { shipping: 0 }, true), m, "a listing that ships (free) keeps the totals");
+  assert.equal(R.forPickup(m, { shipping: null, auction: true }, true), m);
+  assert.equal(R.forPickup({ ...m, ship: null }, { shipping: null }, true).median, 52, "no shipping known from the sales");
+  assert.equal(R.forPickup({ ...m, median: 20 }, { shipping: null }, true).median, 20, "shipping over half the price isn't trusted");
+  assert.equal(R.forPickup(null, {}, true), null);
+  assert.equal(R.tooCheap({ total: 20 }, R.forPickup(m, { shipping: null }, true)).level, "low", "$20 is half of $40, not a 38% bait price");
+});

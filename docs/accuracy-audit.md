@@ -70,6 +70,15 @@ A search run end to end the way a buyer meets it (`tests/e2e/real.ts`: "nintendo
 | The page line counted scams its own way | "1 possible scam, 1 to be careful with" above cards showing two Likely scam marks and three Check first; after a scan "6 worth a look" counted a game the scan had set aside | The line counts each listing the way its tag reads (shown verdict after a scan, free read before) |
 | A for-parts listing's "too cheap" was worked out before it was known to be for parts | Could back a title code into "Likely scam" on Marketplace | The order is fixed |
 
+A UI/UX pass on the same search followed (0.56.0), on how the scam checks, scores and price checks read on the cards:
+
+| Problem | Effect | Now |
+|---|---|---|
+| Before a scan, a warning chip ("Likely scam? Typical is $252", "Scam: off-site contact", "Code in title") said why only in a browser tooltip, and some said nothing | The most important mark on the card had no visible reason; on Marketplace, where tooltips are slow and touch has none, it read as a bare accusation | Hovering or tabbing to the card shows a small box with each warning's reason: the bait percentage, what the contact asks ("WhatsApp, text me"), the code and what would make it likely, the seller rule, the repost's other codes |
+| A broken one's chip said "$147 below typical" | Read as a bargain on the same thing, when the typical price is for working ones | "$147 below working ones" on the card, "the typical price of a working one" in the panel |
+| The price chip's bold word and its number wrapped as two columns ("Fair / price", "$13 below / typical") | Hard to read on narrow cards | The chip wraps as one line of text, the word kept whole |
+| A "Great price, if it's real" tag also carried the "Likely scam? Typical is $252" chip | The same warning twice, and the tag's own price line cut off | The chip is left off where the tag's label already says it; the hover card has the numbers |
+
 ## Spending estimates
 
 Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labeled an estimate; the real balance is at console.anthropic.com.

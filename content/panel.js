@@ -1502,7 +1502,7 @@
       if (broken && it.partsCost > 0) return `~$${it.partsCost} parts`;
     }
     if (it.vsWorking == null) return "";
-    return TKRules.vsText(it.total, it.refWorking, { rough: it.refRough, est: it.refIsEstimate });
+    return TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, est: it.refIsEstimate });
   };
 
   const priceStr = (it) =>
@@ -1877,7 +1877,7 @@
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const mk = marketOf(f);
-    const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}`;
+    const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
     const cheap = f.vsSold != null && TKRules.tooCheap(f, mk);
     if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
@@ -2508,12 +2508,15 @@
   let cacheTried = false;
   let marketFor = ""; // the search the cards' "below/above typical" is for
   // A listing's own typical price (looked up from its title, from its hover) wins over the page's.
-  const marketOf = (f) => f?.ownMarket || lastMarket;
+  // Pickup listings on a local site are compared without the shipping in eBay's totals (TKRules.forPickup).
+  const pickupOf = (m, f) => TKRules.forPickup(m, f, !!(f?.site ? TKSites.get(f.site) : TK.site())?.local); // facts don't keep the site: this page's
+  const marketOf = (f) => pickupOf(f?.ownMarket || lastMarket, f);
   // An accessory or part for the search ("Case for Nintendo Switch") isn't compared with the thing's typical price.
   const vsSoldOf = (f) => {
     f.accessory = (!f.ownMarket && TKRules.accessoryOf(f.title, marketFor)) || "";
-    const vs = marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !TKRules.tooFarToCompare(f.price ?? f.total, marketOf(f).median) ? f.total / marketOf(f).median : null;
-    f.cheap = (vs != null && TKRules.tooCheap(f, marketOf(f))?.level) || ""; // backs up a title code (TKRules.codeBacked)
+    const m = marketOf(f);
+    const vs = m?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !TKRules.tooFarToCompare(f.price ?? f.total, m.median) ? f.total / m.median : null;
+    f.cheap = (vs != null && TKRules.tooCheap(f, m)?.level) || ""; // backs up a title code (TKRules.codeBacked)
     return vs;
   };
   const applyMarket = (market) => {
@@ -2660,7 +2663,7 @@
   // The verdict to show for a scored listing: the price check wins over the score (TKRules.priceVerdict).
   // The model's own verdict stays stored; this is worked out each time, with the latest typical price.
   function shownV(it, f = facts.get(keyOf(it.url))) {
-    const market = it.refWorking > 0 && !it.refIsEstimate ? { median: it.refWorking, confidence: it.refRough ? "rough" : "good" } : lastMarket;
+    const market = it.refWorking > 0 && !it.refIsEstimate ? { median: it.refPrice ?? it.refWorking, confidence: it.refRough ? "rough" : "good" } : marketOf({ ...f, ...it });
     const pv = TKRules.priceVerdict(it.verdict, { ...f, ...it }, market);
     return { v: pv.v, label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label, priceWarn: pv.v === "suspicious" && it.verdict !== "suspicious" };
   }
@@ -2766,7 +2769,7 @@
           it.vsWorking != null && !it.auction && !it.lot
             ? it.refIsEstimate
               ? `${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-              : `${TKRules.vsText(it.total, it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
+              : `${TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refPrice ?? it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
             : "";
         const line = lensLine(it);
         const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
@@ -3041,11 +3044,14 @@
     it.shipOut = market?.ship ?? null;
     it.refRough = market?.confidence === "rough";
     const pm = market?.parts?.median;
-    it.refWorking = w > 0 ? w : null;
+    it.refWorking = w > 0 ? w : null; // what it resells for (margins)
+    const cmp = pickupOf(market, it); // what it's compared with: less shipping for a pickup listing
+    it.pickupShip = cmp?.pickupShip || 0;
+    it.refPrice = cmp?.median > 0 ? cmp.median : null;
     it.refParts = pm > 0 ? pm : null;
     it.feePct = feePct;
     it.accessory = TKRules.accessoryOf(it.title, marketFor);
-    it.vsWorking = it.total != null && w > 0 && !it.lot && !it.accessory && !TKRules.tooFarToCompare(it.total, w) ? it.total / w : null;
+    it.vsWorking = it.total != null && it.refPrice > 0 && !it.lot && !it.accessory && !TKRules.tooFarToCompare(it.total, it.refPrice) ? it.total / it.refPrice : null;
     it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
     it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
   };
@@ -3144,6 +3150,7 @@
   // sold median. Recomputes % of price, flip margin and the auction bid cap; no model call.
   const useReference = (it, ref, isEstimate) => {
     it.refWorking = ref > 0 ? ref : null;
+    it.refPrice = null; // compared with the reference as it is
     it.refIsEstimate = isEstimate;
     it.vsWorking = it.refWorking && it.total != null && !it.lot && !TKRules.tooFarToCompare(it.total, it.refWorking) ? it.total / it.refWorking : null;
     it.margin =
@@ -3880,7 +3887,7 @@
   };
   // The offer plan from sold prices (TKRules.offerPlan) for a listing, or null.
   const planFor = (f, market, soft = "none") =>
-    market ? TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, soft }, market) : null;
+    (market = pickupOf(market, f)) ? TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, soft }, market) : null;
   // A message to the seller you can edit, a pick of kinds, Copy, and "They said $…" for the seller's answer,
   // which says whether to take it, meet in the middle or make a last offer (TKRules.counterOffer) and
   // rewrites the message to match. Nothing is typed into the site or sent.

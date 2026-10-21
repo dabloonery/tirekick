@@ -501,7 +501,7 @@ async function rankBatch({ items, query, market, lens = "use", want = "", browse
   const listingText = items
     .map((it) => {
       const notes = [];
-      if (it.vsWorking != null) notes.push(`${Math.round(it.vsWorking * 100)}% of working median`);
+      if (it.vsWorking != null) notes.push(`${Math.round(it.vsWorking * 100)}% of working median${it.pickupShip > 0 ? ` less $${Math.round(it.pickupShip)} typical shipping (local pickup)` : ""}`);
       if (it.vsParts != null) notes.push(`${Math.round(it.vsParts * 100)}% of for-parts median`);
       if (it.marginBeforeRepair != null) notes.push(`margin before repairs ${it.marginBeforeRepair < 0 ? "-" : ""}$${Math.abs(it.marginBeforeRepair)}`);
       const extra = (it.raw || "").replace(it.title, "").trim(); // the title is already on the line

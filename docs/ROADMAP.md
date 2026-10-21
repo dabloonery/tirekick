@@ -333,6 +333,23 @@ ads bring the quiet kind. Reddit and Google ads would cost money per install bef
 which is when installs convert worst. Revisit at 1.0.0 with ratings in place, a small test budget (say $50) and
 one clear audience (eBay buyers).
 
+### Promotion plan, first month (2026-10-21: the beta is live and the repo is public)
+
+One step a week, from Myer's own accounts, strangers only, no ads, nothing automated. Read each community's
+self-promotion rules first. Lead with buyers ("good price or scam?"); keep reseller wording neutral; never list
+AI brands. Claude drafts each post on request; Myer edits and posts.
+
+| Week | Where | Angle |
+|---|---|---|
+| 1 | r/Flipping (or its weekly self-promo thread) | The beta post above: ask for what it gets wrong |
+| 2 | r/Frugal or a deal forum that allows tool posts (Slickdeals' tech forum) | Buyer first: spot scams and overpriced listings before you buy |
+| 3 | Open-source side: r/chrome_extensions, r/SideProject, and a "Show HN" | Free, open source (Apache-2.0), works on the page you're on, keeps data in your browser |
+| 4 | r/eBay (if rules allow) + AlternativeTo listing | Same beta post; directory entry is a one-time form |
+
+Every week: answer "is this a scam?" / "fair price?" questions where a link truly helps (step 3 above), read new
+reviews and support mail, and note installs from the store dashboard. If a week's post goes badly, skip the next
+one and fix what people said first. Product Hunt waits for 1.0.0.
+
 **Watching how it goes:** the store dashboard's installs and uninstalls (weekly), the reviews on the listing, and
 the support mail. One post per community; never reply to criticism defensively; fixes ship as 0.50.x.
 

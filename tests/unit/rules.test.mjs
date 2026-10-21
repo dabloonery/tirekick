@@ -230,6 +230,30 @@ test("accessoryOf: an accessory or part for what was searched, not the thing its
   assert.equal(R.accessoryOf("Case for Nintendo Switch", "nintendo switch"), "case", "says which word gave it away");
 });
 
+test("accessoryOf: a game named after the console it's for", () => {
+  const yes = [
+    ["nintendo switch", "Mario Kart 8 Deluxe - Nintendo Switch"], ["nintendo switch", "Mario Kart 8 Deluxe Nintendo Switch"],
+    ["nintendo switch", "The Legend of Zelda: Breath of the Wild (Nintendo Switch, 2017)"], ["nintendo switch", "Minecraft for Nintendo Switch"],
+    ["nintendo switch", "Super Mario Odyssey Nintendo Switch game cartridge only"], ["nintendo switch", "Pokemon Scarlet Nintendo Switch Video Game"],
+    ["nintendo switch", "Pokemon Violet - Nintendo Switch - NEW SEALED"], ["ps5", "Spider-Man 2 - PS5"], ["ps5", "God of War Ragnarok - PS5 (2022)"],
+    ["xbox series x", "Halo Infinite (Xbox Series X)"], ["nintendo switch", "Animal Crossing New Horizons Nintendo Switch"],
+    ["nintendo switch oled", "Mario Kart 8 Deluxe - Nintendo Switch"],
+  ];
+  for (const [q, t] of yes) assert.ok(R.accessoryOf(t, q), `${t} (search: ${q})`);
+  assert.equal(R.accessoryOf("Mario Kart 8 Deluxe - Nintendo Switch", "nintendo switch"), "mario kart 8 deluxe", "says what it names");
+  // The thing itself, and bait that copies the search's words first, stay priced.
+  const no = [
+    ["nintendo switch", "Nintendo Switch OLED - White"], ["nintendo switch", "Brand New - Nintendo Switch OLED Console"], ["nintendo switch", "Nintendo Switch console - fast shipping"],
+    ["nintendo switch", "Nintendo Switch (V2) Neon 32GB"], ["nintendo switch", "Nintendo Switch Lite Coral - like new"], ["nintendo switch", "Neon - Nintendo Switch"],
+    ["nintendo switch", "Nintendo Switch with 3 games"], ["nintendo switch", "Super cheap deal - Nintendo Switch"], ["nintendo switch", "Jailbroken Modded Nintendo Switch"],
+    ["nintendo switch", "Brand New Sealed Nintendo Switch"], ["nintendo switch", "Neon Red Blue 32GB Nintendo Switch"], ["nintendo switch", "Nintendo Switch video game console"],
+    ["ps5", "PS5 Slim Disc Console"], ["ps5", "Sony PlayStation 5 (PS5) Disc Edition"], ["ps5", "Sony - PS5 Console"], ["iphone 13", "Apple - iPhone 13"],
+    ["iphone 13", "Unlocked - Apple iPhone 13 128GB"], ["iphone 13", "Apple iPhone 13 - 128GB - Midnight (Unlocked)"], ["pentax k1000", "Pentax K1000 35mm (with 50mm lens)"],
+    ["pentax k1000", "Vintage Film Camera Pentax K1000"], ["game boy", "Nintendo Game Boy DMG-01 Console"],
+  ];
+  for (const [q, t] of no) assert.equal(R.accessoryOf(t, q), "", `${t} (search: ${q})`);
+});
+
 test("softSeller counts the signs of room to haggle", () => {
   assert.deepEqual(R.softSeller({}), { level: "none", why: [] });
   assert.equal(R.softSeller({ drops: 1 }).level, "some");

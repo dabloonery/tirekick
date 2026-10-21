@@ -123,6 +123,26 @@ After: scams marked Likely scam 15 of 17 (was 11), honest ones marked Likely sca
 
 Not converted on purpose: an exchange rate would need a lookup Tirekick doesn't make, and eBay.com's sales are US sales anyway.
 
+## Honest low prices (2026-10-21)
+
+A review of the whole scam pipeline found that a low price could never be cleared: not by what the title says, not by a
+scan, not by Analyze. The plan and its order are in `docs/ROADMAP.md` ("Honest low prices"). First, the eval got what
+it was missing: honest listings priced far under typical, the way people really sell cheap (`CHEAP` in
+`tests/eval/cases.mjs`: a dead pixel, drift, battery 76%, "console only, no dock", carrier and MDM locks, a mini, a Lite,
+the first-generation AirPods, quick sales, new sellers with no reason), and 10 scams that give the same excuses ("minor
+scratch" bait from a new seller, "mini" bait, a fake from an established seller, a code with a flaw story). Each has a
+scripted scan that says why it thinks the price is low, so a model fooled by a story is part of the test.
+
+Where the rules stood, before any change:
+
+| | |
+|---|---|
+| Scams with a warning before any scan | 27 of 27 (24 Likely scam, 3 Check first) |
+| Honest cheap listings that say why, marked Likely scam | 2 of 20 ("MacBook Air M1 MDM locked" and "AirPods Pro 2 - right earbud only + case", both 38%) |
+| The same, marked Check first | 17 of 20 |
+| The same, still a warning after a scan that read the reason | 19 of 20 |
+| Honest cheap listings that don't say why, marked | 8 of 8 (4 Likely scam) |
+
 ## Spending estimates
 
 Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labeled an estimate; the real balance is at console.anthropic.com.

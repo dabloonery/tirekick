@@ -199,6 +199,28 @@ test("tooCheap: far under a trusted sold median, not for auctions, lots, broken 
   assert.equal(R.tooCheap({ total: 60 }, { ...m, confidence: "rough" }), null);
   assert.equal(R.tooCheap({ total: 0 }, m), null, "free isn't a price");
   assert.equal(R.tooCheap({ total: 60 }, null), null);
+  assert.equal(R.tooCheap({ total: 15, accessory: "case" }, m), null, "an accessory for the search isn't the thing");
+  assert.equal(R.tooCheap({ total: 15, related: false }, m), null, "nor is what a scan called a different item");
+});
+
+test("accessoryOf: an accessory or part for what was searched, not the thing itself", () => {
+  const yes = [
+    ["nintendo switch", "Case for Nintendo Switch"], ["nintendo switch", "Nintendo Switch Carrying Case"], ["nintendo switch", "Nintendo Switch Pro Controller"],
+    ["nintendo switch", "Nintendo Switch Dock"], ["nintendo switch", "Nintendo Switch box only"], ["nintendo switch", "Nintendo Switch empty box"],
+    ["nintendo switch", "Tempered glass screen protector Nintendo Switch"], ["iphone 12", "iPhone 12 case"], ["iphone 12", "iPhone 12 replacement screen"],
+    ["game boy sp", "Game Boy SP charger"], ["game boy sp", "Game Boy Advance SP replacement shell"], ["dewalt drill", "DeWalt 20V MAX battery"],
+    ["pentax k1000", "Pentax K1000 lens cap"], ["ps5", "Sony PS5 DualSense Controller"], ["apple watch", "Apple Watch charger"], ["nikon d3100", "Nikon D3100 manual"],
+  ];
+  for (const [q, t] of yes) assert.ok(R.accessoryOf(t, q), `${t} (search: ${q})`);
+  const no = [
+    ["nintendo switch", "Nintendo Switch OLED with Carrying Case"], ["nintendo switch", "Nintendo Switch Console + 2 Controllers"], ["nintendo switch", "Nintendo Switch V2 Neon 32GB"],
+    ["nintendo switch", "Nintendo Switch in box"], ["switch case", "Nintendo Switch Carrying Case"], ["iphone 12", "Apple iPhone 12 64GB Black Unlocked"],
+    ["game boy sp", "Nintendo Game Boy Advance SP AGS-001 Cobalt Blue Working"], ["game boy sp", "Game Boy Advance SP Pearl Blue w/ charger"],
+    ["dewalt drill", "DeWalt 20V MAX drill with 2 batteries"], ["pentax k1000", "Pentax K1000 35mm film camera with 50mm lens"], ["pentax k1000", "Pentax K1000 with 50mm f/2 lens and case"],
+    ["ps5", "PS5 Console Disc Edition"], ["xbox one", "Xbox One S 1TB Console"], ["nikon d3100", "Nikon D3100 body only"], ["", "Case for Nintendo Switch"],
+  ];
+  for (const [q, t] of no) assert.equal(R.accessoryOf(t, q), "", `${t} (search: ${q})`);
+  assert.equal(R.accessoryOf("Case for Nintendo Switch", "nintendo switch"), "case", "says which word gave it away");
 });
 
 test("softSeller counts the signs of room to haggle", () => {
@@ -363,6 +385,9 @@ test("priceVerdict: when score and price disagree, the price check wins", () => 
   assert.deepEqual(R.priceVerdict("great", { total: 85, auction: true }, m), { v: "great" }, "a bid isn't a price");
   assert.deepEqual(R.priceVerdict("great", { total: 85 }, { median: 300, confidence: "rough" }), { v: "great" }, "only a trusted typical price");
   assert.deepEqual(R.priceVerdict("great", { total: 85 }, null), { v: "great" });
+  assert.deepEqual(R.priceVerdict("good", { total: 15, related: false }, m), { v: "good" }, "a scan's 'not your search' isn't compared with the search's price");
+  assert.deepEqual(R.priceVerdict("good", { total: 500, related: false }, m), { v: "good" }, "…either way");
+  assert.deepEqual(R.priceVerdict("good", { total: 15, accessory: "case" }, m), { v: "good" }, "nor is an accessory");
 });
 
 test("broadQuery: a store category is too broad to price, a model isn't", () => {

@@ -43,6 +43,16 @@ Made from: the model (Haiku 5.5 for scans by default), given each card's title, 
 
 Still a judgment: scores are a model's reading of a card, not an inspection. Photo checks and Analyze go further on one listing. A remembered score (60 days) comes back only at the same price; it doesn't move when the market does, and the hover card dates it.
 
+## Scam checks and price verdicts (2026-10-21, from 0.51.0)
+
+A second pass, on false alarms and misses in the free checks and on where the scan and the free read disagree. No labeled listings exist, so each change is checked against hand-made titles in `tests/unit/rules.test.mjs` and the e2e fixtures, and says how it moves real listings.
+
+| Problem | Effect on real listings | Now |
+|---|---|---|
+| Every card on a results page is compared with the search's typical price, accessories too | In a "nintendo switch" search a $15 case is 7% of a $200 console: a red "Likely scam? Typical is $200", and a "Great price, if it's real" even after a scan said it's not what you searched for | `TKRules.accessoryOf`: a card that reads as an accessory or part for the search ("Case for …", "… Carrying Case", "box only", "replacement shell") says "No price check" and can still be priced from its own title; "with case", "+ 2 controllers" and words in the search itself don't count. `tooCheap` and `priceVerdict` skip accessories and anything a scan marked as not your search (0.51.0) |
+
+Still open: games and other different items that read like the thing itself ("Mario Kart 8 Nintendo Switch" in a console search) are caught only once a scan marks them unrelated.
+
 ## Spending estimates
 
 Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labeled an estimate; the real balance is at console.anthropic.com.

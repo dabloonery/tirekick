@@ -268,7 +268,7 @@
     "charging station|stylus|knob|buttons?|ribbon cable|hinge|motherboard";
   const PART_LAST = new RegExp(String.raw`(?:^|\s)((?:${PART})s?)$`);
   const PART_FOR = new RegExp(String.raw`(?:^|\s)((?:${PART})s?) (?:only|for)\b`);
-  const PART_ANY = /\b(compatible with|for use with|replacement|screen protector|tempered glass|empty box|box only|no (?:console|camera|phone|watch|tablet|laptop|device|unit|handset|system|body))\b/;
+  const PART_ANY = /\b(compatible with|for use with|replacement|screen protector|tempered glass|empty box|box only|no (?:console|camera|phone|watch|tablet|laptop|device|unit|handset|system|body)|video game(?! (?:console|system))|game cartridge|(?:cartridge|cart|disc|game|case) only|game disc|physical copy|(?:digital|download) code|game card)\b/;
   // "with", "in", a count ("2 controllers"), or a word that says it's the whole thing: what comes with the item.
   const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|console|system|bundle|cib|complete)(?:\s|$)/;
   const comesWith = (t, m) => WITH.test(t.slice(0, m.index + 1)) || (/s$/.test(m[1]) && /(?:^|\s)\d+\s?$/.test(t.slice(0, m.index + 1)));
@@ -283,7 +283,45 @@
     if (forOnly && !has(forOnly[1]) && !comesWith(t, forOnly)) return forOnly[1];
     const last = t.match(PART_LAST);
     if (last && !has(last[1]) && !comesWith(t, last)) return last[1];
-    return "";
+    return R.madeFor(title, query);
+  };
+  // A game (or anything else) named after the thing it's for: "Mario Kart 8 Deluxe - Nintendo Switch", "Zelda:
+  // Breath of the Wild (Nintendo Switch)", "Minecraft for Nintendo Switch". The search's words all come after a
+  // dash, a bracket or "for", none come before, and what comes before names something: not just "Brand new" or a
+  // color. Bait copies the search's words first ("Nintendo Switch OLED - fast shipping"), so it stays priced.
+  // Returns what it names (folded, "mario kart 8 deluxe"), or "".
+  const FILLER = new Set(("brand|new|sealed|factory|mint|used|working|tested|great|good|excellent|like|rare|clean|nice|wow|look|" +
+    "free|fast|shipping|bundle|console|system|lot|oem|genuine|authentic|original|official|the|a|an|white|black|red|blue|neon|gray|" +
+    "grey|pink|green|coral|turquoise|purple|yellow|silver|gold|edition|limited|special|hot|sale|deal|cheap|wholesale|unlocked|refurbished|" +
+    "renewed|apple|sony|nintendo|microsoft|samsung|google|canon|nikon").split("|"));
+  const PLATFORM = /\b(?:switch|ps[1-5]|playstation|xbox|game ?boy|gba|n?3?ds|wii|gamecube|n64|nintendo 64|snes|nes|genesis|dreamcast|vita|psp|steam deck)\b/;
+  const MACHINE = /^(?:console|consoles|system|bundle|handheld|lite|oled|slim|pro|modded|jailbroken|hacked|\d+(?:gb|tb))$/;
+  const TAIL_OK = new Set("game|games|video|edition|version|physical|digital|ntsc|pal|us|usa|cib|complete|new|sealed|for|the|and".split("|"));
+  R.madeFor = (title, query = "") => {
+    const raw = String(title ?? "");
+    for (const m of raw.matchAll(/\s[-\u2013\u2014|:]\s|\s*[(\[]|\s+for\s+/gi)) {
+      const head = raw.slice(0, m.index), tail = raw.slice(m.index + m[0].length);
+      // The tail names the search, or the console part of it ("- Nintendo Switch" in a "switch oled" search)…
+      if (R.missingWord(tail, query) && !PLATFORM.test(R.normTitle(tail))) continue;
+      // …and little else: "- PS5", "(Nintendo Switch, 2017)", not "- Apple iPhone 13 128GB" or "(PS5) Disc Edition".
+      const q = R.normTitle(query).split(" ").filter(Boolean);
+      const rest = R.normTitle(tail).split(" ").filter((w) => w && !q.some((x) => w.includes(x) || x.includes(w)) && !TAIL_OK.has(w) && !/^(?:19|20)\d\d$/.test(w));
+      if (rest.length) return "";
+      const words = R.normTitle(head).split(" ").filter(Boolean);
+      const flat = words.join("");
+      if (R.normTitle(query).split(" ").some((q) => q.length >= 3 && flat.includes(q))) return ""; // named first: the thing itself
+      // One word before a dash may be the brand ("Apple - iPhone 13"); before "for" it's the thing ("Minecraft for …").
+      const named = words.filter((w) => !FILLER.has(w) && !/^\d+$/.test(w));
+      return named.length >= 2 || (named.length && /for/i.test(m[0])) ? words.join(" ") : "";
+    }
+    // A game console searched for, and the search at the very end with no separator: "Mario Kart 8 Deluxe Nintendo
+    // Switch". Two or more words that name something, none that say it's the machine ("console", "bundle", "32gb").
+    // Only for consoles: elsewhere the same shape is the thing itself ("Vintage Film Camera Pentax K1000").
+    const t = R.normTitle(raw), qn = R.normTitle(query);
+    if (!qn || !PLATFORM.test(qn) || !t.endsWith(` ${qn}`)) return "";
+    const words = t.slice(0, -qn.length).trim().split(" ");
+    const named = words.filter((w) => !FILLER.has(w) && !/^\d+$/.test(w));
+    return named.length >= 2 && !words.some((w) => MACHINE.test(w)) ? words.join(" ") : "";
   };
 
   // "Seller may take less": what a listing shows that usually means room to haggle. Each sign is a short

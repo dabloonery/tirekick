@@ -9,6 +9,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
 - [Next steps](#next-steps) (2026-10-14: the order of work, and what waits on Myer)
 - [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone) (2026-10-15)
 - [Public beta launch](#public-beta-launch) (decided 2026-10-15: launch as a public beta before 1.0.0)
+- [Honest low prices](#honest-low-prices) (2026-10-21: honest cheap listings marked as scams; the order of PRs)
 - [Tirekick: Chrome Web Store submission checklist](#tirekick-chrome-web-store-submission-checklist)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
 - [Tirekick feature briefs](#tirekick-feature-briefs)
@@ -355,6 +356,36 @@ one and fix what people said first. Product Hunt waits for 1.0.0.
 the support mail. One post per community; never reply to criticism defensively; fixes ship as 0.50.x.
 
 ---
+
+## Honest low prices
+
+*2026-10-21, after an audit of the whole scam pipeline (Myer: "go").* Honest listings priced far under typical were
+marked as scams with no way out: before a scan, under 55% of the typical price is a warning whatever the title says, and
+after a scan the price check (`TKRules.priceVerdict`) overruled the model every time, Analyze included. In the eval's
+new group of 28 honest cheap listings (`CHEAP` in `tests/eval/cases.mjs`), 19 of the 20 that say why they're cheap (a
+flaw, missing parts, a lock, a cheaper version) were still a warning after a scan.
+
+**Decided (Myer, 2026-10-21):** the model's reason for a low price can beat the price check, for scans and Analyze.
+This refines the 0.41.0 rule ("when the score and the price disagree, the price check wins"): it still wins against
+praise, but a flaw, missing parts or a different model, named by the model, counts. "Moving sale" never does: scammers
+write it too.
+
+The order, one PR each, every one measured by `deno task eval` with the scam numbers beside the honest ones:
+
+1. [x] The eval: 28 honest cheap listings and 10 scams that give the same excuses.
+2. [ ] One set of facts for the card, the scan and Analyze. The bait share sent to the model was worked out from the raw
+   card, without the for-parts, missing-word and pickup facts, so a for-parts listing at 34% went to the model as "the
+   usual bait"; Analyze judged its verdict with no card facts at all.
+3. [ ] Stated reasons read for free (`cheapReason`): flaws, missing parts, locks, cheaper versions. Never Likely scam on
+   price alone when the card says why.
+4. [ ] The too-cheap line from where real sales end (the cheapest tenth), and no Likely scam on price alone from a
+   reference with a wide spread.
+5. [ ] A fixed seller sign for "cheap plus a seller warning is Likely scam" (0.54.x), not the user's own rating setting.
+6. [ ] The model says why a low price is low (`cheapWhy`), and the price check accepts a flaw, missing parts or a
+   different model.
+7. [ ] Platforms: established eBay sellers (eBay's guarantee), and Marketplace sellers who don't pay eBay's fee.
+8. [ ] Display: the reason on the card, what would clear a mark, and where a price warning sorts.
+9. [ ] Optional: the eval with the real prompts, when an API key is set (never in CI).
 
 ## Tirekick: Chrome Web Store submission checklist
 

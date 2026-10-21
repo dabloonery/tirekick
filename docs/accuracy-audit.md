@@ -41,7 +41,7 @@ Made from: the model (Haiku 5.5 for scans by default), given each card's title, 
 | Score and verdict came separately and nothing tied them | A "Great deal" could show 55, a "Fair price" 60: the ring and the word disagreed | Each verdict has a range (great 75–100, good 60–74, fair 45–59, pass 0–44, suspicious 0–30). The model is told to pick the verdict first and a score inside it, and the panel moves any score that strays into the verdict's range |
 | It wasn't said what a scan looks at | A score could be read as a full inspection | The hover card says a scan's score is from the card's title, price and text, not the photos or the description; an analysis says it's from the listing's page |
 
-Still a judgment: scores are a model's reading of a card, not an inspection. Photo checks and Analyze go further on one listing. A remembered score (60 days) comes back only at the same price; it doesn't move when the market does, and the hover card dates it.
+Still a judgment: scores are a model's reading of a card, not an inspection. Photo checks and Analyze go further on one listing. A remembered score (60 days) comes back only at the same price, and the hover card dates it. Since 2026-10-21 its price word, too-cheap check and price gap use the typical price as it is now, and the hover card says when that has moved 10% or more since the score was given ("Scored when the typical price was $252; it's $180 now"); the score itself stays the model's until you scan again.
 
 ## Scam checks and price verdicts (2026-10-21, from 0.51.0)
 

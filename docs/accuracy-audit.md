@@ -104,6 +104,18 @@ First run, with the rules as they are in 0.57.0:
 
 What it can't say: the labels are judgments on made-up listings, not real outcomes, and the model isn't run (its answers are scripted). It measures the rules, not the scan.
 
+Fixes from that first run (same day):
+
+| Problem | Effect on real listings | Now |
+|---|---|---|
+| "Game" in a console search didn't count as a game without a dash or bracket | "Pokemon Scarlet Nintendo Switch OLED Game Brand New Sealed" at $42 read as a console at 17%: red Likely scam | In a console search, "game" anywhere makes it a game (`accessoryOf`), unless it's the machine ("handheld game console") or comes with it ("console with game") |
+| Two parts joined by "and" read as a console and what comes with it | "Switch OLED dock and charger" at $40: Check first, too cheap for a console | "dock and charger" are both the listing |
+| A model number searched for read as a scammer's code | On Marketplace, every "DeWalt 20V Max Drill DCD771C2" in a "dewalt dcd771" search wore "Code in title" and Check first | `TKRules.codeInSearch`: a code the search has (or starts with) is cleared before any scan |
+| A bait price and a seller warning were each only Check first | eBay's "Nintendo Switch OLED, $109.99" from a seller with 0 ratings, 44% of typical, read Check first, not Likely scam; so did a $100 one on Marketplace from an account made this year | Under 55% of typical from a seller with a warning is Likely scam (`tooCheap` says "far", and why), unless the title says what's missing ("missing Joy-Cons", "body only"). Honest new sellers in the eval price near the typical price, and stay at Check first |
+| Off-site contact in a Marketplace card's title was only read once the listing was opened | "PS5 console and 4 games, text 505_507__6507" looked like an ordinary cheap listing in the results | Marketplace card titles are checked, as eBay's are |
+
+After: scams marked Likely scam 15 of 17 (was 11), honest ones marked Likely scam 0 (was 1), honest ones marked Check first 3 (was 5), price words as labeled 48 of 51 (was 47). Left: the Pentax that needs light seals and the Switch missing Joy-Cons (cheap for a reason, Check first is fair) and the new seller at a normal price.
+
 ## Spending estimates
 
 Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labeled an estimate; the real balance is at console.anthropic.com.

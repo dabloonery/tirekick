@@ -203,12 +203,28 @@
   // turned up in it ("Mario Kart 8 Deluxe - Nintendo Switch" in a "switch oled" search), so a price far under
   // is only "low" (Check first), never "far" (Likely scam) on price alone. Bait copies the search's words.
   R.TOO_CHEAP = { far: 0.4, low: 0.55 };
+  const INCOMPLETE = /\b(?:missing|without|no (?:joy ?cons?|dock|charger|controllers?|lens|battery|batteries|box|cables?|stand)|(?:console|tablet|body|unit|handheld|screen) only)\b/;
   R.tooCheap = (f, market) => {
     if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
     if (f.auction || f.lot || f.project || f.accessory || f.related === false) return null;
     const pct = f.total / market.median;
-    const level = pct < R.TOO_CHEAP.far && !f.offWords ? "far" : pct < R.TOO_CHEAP.low ? "low" : "";
-    return level ? { level, pct: Math.round(pct * 100) } : null;
+    // Under the softer cutoff and from a seller with a warning (few ratings, an account made this year): two
+    // signs that rarely meet on an honest listing, so it's "far" too. In the eval (tests/eval) every such
+    // listing was a scam; honest new sellers price near the typical price.
+    // Not when the title says what's missing ("missing Joy-Cons", "body only"): that's cheap for a reason.
+    const seller = pct < R.TOO_CHEAP.low && pct >= R.TOO_CHEAP.far && !!f.sellerWarn && !f.offWords && !INCOMPLETE.test(R.normTitle(f.title));
+    const level = (pct < R.TOO_CHEAP.far && !f.offWords) || seller ? "far" : pct < R.TOO_CHEAP.low ? "low" : "";
+    return level ? { level, pct: Math.round(pct * 100), ...(seller && { seller: true }) } : null;
+  };
+
+  // A title code that is the model number you searched for ("DeWalt 20V Max Drill DCD771C2" in a "dewalt dcd771"
+  // search) isn't a scammer's code: the search has it, so every honest listing of that model ends with it.
+  // A search word counts when it has letters and digits and is 4 or more long, and the code starts with it
+  // or it starts with the code.
+  R.codeInSearch = (code, query = "") => {
+    const c = R.fold(code).replace(/[^a-z0-9]/g, "");
+    if (c.length < 4) return false;
+    return R.normTitle(query).split(" ").some((w) => w.length >= 4 && /\d/.test(w) && /[a-z]/.test(w) && (c.startsWith(w) || w.startsWith(c)));
   };
 
   // A card's facts against the search's typical price, the way the panel works them out on every results page
@@ -250,7 +266,7 @@
     const pct = Math.round((it.total / market.median) * 100);
     const moved = (v, extra) => ({ v, ...(it.score != null ? { score: R.fitScore(v, it.score) } : {}), ...extra });
     const cheap = R.tooCheap(it, market);
-    if (cheap) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}. Far under what the same thing sells for is the usual bait: check it's real before you pay.` });
+    if (cheap) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}${cheap.seller ? `, from a seller with a warning (${it.sellerWarn})` : ""}. Far under what the same thing sells for is the usual bait: check it's real before you pay.` });
     if (!it.auction && !it.lot && !it.project && !it.accessory && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return moved("fair", { why: `Held at Fair price: ${R.dollars(it.total)} is ${pct}% of the typical ${typical}.` });
     return keep;
   };
@@ -284,14 +300,22 @@
   const PART_ANY = /\b(compatible with|for use with|replacement|screen protector|tempered glass|empty box|box only|no (?:console|camera|phone|watch|tablet|laptop|device|unit|handset|system|body)|video game(?! (?:console|system))|game cartridge|(?:cartridge|cart|disc|game|case) only|game disc|physical copy|(?:digital|download) code|game card)\b/;
   // "with", "in", a count ("2 controllers"), or a word that says it's the whole thing: what comes with the item.
   const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|console|system|bundle|cib|complete)(?:\s|$)/;
+  const PART_AND = new RegExp(String.raw`\b((?:${PART})s?) and (?=(?:${PART})s?\b)`, "g");
+  const GAME = /(?:^|\s)(game)(?!\s(?:console|system|boy|cube|gear|pad|controller|card))(?:\s|$)/;
   const comesWith = (t, m) => WITH.test(t.slice(0, m.index + 1)) || (/s$/.test(m[1]) && /(?:^|\s)\d+\s?$/.test(t.slice(0, m.index + 1)));
   R.accessoryOf = (title, query = "") => {
     // "+" and "&" join what comes with it: "Switch OLED + 3 games + case" is a console with a case.
-    const t = R.normTitle(String(title ?? "").replace(/\s*[+&]\s*/g, " with ")).replace(/\s+/g, " ");
+    // "+" and "&" join what comes with it: "Switch OLED + 3 games + case" is a console with a case. Two parts
+    // joined by "and" are both the listing ("Switch OLED dock and charger"), not a console and its charger.
+    const t = R.normTitle(String(title ?? "").replace(/\s*[+&]\s*/g, " with ")).replace(/\s+/g, " ").replace(PART_AND, "$1 ");
     if (!t || !String(query).trim()) return "";
     const has = (w) => R.hasWord(query, w) || R.hasWord(query, w.replace(/s$/, ""));
     const any = t.match(PART_ANY)?.[1];
     if (any && !has(any)) return any;
+    // "Game" in a console search is a game ("Pokemon Scarlet Nintendo Switch OLED Game"), unless it's the
+    // machine ("handheld game console") or comes with it ("console with game").
+    const game = PLATFORM.test(R.normTitle(query)) && !has("game") && t.match(GAME);
+    if (game && !comesWith(t, game)) return "game";
     const forOnly = t.match(PART_FOR);
     if (forOnly && !has(forOnly[1]) && !comesWith(t, forOnly)) return forOnly[1];
     const last = t.match(PART_LAST);

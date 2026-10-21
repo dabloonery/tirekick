@@ -40,6 +40,11 @@ ok("a card far under a trusted sold median is marked Likely scam? with the share
 ok("…one well under it says Too cheap?", /Too cheap\? Typical is \$300/.test(of("$140.00")), cs);
 ok("…a broken one is never marked (the median is for working ones)", !/Too cheap|Likely scam\?/.test(of("$35.00")), cs);
 ok("…and an auction isn't either (a bid isn't a price)", !/Too cheap|Likely scam\?/.test(of("$60.00")), cs);
+// An accessory for the search, added the way a feed adds cards as you scroll: no price check, no scam mark.
+await p.ev(`document.querySelector('ul').insertAdjacentHTML('beforeend', '<li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 lens cap</div><div class="s-card__price">$8.00</div><a href="https://www.ebay.com/itm/7777777777">item</a></li>')`);
+await waitFor(async () => /No price check/.test(((await chips()).find(([pr]: string[]) => pr === "$8.00") || [])[1] || ""));
+const capChips = ((await chips()).find(([pr]: string[]) => pr === "$8.00") || [])[1] || "";
+ok("an accessory for the search isn't compared with the thing's typical price, so it's no scam", /No price check/.test(capChips) && !/Too cheap|Likely scam|typical/.test(capChips), capChips);
 await p.close();
 
 // ---------- the offer helper on a listing page ----------

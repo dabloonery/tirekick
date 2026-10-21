@@ -184,10 +184,12 @@
   // a sold reference worth trusting (not "rough"), and never for what that reference doesn't describe:
   // auctions (a bid isn't a price), lots, and broken ones (the reference is for working ones).
   // Returns { level: "far" | "low", pct } or null. Cutoffs in one place so they can be tuned.
+  // Not for something else either: an accessory or part for what was searched (f.accessory, from
+  // accessoryOf) or a listing a scan said isn't what you searched for (related false).
   R.TOO_CHEAP = { far: 0.4, low: 0.55 };
   R.tooCheap = (f, market) => {
     if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
-    if (f.auction || f.lot || f.project) return null;
+    if (f.auction || f.lot || f.project || f.accessory || f.related === false) return null;
     const pct = f.total / market.median;
     const level = pct < R.TOO_CHEAP.far ? "far" : pct < R.TOO_CHEAP.low ? "low" : "";
     return level ? { level, pct: Math.round(pct * 100) } : null;
@@ -202,8 +204,36 @@
     const keep = { v: verdict };
     if (!(verdict in R.RANK) || verdict === "pass" || !it || it.total == null || !(market?.median > 0)) return keep;
     if (R.tooCheap(it, market)) return { v: "suspicious", label: "Great price, if it’s real" };
-    if (!it.auction && !it.lot && !it.project && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return { v: "fair" };
+    if (!it.auction && !it.lot && !it.project && !it.accessory && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return { v: "fair" };
     return keep;
+  };
+
+  // An accessory or part for what was searched, not the thing itself: "Case for Nintendo Switch",
+  // "Switch carrying case", "Game Boy SP replacement shell", "box only". Its price says nothing against the
+  // typical price of the thing (a $15 case is 7% of a $200 console, which read as "Likely scam"), so it gets no
+  // page-wide comparison; it can still be priced from its own title. A word the search has ("switch case")
+  // doesn't count, and one after "with" or "includes" is what comes with the item ("Switch with case").
+  // Returns the word that gave it away, or "".
+  const PART = "case|cover|skin|sleeve|bag|pouch|stand|mount|dock|holder|strap|charger|charging cable|cable|cord|power supply|adapter|battery|" +
+    "remote|controller|grip|protector|decal|sticker|faceplate|shell|housing|manual|box|lens cap|lens hood|bezel|" +
+    "charging station|stylus|knob|buttons?|ribbon cable|hinge|motherboard";
+  const PART_LAST = new RegExp(String.raw`(?:^|\s)((?:${PART})s?)$`);
+  const PART_FOR = new RegExp(String.raw`(?:^|\s)((?:${PART})s?) (?:only|for)\b`);
+  const PART_ANY = /\b(compatible with|for use with|replacement|screen protector|tempered glass|empty box|box only|no (?:console|camera|phone|watch|tablet|laptop|device|unit|handset|system|body))\b/;
+  // "with", "in", a count ("2 controllers"), or a word that says it's the whole thing: what comes with the item.
+  const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|console|system|bundle|cib|complete)(?:\s|$)/;
+  const comesWith = (t, m) => WITH.test(t.slice(0, m.index + 1)) || (/s$/.test(m[1]) && /(?:^|\s)\d+\s?$/.test(t.slice(0, m.index + 1)));
+  R.accessoryOf = (title, query = "") => {
+    const t = R.normTitle(title).replace(/\s+/g, " ");
+    if (!t || !String(query).trim()) return "";
+    const has = (w) => R.hasWord(query, w) || R.hasWord(query, w.replace(/s$/, ""));
+    const any = t.match(PART_ANY)?.[1];
+    if (any && !has(any)) return any;
+    const forOnly = t.match(PART_FOR);
+    if (forOnly && !has(forOnly[1]) && !comesWith(t, forOnly)) return forOnly[1];
+    const last = t.match(PART_LAST);
+    if (last && !has(last[1]) && !comesWith(t, last)) return last[1];
+    return "";
   };
 
   // "Seller may take less": what a listing shows that usually means room to haggle. Each sign is a short

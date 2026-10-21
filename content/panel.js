@@ -1887,6 +1887,7 @@
       c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
     } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`]);
     else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`]);
+    else if (f.accessory && mk?.median > 0) c.push(["plain", "No price check", `Looks like an accessory or part (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price.`]);
     else if (f.priceNote) c.push(["plain", "No price check", f.priceNote]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
@@ -2508,7 +2509,11 @@
   let marketFor = ""; // the search the cards' "below/above typical" is for
   // A listing's own typical price (looked up from its title, from its hover) wins over the page's.
   const marketOf = (f) => f?.ownMarket || lastMarket;
-  const vsSoldOf = (f) => (marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction && !TKRules.tooFarToCompare(f.price ?? f.total, marketOf(f).median) ? f.total / marketOf(f).median : null);
+  // An accessory or part for the search ("Case for Nintendo Switch") isn't compared with the thing's typical price.
+  const vsSoldOf = (f) => {
+    f.accessory = (!f.ownMarket && TKRules.accessoryOf(f.title, marketFor)) || "";
+    return marketOf(f)?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !TKRules.tooFarToCompare(f.price ?? f.total, marketOf(f).median) ? f.total / marketOf(f).median : null;
+  };
   const applyMarket = (market) => {
     lastMarket = market;
     marketFor = queryEl.value.trim().toLowerCase();
@@ -3037,7 +3042,8 @@
     it.refWorking = w > 0 ? w : null;
     it.refParts = pm > 0 ? pm : null;
     it.feePct = feePct;
-    it.vsWorking = it.total != null && w > 0 && !it.lot && !TKRules.tooFarToCompare(it.total, w) ? it.total / w : null;
+    it.accessory = TKRules.accessoryOf(it.title, marketFor);
+    it.vsWorking = it.total != null && w > 0 && !it.lot && !it.accessory && !TKRules.tooFarToCompare(it.total, w) ? it.total / w : null;
     it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
     it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
   };

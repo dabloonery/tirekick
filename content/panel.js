@@ -3652,11 +3652,13 @@
       if (market?.median > 0 && epoch === pageEpoch) applyMarket(market); // every card, scored or not
       items.forEach((it) => priceNotes(it, market, forLens, settings.feePct));
       // The free scam signs the model is told (background.js scamNotes): a reused photo, a bait price, the seller.
+      // The bait share comes from the card's own facts, as its chip does: not for a broken one, a game or a case,
+      // and against the pickup price on a local site.
       items.forEach((it) => {
         const f = facts.get(keyOf(it.url));
         it.photoTwins = f?.photoTwins || 0;
         it.sellerWarn = f?.sellerWarn || "";
-        it.cheapPct = (it.vsWorking != null && TKRules.tooCheap(it, market)?.pct) || 0;
+        it.cheapPct = (f?.vsSold != null && TKRules.tooCheap(f, marketOf(f))?.pct) || 0;
       });
 
       // Anything already judged in this exact setting comes back from memory, free.
@@ -4220,7 +4222,11 @@
       priceNotes(listing, market, forLens, settings.feePct);
       if (itemFacts?.photoTwins) listing.photoTwins = itemFacts.photoTwins;
       listing.sellerWarn = itemFacts?.sellerWarn || sellerWarning(listing);
-      listing.cheapPct = (listing.vsWorking != null && TKRules.tooCheap(listing, market)?.pct) || 0;
+      // What the card's checks know about it (broken, a word of the search missing), so the bait share sent to the
+      // model and the price check after it judge the listing as its card does.
+      listing.project = itemFacts?.project ?? clueOf(PROJECT, `${listing.title} ${listing.condition || ""} ${listing.details || ""}`);
+      listing.offWords = TKRules.missingWord(listing.title, query);
+      listing.cheapPct = (listing.vsWorking != null && TKRules.tooCheap(listing, pickupOf(market, listing))?.pct) || 0;
       // The free offer plan goes to the model, and its range is kept near it (TKRules.fitOffer).
       const plan = !listing.auction ? planFor(listing, market, itemFacts ? softFor(itemFacts).level : "none") : null;
       listing.offerPlan = plan && !plan.cheap ? { open: plan.open, walkAway: plan.walkAway, confidence: plan.confidence } : null;

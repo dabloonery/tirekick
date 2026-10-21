@@ -81,6 +81,7 @@ await p.shot("real_free.png");
 ok("a seller with 3 ratings is Check first", /Check first/.test(row(freeRows, "Nintendo Switch OLED Splatoon").meta), row(freeRows, "Nintendo Switch OLED Splatoon"));
 
 // ---------- a scan, with a model that makes the usual mistakes ----------
+await fetch(`${API}/calls`, { method: "DELETE" });
 await R(p, `r.querySelector('[data-act=scan]').click()`);
 await sleep(500);
 await waitFor(async () => !(await R(p, `return r.querySelector('[data-act=scan]').disabled`)), 20000);
@@ -88,6 +89,12 @@ await sleep(1500);
 const after = await cards();
 const afterRows = await rows();
 dump("after a scan", after, afterRows);
+// The model is told the same scam signs the cards show: a bait share for the bait, none for a broken one, a game or a case.
+const sent = (await (await fetch(`${API}/calls`)).json()).flatMap((x: any) => x.listings || []);
+const baitLine = (t: string) => sent.find((x: any) => x.title.startsWith(t))?.scam || "";
+ok("the scan is told the bait's share of the typical price", /the total is 35% of the typical price/.test(baitLine("Nintendo Switch OLED console - fast")), sent);
+ok("…but not a for-parts one's, which isn't compared with working ones", !/% of the typical price/.test(baitLine("Nintendo Switch OLED for parts")), baitLine("Nintendo Switch OLED for parts"));
+ok("…nor a game's or a case's", !/% of the typical price/.test(baitLine("Mario Kart 8") + baitLine("Nintendo Switch OLED carrying case")), [baitLine("Mario Kart 8"), baitLine("Nintendo Switch OLED carrying case")]);
 const tagged = after.filter((x: any) => x.score != null);
 ok("every card is scored", tagged.length === after.length, after.map((x: any) => [x.title, x.score]));
 ok("every card's number sits inside its word's range", tagged.every((x: any) => x.score >= BANDS[x.v][0] && x.score <= BANDS[x.v][1]), tagged.map((x: any) => [x.title.slice(0, 30), x.v, x.score]));

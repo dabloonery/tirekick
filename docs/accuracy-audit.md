@@ -88,6 +88,22 @@ A UI/UX pass on the same search followed (0.56.0), on how the scam checks, score
 
 Still missed: a one-word game before a dash ("Zelda - Nintendo Switch") and colors in a game's name ("Pokemon Red - Game Boy"); a scan still sets those aside.
 
+## An accuracy eval for the free checks (2026-10-21)
+
+Until now each rule was checked on its own, against hand-made titles. Nothing said how the checks did together on a page of real-looking listings, or whether a change made them better or worse overall. `tests/eval/` does that: 68 listings written from the shapes real eBay and Marketplace listings take (8 searches; scams of every kind the checks know: bait prices, new sellers, title codes, reposts, off-site contact, a seller account made this year; and honest listings that look like them: model numbers, games, parts, broken ones, lots, auctions, quick sales), each labeled with what it really is. They go through the same functions the panel runs (`TKRules.compareFacts`, shared with the panel since this change, then `freeRead`, and `priceVerdict` over a scripted scan). `deno task eval` prints the scorecard; `tests/unit/eval.test.mjs` fails if it gets worse.
+
+First run, with the rules as they are in 0.57.0:
+
+| | |
+|---|---|
+| Scams with a warning before any scan | 17 of 17 (11 Likely scam, 6 Check first) |
+| Honest listings marked Likely scam | 1 of 51: "Pokemon Scarlet Nintendo Switch OLED Game Brand New Sealed" at $42 (a game with no dash or bracket) |
+| Honest listings marked Check first | 5: "Switch OLED dock and charger" (parts read as a console), "DeWalt 20V Max Drill DCD771C2" (the searched model number read as a code), a Pentax K1000 that "needs light seals" and a Switch "missing Joy-Cons" (cheap for a reason), and a new seller at a normal price (which is what Check first is for) |
+| Price word as labeled | 47 of 51 |
+| Verdict after a scan as labeled | 18 of 18 |
+
+What it can't say: the labels are judgments on made-up listings, not real outcomes, and the model isn't run (its answers are scripted). It measures the rules, not the scan.
+
 ## Spending estimates
 
 Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labeled an estimate; the real balance is at console.anthropic.com.

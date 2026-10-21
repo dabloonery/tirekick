@@ -12,6 +12,7 @@
 //   a scam, any warning or pass counts.
 // text: what the card says besides the title and price (seller rating, bids, time left).
 // page: a Marketplace listing's page text, for the checks that only run once it's opened.
+// foreign: the currency when it isn't US dollars ("CA$", "£"), as Marketplace shows it to buyers elsewhere.
 
 // Typical prices (recent eBay sales, used) for each search: the median total, the typical shipping in it,
 // and how much to trust it.
@@ -99,6 +100,9 @@ export const CASES = [
   fb("nintendo switch oled", "Nintendo Switch OLED with 2 games K7Q2", 210, { truth: "scam", note: "a code at a normal price" }),
   fb("nintendo switch oled", "Nintendo switch oled brand new in box", 100, { truth: "scam", scan: "great", page: "Joined Facebook in 2026. Brand new, pick up or I can ship." }),
   fb("nintendo switch oled", "Nintendo Switch OLED neon", 170, { truth: "scam", page: "Joined Facebook in 2026 Text me on WhatsApp for quick deal" }),
+
+  fb("nintendo switch oled", "Nintendo Switch OLED white", 180, { foreign: "CA$", truth: "honest", word: "none", note: "a Canadian buyer: CA$180 is about US$130" }),
+  fb("nintendo switch oled", "Nintendo Switch OLED Neon", 95, { foreign: "£", truth: "honest", word: "none", note: "a UK buyer" }),
 
   // ---------- Marketplace: iphone 13 128gb (pickup $280) ----------
   fb("iphone 13 128gb", "iPhone 13 128gb unlocked", 260, { truth: "honest", word: "fair" }),

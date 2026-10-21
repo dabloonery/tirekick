@@ -16,6 +16,7 @@ const readCard = (c) => {
   const shipping = c.shipping ?? null;
   const it = { site: c.site, title: c.title, price: c.price, shipping, total: c.price == null ? null : Math.round((c.price + (shipping || 0)) * 100) / 100 };
   Object.assign(it, TK.cardFacts(c.text || "", c.title));
+  if (c.foreign) it.foreign = c.foreign; // the card's currency, when it isn't US dollars (TK.currencyOf)
   it.titleCode = TK.titleCode(c.title);
   // Cards are checked for off-site contact in the title only; a Marketplace listing's page in full (with the
   // seller's join date) once it's opened.

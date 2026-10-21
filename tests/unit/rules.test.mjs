@@ -533,3 +533,14 @@ test("accessoryOf: a game in a console search, and two parts joined by and", () 
   assert.equal(R.accessoryOf("Nintendo Switch OLED console and charger", "nintendo switch oled"), "");
   assert.equal(R.accessoryOf("Nintendo Switch OLED with dock and charger", "nintendo switch oled"), "");
 });
+
+test("a price in another currency isn't compared with US sales", () => {
+  const m = { median: 252, p25: 220, p75: 280, n: 40, confidence: "good" };
+  const f = { title: "Nintendo Switch OLED", price: 180, total: 180, foreign: "CA$" };
+  assert.equal(R.compareFacts(f, m, "nintendo switch oled"), null);
+  assert.equal(f.cheap, "");
+  assert.equal(R.tooCheap({ ...f, total: 60 }, m), null);
+  assert.equal(R.priceVerdict("great", { ...f, total: 60, score: 90 }, m).v, "great");
+  assert.equal(R.offerPlan({ price: 180, foreign: "CA$" }, m), null);
+  assert.ok(R.compareFacts({ title: "Nintendo Switch OLED", price: 180, total: 180 }, m, "nintendo switch oled") > 0.7, "dollars still are");
+});

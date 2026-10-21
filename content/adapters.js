@@ -30,6 +30,20 @@
     const us = (context || "").replace(/\u00a0/g, " ").match(/US\s?\$\s?([\d,]+(?:\.\d{1,2})?)/);
     return us ? parseFloat(us[1].replace(/,/g, "")) : null;
   };
+  // The currency a price is in when it isn't US dollars ("CA$", "C $", "AU $", "£", "€"), or "". Marketplace
+  // shows each buyer's own currency ("CA$200" in Canada), and the typical price is from eBay.com sales in US
+  // dollars, so such a price can be filtered and sorted but isn't compared with it.
+  TK.currencyOf = (text) => {
+    const t = (text || "").replace(/\u00a0/g, " ");
+    if (!TK.foreignCurrency(t)) return "";
+    return (t.match(/(?:^|[^A-Za-z])((?:C|CA|AU|A|NZ|HK|S|SG)\s?\$|[£€¥]|\b(?:GBP|EUR|CAD|AUD|JPY)\b)/)?.[1] || "").replace(/\s+/g, "");
+  };
+  // A price's amount whatever its currency: "CA$1,200", "£85", "€40.50".
+  TK.parseAmount = (text) => {
+    const m = (text || "").replace(/\u00a0/g, " ").match(/(?:\$|[£€¥]|\b(?:GBP|EUR|CAD|AUD|JPY))\s?([\d,]+(?:\.\d{1,2})?)/);
+    const n = m ? parseFloat(m[1].replace(/,/g, "")) : NaN;
+    return Number.isFinite(n) ? n : null;
+  };
   // "$45.00 to $60.00": a listing with several versions at different prices.
   TK.isPriceRange = (text) => /\$\s?[\d,.]+\s*(?:to|-|–)\s*(?:US\s?)?\$/.test(text || "");
 
@@ -312,6 +326,8 @@
   // them entirely. Every listing card is a link to /marketplace/item/<id>; we read
   // the visible text lines inside that link instead.
 
+  // A price line, in dollars or the buyer's own currency ("$165", "CA$200", "£85").
+  const FB_PRICE = /^(?:CA|C|AU|A|NZ|US)?\$\s?[\d,]|^[£€]\s?[\d,]/;
   const FB_LABELS = /^(just listed|sponsored|price dropped|partner listing|new listing|shipping available|ships to you|free shipping|pending|sold)$/i;
   // A card that hasn't changed since it was last read (same link, same text) isn't read again: the feed is
   // read whenever more listings load, and reading every card each time made long feeds stutter. The photo
@@ -342,21 +358,23 @@
         for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest(".tirekick-sticker, .tirekick-marks")) lines.push(n.nodeValue.trim());
       }
       if (!lines.length) return;
-      const priceLine = lines.find((l) => /\$\s?[\d,]|^free$/i.test(l)) || "";
+      const priceLine = lines.find((l) => /\$\s?[\d,]|^[£€]\s?[\d,]|^free$/i.test(l)) || "";
       // Facebook's own labels on the photo are lines too; they're never the title.
-      const rest = lines.filter((l) => l !== priceLine && !/^\$\s?[\d,]/.test(l) && !FB_LABELS.test(l));
+      const rest = lines.filter((l) => l !== priceLine && !FB_PRICE.test(l) && !FB_LABELS.test(l));
       const title = squash(rest[0] || "", 160);
       if (!title) return;
       // A marked-down listing shows the new price first and the old one struck through after it ("$165" "$180").
-      const now = TK.parsePrice(priceLine);
-      const was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (/^\$\s?[\d,]/.test(l) ? TK.parsePrice(l) : null)).find((n) => n != null);
+      const foreign = TK.currencyOf(priceLine);
+      const now = TK.parseAmount(priceLine);
+      const was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (FB_PRICE.test(l) ? TK.parseAmount(l) : null)).find((n) => n != null);
 
       const item = withTotal({
           site: "facebook",
           title,
           priceText: priceLine,
-          price: /^free$/i.test(priceLine) ? 0 : TK.parsePrice(priceLine),
+          price: /^free$/i.test(priceLine) ? 0 : now,
           shipping: TK.parseShipping(lines.join(" ")), // usually null: most Marketplace sales are local pickup
+          ...(foreign && { foreign }),
           url: new URL(href, location.origin).href.split("?")[0],
           imageUrl: firstImage(a),
           raw: squash(lines.join(" | ")),
@@ -444,7 +462,7 @@
       // Only a dialog you can see: Facebook keeps hidden ones (a "Notifications" flyout) in the page.
       const dialog = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.querySelector("h1") && d.getClientRects().length).at(-1);
       const main = dialog || document.querySelector('[role="main"]') || document.body;
-      const priceNode = [...main.querySelectorAll("span")].find((n) => /^(\$\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
+      const priceNode = [...main.querySelectorAll("span")].find((n) => /^((?:CA|C|AU|A|NZ)?\$\s?[\d,]+(\.\d\d)?|[£€]\s?[\d,]+(\.\d\d)?|free)$/i.test(n.textContent.trim()));
       const priceText = priceNode ? priceNode.textContent.trim() : "";
       const imgs = [...main.querySelectorAll("img")]
         .filter((i) => /scontent|fbcdn/.test(i.src) && (i.naturalWidth || i.width) >= 200)
@@ -456,7 +474,8 @@
         site: "facebook",
         title,
         priceText,
-        price: /^free$/i.test(priceText) ? 0 : TK.parsePrice(priceText),
+        price: /^free$/i.test(priceText) ? 0 : TK.parseAmount(priceText),
+        ...(TK.currencyOf(priceText) && { foreign: TK.currencyOf(priceText) }),
         shipping: null,
         condition: "",
         seller: "",

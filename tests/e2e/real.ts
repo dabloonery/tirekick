@@ -113,6 +113,21 @@ const scams = afterRows.filter((x: any) => x.tag?.[0] === "suspicious").length;
 ok("…and as many possible scams as the tags say", line.includes(`${scams} possible scam`), { line, scams });
 await p.shot("real_scan.png");
 
+// ---------- the market moves: remembered scores are compared with today's typical price ----------
+// The same sold prices, looked up again later at a lower typical price ($180): the scores come back from memory
+// on reload, and the price check uses $180, not the $252 they were scored at.
+await o.ev(`chrome.storage.local.get('soldCache').then(({soldCache}) => { const k = Object.keys(soldCache).find(k => /nintendo switch oled/.test(k)); const m = soldCache[k].market; soldCache[k] = { at: Date.now(), market: { ...m, median: 180, p25: 160, p75: 200, ship: 12 } }; return chrome.storage.local.set({ soldCache }); })`);
+await p.ev(`location.reload()`);
+await sleep(1500);
+await waitFor(async () => (await cards()).some((x: any) => /Scored when the typical price was/.test(x.popText)), 10000);
+const moved = await cards();
+dump("after the market moved", moved, await rows());
+const model = card(moved, "Nintendo Switch OLED Model White");
+ok("a remembered score says the typical price has moved since", /Scored when the typical price was \$252; it's \$180 now/.test(model.popText), model.popText);
+ok("…and the price chips use today's", /Typical is \$180|\$180|above typical/.test(JSON.stringify(moved.map((x: any) => x.chips))) && !/Typical is \$252/.test(JSON.stringify(moved.map((x: any) => x.chips))), moved.map((x: any) => x.chips));
+const movedTagged = moved.filter((x: any) => x.score != null);
+ok("…with every number still inside its word's range", movedTagged.length > 0 && movedTagged.every((x: any) => x.score >= BANDS[x.v][0] && x.score <= BANDS[x.v][1]), movedTagged.map((x: any) => [x.title.slice(0, 30), x.v, x.score]));
+
 // ---------- Analyze on a listing page: the same rule, the same number ----------
 const it = await open("https://www.ebay.com/itm/184891897312");
 await sleep(800);

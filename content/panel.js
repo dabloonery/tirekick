@@ -1871,6 +1871,11 @@
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(TK.bigImage(img))}`;
 
 
+  // The typical price has moved 10% or more since the listing was scored.
+  const movedSince = (it) => {
+    const now = it.refPrice ?? it.refWorking;
+    return it.scoredRef > 0 && now > 0 && !it.refIsEstimate && Math.abs(now - it.scoredRef) >= it.scoredRef * 0.1;
+  };
   const foreignText = (cur) => `Priced in ${cur}, and the typical price is from eBay.com sales in US dollars, so the two aren't compared (no "too cheap" check or price word either).`;
   // The chips a card wears: most useful first, three at most.
   const chipsFor = (f = {}) => {
@@ -2536,6 +2541,7 @@
     lastMarket = market;
     marketFor = queryEl.value.trim().toLowerCase();
     for (const f of facts.values()) f.vsSold = vsSoldOf(f);
+    for (const it of scored.values()) followMarket(it, market);
     if (itemFacts) itemFacts.vsSold = vsSoldOf(itemFacts);
     redecorateAll();
     if (TK.pageType() === "item") renderItemInfo(); // the offer helper works from these prices
@@ -2630,6 +2636,7 @@
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}. Bulk-posted fakes on Marketplace end that way, and so do real model numbers: check it's this item's model number.`) : null,
         f.photoTwins ? line(photoTwinsText(f.photoTwins)) : null,
         item.reason || "",
+        movedSince(item) ? line(`Scored when the typical price was ${dollars(Math.round(item.scoredRef))}; it's ${dollars(Math.round(item.refPrice ?? item.refWorking))} now. The price word and checks use today's; scan again for a new score.`) : null,
         item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}${item.scannedKind === "scan" || !item.scannedKind ? ", from the card's title, price and text (not the photos or the description)" : ", from the listing's page"}.`) : null,
         // How the numbers were made, and how far to trust them
         item.margin != null && item.lens === "project"
@@ -3097,7 +3104,7 @@
   // only brought back while the price is the one it was judged at.
   const SCAN_DAYS = 60;
   const SCAN_MAX = 3000;
-  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "refRough", "shipOut", "baseScore", "baseVerdict", "photoAdjust", "photos"];
+  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "refRough", "shipOut", "baseScore", "baseVerdict", "photoAdjust", "photos", "scoredRef"];
   const priceOf = (it) => it.total ?? it.price ?? null;
   // Which model made a score: a scan's is the scan model, an analysis's the main one.
   const modelNow = (kind = "scan") => (kind === "scan" ? cfg.scanModel : cfg.provider === "ollama" ? cfg.textModel : cfg.provider === "openai" ? cfg.oaiModel : cfg.anthropicModel) || "";
@@ -3149,6 +3156,7 @@
       const s = storedScan(key);
       if (!s || s.p !== priceOf(it)) continue;
       Object.assign(it, Object.fromEntries(SNAP.filter((f) => s[f] !== undefined).map((f) => [f, s[f]])), { scannedAt: s.at, scannedWith: s.m, scannedKind: s.kind, restored: true });
+      if (lastMarket) followMarket(it, lastMarket); // compared with today's typical price, not the one it was scored at
       scored.set(key, it);
       seen.add(key);
       const f = facts.get(key);
@@ -3168,6 +3176,18 @@
 
   // Point a listing's comparisons at a reference price: the model's estimate (browsing) or a real
   // sold median. Recomputes % of price, flip margin and the auction bid cap; no model call.
+  // A score kept from earlier (remembered for 60 days, or from before this search's sold prices were looked up
+  // again) is compared with the typical price as it is now: the price word, "too cheap" and the price gap move
+  // with the market, and the hover card says when the price the score was given at has moved (scoredRef).
+  // Not for a listing priced from its own search (browsing: it.sold, it.est), which keeps its own reference.
+  const followMarket = (it, market) => {
+    if (it.browse || it.sold || it.est || !(market?.median > 0)) return;
+    priceNotes(it, market, it.lens || lens, it.feePct ?? cfg.feePct);
+    it.refIsEstimate = false;
+    it.margin = it.marginBeforeRepair != null && it.related ? it.marginBeforeRepair - (it.partsCost || 0) : null;
+    it.bidCap = it.auction && it.related ? bidCapFor(it) : null;
+  };
+
   const useReference = (it, ref, isEstimate) => {
     it.refWorking = ref > 0 ? ref : null;
     it.refPrice = null; // compared with the reference as it is
@@ -3205,6 +3225,7 @@
     if (it.vsParts != null && it.vsParts <= 1 && it.related && !it.flags.includes("under parts value")) it.flags.unshift("under parts value");
     it.baseScore = it.score;
     it.baseVerdict = it.verdict;
+    it.scoredRef = !it.refIsEstimate ? (it.refPrice ?? it.refWorking ?? null) : null; // the typical price it was scored against
     const f = facts.get(keyOf(it.url));
     if (f?.titleCode) f.codeOk = it.verdict !== "suspicious"; // the model judged the code a real model number
     if (f?.offSite) f.offSiteOk = it.verdict !== "suspicious"; // and read the web address or number in context

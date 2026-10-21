@@ -554,6 +554,7 @@
     ${THEME.glyphCss(".verdict")}
     .meta { color:var(--muted); font-size:14px; margin-top:3px; }
     .meta.lowball { color:var(--v-suspicious); font-weight:600; }
+    .meta.pricewhy { color:var(--ink); } /* why the price check moved the verdict: read before the model's reason */
     .lensinfo { margin-top:4px; font-size:13px; font-weight:600; }
     .lensinfo.neg { color:var(--v-suspicious); }
     .reason { margin-top:6px; font-size:14px; }
@@ -1878,12 +1879,14 @@
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const mk = marketOf(f);
     const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
-    const cheap = f.vsSold != null && TKRules.tooCheap(f, mk);
+    const unrelated = f.url && scored.get(keyOf(f.url))?.related === false; // a scan said it's something else
+    const cheap = f.vsSold != null && !unrelated && TKRules.tooCheap(f, mk);
     if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null && !cheap) {
-      const pw = f.project ? null : TKRules.priceWord(f.vsSold); // broken ones: just the number
+      // Broken ones, likely scams and what a scan called something else: just the number, no "Great price".
+      const pw = f.project || unrelated || likelyScam(f) ? null : TKRules.priceWord(f.vsSold);
       c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough" })}`, `Typical price: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
     } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`]);
     else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`]);
@@ -2464,9 +2467,9 @@
         if (prev?.offSiteOk != null) f.offSiteOk = prev.offSiteOk;
         if (prev?.codeOk != null) f.codeOk = prev.codeOk; // a scan judged this code a real model number: keep that
         if (prev?.photoTwins) f.photoTwins = prev.photoTwins;
-        f.vsSold = vsSoldOf(f);
         f.known = prev ? prev.known : !!sighting.known;
         f.project = clueOf(PROJECT, `${it.title} ${f.text}`);
+        f.vsSold = vsSoldOf(f); // after project: a broken one is never "too cheap"
         f.motivated = clueOf(MOTIVATED, `${it.title} ${f.text}`);
         f.filtered = filterReason(f);
         f.deal = isDeal(f);
@@ -2512,8 +2515,12 @@
   const pickupOf = (m, f) => TKRules.forPickup(m, f, !!(f?.site ? TKSites.get(f.site) : TK.site())?.local); // facts don't keep the site: this page's
   const marketOf = (f) => pickupOf(f?.ownMarket || lastMarket, f);
   // An accessory or part for the search ("Case for Nintendo Switch") isn't compared with the thing's typical price.
+  // A scan's "not your search" counts too, and a title that leaves out a word of the search is never "Likely
+  // scam" on price alone (TKRules.tooCheap).
   const vsSoldOf = (f) => {
     f.accessory = (!f.ownMarket && TKRules.accessoryOf(f.title, marketFor)) || "";
+    f.offWords = (!f.ownMarket && TKRules.missingWord(f.title, marketFor)) || "";
+    if (f.url && scored.get(keyOf(f.url))?.related === false) f.related = false;
     const m = marketOf(f);
     const vs = m?.median > 0 && f.total != null && !f.lot && !f.auction && !f.accessory && !TKRules.tooFarToCompare(f.price ?? f.total, m.median) ? f.total / m.median : null;
     f.cheap = (vs != null && TKRules.tooCheap(f, m)?.level) || ""; // backs up a title code (TKRules.codeBacked)
@@ -2598,8 +2605,8 @@
     const line = (text) => (text ? h("div", { class: "tk-flags" }, text) : null);
     return h(
       "div",
-      { class: "tirekick-sticker", "data-v": v.v, tabindex: "0", role: "group", "aria-label": `Tirekick: score ${item.score}, ${v.label}. Tab to the reasons and actions.` },
-      scoreDial({ ...item, verdict: v.v }),
+      { class: "tirekick-sticker", "data-v": v.v, tabindex: "0", role: "group", "aria-label": `Tirekick: score ${v.score}, ${v.label}. Tab to the reasons and actions.` },
+      scoreDial({ ...item, score: v.score, verdict: v.v }),
       h("div", { class: "tk-text" }, h("div", { class: "tk-verdict" }, v.label), sub ? h("div", { class: "tk-sub" }, sub) : null),
       // Below the tag, in one column: the chip row, then (on hover) the card with the reasons. However
       // many rows the chips wrap to, the card sits under them.
@@ -2610,7 +2617,8 @@
         h(
         "div",
         { class: "tk-pop" },
-        h("b", {}, String(item.score), " ", h("span", { class: "tk-pw" }, v.label)),
+        h("b", {}, String(v.score), " ", h("span", { class: "tk-pw" }, v.label)),
+        v.why ? line(`${v.why} The scan said ${VERDICT[item.verdict].label}${v.score !== item.score ? ` (${item.score})` : ""}.`) : null,
         item.related === false ? line("Not what you searched for, scored on the deal alone.") : null,
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}. Bulk-posted fakes on Marketplace end that way, and so do real model numbers: check it's this item's model number.`) : null,
@@ -2665,7 +2673,7 @@
   function shownV(it, f = facts.get(keyOf(it.url))) {
     const market = it.refWorking > 0 && !it.refIsEstimate ? { median: it.refPrice ?? it.refWorking, confidence: it.refRough ? "rough" : "good" } : marketOf({ ...f, ...it });
     const pv = TKRules.priceVerdict(it.verdict, { ...f, ...it }, market);
-    return { v: pv.v, label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label, priceWarn: pv.v === "suspicious" && it.verdict !== "suspicious" };
+    return { v: pv.v, score: pv.score ?? it.score, why: pv.why || "", label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label, priceWarn: pv.v === "suspicious" && it.verdict !== "suspicious" };
   }
 
   // Every listing on the page, scored or not: before a scan the list is the page in a form you
@@ -2676,7 +2684,10 @@
     for (const [key, it] of scored) if (!facts.has(key)) out.push(it);
     return out;
   };
-  const sc = (it) => it.score ?? -1;
+  // The score as shown: moved into the price check's verdict when that wins, so a "Great price, if it's real" at
+  // 91 doesn't head the list. Worked out once per item per render (shownMemo), not in every comparison.
+  let shownMemo = null;
+  const sc = (it) => (it.score == null ? -1 : (shownMemo?.get(it) ?? shownV(it)).score);
   // Before a scan, "best first" goes by the free read: good prices up, warnings and off-topic down.
   const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, marketOf(facts.get(keyOf(it.url)) || it))?.rank ?? 0.5);
   const dealOf = (it) => (facts.get(keyOf(it.url))?.deal ? 1 : 0);
@@ -2710,99 +2721,101 @@
     listEl.replaceChildren();
     if (TK.pageType() !== "results") return;
     const by = SORTS[sortMode] || SORTS.score;
-    pageItems()
-      .filter((it) => !isHidden(it) && !(skipMode === "hide" && isSkip(it)))
-      .sort((a, b) => isSkip(a) - isSkip(b) || by(a, b)) // skipped and likely scams go last, whatever the sort
-      .forEach((it, i) => {
-        const key = keyOf(it.url);
-        const f = facts.get(key) || it;
-        const still = shownKeys.has(key);
-        shownKeys.add(key);
-        const known = chipsFor(f)
-          .filter(([, t]) => !/^Auction|^Lot of/.test(t) && !TKRules.SOLD_CHIP.test(t))
-          .map(([k, t]) => h("span", { class: `fchip k-${k}` }, chipText(t)));
-        const saveBtn = h("button", { class: saved[key] ? "on" : null, onclick: () => toggleSave(key) }, saved[key] ? "Saved" : "Save");
-        const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
-        // Not scored (yet): the price is the headline, with what's known for free.
-        if (it.score == null) {
-          const mk = marketOf(f);
-          const vs = f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true })} (${dollars(Math.round(mk.median))})` : "";
-          const each = it.lot && it.total != null ? `, lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
-          listEl.append(
-            h(
-              "div",
-              { class: `row plain${still ? " still" : ""}${likelyScam(f) ? " skip" : ""}`, style: `--i:${Math.min(i, 8)}` },
-              h(
-                "div",
-                {},
-                h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
-                (() => {
-                  const read = !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
-                  return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
-                })(),
-                likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
-                (() => {
-                  // The tag already shows the price; the line adds only what it doesn't say.
-                  const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]
-                    .filter(Boolean)
-                    .join(", ");
-                  const line = `${bits}${vs}${each}`.replace(/^, /, "");
-                  return line ? h("div", { class: "meta" }, line) : null;
-                })(),
-                known.length ? h("div", { class: "flags" }, known) : null
-              ),
-              h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`, openLink(it)),
-              h(
-                "div",
-                { class: "actions row-acts" },
-                h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
-                saveBtn,
-                hideBtn
-              )
-            )
-          );
-          return;
-        }
-        const pv = shownV(it);
-        const box = photoBox(it);
-        const vsMarket =
-          it.vsWorking != null && !it.auction && !it.lot
-            ? it.refIsEstimate
-              ? `${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
-              : `${TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refPrice ?? it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
-            : "";
-        const line = lensLine(it);
-        const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
+    const shown = pageItems().filter((it) => !isHidden(it) && !(skipMode === "hide" && isSkip(it)));
+    shownMemo = new Map(shown.filter((it) => it.score != null).map((it) => [it, shownV(it)]));
+    shown.sort((a, b) => isSkip(a) - isSkip(b) || by(a, b)); // skipped and likely scams go last, whatever the sort
+    shownMemo = null;
+    shown.forEach((it, i) => {
+      const key = keyOf(it.url);
+      const f = facts.get(key) || it;
+      const still = shownKeys.has(key);
+      shownKeys.add(key);
+      const known = chipsFor(f)
+        .filter(([, t]) => !/^Auction|^Lot of/.test(t) && !TKRules.SOLD_CHIP.test(t))
+        .map(([k, t]) => h("span", { class: `fchip k-${k}` }, chipText(t)));
+      const saveBtn = h("button", { class: saved[key] ? "on" : null, onclick: () => toggleSave(key) }, saved[key] ? "Saved" : "Save");
+      const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
+      // Not scored (yet): the price is the headline, with what's known for free.
+      if (it.score == null) {
+        const mk = marketOf(f);
+        const vs = f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true })} (${dollars(Math.round(mk.median))})` : "";
+        const each = it.lot && it.total != null ? `, lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
         listEl.append(
           h(
             "div",
-            { class: still ? "row still" : "row", style: `--i:${Math.min(i, 8)}` },
-            tagEl(pv.v, it.score),
+            { class: `row plain${still ? " still" : ""}${likelyScam(f) ? " skip" : ""}`, style: `--i:${Math.min(i, 8)}` },
             h(
               "div",
               {},
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
-              h("div", { class: "meta", "data-v": pv.v }, h("span", { class: "verdict" }, pv.label), ` ${[it.related === false && "(not your search)", (it.auction || it.shipping > 0) && priceStr(it), it.related !== false && vsMarket].filter(Boolean).join(", ")}`),
-              (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? `, ${it.fault}` : "")) : null,
-              h("div", { class: "reason" }, it.reason || ""),
-              // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
-              known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null
+              (() => {
+                const read = !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
+                return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
+              })(),
+              likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
+              (() => {
+                // The tag already shows the price; the line adds only what it doesn't say.
+                const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]
+                  .filter(Boolean)
+                  .join(", ");
+                const line = `${bits}${vs}${each}`.replace(/^, /, "");
+                return line ? h("div", { class: "meta" }, line) : null;
+              })(),
+              known.length ? h("div", { class: "flags" }, known) : null
             ),
-            h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`, openLink(it)),
-            // Actions and photo notes run under the price too, so the four links fit on one line.
+            h("div", { class: f.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`, openLink(it)),
             h(
               "div",
               { class: "actions row-acts" },
-              it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `The typical price from recent eBay sales of \u201c${it.query}\u201d` }, "Typical price") : null,
-              it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Have the AI look at the photo (can change the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
-              it.imageUrl ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null,
+              h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
               saveBtn,
               hideBtn
-            ),
-            box
+            )
           )
         );
-      });
+        return;
+      }
+      const pv = shownV(it);
+      const box = photoBox(it);
+      const vsMarket =
+        it.vsWorking != null && !it.auction && !it.lot
+          ? it.refIsEstimate
+            ? `${TKRules.vsText(it.total, it.refWorking, { est: true }).replace(" (est.)", "")} (est. ${dollars(it.est.lo)}\u2013${dollars(it.est.hi)})`
+            : `${TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, long: true })} (${dollars(Math.round(it.refPrice ?? it.refWorking))}${it.sold ? `, ${it.sold.n} sales` : ""})`
+          : "";
+      const line = lensLine(it);
+      const flags = (it.flags || []).map((t) => h("span", { class: "flag" }, t));
+      listEl.append(
+        h(
+          "div",
+          { class: still ? "row still" : "row", style: `--i:${Math.min(i, 8)}` },
+          tagEl(pv.v, pv.score),
+          h(
+            "div",
+            {},
+            h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
+            h("div", { class: "meta", "data-v": pv.v }, h("span", { class: "verdict" }, pv.label), ` ${[it.related === false && "(not your search)", (it.auction || it.shipping > 0) && priceStr(it), it.related !== false && vsMarket].filter(Boolean).join(", ")}`),
+            (it.lens !== "use" || it.auction || it.lot) && it.related !== false ? h("div", { class: it.margin < 0 ? "lensinfo neg" : "lensinfo" }, line + (it.fault && !/^none|unknown$/i.test(it.fault) ? `, ${it.fault}` : "")) : null,
+            pv.why ? h("div", { class: "meta pricewhy" }, `${pv.why} The scan said ${VERDICT[it.verdict].label}.`) : null,
+            h("div", { class: "reason" }, it.reason || ""),
+            // One row of chips: what's known for sure (filled) first, then the model's flags (outlined).
+            known.length || flags.length ? h("div", { class: "flags" }, known, flags) : null
+          ),
+          h("div", { class: it.deal ? "pr deal" : "pr" }, it.total == null ? "\u2014" : `$${Math.round(it.total)}`, openLink(it)),
+          // Actions and photo notes run under the price too, so the four links fit on one line.
+          h(
+            "div",
+            { class: "actions row-acts" },
+            it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `The typical price from recent eBay sales of \u201c${it.query}\u201d` }, "Typical price") : null,
+            it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Have the AI look at the photo (can change the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
+            it.imageUrl ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null,
+            saveBtn,
+            hideBtn
+          ),
+          box
+        )
+      );
+    });
   };
 
   // Scroll to the card and outline it for a moment. If the open panel would cover it, tuck the
@@ -3188,6 +3201,7 @@
     const f = facts.get(keyOf(it.url));
     if (f?.titleCode) f.codeOk = it.verdict !== "suspicious"; // the model judged the code a real model number
     if (f?.offSite) f.offSiteOk = it.verdict !== "suspicious"; // and read the web address or number in context
+    if (f && !it.related) (f.related = false), (f.vsSold = vsSoldOf(f)); // something else: not "too cheap" for the search
   };
   // A reposted scam (see noteCode) needs no model.
   const scamVerdict = (others) => ({
@@ -3270,16 +3284,26 @@
     const n = (fn) => all.filter(fn).length;
     const newN = n((f) => f.isNew);
     const dropN = n((f) => f.drop);
-    const warnN = n((f) => f.sellerWarn || f.dup);
+    // Scams and warnings counted the way the tags show them: a scored listing by its shown verdict (a price
+    // the check calls bait counts), an unscored one by its free read ("Likely scam", "Check first").
+    const warnOf = (f) => {
+      if (f.hidden) return "";
+      const it = f.url && scored.get(keyOf(f.url));
+      if (it?.score != null) return shownV(it, f).v === "suspicious" || likelyScam(f) ? "scam" : f.sellerWarn || f.dup ? "careful" : "";
+      const word = TKRules.freeRead(f, marketOf(f))?.word;
+      return word === "Likely scam" ? "scam" : word === "Check first" ? "careful" : "";
+    };
+    const warns = all.map(warnOf);
+    const warnN = warns.filter((w) => w === "careful").length;
     const hidN = n((f) => f.hidden);
     const filN = n((f) => f.filtered && !f.hidden);
     // After a scan, say what it found in plain words.
-    const scored = pageItems().filter((it) => it.score != null && !isHidden(it));
-    const worthN = scored.filter((it) => (shownV(it).v === "great" || shownV(it).v === "good") && !likelyScam(facts.get(keyOf(it.url)))).length;
-    piHead.hidden = !scored.length;
-    piHead.textContent = !scored.length ? "" : worthN ? `${worthN} worth a look` : "Nothing here is a bargain";
-    // How the scored listings split, best to worst: one segment per verdict, as wide as its count.
-    const split = ["great", "good", "fair", "pass", "suspicious"].map((v) => [v, scored.filter((it) => shownV(it).v === v).length]).filter(([, c]) => c);
+    const done = pageItems().filter((it) => it.score != null && !isHidden(it));
+    const worthN = done.filter((it) => (shownV(it).v === "great" || shownV(it).v === "good") && it.related !== false && !likelyScam(facts.get(keyOf(it.url)))).length;
+    piHead.hidden = !done.length;
+    piHead.textContent = !done.length ? "" : worthN ? `${worthN} worth a look` : "Nothing here is a bargain";
+    // How the done listings split, best to worst: one segment per verdict, as wide as its count.
+    const split = ["great", "good", "fair", "pass", "suspicious"].map((v) => [v, done.filter((it) => shownV(it).v === v).length]).filter(([, c]) => c);
     const splitSig = split.join();
     if (piBar.dataset.sig !== splitSig) {
       piBar.dataset.sig = splitSig;
@@ -3290,8 +3314,8 @@
       }));
       piBar.setAttribute("aria-label", split.map(([v, c]) => `${c} ${VERDICT[v].label.toLowerCase()}`).join(", "));
     }
-    piBar.hidden = !scored.length;
-    const scamN = n((f) => likelyScam(f) && !f.hidden);
+    piBar.hidden = !done.length;
+    const scamN = warns.filter((w) => w === "scam").length;
     const bits = [`<b>${all.length}</b> listings`];
     if (scamN) bits.push(`<b>${scamN}</b> possible scam${scamN === 1 ? "" : "s"}`);
     const dealN = dealCount();
@@ -4024,8 +4048,8 @@
   };
 
   const renderItem = (listing, r, market) => {
-    const v = shownV({ ...listing, verdict: r.verdict }, {});
-    const score = clamp100(r.score | 0);
+    const v = shownV({ ...listing, verdict: r.verdict, score: clamp100(r.score | 0) }, {});
+    const score = v.score;
     const vs =
       (listing.vsWorking != null ? `, ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +
       (listing.vsParts != null ? `, ${TKRules.vsText(listing.total, listing.refParts, { long: true }).replace("the typical price", "typical for parts")}` : "");
@@ -4043,6 +4067,7 @@
           {},
           h("div", { class: "title", "data-v": v.v }, h("span", { class: "verdict" }, v.label), ` ${score} out of 100`),
           h("div", { class: "meta" }, `${priceStr(listing)}${vs}`),
+          v.why ? h("div", { class: "meta pricewhy" }, `${v.why} The analysis said ${VERDICT[r.verdict]?.label || r.verdict}.`) : null,
           h("div", { class: "reason" }, r.summary || ""),
           r.photoAdjust ? h("div", { class: r.photoAdjust < 0 ? "adjust" : "adjust up" }, `Photo check ${signed(r.photoAdjust)} (was ${r.baseScore})`) : null,
           r.flags?.length ? h("div", { class: "flags" }, r.flags.slice(0, 5).map((f) => h("span", { class: "flag" }, f))) : null,

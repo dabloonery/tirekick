@@ -363,6 +363,8 @@
           el: a,
           ...TK.cardFacts(TK.spacedText(a), title),
           titleCode: TK.titleCode(title),
+          // The title only, as on eBay: a phone number or app in it is visible before the listing is opened.
+          ...(TK.offSite(title) && { offSite: TK.offSite(title) }),
           ...(was != null && now != null && was > now && { wasPrice: was }),
           ...(lines.some((l) => /^just listed$/i.test(l)) && { justListed: true }),
         });

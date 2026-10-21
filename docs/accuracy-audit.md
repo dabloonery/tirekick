@@ -56,6 +56,20 @@ A second pass, on false alarms and misses in the free checks and on where the sc
 
 Still open: games and other different items that read like the thing itself ("Mario Kart 8 Nintendo Switch" in a console search) are caught only once a scan marks them unrelated.
 
+## What the tags say against what the checks did (2026-10-21, 0.55.0)
+
+A search run end to end the way a buyer meets it (`tests/e2e/real.ts`: "nintendo switch oled", typical about $252, fourteen cards of what really turns up, and a model that makes the usual mistakes), reading every card and row as shown.
+
+| Problem | Effect on real listings | Now |
+|---|---|---|
+| When the price check overruled a scan, the word changed and the number didn't | A bait listing the model called great read "91 Scam? Great price, if it's real" and, sorted by score, headed the list; a sealed one at 131% of typical read "82 Fair price" | The number moves into the new word's range, as it already did for the model's own answers (30 and 59 here), so the list sorts by what it shows. The hover card and the row say why ("$89 is 35% of the typical $252…", "Held at Fair price: $329 is 131%…") and what the scan said. Analyze does the same |
+| A sure scam still got the price praise | "Scam: off-site contact" beside a green "Great price $102 below typical" | Likely scams, broken ones and what a scan called something else show the dollar gap only, no "Great price" |
+| After a scan said a listing wasn't the search, its "too cheap" mark stayed | A game in a console search read "Worth a look (not your search)" beside "Likely scam? Typical is $252" | The scan's "not your search" reaches the free checks, so the mark goes |
+| A title without one of the search's words was "Likely scam" on price alone | "Mario Kart 8 Deluxe - Nintendo Switch" in a "switch oled" search: red Likely scam before any scan | `TKRules.missingWord`: such a title is at most "Too cheap?" (Check first). Bait copies the search's words, so scams keep the red mark |
+| A bundle written with "+" read as an accessory | "Switch OLED white + 3 games + case" got "No price check", so it also escaped the too-cheap check | "+" and "&" read as "with" in `accessoryOf` |
+| The page line counted scams its own way | "1 possible scam, 1 to be careful with" above cards showing two Likely scam marks and three Check first; after a scan "6 worth a look" counted a game the scan had set aside | The line counts each listing the way its tag reads (shown verdict after a scan, free read before) |
+| A for-parts listing's "too cheap" was worked out before it was known to be for parts | Could back a title code into "Likely scam" on Marketplace | The order is fixed |
+
 ## Spending estimates
 
 Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labeled an estimate; the real balance is at console.anthropic.com.

@@ -197,12 +197,15 @@
   // Returns { level: "far" | "low", pct } or null. Cutoffs in one place so they can be tuned.
   // Not for something else either: an accessory or part for what was searched (f.accessory, from
   // accessoryOf) or a listing a scan said isn't what you searched for (related false).
+  // A title that leaves out a word of the search (f.offWords, from missingWord) may be something else that
+  // turned up in it ("Mario Kart 8 Deluxe - Nintendo Switch" in a "switch oled" search), so a price far under
+  // is only "low" (Check first), never "far" (Likely scam) on price alone. Bait copies the search's words.
   R.TOO_CHEAP = { far: 0.4, low: 0.55 };
   R.tooCheap = (f, market) => {
     if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
     if (f.auction || f.lot || f.project || f.accessory || f.related === false) return null;
     const pct = f.total / market.median;
-    const level = pct < R.TOO_CHEAP.far ? "far" : pct < R.TOO_CHEAP.low ? "low" : "";
+    const level = pct < R.TOO_CHEAP.far && !f.offWords ? "far" : pct < R.TOO_CHEAP.low ? "low" : "";
     return level ? { level, pct: Math.round(pct * 100) } : null;
   };
 
@@ -221,13 +224,35 @@
   // price: the bait, so the verdict turns to a warning ("Great price, if it's real"); well over it: no better
   // than Fair price. `it` needs total (and auction/lot/project); market is { median, confidence }.
   // Returns { v, label? }: the verdict to show, and a label when it isn't the verdict's usual one.
+  // When it does change the verdict, the score moves into the new verdict's range (as fitScore does for the
+  // model's own answer), so the number never says "82" beside "Fair price" or "91" beside a warning, and
+  // `why` says what the price check saw, in place of a model reason that may still praise the price.
   R.ABOVE_CAP = 1.25;
   R.priceVerdict = (verdict, it, market) => {
     const keep = { v: verdict };
     if (!(verdict in R.RANK) || verdict === "pass" || !it || it.total == null || !(market?.median > 0)) return keep;
-    if (R.tooCheap(it, market)) return { v: "suspicious", label: "Great price, if it’s real" };
-    if (!it.auction && !it.lot && !it.project && !it.accessory && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return { v: "fair" };
+    const typical = R.dollars(Math.round(market.median));
+    const pct = Math.round((it.total / market.median) * 100);
+    const moved = (v, extra) => ({ v, ...(it.score != null ? { score: R.fitScore(v, it.score) } : {}), ...extra });
+    const cheap = R.tooCheap(it, market);
+    if (cheap) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}. Far under what the same thing sells for is the usual bait: check it's real before you pay.` });
+    if (!it.auction && !it.lot && !it.project && !it.accessory && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return moved("fair", { why: `Held at Fair price: ${R.dollars(it.total)} is ${pct}% of the typical ${typical}.` });
     return keep;
+  };
+  // The first word of the search that the title doesn't have ("" if it has them all). Spacing and hyphens
+  // don't count ("K-1000" has "k1000"), nor a plural "s"; words the search leaves out ("-case") and short ones
+  // ("a", "of", "3") are skipped.
+  R.missingWord = (title, query = "") => {
+    const flat = R.normTitle(title).replace(/\s+/g, "");
+    if (!flat) return "";
+    for (const t of R.quickTerms(String(query))) {
+      if (t.not) continue;
+      for (const w of R.normTitle(t.w).split(" ")) {
+        if (w.length < 3 || /^(?:and|the|for|with|used|new)$/.test(w)) continue;
+        if (!flat.includes(w) && !flat.includes(w.replace(/s$/, ""))) return w;
+      }
+    }
+    return "";
   };
 
   // An accessory or part for what was searched, not the thing itself: "Case for Nintendo Switch",
@@ -246,7 +271,8 @@
   const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|console|system|bundle|cib|complete)(?:\s|$)/;
   const comesWith = (t, m) => WITH.test(t.slice(0, m.index + 1)) || (/s$/.test(m[1]) && /(?:^|\s)\d+\s?$/.test(t.slice(0, m.index + 1)));
   R.accessoryOf = (title, query = "") => {
-    const t = R.normTitle(title).replace(/\s+/g, " ");
+    // "+" and "&" join what comes with it: "Switch OLED + 3 games + case" is a console with a case.
+    const t = R.normTitle(String(title ?? "").replace(/\s*[+&]\s*/g, " with ")).replace(/\s+/g, " ");
     if (!t || !String(query).trim()) return "";
     const has = (w) => R.hasWord(query, w) || R.hasWord(query, w.replace(/s$/, ""));
     const any = t.match(PART_ANY)?.[1];

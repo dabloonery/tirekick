@@ -1896,7 +1896,7 @@
       c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", working: !!f.project })}`, `Typical price${f.project ? " of a working one" : ""}: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
     } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`]);
     else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`]);
-    else if (f.accessory && mk?.median > 0) c.push(["plain", "No price check", `Looks like an accessory or part (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price.`]);
+    else if (f.accessory && mk?.median > 0) c.push(["plain", "No price check", `Looks like a game, accessory or part for it (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price. Typical price prices it from its own title.`]);
     else if (f.priceNote) c.push(["plain", "No price check", f.priceNote]);
     if (f.isNew) c.push(["new", "New to you"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.

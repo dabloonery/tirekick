@@ -54,7 +54,7 @@ A second pass, on false alarms and misses in the free checks and on where the sc
 | The scan judged price with no lines of its own | A scan could call a listing at 75% of typical "fair" while its card said "Good price", and it wasn't told about a bait price, a seller warning, or what to do with off-site contact (only Analyze had that rule) | The scan and Analyze prompts get the cards' price lines (60% or less great, 80% good, 105% fair, under 55% too cheap for a working one), the off-site rule, and two more SCAM SIGNAL lines: "the total is N% of the typical price" and the seller warning (0.53.0) |
 | Marketplace pickup prices were compared with eBay totals, which include the shipping buyers paid | A $40 pickup price read as 77% of a $52 total that was $40 plus $12 to post: "Good price" when it was about typical, and the "too cheap" cutoffs fired early on cheap items, where shipping is a big share | `TKRules.forPickup`: on a local site, a listing with no shipping is compared with the typical price less the typical shipping on those sales (only when the sales say what it was and it's under half the price). The chip's hover says so, the offer plan uses it, and the scan is told; margins still use the full total, since you'd post it on (0.54.0) |
 
-Still open: games and other different items that read like the thing itself ("Mario Kart 8 Nintendo Switch" in a console search) are caught only once a scan marks them unrelated.
+Still open: games and other different items that read like the thing itself ("Mario Kart 8 Nintendo Switch" in a console search) are caught only once a scan marks them unrelated. *Mostly closed in 0.57.0, below.*
 
 ## What the tags say against what the checks did (2026-10-21, 0.55.0)
 
@@ -78,6 +78,15 @@ A UI/UX pass on the same search followed (0.56.0), on how the scam checks, score
 | A broken one's chip said "$147 below typical" | Read as a bargain on the same thing, when the typical price is for working ones | "$147 below working ones" on the card, "the typical price of a working one" in the panel |
 | The price chip's bold word and its number wrapped as two columns ("Fair / price", "$13 below / typical") | Hard to read on narrow cards | The chip wraps as one line of text, the word kept whole |
 | A "Great price, if it's real" tag also carried the "Likely scam? Typical is $252" chip | The same warning twice, and the tag's own price line cut off | The chip is left off where the tag's label already says it; the hover card has the numbers |
+
+## Games in a console search (2026-10-21, 0.57.0)
+
+| Problem | Effect on real listings | Now |
+|---|---|---|
+| A game whose title has every word of the search read as the console at a bait price | In a "nintendo switch" search, "Mario Kart 8 Deluxe - Nintendo Switch" at $38 was a red "Likely scam? Typical is $250" before any scan, and a scan was the only way to clear it | `TKRules.madeFor`, part of `accessoryOf`: a title that names something first and the search (or its console) only after a dash, a bracket or "for" ("Zelda: Breath of the Wild (Nintendo Switch, 2017)", "Spider-Man 2 - PS5", "Minecraft for Nintendo Switch") gets "No price check", as accessories do. For a console search, two or more naming words before the console at the end count too ("Animal Crossing New Horizons Nintendo Switch"). Game words ("video game", "game cartridge", "disc only") count anywhere |
+| | | What stays priced: the search named first ("Nintendo Switch console - fast shipping", the way bait is written), one word before a dash ("Apple - iPhone 13"), filler or colors ("Brand New - Nintendo Switch OLED", "Neon - Nintendo Switch"), a tail that says more than the search ("Unlocked - Apple iPhone 13 128GB", "(PS5) Disc Edition"), and, outside consoles, any title that just ends with the search ("Vintage Film Camera Pentax K1000"). 11 game titles and 21 console and other titles are in `tests/unit/rules.test.mjs` |
+
+Still missed: a one-word game before a dash ("Zelda - Nintendo Switch") and colors in a game's name ("Pokemon Red - Game Boy"); a scan still sets those aside.
 
 ## Spending estimates
 

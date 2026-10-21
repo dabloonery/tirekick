@@ -45,7 +45,13 @@ test("quickReason: words on title and card text, price with shipping, seen befor
 
 test("likelyScam and isDeal", () => {
   assert.equal(R.likelyScam({ campaign: ["K7731"] }), true);
-  assert.equal(R.likelyScam({ titleCode: "M2465" }), true);
+  assert.equal(R.likelyScam({ titleCode: "M2465" }), false, "a code alone may be the model number (T480, QC35)");
+  assert.equal(R.likelyScam({ titleCode: "M2465", cheap: "low" }), true, "a code and a bait price");
+  assert.equal(R.likelyScam({ titleCode: "M2465", photoTwins: 2 }), true, "a code and a reused photo");
+  assert.equal(R.likelyScam({ titleCode: "M2465", sellerWarn: "Account made in 2026" }), true, "a code and a new account");
+  assert.equal(R.likelyScam({ titleCode: "M2465", cheap: "far", codeOk: true }), false, "a scan cleared the code");
+  assert.equal(R.codeBacked({ titleCode: "M2465", sellerWarn: "Seller: 2 ratings" }), "a seller with 2 ratings");
+  assert.equal(R.codeBacked({ titleCode: "M2465", sellerWarn: "Account made in 2026" }), "account made in 2026");
   assert.equal(R.likelyScam({ titleCode: "K1000", codeOk: true }), false, "a code the model says is the real model number");
   assert.equal(R.likelyScam({ offSite: { sure: true, why: ["x"] } }), true);
   assert.equal(R.likelyScam({ offSite: { sure: false, why: ["phone"] } }), false, "a plain phone number is only a hint");
@@ -360,6 +366,9 @@ test("freeRead: one word before any AI, from sold prices and scam signs", () => 
   assert.equal(word({ total: 150, vsSold: 1.5 }), "Above typical");
   assert.equal(word({ total: 70, vsSold: 0.7, sellerWarn: "New seller" }), "Check first");
   assert.equal(word({ total: 70, campaign: ["A1"] }), "Likely scam");
+  assert.equal(word({ total: 70, vsSold: 0.7, titleCode: "T480" }), "Check first", "a code alone: maybe the model number");
+  assert.equal(word({ total: 50, vsSold: 0.5, titleCode: "M2465" }), "Likely scam", "a code and a price under typical");
+  assert.equal(word({ total: 70, vsSold: 0.7, titleCode: "T480", codeOk: true }), "Good price", "cleared by a scan");
   assert.equal(word({ total: 70 }), null, "nothing to go on");
   assert.equal(word({ total: 35, vsSold: 0.12, project: "for parts" }), null, "broken ones are cheap for a reason");
   assert.equal(R.freeRead({ title: "Room for rent", price: 700 })?.word, "Off-topic");

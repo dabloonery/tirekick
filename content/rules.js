@@ -138,8 +138,8 @@
   // it takes their colors and glyphs; `rank` sorts unscored listings (higher first).
   R.freeRead = (f = {}, market) => {
     const cheap = f.vsSold != null ? R.tooCheap(f, market) : null;
-    if (R.likelyScam(f) || cheap?.level === "far") return { v: "suspicious", word: "Likely scam", rank: -2 };
-    if (f.photoTwins || f.sellerWarn || (f.offSite && !f.offSiteOk) || cheap || f.dup) return { v: "suspicious", word: "Check first", rank: -1 };
+    if (R.likelyScam(f) || R.codeBacked(f, cheap) || cheap?.level === "far") return { v: "suspicious", word: "Likely scam", rank: -2 };
+    if (f.photoTwins || f.sellerWarn || (f.offSite && !f.offSiteOk) || cheap || f.dup || (f.titleCode && !f.codeOk)) return { v: "suspicious", word: "Check first", rank: -1 };
     const off = R.offTopic(f);
     if (off) return { v: "pass", word: "Off-topic", rank: -1 };
     // A broken or untested one is compared with working ones' prices: cheap for a reason, so no price word.
@@ -165,11 +165,22 @@
     : vs <= 1.05 ? { v: "fair", word: "Fair price", rank: 2 }
     : { v: "pass", word: "Above typical", rank: 0 };
 
-  // A likely scam without asking a model: a reposted listing, a code on the end of the title (until a
-  // scan says it's the real model number), or a disguised way to get in touch off the site.
-  R.likelyScam = (f) => !!(f && (f.campaign || (f.titleCode && !f.codeOk) || f.offSite?.sure));
-  // At or under your price for this search, and not a likely scam.
-  R.isDeal = (f, dealPrice) => dealPrice > 0 && f.total != null && f.total <= dealPrice && !R.likelyScam(f);
+  // A likely scam without asking a model: a reposted listing, a disguised way to get in touch off the site,
+  // or a code on the end of the title with another sign beside it (R.codeBacked). A code on its own is only
+  // "Check first": real model numbers have the same shape ("ThinkPad T480", "Bose QC35", "DeWalt DCD771C2"),
+  // and 17 of 19 ordinary Marketplace titles tried read as one (2026-10-21). A scan clears a code it judges
+  // to be the model number (codeOk).
+  R.likelyScam = (f) => !!(f && (f.campaign || f.offSite?.sure || R.codeBacked(f)));
+  // What backs up a title code, as a few words ("" if nothing does): a price under the typical one (f.cheap,
+  // set by the panel from tooCheap), the same photo on other listings, or a warning about the seller.
+  R.codeBacked = (f, cheap = f?.cheap) => {
+    if (!f?.titleCode || f.codeOk) return "";
+    if (cheap) return "a price far under the typical one";
+    if (f.photoTwins) return "a photo seen on other listings";
+    return f.sellerWarn ? String(f.sellerWarn).toLowerCase().replace(/^seller: /, "a seller with ") : "";
+  };
+  // At or under your price for this search, and not a likely scam (nor a title code no scan has cleared yet).
+  R.isDeal = (f, dealPrice) => dealPrice > 0 && f.total != null && f.total <= dealPrice && !R.likelyScam(f) && !(f.titleCode && !f.codeOk);
 
   // sellerJoined: the year the seller's account was made, where the site says (Marketplace: "Joined
   // Facebook in 2026"). An account made this year is how most Marketplace scams start.

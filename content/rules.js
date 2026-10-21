@@ -149,14 +149,16 @@
   // The price against the typical price (the middle of recent eBay sales, or the model's estimate), in dollars:
   // "$53 below typical", "$20 above typical", "about typical" (within 5%). testers found both "65% of sold" and the
   // word "sold" confusing on a card, so the chip says "typical" and its hover says where that comes from.
-  R.vsText = (total, ref, { rough = false, est = false, long = false } = {}) => {
+  // `working`: a broken or untested one, compared with what working ones sell for ("$147 below working ones"),
+  // so a for-parts price doesn't read as a bargain on the same thing.
+  R.vsText = (total, ref, { rough = false, est = false, long = false, working = false } = {}) => {
     if (!(ref > 0) || total == null) return "";
-    const what = long ? "the typical price" : "typical";
+    const what = working ? (long ? "the typical price of a working one" : "working ones") : long ? "the typical price" : "typical";
     const d = Math.round(total - ref);
     const t = Math.abs(total - ref) <= ref * 0.05 ? `about ${what}` : `$${Math.abs(d)} ${d < 0 ? "below" : "above"} ${what}`;
     return `${rough || est ? "~" : ""}${t}${est ? " (est.)" : ""}`;
   };
-  R.SOLD_CHIP = / (below|above) typical$|about typical$/; // the cards' price chip, to leave out where it would repeat
+  R.SOLD_CHIP = / (below|above) (typical|working ones)$|about (typical|working ones)$/; // the cards' price chip, to leave out where it would repeat
 
   // The price against the sold median, in a word.
   R.priceWord = (vs) =>

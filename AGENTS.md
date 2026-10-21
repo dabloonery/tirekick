@@ -24,8 +24,6 @@ Standing rules:
 - One PR per change, with `deno task test` green.
 - Don't change the version in `manifest.json`. It stays as it is until dabloonery uploads a new build to the
   Chrome Web Store (the store has 0.50.0, main has 0.57.0); the next number is set at upload time (dabloonery, 2026-10-21).
-- Don't change the version in `manifest.json`. It stays as it is until dabloonery uploads a new build to the
-  Chrome Web Store (the store has 0.50.0, main has 0.57.0); the next number is set at upload time (dabloonery, 2026-10-21).
 
 ## How the code fits together
 

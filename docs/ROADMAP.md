@@ -373,7 +373,7 @@ write it too.
 The order, one PR each, every one measured by `deno task eval` with the scam numbers beside the honest ones:
 
 1. [x] The eval: 28 honest cheap listings and 10 scams that give the same excuses.
-2. [ ] One set of facts for the card, the scan and Analyze. The bait share sent to the model was worked out from the raw
+2. [x] One set of facts for the card, the scan and Analyze. The bait share sent to the model was worked out from the raw
    card, without the for-parts, missing-word and pickup facts, so a for-parts listing at 34% went to the model as "the
    usual bait"; Analyze judged its verdict with no card facts at all.
 3. [ ] Stated reasons read for free (`cheapReason`): flaws, missing parts, locks, cheaper versions. Never Likely scam on

@@ -502,15 +502,16 @@ test("the scan prompt's price lines are the cards' (priceWord, TOO_CHEAP)", asyn
 
 test("forPickup: a pickup listing is compared without the shipping in eBay's totals", () => {
   const m = { median: 52, p25: 45, p75: 60, n: 20, confidence: "good", ship: 12 };
-  assert.deepEqual(R.forPickup(m, { shipping: null }, true), { ...m, median: 40, p25: 33, p75: 48, pickupShip: 12 });
+  assert.deepEqual(R.forPickup(m, { shipping: null }, true), { ...m, median: 40, p25: 33, p75: 48, pickupShip: 12, local: true });
   assert.equal(R.forPickup({ ...m, p10: 30 }, { shipping: null }, true).p10, 18, "the cheapest tenth comes down by the shipping too");
   assert.equal(R.forPickup(m, { shipping: null }, false), m, "only on a local site");
   assert.equal(R.forPickup(m, { shipping: 0 }, true), m, "a listing that ships (free) keeps the totals");
   assert.equal(R.forPickup(m, { shipping: null, auction: true }, true), m);
   assert.equal(R.forPickup({ ...m, ship: null }, { shipping: null }, true).median, 52, "no shipping known from the sales");
+  assert.equal(R.forPickup({ ...m, ship: null }, { shipping: null }, true).local, true, "still a pickup listing");
   assert.equal(R.forPickup({ ...m, median: 20 }, { shipping: null }, true).median, 20, "shipping over half the price isn't trusted");
   assert.equal(R.forPickup(null, {}, true), null);
-  assert.equal(R.tooCheap({ total: 20 }, R.forPickup(m, { shipping: null }, true)).level, "low", "$20 is half of $40, not a 38% bait price");
+  assert.equal(R.tooCheap({ total: 18 }, R.forPickup(m, { shipping: null }, true)).level, "low", "$18 is 45% of $40, not a 35% bait price");
 });
 
 test("codeInSearch: a title code that is the searched model number isn't a scammer's code", () => {
@@ -663,4 +664,26 @@ test("priceVerdict: the model's reason for a low price (cheapWhy)", () => {
   assert.equal(R.priceVerdict("good", at("Nintendo Switch OLED", 90, { cheapWhy: "missing parts", sellerCount: 0 }), m, { deep: true }).v, "suspicious");
   assert.equal(R.priceVerdict("good", at("Nintendo Switch OLED K9F21", 90, { cheapWhy: "missing parts", titleCode: "K9F21", sellerCount: 50, sellerPct: 100 }), m, { deep: true }).v, "suspicious", "not with a title code");
   assert.equal(R.priceVerdict("suspicious", at("Nintendo Switch OLED", 125, { cheapWhy: "missing parts" }), m).v, "suspicious", "the model's own warning stands");
+});
+
+test("tooCheap by site: Marketplace sellers pay no eBay fee, established eBay sellers have eBay behind them", () => {
+  const m = { median: 252, confidence: "good" };
+  const local = { ...m, local: true };
+  // 48%: Too cheap? on eBay; under the fee allowance (86% of 55%) on Marketplace
+  assert.equal(R.tooCheap({ title: "Switch OLED", total: 121 }, m).level, "low");
+  assert.equal(R.tooCheap({ title: "Switch OLED", total: 121 }, local), null);
+  assert.equal(R.tooCheap({ title: "Switch OLED", total: 110 }, local).level, "low", "44% is still under it");
+  assert.equal(R.tooCheap({ title: "Switch OLED", total: 121, sellerJoined: 2026, sellerRisk: "an account made in 2026" }, local).level, "far", "not beside a strong seller sign");
+  // An established eBay seller at 40-55%: no warning, a plain chip
+  const est = { title: "Nintendo Switch OLED White Console", total: 128, sellerCount: 1500, sellerPct: 99.7 };
+  assert.equal(R.tooCheap(est, m), null);
+  assert.deepEqual(R.cheapForReason(est, m), { pct: 51, why: "", established: true });
+  assert.match(R.priceVerdict("great", { ...est, score: 90 }, m).why, /from an established eBay seller/);
+  assert.equal(R.tooCheap({ ...est, sellerPct: 97.5 }, m).level, "low", "under 98%: not established");
+  assert.equal(R.tooCheap({ ...est, total: 75 }, m).level, "far", "under 40% it's as for anyone");
+  assert.equal(R.cheapForReason({ ...est, total: 110 }, local)?.established, undefined, "on Marketplace there's no eBay guarantee");
+  // A title code no scan cleared, with a reason: still the fake's look after a scan
+  const coded = { title: "Nintendo Switch OLED small scratch K9F21", total: 121, titleCode: "K9F21", score: 70 };
+  assert.equal(R.priceVerdict("good", coded, m).v, "suspicious");
+  assert.equal(R.priceVerdict("good", { ...coded, codeOk: true }, m).v, "good");
 });

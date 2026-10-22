@@ -216,15 +216,17 @@
   // turned up in it ("Mario Kart 8 Deluxe - Nintendo Switch" in a "switch oled" search), so a price far under
   // is only "low" (Check first), never "far" (Likely scam) on price alone. Bait copies the search's words.
   R.TOO_CHEAP = { far: 0.4, low: 0.55 };
+  R.LOCAL_NET = 0.864; // what an eBay seller keeps after fees (13.6%): a pickup seller asking that much nets the same
   R.tooCheap = (f, market) => {
     const c = cheapLevel(f, market);
     return c && c.level !== "reason" ? c : null;
   };
-  // Under the softer cutoff with a reason on the card (R.cheapReason) and nothing else against it: not a warning,
-  // but the price chip says why it's cheap. { pct, why } or null.
+  // Under the softer cutoff with a reason on the card (R.cheapReason), or from an established eBay seller, and nothing
+  // else against it: not a warning, but the price chip says why it's cheap. { pct, why, established? } or null
+  // (why is "" for an established seller's listing that doesn't say).
   R.cheapForReason = (f, market) => {
     const c = cheapLevel(f, market);
-    return c?.level === "reason" ? { pct: c.pct, why: c.why } : null;
+    return c?.level === "reason" ? { pct: c.pct, why: c.why || "", ...(c.established && { established: true }) } : null;
   };
   // Price alone, under the firm cutoff: "far" (Likely scam), unless the title leaves out a search word or says why
   // it's cheap ("low", Check first). Under the softer cutoff: "low", or "reason" when the card says why. A seller
@@ -237,7 +239,11 @@
     if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
     if (f.auction || f.lot || f.project || f.accessory || f.foreign || f.priceRange || f.related === false) return null;
     const pct = f.total / market.median;
-    if (pct >= R.TOO_CHEAP.low) return null;
+    const risky = !f.offWords && (f.sellerRisk ?? R.riskySeller(f)); // sellerRisk: worked out by the caller (the eval, at a fixed date)
+    // A pickup seller keeps the whole price; an eBay seller pays about 13.6% in fees, so the same net asks less locally.
+    // Not beside a strong seller sign: a new account at half price is the scam's look on any site.
+    const cut = market.local && !risky ? R.LOCAL_NET : 1;
+    if (pct >= R.TOO_CHEAP.low * cut) return null;
     const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, market.query || "");
     const out = (level, extra) => ({ level, pct: Math.round(pct * 100), ...(why && level !== "far" && { why }), ...extra });
     // Real sales went this low (the cheapest tenth of them, market.p10): honest prices land here too, as in a search
@@ -247,10 +253,13 @@
     // take 60% off, and it's the story bait tells.
     // A "fair" reference (fewer sales, or a wider spread) can't say a price alone is bait: that needs a "good" one.
     const big = why && !FLAW.test(why);
-    const risky = !f.offWords && (f.sellerRisk ?? R.riskySeller(f)); // sellerRisk: worked out by the caller (the eval, at a fixed date)
-    if (pct < R.TOO_CHEAP.far) return risky ? out("far", { seller: risky }) : out(f.offWords || big || market.confidence !== "good" ? "low" : "far");
+    // An established eBay seller (100 ratings or more, 98% positive): eBay's money-back guarantee stands behind the
+    // listing, and fakes rarely come from such accounts at a soft discount. Under the softer cutoff that's no warning;
+    // under the firm one it is as for anyone (a fake from an established seller is still in the eval).
+    const established = !market.local && f.sellerCount >= 100 && f.sellerPct >= 98;
+    if (pct < R.TOO_CHEAP.far * cut) return risky ? out("far", { seller: risky }) : out(f.offWords || big || market.confidence !== "good" ? "low" : "far");
     if (risky) return why ? out("low") : out("far", { seller: risky });
-    return out(why ? "reason" : "low");
+    return why ? out("reason") : established ? out("reason", { established: true }) : out("low");
   };
 
   // Why a listing says it's cheap, in its own words: a flaw ("dead pixel", "battery 76%", "carrier locked"),
@@ -327,11 +336,13 @@
   // to pay, so it's compared with the typical price less the typical shipping. Otherwise a $40 pickup price
   // read as 77% of a $52 total that was $40 plus $12 to post. Only when the sales say what shipping cost
   // (market.ship) and it's under half the price. Returns the market as is, or a copy with pickupShip set.
+  // A pickup listing's market also has local set (cheapLevel's fee allowance), with or without shipping taken off.
   R.forPickup = (market, f, local) => {
     const ship = market?.ship;
-    if (!local || !(ship > 0) || !(market.median > ship * 2) || f?.shipping != null || f?.auction) return market;
+    if (!local || !(market?.median > 0) || f?.shipping != null || f?.auction) return market;
+    if (!(ship > 0) || !(market.median > ship * 2)) return { ...market, local: true };
     const r = (n) => Math.round(n * 100) / 100;
-    return { ...market, median: r(market.median - ship), ...(market.p10 > 0 && { p10: r(Math.max(1, market.p10 - ship)) }), p25: r(Math.max(1, (market.p25 ?? market.median) - ship)), p75: r((market.p75 ?? market.median) - ship), pickupShip: ship };
+    return { ...market, median: r(market.median - ship), ...(market.p10 > 0 && { p10: r(Math.max(1, market.p10 - ship)) }), p25: r(Math.max(1, (market.p25 ?? market.median) - ship)), p75: r((market.p75 ?? market.median) - ship), pickupShip: ship, local: true };
   };
 
   // When the score and the price disagree, the price check wins (2026-10-15). Far under the typical
@@ -358,7 +369,9 @@
     // Cheap and saying why (a flaw, something missing, a cheaper version): the scan's word stands, but no better
     // than Good price, since it isn't the whole thing at a great price.
     const said = R.cheapForReason(it, market);
-    if (said) return R.RANK[verdict] > R.RANK.good ? moved("good", { why: `Held at Good price: ${R.dollars(it.total)} is ${said.pct}% of the typical ${typical}, and the listing says why (“${said.why}”).` }) : keep;
+    // A title code no scan has cleared, with a price under the typical one: the bulk-posted fake, whatever the reason.
+    if (said && it.titleCode && !it.codeOk) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${said.pct}% of the typical ${typical}, and the title ends with the code ${it.titleCode}, as bulk-posted fakes do: check it's real before you pay.` });
+    if (said) return R.RANK[verdict] > R.RANK.good ? moved("good", { why: `Held at Good price: ${R.dollars(it.total)} is ${said.pct}% of the typical ${typical}, ${said.why ? `and the listing says why (“${said.why}”)` : "from an established eBay seller"}.` }) : keep;
     const cheap = R.tooCheap(it, market);
     const read = cheap && verdict !== "suspicious" && R.MODEL_WHY.includes(it.cheapWhy) && R.RANK[verdict] > R.RANK.pass;
     if (read && cheap.level === "low") return R.RANK[verdict] > R.RANK.good ? moved("good", { why: `Held at Good price: ${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}; the scan read why (${it.cheapWhy}). Check the photos show it.` }) : keep;

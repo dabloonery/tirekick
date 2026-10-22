@@ -1926,10 +1926,13 @@
     const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
     const unrelated = f.url && scored.get(keyOf(f.url))?.related === false; // a scan said it's something else
     const cheap = f.vsSold != null && !unrelated && TKRules.tooCheap(f, mk);
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}`]);
-    // Cheap, and the listing says why: no warning, and no "Great price" either.
+    // What to do about it differs by site: on eBay its guarantee covers you if you pay through eBay; a pickup
+    // sale has none, so see it working before any money changes hands.
+    const safely = mk?.local ? " Meet in a public place, see it working, and pay only then: never ahead, and never by gift card or a payment app's friends option." : " Pay only through eBay, which covers a listing that isn't as described; never by a link or contact sent outside it.";
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}${safely}`]);
+    // Cheap, and the listing says why (or an established eBay seller): no warning, and no "Great price" either.
     const said = f.vsSold != null && !cheap && !unrelated && TKRules.cheapForReason(f, mk);
-    if (said) c.push(["plain", `Under typical: ${said.why}`, `This is ${said.pct}% of the typical price (${from(mk)}), and the listing says why: “${said.why}”. Check the photos show it, and ask about anything else.`]);
+    if (said) c.push(["plain", `Under typical: ${said.why || "established seller"}`, `This is ${said.pct}% of the typical price (${from(mk)}), ${said.why ? `and the listing says why: “${said.why}”. Check the photos show it, and ask about anything else.` : `from a seller with ${f.sellerCount} ratings, ${f.sellerPct}% positive. Read the description for anything missing or wrong.`}${safely}`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
     if (f.vsSold != null && !cheap && !said) {

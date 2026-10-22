@@ -2721,9 +2721,10 @@
   function skipV(sv) { return sv.v === "pass" || (sv.v === "suspicious" && !sv.priceWarn); }
   // The verdict to show for a scored listing: the price check wins over the score (TKRules.priceVerdict).
   // The model's own verdict stays stored; this is worked out each time, with the latest typical price.
-  function shownV(it, f = facts.get(keyOf(it.url))) {
+  // opts.deep: an Analyze answer, which read the whole listing (priceVerdict lets it clear more).
+  function shownV(it, f = facts.get(keyOf(it.url)), opts) {
     const market = it.refWorking > 0 && !it.refIsEstimate ? { median: it.refPrice ?? it.refWorking, confidence: it.refRough ? "rough" : "good" } : marketOf({ ...f, ...it });
-    const pv = TKRules.priceVerdict(it.verdict, { ...f, ...it }, market);
+    const pv = TKRules.priceVerdict(it.verdict, { ...f, ...it }, market, opts);
     return { v: pv.v, score: pv.score ?? it.score, why: pv.why || "", label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label, priceWarn: pv.v === "suspicious" && it.verdict !== "suspicious" };
   }
 
@@ -3142,7 +3143,7 @@
   // only brought back while the price is the one it was judged at.
   const SCAN_DAYS = 60;
   const SCAN_MAX = 3000;
-  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "refRough", "shipOut", "baseScore", "baseVerdict", "photoAdjust", "photos", "scoredRef"];
+  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "refRough", "shipOut", "cheapWhy", "baseScore", "baseVerdict", "photoAdjust", "photos", "scoredRef"];
   const priceOf = (it) => it.total ?? it.price ?? null;
   // Which model made a score: a scan's is the scan model, an analysis's the main one.
   const modelNow = (kind = "scan") => (kind === "scan" ? cfg.scanModel : cfg.provider === "ollama" ? cfg.textModel : cfg.provider === "openai" ? cfg.oaiModel : cfg.anthropicModel) || "";
@@ -3238,6 +3239,7 @@
     it.bidCap = it.auction && it.related ? bidCapFor(it) : null;
   };
 
+  const CHEAP_WHY = ["flaw", "missing parts", "different model", "quick sale"];
   const applyResult = (it, r, forLens) => {
     Object.assign(it, {
       lens: forLens,
@@ -3249,6 +3251,7 @@
       fault: r.fault || "",
       difficulty: Math.max(0, Math.min(5, r.difficulty | 0)),
       partsCost: Math.max(0, r.partsCost | 0),
+      cheapWhy: CHEAP_WHY.includes(r.cheapWhy) ? r.cheapWhy : "", // why the model says a low price is low (priceVerdict)
     });
     it.margin = it.marginBeforeRepair != null && it.related ? it.marginBeforeRepair - it.partsCost : null;
     it.bidCap = it.auction && it.related ? bidCapFor(it) : null;
@@ -4132,7 +4135,7 @@
   };
 
   const renderItem = (listing, r, market) => {
-    const v = shownV({ ...listing, verdict: r.verdict, score: clamp100(r.score | 0) }, {});
+    const v = shownV({ ...listing, verdict: r.verdict, score: clamp100(r.score | 0), cheapWhy: CHEAP_WHY.includes(r.cheapWhy) ? r.cheapWhy : "" }, {}, { deep: true });
     const score = v.score;
     const vs =
       (listing.vsWorking != null ? `, ${TKRules.vsText(listing.total, listing.refWorking, { rough: listing.refRough, long: true })} (${dollars(Math.round(listing.refWorking))})` : "") +

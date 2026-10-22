@@ -342,7 +342,14 @@
   // model's own answer), so the number never says "82" beside "Fair price" or "91" beside a warning, and
   // `why` says what the price check saw, in place of a model reason that may still praise the price.
   R.ABOVE_CAP = 1.25;
-  R.priceVerdict = (verdict, it, market) => {
+  // it.cheapWhy: why the model says a low price is low ("flaw", "missing parts", "different model", "quick sale"
+  // or ""). A reason it read in the listing can beat the price check (dabloonery, 2026-10-21): under the softer cutoff a
+  // scan's or Analyze's word stands, no better than Good price; under the firm one only Analyze (opts.deep, which read
+  // the whole listing) clears it, no better than Fair price, for something missing or a cheaper version (a flaw doesn't
+  // take 60% off: it's the story bait tells, as in cheapLevel), and never beside a strong seller sign or another
+  // scam sign. A "quick sale" is no reason: bait tells that story most.
+  R.MODEL_WHY = ["flaw", "missing parts", "different model"];
+  R.priceVerdict = (verdict, it, market, { deep = false } = {}) => {
     const keep = { v: verdict };
     if (!(verdict in R.RANK) || verdict === "pass" || !it || it.total == null || it.foreign || !(market?.median > 0)) return keep;
     const typical = R.dollars(Math.round(market.median));
@@ -353,6 +360,9 @@
     const said = R.cheapForReason(it, market);
     if (said) return R.RANK[verdict] > R.RANK.good ? moved("good", { why: `Held at Good price: ${R.dollars(it.total)} is ${said.pct}% of the typical ${typical}, and the listing says why (“${said.why}”).` }) : keep;
     const cheap = R.tooCheap(it, market);
+    const read = cheap && verdict !== "suspicious" && R.MODEL_WHY.includes(it.cheapWhy) && R.RANK[verdict] > R.RANK.pass;
+    if (read && cheap.level === "low") return R.RANK[verdict] > R.RANK.good ? moved("good", { why: `Held at Good price: ${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}; the scan read why (${it.cheapWhy}). Check the photos show it.` }) : keep;
+    if (read && deep && it.cheapWhy !== "flaw" && !cheap.seller && !R.likelyScam(it) && !(it.titleCode && !it.codeOk)) return R.RANK[verdict] > R.RANK.fair ? moved("fair", { why: `Held at Fair price: ${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}, far under it; the listing gives a reason (${it.cheapWhy}). Check the photos show it before you pay.` }) : keep;
     if (cheap) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}${cheap.seller ? `, from ${cheap.seller}` : ""}. Far under what the same thing sells for is the usual bait: check it's real before you pay.` });
     if (!it.auction && !it.lot && !it.project && !it.accessory && !it.priceRange && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return moved("fair", { why: `Held at Fair price: ${R.dollars(it.total)} is ${pct}% of the typical ${typical}.` });
     return keep;

@@ -492,6 +492,12 @@ test("the scan prompt's price lines are the cards' (priceWord, TOO_CHEAP)", asyn
   const line = bg.match(/const PRICE_BANDS = `([^`]+)`/)?.[1] || "";
   assert.match(line, /60% or less is a great price, up to 80% good, up to 105% fair/);
   assert.match(line, /under 55% with no reason given is too cheap/);
+  // The 55% rule leans on the price check's own note, so a price the check cleared (sales go that low, pickup, an
+  // established seller) isn't bait to the model either: the note and the rule must name it the same way.
+  const note = bg.match(/it\.cheapPct > 0 && `(the total is )\$\{it\.cheapPct\}(% of the typical price)/);
+  assert.ok(note, "scamNotes says the cheap share");
+  assert.ok(line.includes(`"${note[1]}N${note[2]}"`), "PRICE_BANDS names that note");
+  assert.match(line, /without that signal, the price check has already cleared the price/);
   assert.equal(R.priceWord(0.6).v, "great");
   assert.equal(R.priceWord(0.8).v, "good");
   assert.equal(R.priceWord(1.05).v, "fair");

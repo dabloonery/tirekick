@@ -72,8 +72,9 @@ const bmp = (name: string) => {
   buf[0] = 0x42; buf[1] = 0x4d; dv.setUint32(2, size, true); dv.setUint32(10, 54, true); dv.setUint32(14, 40, true);
   dv.setInt32(18, w, true); dv.setInt32(22, hgt, true); dv.setUint16(26, 1, true); dv.setUint16(28, 24, true); dv.setUint32(34, row * hgt, true);
   const lift = name === "a3" ? 12 : 0;
+  const seed = /^p\d+$/.test(name) ? +name.slice(1) : -1; // the bench page's photos: each one different
   for (let y = 0; y < hgt; y++) for (let x = 0; x < w; x++) {
-    const v = name.startsWith("b") ? 128 + 100 * Math.cos(x / 9 - y / 4) : 120 + 100 * Math.sin(x / 6 + y / 10) + lift;
+    const v = seed >= 0 ? 128 + 110 * Math.sin(x / (2 + (seed % 11)) + y / (3 + ((seed >> 3) % 7)) + seed) : name.startsWith("b") ? 128 + 100 * Math.cos(x / 9 - y / 4) : 120 + 100 * Math.sin(x / 6 + y / 10) + lift;
     const g = Math.max(0, Math.min(255, Math.round(v)));
     const o = 54 + (hgt - 1 - y) * row + x * 3;
     buf[o] = g; buf[o + 1] = Math.max(0, g - 30); buf[o + 2] = Math.min(255, g + 20);
@@ -82,16 +83,19 @@ const bmp = (name: string) => {
 };
 // ?bench=N on facebook.com: a Marketplace-sized page for performance checks (perf.ts). N cards, each nested
 // fourteen boxes deep like Facebook's, more added as you scroll, and the page rewriting class names all the time.
-const benchPage = (n: number, churn = true) => {
+// &img=1: each card has its own photo (p<i>, all different) from the Facebook image host, so photo fingerprints run too.
+const benchPage = (n: number, churn = true, img = false) => {
   const words = ["Nintendo", "Game Boy", "Pentax", "Canon", "camera", "console", "lens", "controller", "bundle", "working", "for parts", "untested", "M2465", "K7731"];
   const card = (i: number) => {
     const t = `${words[i % words.length]} ${words[(i * 7) % words.length]} ${words[(i * 3) % words.length]}${i % 9 === 0 ? " Q" + (1000 + i) : ""}`;
-    return "<div class=\"x1 x2 x3\">".repeat(14) + `<a href="/marketplace/item/${100000 + i}/"><div class="ph"></div><div>$${20 + (i * 13) % 300}</div><div>${t}</div><div>Albuquerque, NM</div></a>` + "</div>".repeat(14);
+    return "<div class=\"x1 x2 x3\">".repeat(14) + `<a href="/marketplace/item/${100000 + i}/">${IMG ? `<img class="ph" alt="" src="https://scontent.test.fbcdn.net/v/t45/p${i}_n.bmp?stp=dst">` : '<div class="ph"></div>'}<div>$${20 + (i * 13) % 300}</div><div>${t}</div><div>Albuquerque, NM</div></a>` + "</div>".repeat(14);
   };
+  const IMG = img;
   return `<!doctype html><html><head><meta charset="utf-8"><title>Marketplace</title><style>body{font:14px system-ui;margin:0}main{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:20px}a{display:block;color:inherit;text-decoration:none;border:1px solid #ddd;border-radius:8px;overflow:hidden}.ph{height:150px;background:#ccc}a div{padding:2px 10px}.x9{outline:0}</style></head>
 <body><div role="main"><main id="g">${Array.from({ length: n }, (_, i) => card(i)).join("")}</main></div>
 <script>
 let next = ${n};
+const IMG = ${img};
 const words = ${JSON.stringify(words)};
 const card = ${card.toString()};
 const add = (k) => { let h = ""; for (let i = 0; i < k; i++) h += card(next++); document.getElementById("g").insertAdjacentHTML("beforeend", h); };
@@ -131,7 +135,7 @@ const fixturePage = (name: string) => {
 Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/cert.pem"), key: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "/key.pem"), onListen(){} }, (req) => {
   const u = new URL(req.url);
   if (u.searchParams.has("fixture")) return fixturePage(u.searchParams.get("fixture")!);
-  if (u.hostname === "www.facebook.com" && u.searchParams.has("bench")) return new Response(benchPage(+u.searchParams.get("bench")!, u.searchParams.get("churn") !== "0"), { headers: { "content-type": "text/html" } });
+  if (u.hostname === "www.facebook.com" && u.searchParams.has("bench")) return new Response(benchPage(+u.searchParams.get("bench")!, u.searchParams.get("churn") !== "0", u.searchParams.get("img") === "1"), { headers: { "content-type": "text/html" } });
   if (u.hostname === "scontent.test.fbcdn.net") { photoHits++; return new Response(bmp(u.pathname.match(/\/(\w+)_n\.bmp$/)?.[1] || "a1"), { headers: { "content-type": "image/bmp" } }); }
   if (u.hostname === "www.facebook.com" && u.searchParams.has("photos")) return new Response(fbPhotosPage(u.searchParams.get("photos")!), { headers: { "content-type": "text/html" } });
   if (u.pathname === "/photo-hits") return new Response(String(photoHits));

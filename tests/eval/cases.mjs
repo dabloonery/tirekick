@@ -30,7 +30,8 @@ export const MARKETS = {
   "dewalt dcd771": { median: 75, ship: 13, confidence: "fair", n: 22 },
   "airpods pro 2": { median: 120, ship: 6, confidence: "good", n: 60 },
   "canon ae-1": { median: 160, ship: 15, confidence: "fair", n: 19 },
-  "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52 }, // Lites, V1s and OLEDs together: the cheapest tenth sold under $95
+  "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52 },
+  "ipod classic": { median: 100, ship: 8, confidence: "good", n: 40 }, // an assumed reference for the real searches below // Lites, V1s and OLEDs together: the cheapest tenth sold under $95
 };
 
 const ebay = (query, title, price, shipping, text, rest = {}) => ({ site: "ebay", query, title, price, shipping, text, ...rest });
@@ -58,6 +59,14 @@ export const CASES = [
   ebay("nintendo switch oled", "Nintendo Switch OLED console and charger", 225, 0, seller(100, 18), { truth: "honest", word: "fair" }),
   ebay("nintendo switch oled", "Nintendo Switch OLED - scratched, missing Joy-Cons", 118, 12, seller(100, 4), { truth: "honest", word: "none", note: "a casual seller, cheap because it's missing parts: no price word, as for a broken one" }),
   ebay("nintendo switch oled", "Nintendo Switch OLED White, lightly used", 229, 0, seller(100, 2), { truth: "honest", word: "fair", note: "a new seller at a normal price: Check first is fair" }),
+
+  // ---------- real listings: an eBay and a Marketplace search saved 2026-10 (tests/fixtures/*-real.html) ----------
+  ebay("ipod classic", "APPLE iPOD CLASSIC 5TH GEN. BLACK 30GB...NEW BATTERY...", 189.99, 0, seller(100, "5.7K"), { truth: "honest", word: "pass", note: "a refurbisher's iPod with a new battery, not a battery" }),
+  ebay("ipod classic", "Apple iPod 5th Video Black - A1136 - 256GB Flash Storage + 3000mAh Battery", 183.79, 9.42, seller(100, "1.8K"), { truth: "honest", word: "pass" }),
+  ebay("ipod classic", "Apple iPod Classic 5th Generation A1136 30GB, Black Tested", 70, 6.04, seller(100, 283), { truth: "honest", word: "good" }),
+  fb("ipod classic", "Shokz", 50, { truth: "honest", word: "none", note: "Marketplace pads a search with what's nearby: not an iPod" }),
+  fb("ipod classic", "Portable DVD PLAYER", 30, { truth: "honest", word: "none" }),
+  fb("ipod classic", "Apple iPod Classic 4th Generation 40GB Empty Box Only", 30, { truth: "honest", word: "none" }),
 
   // ---------- eBay: iphone 13 128gb ($290) ----------
   ebay("iphone 13 128gb", "Apple iPhone 13 128GB Midnight Unlocked - Good", 279, 0, seller(99.4, "3.4K"), { truth: "honest", word: "fair", scan: "fair" }),

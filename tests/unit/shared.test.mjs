@@ -287,3 +287,32 @@ test("upgradeStorage: a key already in settings is tied to the address it's used
   assert.equal("oaiKeyFor" in S.upgradeStorage({ oaiKey: "k", oaiKeyFor: "https://x.example" }).set, false);
   assert.equal("oaiKeyFor" in S.upgradeStorage({}).set, false);
 });
+
+test("photoIndex finds every photo photoTwins would, from a short list", async () => {
+  const { R } = await loadScripts();
+  // 1,200 photos: some pictures uploaded several times with a few bits changed, the rest unrelated.
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+  const hex = () => Array.from({ length: 16 }, () => "0123456789abcdef"[(rnd() * 16) | 0]).join("");
+  const flip = (h, n) => {
+    const b = [...BigInt("0x" + h).toString(2).padStart(64, "0")];
+    for (let i = 0; i < n; i++) { const at = (rnd() * 64) | 0; b[at] = b[at] === "1" ? "0" : "1"; }
+    return BigInt("0b" + b.join("")).toString(16).padStart(16, "0");
+  };
+  const seen = {};
+  const bases = Array.from({ length: 120 }, hex);
+  for (let i = 0; i < 1200; i++) seen[`fb:${i}`] = { h: i % 3 ? hex() : flip(bases[i % 120], (rnd() * 7) | 0), f: `${i}_n`, t: `title ${i % 50 === 0 ? "same" : i}` };
+  seen["fb:bad"] = { h: "not a hash", f: "x", t: "x" };
+  const index = S.photoIndex(seen, R.PHOTO_NEAR);
+  let found = 0;
+  for (const key of Object.keys(seen)) {
+    const near = index.near(seen[key].h);
+    const short = Object.fromEntries([...near, key].map((k) => [k, seen[k]]));
+    const want = R.photoTwins(key, seen);
+    assert.deepEqual(R.photoTwins(key, short).sort(), want.sort(), key);
+    assert.ok(near.size < 60, `a short list (${near.size})`);
+    found += want.length;
+  }
+  assert.ok(found > 100, `the photos include near copies to find (${found})`);
+  assert.equal(index.near("").size, 0);
+});

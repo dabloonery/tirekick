@@ -37,6 +37,8 @@ for (const html of files.filter((f) => f.endsWith(".html"))) {
   }
 }
 if (files.some((f) => /\.map$|^tests\/|node_modules|\.test\./.test(f))) fail("test or build files would ship");
+// the font's license asks for its full text in every copy (SIL OFL 1.1, condition 2)
+if (files.some((f) => f.endsWith(".woff2")) && !(files.includes("fonts/LICENSE.md") && read("fonts/LICENSE.md").includes("SIL OPEN FONT LICENSE Version 1.1"))) fail("fonts/LICENSE.md must carry the font license's full text");
 const bigNames = files.filter((f) => fs.statSync(path.join(ROOT, f)).size > 400 * 1024);
 if (bigNames.length) fail(`unusually large: ${bigNames.join(", ")}`);
 if (problems.length) {

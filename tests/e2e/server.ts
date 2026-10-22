@@ -151,6 +151,10 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1") return new Response(soldPage(u.searchParams.get("_nkw") || "item"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/sch/") && u.searchParams.has("real")) return new Response(realPage(), { headers: { "content-type": "text/html" } });
   // ?changed: the same results after a redesign the adapter doesn't know (new card class names, links intact).
+  // ?changed=price: eBay renamed its price class, and a coupon ("Save $5.00") sits above each price. ?changed=noprice:
+  // the prices are gone from the cards (drawn some way the adapter can't read).
+  if (u.pathname.startsWith("/sch/") && u.searchParams.get("changed") === "price") return new Response(page("Pentax results").replace(/<div class="s-card__price">/g, '<div><span>Save</span><span>$5.00</span></div><div class="s-card__amount">'), { headers: { "content-type": "text/html" } });
+  if (u.pathname.startsWith("/sch/") && u.searchParams.get("changed") === "noprice") return new Response(page("Pentax results").replace(/<div class="s-card__price">[^<]*<\/div>/g, ""), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/sch/") && u.searchParams.has("changed")) return new Response(page("Pentax results").replaceAll("s-card", "x-tile"), { headers: { "content-type": "text/html" } });
   // ?none: a search with no results, as eBay shows it (a heading, no cards).
   if (u.pathname.startsWith("/sch/") && u.searchParams.has("none")) return new Response(page("Pentax results").replace(/<ul>[\s\S]*<\/ul>/, '<div class="srp-results"><h3 class="srp-save-null-search__heading">No exact matches found</h3><p>Try checking your spelling or use more general terms</p></div>'), { headers: { "content-type": "text/html" } });

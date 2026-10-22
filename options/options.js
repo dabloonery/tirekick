@@ -532,3 +532,6 @@ if (/^#sec-[\w-]+$/.test(location.hash)) openSection(location.hash);
 Promise.resolve().then(() => chrome.storage.local.getBytesInUse(null)).then((bytes) => {
   document.getElementById("bytesUsed").textContent = `It uses ${bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`} here now.`;
 }).catch(() => {});
+
+// The header mark: the same tire as the panel and the toolbar (lib/theme.js), drawn for its size.
+document.querySelector("svg.mark")?.insertAdjacentHTML("beforeend", TKTheme.logoMark(18, 17.6, 36));

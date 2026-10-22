@@ -179,3 +179,6 @@
     lookUp();
   } else qEl.focus();
 })();
+
+// The header mark: the same tire as the panel and the toolbar (lib/theme.js), drawn for its size.
+document.querySelector("svg.mark")?.insertAdjacentHTML("beforeend", TKTheme.logoMark(18, 17.6, 36));

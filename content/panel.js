@@ -1633,10 +1633,12 @@
       html[data-tk-skip="hide"] :is([data-tk-v="pass"], [data-tk-v="suspicious"]) { display:none !important; }
       /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering (set by fit()) */
       [data-tk-lift] { position:relative; z-index:2147483000 !important; }
-      .tirekick-sticker .tk-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--tk-rule); }
-      .tirekick-sticker .tk-acts button, .tirekick-sticker .tk-acts a { all:unset; cursor:pointer; color:var(--tk-ink); font-weight:600; font-size:13px;
+      /* the links at the foot of the hover card; the chips toolbar (also .tk-acts) under the tag keeps its chip look */
+      .tirekick-sticker .tk-pop .tk-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--tk-rule); }
+      .tirekick-sticker .tk-pop .tk-acts :is(button, a) { all:unset; cursor:pointer; color:var(--tk-ink); font-weight:600; font-size:13px;
         text-decoration:underline; text-decoration-color:var(--tk-rule); text-underline-offset:3px; }
-      .tirekick-sticker .tk-acts :is(button, a):hover { text-decoration-color:currentColor; }
+      .tirekick-sticker .tk-pop .tk-acts :is(button, a):hover { text-decoration-color:currentColor; }
+      .tirekick-sticker .tk-pop .tk-acts :is(button, a):focus-visible { outline:2px solid currentColor; outline-offset:2px; border-radius:2px; }
       /* The card with the reasons is no wider than the listing's own card, and keepInView nudges it back when the
          page would clip it (Marketplace cuts off anything past the edge of its grid). */
       .tirekick-sticker .tk-pop { display:none; width:264px; max-width:min(var(--tk-popw, 264px), 80vw); box-sizing:border-box; padding:12px 14px; transform:translateX(var(--tk-nudge, 0px));

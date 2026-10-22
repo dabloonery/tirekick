@@ -1816,12 +1816,29 @@
       return [];
     }
     const now = Date.now();
-    const upsert = {};
-    for (const [k, u, title] of pairs) if (hashes?.[u]) upsert[k] = photoSeen[k] = { h: hashes[u], f: TKRules.photoFile(u), t: normTitle(title || ""), a: now };
-    if (!Object.keys(upsert).length) return [];
-    photoSeen = await writeStored("photoSeen", { upsert, cap: { max: 20000, by: "a", maxAge: PHOTO_DAYS * 864e5 } }).catch(() => photoSeen);
-    return Object.keys(upsert);
+    const got = [];
+    for (const [k, u, title] of pairs) if (hashes?.[u]) got.push(k), (photoUnsaved[k] = photoSeen[k] = { h: hashes[u], f: TKRules.photoFile(u), t: normTitle(title || ""), a: now });
+    if (got.length) savePhotosSoon();
+    return got;
   };
+  // New fingerprints count on this page at once and are saved within ten seconds, several batches in one write:
+  // the record holds up to 20,000 photos, and writing all of it (and every open tab being sent the change) for
+  // each batch of six was most of what scrolling a long feed wrote to storage.
+  let photoUnsaved = {};
+  let photoSaveTimer = 0;
+  const savePhotosNow = async () => {
+    clearTimeout(photoSaveTimer);
+    photoSaveTimer = 0;
+    const upsert = photoUnsaved;
+    if (!Object.keys(upsert).length || !alive()) return;
+    photoUnsaved = {};
+    // What other tabs saved comes back merged in; fingerprints made while this was being written are kept too.
+    const next = await writeStored("photoSeen", { upsert, cap: { max: 20000, by: "a", maxAge: PHOTO_DAYS * 864e5 } }).catch(() => null);
+    if (next) photoSeen = Object.assign(next, photoUnsaved);
+  };
+  const savePhotosSoon = () => (photoSaveTimer ||= setTimeout(savePhotosNow, 10000));
+  window.addEventListener("pagehide", savePhotosNow, until);
+  document.addEventListener("visibilitychange", () => document.hidden && savePhotosNow(), until);
   const pumpPhotos = () => {
     if (photoTimer || !photoWanted.size || !alive()) return;
     photoTimer = setTimeout(async () => {
@@ -4569,6 +4586,7 @@
     retired = true;
     clearInterval(timer);
     clearTimeout(photoTimer);
+    clearTimeout(photoSaveTimer);
     photoObserver?.disconnect();
     life.abort();
     try {

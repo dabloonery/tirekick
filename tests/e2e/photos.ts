@@ -33,7 +33,10 @@ const m1 = await marks(a);
 ok("a picture uploaded again under another title is marked on both cards", /Same photo as 1 other listing/.test(m1["7001"]) && /Same photo as 2 other listings/.test(m1["7002"]), m1);
 ok("…the same file under another title (the seller's own) isn't counted against its twin", /Same photo as 1 other listing/.test(m1["7003"]), m1);
 ok("…and a different picture isn't marked", !/Same photo/.test(m1["7004"]), m1);
-const seen = await o.ev(`chrome.storage.local.get('photoSeen').then(v => Object.keys(v.photoSeen || {}).sort().join())`);
+// saved within ten seconds, several batches in one write
+const keptKeys = () => o.ev(`chrome.storage.local.get('photoSeen').then(v => Object.keys(v.photoSeen || {}).sort().join())`);
+await waitFor(async () => (await keptKeys()) === "fb:7001,fb:7002,fb:7003,fb:7004", 15000);
+const seen = await keptKeys();
 ok("fingerprints are kept with each listing", seen === "fb:7001,fb:7002,fb:7003,fb:7004", seen);
 await a.close();
 

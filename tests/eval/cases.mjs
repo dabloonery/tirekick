@@ -16,8 +16,8 @@
 // cheapWhy: the scripted scan's answer to why a low price is low ("none", "flaw", "missing parts", "different
 //   model", "quick sale"), as background.js asks for it.
 // group "cheap": an honest listing priced far under typical (CHEAP below). expect "clear": the card says why (a
-//   flaw, missing parts, a cheaper model), so it shouldn't stay a scam once a scan has read it; "warn": it doesn't,
-//   and a warning is fair. Kept out of the honest totals above and scored on their own.
+//   flaw, missing parts, a cheaper model) or real sales go that low, so it shouldn't stay a scam once a scan has
+//   read it; "warn": neither, and a warning is fair. Kept out of the honest totals above and scored on their own.
 
 // Typical prices (recent eBay sales, used) for each search: the median total, the typical shipping in it,
 // and how much to trust it.
@@ -30,7 +30,7 @@ export const MARKETS = {
   "dewalt dcd771": { median: 75, ship: 13, confidence: "fair", n: 22 },
   "airpods pro 2": { median: 120, ship: 6, confidence: "good", n: 60 },
   "canon ae-1": { median: 160, ship: 15, confidence: "fair", n: 19 },
-  "nintendo switch": { median: 200, ship: 14, confidence: "fair", n: 52 }, // Lites, V1s and OLEDs together
+  "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52 }, // Lites, V1s and OLEDs together: the cheapest tenth sold under $95
 };
 
 const ebay = (query, title, price, shipping, text, rest = {}) => ({ site: "ebay", query, title, price, shipping, text, ...rest });
@@ -169,10 +169,12 @@ export const CHEAP = [
   cheap(ebay("nintendo switch", "Nintendo Switch Lite Turquoise", 85, 0, seller(99.7, 900)), "clear", "different model", "good", "43% of a search that mixes models"),
   cheap(ebay("pentax k1000", "Pentax K1000 SLR body, meter dead, shutter works", 45, 12, seller(99.6, 800)), "clear", "flaw", "good", "46%"),
   cheap(ebay("canon ae-1", "Canon AE-1 Program - shutter squeak, as found", 60, 15, seller(99.4, 260)), "clear", "flaw", "fair", "47%"),
+  cheap(ebay("nintendo switch", "Nintendo Switch Console Gray Joy-Con", 105, 0, seller(99.8, 640)), "clear", "none", "good", "53% of a search that mixes models, above the cheapest tenth of sales"),
   // eBay, no reason on the card
   cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White - moving sale, works perfectly", 125, 0, seller(100, 0)), "warn", "quick sale", "suspicious", "50% from a new seller: moving isn't a reason"),
   cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White Console", 125, 0, seller(100, 1)), "warn", "none", "suspicious", "50% from a new seller, no reason (the PR #54 trade-off)"),
   cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White Console", 132, 0, seller(100, 6)), "warn", "none", "suspicious", "52% from a seller with 6 ratings"),
+  cheap(ebay("canon ae-1", "Canon AE-1 35mm camera body", 55, 0, seller(99.5, 300)), "warn", "none", "suspicious", "34% on a reference from 19 sales: Check first, not Likely scam"),
   // Marketplace, with a reason
   cheap(fb("ps5 console", "PS5 disc, controller has drift, moving", 140), "clear", "flaw", "good", "46% of pickup"),
   cheap(fb("macbook air m1", "MacBook Air M1 2020 cracked bezel works", 190), "clear", "flaw", "good", "47% of pickup"),

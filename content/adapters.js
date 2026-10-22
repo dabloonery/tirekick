@@ -682,6 +682,6 @@
       .slice(0, 5)
       .sort((a, b) => a.total - b.total)
       .map((it) => ({ title: it.title, total: it.total, url: it.url }));
-    return { n: totals.length, median: r(median), p25: r(p25), p75: r(p75), confidence, ship: ships.length >= 3 ? r(quantile(ships, 0.5)) : null, dropped, currency: "$", samples };
+    return { n: totals.length, median: r(median), p10: r(quantile(totals, 0.1)), p25: r(p25), p75: r(p75), confidence, ship: ships.length >= 3 ? r(quantile(ships, 0.5)) : null, dropped, currency: "$", samples };
   };
 })();

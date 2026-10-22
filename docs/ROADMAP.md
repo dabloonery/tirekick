@@ -378,7 +378,7 @@ The order, one PR each, every one measured by `deno task eval` with the scam num
    usual bait"; Analyze judged its verdict with no card facts at all.
 3. [x] Stated reasons read for free (`cheapReason`): flaws, missing parts, locks, cheaper versions. Never Likely scam on
    price alone when the card says why.
-4. [ ] The too-cheap line from where real sales end (the cheapest tenth), and no Likely scam on price alone from a
+4. [x] The too-cheap line from where real sales end (the cheapest tenth), and no Likely scam on price alone from a
    reference with a wide spread.
 5. [ ] A fixed seller sign for "cheap plus a seller warning is Likely scam" (0.54.x), not the user's own rating setting.
 6. [ ] The model says why a low price is low (`cheapWhy`), and the price check accepts a flaw, missing parts or a

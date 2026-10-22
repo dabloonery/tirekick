@@ -26,7 +26,7 @@
 
 <main id="main" class="wrap doc">
   <h1>Privacy policy</h1>
-  <p class="date">Last updated: October 14, 2026</p>
+  <p class="date">Last updated: October 22, 2026</p>
 
   <p>Tirekick is a browser extension for buying on secondhand marketplaces. It currently works on eBay and Facebook Marketplace. This page says what it keeps, what it sends, and to whom.</p>
 
@@ -42,6 +42,8 @@
     <li><b>Scores</b> for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and <b>sold-price results</b>, kept for six hours.</li>
     <li><b>Small preferences</b>: each mode’s sort, each search’s “what I want” and filter, and where the panel sits on each site.</li>
     <li><b>A spending estimate</b> for paid AI, worked out from token counts at list price.</li>
+    <li><b>Codes tacked onto listing titles</b> (“... SP M2465”) with the title around them, so the same listing reposted under a new code is marked. Kept for 30 days.</li>
+    <li><b>How well each store’s pages were read</b>, so Home can say when a store changed its layout.</li>
     <li><b>Simple counters</b> of which features you use, shown on the Home tab.</li>
   </ul>
   <p>You can clear what you’ve seen and hidden, and the spending and usage counters, in settings and on the Home tab. You can remove saved things from the panel, and save or restore a backup file (which never includes your API keys). Uninstalling Tirekick deletes all of it.</p>
@@ -52,7 +54,7 @@
     <table>
       <thead><tr><th>When you…</th><th>What is sent</th><th>To whom</th></tr></thead>
       <tbody>
-        <tr><td>Press <b>Scan</b> (or have it scan automatically), <b>Analyze this listing</b> or <b>Search ideas</b></td><td>Listing titles and the text on their cards (price, shipping, seller rating, condition, description), your search words, and the “what I want” and “what you’re into” text you wrote</td><td>The AI service you picked in settings: Anthropic (api.anthropic.com), DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer)</td></tr>
+        <tr><td>Press <b>Scan</b> (or have it scan automatically), <b>Analyze this listing</b> or <b>Search ideas</b></td><td>Listing titles and the text on their cards (price, shipping, condition, seller rating, and the seller’s name and the item’s location where the card shows them); for a listing you analyze, also its description, details and seller name; your search words, and the “what I want” and “what you’re into” text you wrote</td><td>The AI service you picked in settings: Anthropic (api.anthropic.com), DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer)</td></tr>
         <tr><td>Press <b>Check photo</b> or right-click a photo</td><td>The photo and the listing’s title</td><td>The same AI service</td></tr>
         <tr><td>Compare <b>sold prices</b> (a button, as part of a scan, or <b>Look up</b> on Tirekick’s own page, including words you select on any page and choose “Look up … on eBay and Marketplace”)</td><td>Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most</td><td>eBay</td></tr>
         <tr><td>Scroll past Marketplace listings</td><td>A request for each thumbnail you see (the same picture the page already shows), without your Facebook cookies, so the fingerprint can be worked out on your computer. Nothing about you or the listing goes with it</td><td>Facebook’s image server (fbcdn.net)</td></tr>
@@ -61,7 +63,7 @@
       </tbody>
     </table>
   </div>
-  <p>Your API key goes only to the service it belongs to, the way that service’s documentation says to send it. Photos and listing text sent to an AI service fall under <i>that service’s</i> privacy policy and terms, so read the one for the service you pick. Ollama and LM Studio keep everything on your computer (sold-price lookups still go to eBay, and you can turn those off).</p>
+  <p>Your API key goes only to the service it belongs to: a key for an OpenAI-style service is kept with the address you entered it for, and switching services or restoring a backup never sends it to another one. It’s sent the way that service’s documentation says to send it. Photos and listing text sent to an AI service fall under <i>that service’s</i> privacy policy and terms, so read the one for the service you pick. Ollama and LM Studio keep everything on your computer (sold-price lookups still go to eBay, and you can turn those off).</p>
 
   <h2>What Tirekick doesn’t do</h2>
   <ul>

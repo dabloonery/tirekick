@@ -353,7 +353,8 @@
     f.accessory = (!f.ownMarket && R.accessoryOf(f.title, query)) || "";
     f.offWords = (!f.ownMarket && R.missingWord(f.title, query)) || "";
     f.saysWhy = R.cheapReason(f.title, f.text, f.ownMarket ? "" : query); // why it's cheap, in its own words (tooCheap)
-    const vs = market?.median > 0 && f.total != null && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.accessory && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
+    const off = !f.ownMarket && R.offSearch(f.title, query);
+    const vs = market?.median > 0 && f.total != null && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.accessory && !off && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
     f.cheap = (vs != null && (R.tooCheap(f, market)?.level || (R.cheapForReason(f, market) && "reason"))) || ""; // backs up a title code (codeBacked)
     return vs;
   };
@@ -409,17 +410,21 @@
   // The first word of the search that the title doesn't have ("" if it has them all). Spacing and hyphens
   // don't count ("K-1000" has "k1000"), nor a plural "s"; words the search leaves out ("-case") and short ones
   // ("a", "of", "3") are skipped.
+  const searchWords = (query) =>
+    R.quickTerms(String(query)).filter((t) => !t.not).flatMap((t) => R.normTitle(t.w).split(" ")).filter((w) => w.length >= 3 && !/^(?:and|the|for|with|used|new)$/.test(w));
+  const inTitle = (flat, w) => flat.includes(w) || flat.includes(w.replace(/s$/, ""));
   R.missingWord = (title, query = "") => {
     const flat = R.normTitle(title).replace(/\s+/g, "");
     if (!flat) return "";
-    for (const t of R.quickTerms(String(query))) {
-      if (t.not) continue;
-      for (const w of R.normTitle(t.w).split(" ")) {
-        if (w.length < 3 || /^(?:and|the|for|with|used|new)$/.test(w)) continue;
-        if (!flat.includes(w) && !flat.includes(w.replace(/s$/, ""))) return w;
-      }
-    }
-    return "";
+    return searchWords(query).find((w) => !inTitle(flat, w)) || "";
+  };
+  // None of the search's words in the title: Marketplace fills a search with whatever is for sale nearby ("Phone",
+  // "Bose soundlink" in an "ipod classic" search, 70 of 90 cards in one), and its price says nothing against
+  // the search's typical price. Not compared at all (compareFacts), so no "Great price" or "Check first" from it.
+  R.offSearch = (title, query = "") => {
+    const words = searchWords(query);
+    const flat = R.normTitle(title).replace(/\s+/g, "");
+    return !!flat && words.length > 0 && !words.some((w) => inTitle(flat, w));
   };
 
   // An accessory or part for what was searched, not the thing itself: "Case for Nintendo Switch",
@@ -439,6 +444,9 @@
   const PART_AND = new RegExp(String.raw`\b((?:${PART})s?) and (?=(?:${PART})s?\b)`, "g");
   const GAME = /(?:^|\s)(game)(?!\s(?:console|system|boy|cube|gear|pad|controller|card))(?:\s|$)/;
   const comesWith = (t, m) => WITH.test(t.slice(0, m.index + 1)) || (/s$/.test(m[1]) && /(?:^|\s)\d+\s?$/.test(t.slice(0, m.index + 1)));
+  // "...NEW BATTERY", "3000mAh Battery", "SSD Wolfson DAC Battery": a battery put in it, the way refurbished
+  // iPods, phones and handhelds are sold (12 of 60 cards in a real iPod search), not a battery for sale.
+  const FITTED = /(?:^|\s)(?:new|fresh|upgraded|replaced|rebuilt|\d+ ?mah|dac|ssd|mod|modded)\s$/;
   R.accessoryOf = (title, query = "") => {
     // "+" and "&" join what comes with it: "Switch OLED + 3 games + case" is a console with a case.
     // "+" and "&" join what comes with it: "Switch OLED + 3 games + case" is a console with a case. Two parts
@@ -455,7 +463,7 @@
     const forOnly = t.match(PART_FOR);
     if (forOnly && !has(forOnly[1]) && !comesWith(t, forOnly)) return forOnly[1];
     const last = t.match(PART_LAST);
-    if (last && !has(last[1]) && !comesWith(t, last)) return last[1];
+    if (last && !has(last[1]) && !comesWith(t, last) && !(/^batter/.test(last[1]) && FITTED.test(t.slice(0, last.index + 1)))) return last[1];
     return R.madeFor(title, query);
   };
   // A game (or anything else) named after the thing it's for: "Mario Kart 8 Deluxe - Nintendo Switch", "Zelda:

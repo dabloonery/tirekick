@@ -3191,7 +3191,7 @@
     it.refParts = pm > 0 ? pm : null;
     it.feePct = feePct;
     it.accessory = TKRules.accessoryOf(it.title, marketFor);
-    it.vsWorking = it.total != null && it.refPrice > 0 && !it.lot && !it.accessory && !TKRules.tooFarToCompare(it.total, it.refPrice) ? it.total / it.refPrice : null;
+    it.vsWorking = it.total != null && it.refPrice > 0 && !it.lot && !it.accessory && !TKRules.offSearch(it.title, marketFor) && !TKRules.tooFarToCompare(it.total, it.refPrice) ? it.total / it.refPrice : null;
     it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
     it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
   };

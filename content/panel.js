@@ -1918,7 +1918,7 @@
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
   const sellerWarning = (f) => TKRules.sellerWarning(f, prefs);
-  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "sellerJoined", "titleCode", "offSite", "justListed", "wasPrice", "foreign", "priceRange"];
+  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "sellerJoined", "titleCode", "offSite", "justListed", "wasPrice", "foreign", "priceRange", "condition"];
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(TK.bigImage(img))}`;
 
 
@@ -2548,7 +2548,7 @@
         if (f.titleCode && TKRules.codeInSearch(f.titleCode, pageSearch())) f.codeOk = true; // the model number searched for
         if (prev?.photoTwins) f.photoTwins = prev.photoTwins;
         f.known = prev ? prev.known : !!sighting.known;
-        f.project = clueOf(PROJECT, `${it.title} ${f.text}`);
+        f.project = clueOf(PROJECT, `${it.title} ${it.condition || ""} ${f.text}`);
         f.vsSold = vsSoldOf(f); // after project: a broken one is never "too cheap"
         f.motivated = clueOf(MOTIVATED, `${it.title} ${f.text}`);
         f.filtered = filterReason(f);

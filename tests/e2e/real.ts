@@ -61,7 +61,8 @@ const free = await cards();
 const freeRows = await rows();
 dump("before a scan", free, freeRows);
 ok("the typical price comes from the fake sold search (about $252)", /\$252/.test(JSON.stringify(free)), free.map((x: any) => x.chips));
-ok("bait at 35% of typical is Likely scam", /Likely scam\? Typical is \$252/.test(card(free, "Nintendo Switch OLED console - fast").chips.join()), card(free, "Nintendo Switch OLED console - fast"));
+// The fake sold search has 10 sales: a "fair" reference, which can't call a price alone bait (Check first, not Likely scam).
+ok("bait at 35% of typical is Too cheap? on a reference from 10 sales", /Too cheap\? Typical is \$252/.test(card(free, "Nintendo Switch OLED console - fast").chips.join()), card(free, "Nintendo Switch OLED console - fast"));
 ok("a game named after the console gets no price check, so no scam mark", /No price check/.test(card(free, "Mario Kart").chips.join()) && !/Too cheap|Likely scam/.test(card(free, "Mario Kart").chips.join()), card(free, "Mario Kart"));
 ok("a case for it gets no price check", /No price check/.test(card(free, "Nintendo Switch OLED carrying case").chips.join()), card(free, "Nintendo Switch OLED carrying case"));
 ok("a console sold \"+ 3 games + case\" is priced as a console", /above typical/.test(card(free, "Nintendo Switch OLED white + 3").chips.join()), card(free, "Nintendo Switch OLED white + 3"));

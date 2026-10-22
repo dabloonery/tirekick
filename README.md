@@ -429,9 +429,8 @@ commits written with Claude say so in their `Co-Authored-By` line.
 
 ## License and disclaimer
 
-Copyright © 2026 The Tirekick authors, all rights reserved for now (see `LICENSE`, which also has the no-warranty
-terms). It's meant to be open-sourced later; that's a change of `LICENSE` (Apache-2.0 or MIT, say), and the
-repository has no keys or secrets in it or its history to clean up first.
+Copyright 2026 The Tirekick authors. Licensed under the [Apache License 2.0](LICENSE); `NOTICE` has the
+attribution, the disclaimer below and the trademark note, and travels with every copy.
 The bundled Bricolage Grotesque font is under the SIL Open Font License (`fonts/LICENSE.md`).
 
 Scores, verdicts, price comparisons, margins, scam warnings, repair guesses and suggested offers are

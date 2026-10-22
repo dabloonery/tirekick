@@ -21,7 +21,17 @@
   const SHORT_DATE = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }); // made once: it's slow to make
   R.shortDate = (ts) => SHORT_DATE.format(new Date(ts));
   // Accents don't change a word ("Pokémon" is "pokemon"), and letters in any alphabet are letters.
-  R.fold = (t) => String(t ?? "").normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase();
+  // Kept for the texts seen lately: every card's title and text are folded again each time a feed loads more.
+  const folded = new Map();
+  R.fold = (t) => {
+    const s = String(t ?? "");
+    let out = folded.get(s);
+    if (out === undefined) {
+      if (folded.size > 5000) folded.clear();
+      folded.set(s, (out = s.normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase()));
+    }
+    return out;
+  };
   R.normTitle = (t) => R.fold(t).replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   R.hash = (str) => {
     let x = 5381;
@@ -61,11 +71,18 @@
   // "charger/adapter" = either word. Matches whole words, so "repro" doesn't catch "reproduced".
   // Accents are ignored on both sides, and a word's edges are any non-letter in any alphabet (so "mara"
   // doesn't match inside "cámara").
+  const wordRe = new Map(); // a word -> its pattern, made once
   R.hasWord = (text, w) => {
     const t = R.fold(text);
     return String(w).split("/").some((alt) => {
       const a = R.fold(alt).trim();
-      return a && new RegExp(`(^|[^\\p{L}\\p{N}])${reEscape(a)}($|[^\\p{L}\\p{N}])`, "u").test(t);
+      if (!a) return false;
+      let re = wordRe.get(a);
+      if (!re) {
+        if (wordRe.size > 2000) wordRe.clear();
+        wordRe.set(a, (re = new RegExp(`(^|[^\\p{L}\\p{N}])${reEscape(a)}($|[^\\p{L}\\p{N}])`, "u")));
+      }
+      return re.test(t);
     });
   };
   // A quote left open ('"must go') reads as the words in it, not as a word that starts with a quote mark
@@ -283,7 +300,16 @@
   const MISSING = new RegExp(String.raw`\b((?:missing|without|no) (?:the |its |a |any )?(?:${PARTS_GONE})|missing [\w-]+|(?:console|tablet|body|unit|handheld|screen|tool|phone|laptop|earbuds?|(?:left|right) (?:earbud|airpod|ear|side)) only)\b`, "i");
   const CHEAPER = /\b(lite|mini|1st gen(?:eration)?|first gen(?:eration)?|gen ?1|v1|older model)\b/i;
   const SAID_AWAY = /\b(?:no|not a|not one|zero|without|free of|never|any)\s+(?:\w+\s+)?$/i;
+  const cheapSeen = new Map(); // (title, text, search) -> the answer: a feed asks again for every card each time it loads more
   R.cheapReason = (title, text = "", query = "") => {
+    const key = `${title || ""}\u0001${text || ""}\u0001${query || ""}`;
+    if (cheapSeen.has(key)) return cheapSeen.get(key);
+    if (cheapSeen.size > 5000) cheapSeen.clear();
+    const out = cheapReasonOf(title, text, query);
+    cheapSeen.set(key, out);
+    return out;
+  };
+  const cheapReasonOf = (title, text, query) => {
     const t = R.fold(`${title || ""} ${text || ""}`).replace(/\s+/g, " ");
     const said = (re) => {
       for (const m of t.matchAll(new RegExp(re.source, "gi"))) {

@@ -1799,7 +1799,8 @@
       const n = photoSeen[key]?.h ? twinsOf(key).length : 0;
       if ((f.photoTwins || 0) !== n) {
         f.photoTwins = n;
-        changed.push([key, elFor(key)]);
+        const el = passEls.get(key);
+        changed.push([key, el?.isConnected ? el : elFor(key)]); // the card from the last page pass, if it's still there: a page lookup per card showed on long feeds
       }
     }
     if (changed.length) {
@@ -2503,6 +2504,7 @@
 
   // ---------- the page pass: runs when listings appear, no model involved ----------
   let passKeys = new Set();
+  let passEls = new Map(); // key -> its card, as the last page pass found it
   let pageHadKnown = null; // first visit to a search: nothing is "new to you" yet
   let passing = false;
   const pagePass = async (force = false) => {
@@ -2565,6 +2567,7 @@
       const all = [...facts.values()];
       const showNew = !!(TK.facebookQuery() || TK.ebayQuery()) && all.filter((f) => f.fresh).length <= all.length * 0.4;
       all.forEach((f) => (f.isNew = showNew && !!f.fresh));
+      passEls = new Map(items.map((it) => [keyOf(it.url), it.el]));
       decorateAll(items.map((it) => [keyOf(it.url), it.el]));
       await noteSearchVisit(all);
       renderPageInfo();
@@ -4555,6 +4558,7 @@
       clearStickers();
       facts = new Map();
       passKeys = new Set();
+      passEls = new Map();
       pageHadKnown = null;
       pageInfo.hidden = true;
       itemEl.replaceChildren();

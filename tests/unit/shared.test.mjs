@@ -270,3 +270,20 @@ test("upgradeStorage: an install on the old default interests keeps them; a new 
   assert.equal(S.upgradeStorage({ storageVersion: 1, interests: "" }).set.interests, undefined);
   assert.equal(S.upgradeStorage({}).set.interests, undefined);
 });
+
+test("oaiKeyFits: a key goes only to the address it was entered for", () => {
+  const url = "https://api.openai.com/v1";
+  assert.equal(S.oaiKeyFits({ oaiKey: "k", oaiKeyFor: "https://api.openai.com", oaiUrl: url }), true);
+  assert.equal(S.oaiKeyFits({ oaiKey: "k", oaiKeyFor: "https://openrouter.ai", oaiUrl: url }), false);
+  assert.equal(S.oaiKeyFits({ oaiKey: "k", oaiKeyFor: "https://api.openai.com", oaiUrl: "https://api.openai.com.evil.example/v1" }), false);
+  assert.equal(S.oaiKeyFits({ oaiKey: "", oaiKeyFor: "https://openrouter.ai", oaiUrl: url }), true, "no key, nothing to send");
+  assert.equal(S.oaiKeyFits({ oaiKey: "k", oaiKeyFor: "", oaiUrl: url }), true, "not yet recorded (storage upgrade fills it in)");
+  assert.equal(S.oaiKeyFits({ oaiKey: "k", oaiKeyFor: "https://api.openai.com", oaiUrl: "not a url" }), false);
+});
+
+test("upgradeStorage: a key already in settings is tied to the address it's used with", () => {
+  assert.equal(S.upgradeStorage({ oaiKey: "k", oaiUrl: "https://api.deepseek.com/v1" }).set.oaiKeyFor, "https://api.deepseek.com");
+  assert.equal(S.upgradeStorage({ oaiKey: "k" }).set.oaiKeyFor, "https://openrouter.ai", "the default address");
+  assert.equal("oaiKeyFor" in S.upgradeStorage({ oaiKey: "k", oaiKeyFor: "https://x.example" }).set, false);
+  assert.equal("oaiKeyFor" in S.upgradeStorage({}).set, false);
+});

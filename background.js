@@ -19,6 +19,7 @@ const DEFAULTS = {
   oaiPreset: "openrouter",
   oaiUrl: "https://openrouter.ai/api/v1",
   oaiKey: "",
+  oaiKeyFor: "", // the address oaiKey was entered for (TKShared.oaiKeyFits)
   oaiModel: "",
   oaiVisionModel: "", // blank = the same model
   oaiPriceIn: 0, // $ per million tokens, for spend tracking where the service doesn't report cost (0 = not tracked)
@@ -220,10 +221,13 @@ const oaiName = (url) => OAI_NAMES.find(([re]) => re.test(url))?.[1] || new URL(
 
 const openaiChat = (opts) => withBudget(() => openaiChatOnce(opts));
 async function openaiChatOnce({ messages, schema, model, signal }) {
-  const { oaiUrl, oaiKey, oaiModel, oaiPriceIn, oaiPriceOut } = await getSettings();
+  const { oaiUrl, oaiKey, oaiKeyFor, oaiModel, oaiPriceIn, oaiPriceOut } = await getSettings();
   model ||= oaiModel;
   const name = oaiName(oaiUrl);
   if (!model) throw new Error(`Pick a model for ${name} in settings (Test connection lists them).`);
+  if (!TKShared.oaiKeyFits({ oaiKey, oaiKeyFor, oaiUrl })) {
+    throw new Error(`The API key in settings was entered for ${oaiName(oaiKeyFor)}, so it isn't sent to ${name}. Paste the key for ${name} in settings.`);
+  }
   const origin = new URL(oaiUrl).origin;
   if (!(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) {
     throw new Error(`Tirekick isn't allowed to reach ${origin} yet. In settings, press Test connection to allow it.`);

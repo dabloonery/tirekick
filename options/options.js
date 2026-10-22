@@ -225,7 +225,8 @@ function showProvider() {
   showPreset();
 }
 document.getElementById("provider").addEventListener("change", showProvider);
-document.getElementById("service").addEventListener("change", async (e) => {
+document.getElementById("service").addEventListener("change", (e) => (saving = saving.then(() => servicePicked(e)).catch(() => {})));
+async function servicePicked(e) {
   const [provider, preset] = e.target.value.split(":");
   chosen = true;
   document.getElementById("provider").value = provider;
@@ -238,7 +239,7 @@ document.getElementById("service").addEventListener("change", async (e) => {
   }
   showProvider();
   showStatus();
-});
+}
 async function presetPicked() {
   const preset = PRESETS[document.getElementById("oaiPreset").value];
   showPreset();
@@ -259,22 +260,44 @@ const valueOf = (f) => {
   if (TKShared.isNumberSetting(f)) return TKShared.clampSetting(f, Number(el.value));
   return f === "ollamaUrl" || f === "oaiUrl" ? el.value.trim().replace(/\/+$/, "") : el.value.trim();
 };
+// Saves run one after another, and Test connection waits for them, so it never sends a key to an address
+// it wasn't entered for in the moment between the two.
+let saving = Promise.resolve();
 async function saveField(f) {
   const v = valueOf(f);
   // An emptied model or address field goes back to its default instead of breaking requests.
   if (v === "" && !MAY_BE_EMPTY.includes(f)) {
     await chrome.storage.local.remove(f);
     await load();
-    return note("Back to the default.");
+    return note(`Back to the default.${f === "oaiUrl" ? await keyFollowsAddress() : ""}`);
   }
-  await chrome.storage.local.set({ [f]: v });
+  // A key belongs to the address it was entered for (TKShared.oaiKeyFits).
+  await chrome.storage.local.set({ [f]: v, ...(f === "oaiKey" && { oaiKeyFor: TKShared.originOf(valueOf("oaiUrl")) }) });
+  const moved = f === "oaiUrl" ? await keyFollowsAddress() : "";
   const el = document.getElementById(f);
   if (el.type === "number" && String(v) !== el.value) el.value = v; // show what was actually kept
-  note(f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : "Saved.");
+  note(f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : `Saved.${moved}`);
+}
+// Each address keeps its own key: a new address puts the key you had away (it stays with its own service)
+// and brings back the one you entered for the new address before, if there is one.
+async function keyFollowsAddress() {
+  const to = TKShared.originOf(document.getElementById("oaiUrl").value);
+  const { oaiKey = "", oaiKeyFor = "", oaiKeys = {} } = await chrome.storage.local.get(["oaiKey", "oaiKeyFor", "oaiKeys"]);
+  if (!to || to === oaiKeyFor) return "";
+  const keys = { ...oaiKeys };
+  if (oaiKey && oaiKeyFor) keys[oaiKeyFor] = oaiKey;
+  const next = keys[to] || "";
+  delete keys[to];
+  await chrome.storage.local.set({ oaiKeys: keys, oaiKey: next, oaiKeyFor: to });
+  document.getElementById("oaiKey").value = next;
+  if (next) return " Using the key you entered for this address before.";
+  return oaiKey ? " The key you had stays with its own service; paste the key for this one." : "";
 }
 for (const f of FIELDS) {
   document.getElementById(f).addEventListener("change", async () => {
-    await saveField(f);
+    const done = saving.then(() => saveField(f));
+    saving = done.catch(() => {});
+    await done;
     showStatus();
     // A new key is checked straight away, so a typo shows up now rather than on the first scan.
     if ((f === "anthropicKey" && document.getElementById(f).value.trim()) || (f === "oaiKey" && document.getElementById(f).value.trim())) document.getElementById("test").click();
@@ -352,6 +375,8 @@ async function testOpenAI() {
   const url = document.getElementById("oaiUrl").value.trim().replace(/\/+$/, "");
   const key = document.getElementById("oaiKey").value.trim();
   if (!url) return (testMsg.textContent = "Pick a service, or enter its address.");
+  const { oaiKeyFor = "" } = await chrome.storage.local.get("oaiKeyFor");
+  if (!TKShared.oaiKeyFits({ oaiKey: key, oaiKeyFor, oaiUrl: url })) return (testMsg.textContent = "That key was entered for another address. Paste the key for this one.");
   if (!(await allowOrigin(url))) return (testMsg.textContent = "Tirekick needs your permission to reach that address.");
   testMsg.textContent = "Testing…";
   try {
@@ -374,6 +399,7 @@ async function testOpenAI() {
 }
 
 document.getElementById("test").addEventListener("click", async () => {
+  await saving;
   if (document.getElementById("provider").value === "anthropic") return testClaude();
   if (document.getElementById("provider").value === "openai") return testOpenAI();
   const url = document.getElementById("ollamaUrl").value.trim().replace(/\/+$/, "");
@@ -484,6 +510,7 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   }
   await chrome.storage.local.set({ ...out, ...settings });
   await load();
+  await keyFollowsAddress(); // the backup may name another address; the key here stays with its own
   showMemory();
   showSpend();
   const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;

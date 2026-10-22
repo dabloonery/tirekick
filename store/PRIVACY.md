@@ -19,6 +19,8 @@ All of this is kept in your browser's extension storage and never sent to the de
 - **Scores** for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and **sold-price results**, kept for six hours.
 - **Small preferences**: each mode's sort, each search's "what I want" and filter, and where the panel sits on each site.
 - **A spending estimate** for paid AI, worked out from token counts at list price.
+- **Codes tacked onto listing titles** ("... SP M2465") with the title around them, so the same listing reposted under a new code is marked. Kept for 30 days.
+- **How well each store's pages were read**, so Home can say when a store changed its layout.
 - **Simple counters** of which features you use, shown on the Home tab.
 
 You can clear what you've seen and hidden, and the spending and usage counters, in settings and on the
@@ -35,14 +37,14 @@ the background.
 
 | When you… | What is sent | To whom |
 |---|---|---|
-| Press **Scan** (or have it scan automatically), **Analyze this listing** or **Search ideas** | Listing titles and the text on their cards (price, shipping, seller rating, condition, description), your search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: Anthropic (api.anthropic.com), DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer) |
+| Press **Scan** (or have it scan automatically), **Analyze this listing** or **Search ideas** | Listing titles and the text on their cards (price, shipping, condition, seller rating, and the seller's name and the item's location where the card shows them); for a listing you analyze, also its description, details and seller name; your search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: Anthropic (api.anthropic.com), DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer) |
 | Press **Check photo** or right-click a photo | The photo and the listing's title | The same AI service |
 | Compare **sold prices** (a button, as part of a scan, or **Look up** on Tirekick's own page, including words you select on any page and choose "Look up … on eBay and Marketplace") | Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most | eBay |
 | Scroll past Marketplace listings | A request for each thumbnail you see (the same picture the page already shows), without your Facebook cookies, so the fingerprint can be worked out on your computer. Nothing about you or the listing goes with it | Facebook's image server (fbcdn.net) |
 | Press **Find photo elsewhere** | The photo's web address, opened in a new tab | Google Lens (lens.google.com) |
 | Press **Test connection** in settings | Your API key, to check it works | The service you picked |
 
-Your API key goes only to the service it belongs to, the way that service's documentation says to send
+Your API key goes only to the service it belongs to: a key for an OpenAI-style service is kept with the address you entered it for, and switching services or restoring a backup never sends it to another one. It's sent the way that service's documentation says to send
 it. Photos and listing text sent to an AI service fall under *that service's* privacy policy and terms,
 so read the one for the service you pick. Ollama and LM Studio keep everything on your computer
 (sold-price lookups still go to eBay, and you can turn those off).

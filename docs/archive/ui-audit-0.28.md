@@ -1,11 +1,11 @@
 # UI/UX audit — 0.28.1 (2026-10-12)
 
-**Brief:** minimalist but elegant. **Method:** the real unpacked extension in headless Chrome 153 (`tests/e2e/audit.ts`), local eBay- and Marketplace-shaped pages, a mock Claude API. 13 states captured in dark and light (first run, closed tab, cards, hover card, pre-scan, scanned, filter + spend open, ideas, saved, listing analysed, error, settings full and at 390px) plus measurements: text contrast for every text node, interactive target sizes, font sizes and weights. Compared with WCAG 2.2 AA and current practice (Material 3 / Apple HIG type and density guidance, progressive disclosure, one primary action per view).
+**Brief:** minimalist but elegant. **Method:** the real unpacked extension in headless Chrome 153 (`tests/e2e/audit.ts`), local eBay- and Marketplace-shaped pages, a mock Claude API. 13 states captured in dark and light (first run, closed tab, cards, hover card, pre-scan, scanned, filter + spend open, ideas, saved, listing analyzed, error, settings full and at 390px) plus measurements: text contrast for every text node, interactive target sizes, font sizes and weights. Compared with WCAG 2.2 AA and current practice (Material 3 / Apple HIG type and density guidance, progressive disclosure, one primary action per view).
 
 **Not measured:** a real screen reader, forced-colors / high-contrast mode, 200% zoom, RTL, touch, an 8-px spacing audit, real eBay/Facebook pages, users. Everything below is expert review plus measurement, not user research.
 
 ## Verdict
-The foundations are good: one typeface, one restrained palette, semantic colour, a word beside every colour, dark-first with a true light theme, reduced-motion respected, keyboard operable. It is minimal in vocabulary but **not yet minimal in density**: the panel shows a lot of equally weighted controls at once, so the eye has no single place to land. The fixes below are mostly about showing less at a time.
+The foundations are good: one typeface, one restrained palette, semantic color, a word beside every color, dark-first with a true light theme, reduced-motion respected, keyboard operable. It is minimal in vocabulary but **not yet minimal in density**: the panel shows a lot of equally weighted controls at once, so the eye has no single place to land. The fixes below are mostly about showing less at a time.
 
 ## What meets the standard (measured)
 | Check | Result |
@@ -31,7 +31,7 @@ The foundations are good: one typeface, one restrained palette, semantic colour,
 **P2 — polish that makes it feel considered**
 8. **Small body text.** Of ~75 text nodes in the scanned view, 37 are 12px and 8 are 11px; guidance for reading UI is 13–14px minimum for anything meant to be read (Material body-small 14, HIG 13+). *Fix:* meta 13, labels 12, nothing below 12 except the tag word.
 9. **Uppercase tracked micro-labels** (BUYING TO, LISTINGS · 1, NARROW, MISSPELLING). Heavier than the content they label; current practice favours sentence-case 12px muted. 
-10. **Tag word and verdict line say the same thing twice** (GREAT / Great deal). Now the same vocabulary, but still redundant. *Fix:* number-only tag, coloured verdict word beside it.
+10. **Tag word and verdict line say the same thing twice** (GREAT / Great deal). Now the same vocabulary, but still redundant. *Fix:* number-only tag, colored verdict word beside it.
 11. **Three control styles in one toolbar row** (outlined pill "Filter", bare select "Sort", segmented "Skipped"). "Skipped: Show / Dim / Hide" is ambiguous. *Fix:* one style; label it "Skips" or move to the Filter popover.
 12. **Inconsistent undo/remove**: × icon (Saved), "Undo" pill (Hidden), "Start over" text, status-line Undo. Pick one pattern (toast with Undo is the modern default).
 13. **Listing view**: Save / Not interested / Sold sits above the verdict instead of with it; the primary "Analyze again" stays full-width after the result is shown (should demote to secondary); "Cost under $0.01" floats alone.
@@ -70,7 +70,7 @@ Re-measured with `tests/e2e/audit.ts` (same states, dark and light). The headles
 - **5** Row links run under the price (no more lone "Not interested" line) and show on hover or focus; a saved listing keeps "Saved". Touch screens always show them.
 - **6** After an error the message and the Scan/Analyze button are both scrolled into view; other scans leave 8px above the status.
 - **8, 9** 11px text raised to 12px; uppercase tracked labels are now sentence case 12px semibold muted.
-- **10** Panel tags show the number only; the coloured verdict word is beside it. Page stickers keep the word (it can be hidden on narrow cards).
+- **10** Panel tags show the number only; the colored verdict word is beside it. Page stickers keep the word (it can be hidden on narrow cards).
 - **11** Skipped became "Skips and scams" inside Filter.
 - **12** Saved, Searches and Hidden rows each end in one quiet text action: Remove, Remove, Unhide.
 - **13** Listing view: Save / Not interested / Sold sit under the verdict; Analyze again becomes secondary and carries what the last one cost; no empty gaps.
@@ -78,7 +78,7 @@ Re-measured with `tests/e2e/audit.ts` (same states, dark and light). The headles
 - **15** Decorative glyphs (☆ ★ ✦ ×) replaced with words; ↗ stays for links that open a new tab.
 - **16** Settings: Judging, Filters and marks and Backup fold behind disclosures with a one-line summary; jump links (and `#sec-…` addresses) open them.
 - **17** Inputs show one focus ring (outline over the border).
-- **18** The closed tab takes the page's colours (light on eBay's white pages).
+- **18** The closed tab takes the page's colors (light on eBay's white pages).
 - **19** A scan shows a 2px accent progress line under the tabs.
 
 ## Done in 0.30.0
@@ -118,12 +118,12 @@ The first capture after the port found one real problem, fixed before release: H
 - The toolbar icon with new alerts opened Home every time, so with Home on screen the icon could no longer close the panel; a second click now tucks it away.
 
 ## Functionality
-- **Tests:** 136 checks pass, 0 fail: fixture pages (keyboard and focus, settings, adapters), 27 unit tests, the saved eBay and Marketplace pages (17), the branch's behaviours on the real extension (`features.ts`), interaction checks (`ux.ts`), scores kept across tabs, and Marketplace.
+- **Tests:** 136 checks pass, 0 fail: fixture pages (keyboard and focus, settings, adapters), 27 unit tests, the saved eBay and Marketplace pages (17), the branch's behaviors on the real extension (`features.ts`), interaction checks (`ux.ts`), scores kept across tabs, and Marketplace.
 - **No errors logged** by any page, the settings page or the background worker over the whole `features.ts` run, including deliberately refused sold-price lookups.
 - Verified on the real extension: scans go to Haiku 5.5 with effort and without fallbacks, analysis to the main model with its fallback; a cut-off reply is counted in spend; the budget stops paid AI; each mode keeps its own settings and the old single settings migrate; switching mode keeps marks and hidden listings; Home's alerts, numbers per mode, toolbar number and openHome; restored backups rebuild bad links, drop junk and keep settings within limits; an Ollama address you haven't allowed is never contacted; a refused lookup from Facebook pauses only that route; defaults are not copied into storage.
 
 ## Not verified
-Real eBay and Facebook pages (all pages here are fixtures; Facebook's is synthetic, and the grid-gap fix was checked against a page nested the way Facebook nests its cards, not Facebook itself), a screen reader, forced colours, 200% zoom, touch, the GitHub workflow (runs on the first push), and anyone using it but me.
+Real eBay and Facebook pages (all pages here are fixtures; Facebook's is synthetic, and the grid-gap fix was checked against a page nested the way Facebook nests its cards, not Facebook itself), a screen reader, forced colors, 200% zoom, touch, the GitHub workflow (runs on the first push), and anyone using it but me.
 
 ## Open design questions
 - The Buyer / Reseller bar costs about 50px on every view. A single-line control without the subtitles would halve it; the subtitles are what tell a first-time user what the modes mean.
@@ -158,7 +158,7 @@ What it was, worst first:
 # Accessibility pass and the paper-and-ink look (0.34.0)
 
 ## Accessibility (`tests/e2e/a11y.ts`)
-Measured from Chrome's own accessibility tree, a real Tab walk, forced-colours emulation and a 700x450 viewport (a 1400x900 window at 200%).
+Measured from Chrome's own accessibility tree, a real Tab walk, forced-colors emulation and a 700x450 viewport (a 1400x900 window at 200%).
 
 | Found | Fix |
 |---|---|
@@ -171,9 +171,9 @@ Measured from Chrome's own accessibility tree, a real Tab walk, forced-colours e
 Kept: the drag handle (the header) is a Tab stop, because it's also how the keyboard moves the panel (arrow keys). Nothing scrolls sideways at 200%, in the panel or settings.
 
 ## The look
-Inspired by the 0.13 "paper and ink" identity: warm paper, ink, hairlines, colour only for verdicts and one vermilion accent.
+Inspired by the 0.13 "paper and ink" identity: warm paper, ink, hairlines, color only for verdicts and one vermilion accent.
 - **Fraunces** is back (bundled, OFL, added with the FontFace API from bytes the background provides, so it isn't web-accessible and page font rules can't block it). It's used for what you *read*: the wordmark (*Look* in italic), the headline, scores, prices, Home's numbers, the offer, sold prices, and settings headings. What you *operate* stays in the UI face.
-- **Scores are dials**: a ring that fills to the score in the verdict's colour, in the panel and on the card tags. Card tags are rounded paper pills; chips are pills too.
+- **Scores are dials**: a ring that fills to the score in the verdict's color, in the panel and on the card tags. Card tags are rounded paper pills; chips are pills too.
 - **The mode switch** is a quiet track with a raised thumb and a vermilion dot, instead of an inked block; the chosen tab is underlined in vermilion.
 - Softer corners (12px panels, 7px controls), a raised welcome card, and a soft edge under the tabs once the list has scrolled (a scroll-driven animation, no script).
 

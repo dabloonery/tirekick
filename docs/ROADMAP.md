@@ -6,12 +6,12 @@ and briefs for new features. Voice, the rename plan and the security review are 
 
 ## Contents
 
-- [Next steps](#next-steps) (2026-10-14: the order of work, and what waits on dabloonery)
+- [Where things stand](#where-things-stand) (2026-10-22: each plan's state, and what waits on dabloonery)
 - [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone) (2026-10-15)
 - [Public beta launch](#public-beta-launch) (decided 2026-10-15: launch as a public beta before 1.0.0)
 - [Honest low prices](#honest-low-prices) (2026-10-21: honest cheap listings marked as scams; the order of PRs)
 - [After real use (2026-10-16)](#after-real-use-2026-10-16) (0.50.2 fixes, and design changes for dabloonery to pick)
-- [Tirekick: Chrome Web Store submission checklist](#tirekick-chrome-web-store-submission-checklist)
+- [Chrome Web Store: each upload](#chrome-web-store-each-upload)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
 - [Tirekick feature briefs](#tirekick-feature-briefs)
   - [Brief 1: Alerts on saved searches](#brief-1-alerts-on-saved-searches) (dabloonery chose options 1 and 2; not built yet)
@@ -28,114 +28,28 @@ and briefs for new features. Voice, the rename plan and the security review are 
 
 ---
 
-## Next steps
+## Where things stand
 
-*2026-10-14, against `main` at 0.36.0 plus this PR. The order of work across the plans below. dabloonery added one
-direction on 2026-10-14: "sturdier non-AI features should also mean they're more useful, accurate and
-plentiful; fill gaps". So the free parts of the feature briefs come before anything else that needs a model.*
-
-### Where each plan stands
+*2026-10-22. Replaces the 2026-10-14 "Next steps" (the order of work then, and dabloonery's steps for the 0.40.0 live
+check); those are in git history.*
 
 | Plan | State |
 |---|---|
-| Store checklist | The writing, accounts, privacy page and screenshots are done. Not submitted, and won't be without dabloonery's OK |
-| Sturdier no-AI features | All 8 items shipped (#14 to #21). Real saved eBay and Marketplace searches added as fixtures (2026-10-22); listing, sold and category pages are still hand-made |
-| Security review | No blockers. L1 done in 0.37.0 |
-| US English fixes (REFERENCE §5) | Done |
-| Feature briefs | See "Order" below |
-| Live checks | Never done: the extension on real eBay and Marketplace pages, **eBay sold-price lookups on real sold pages**, the Vivaldi checks, a screen reader |
+| Chrome Web Store | Public beta live; the store has 0.50.0, `main` is 0.57.0. The next upload is dabloonery's call ([checklist](#chrome-web-store-each-upload)) |
+| Scam checks and prices | [Honest low prices](#honest-low-prices) done (#57 to #82); layout guards, long-feed speed and an eval with the real prompts merged 2026-10-21 and 22 |
+| Real-use fixes | The 2026-10-16 fixes reached `main` on 2026-10-22 (#84, [After real use](#after-real-use-2026-10-16)); recheck them on the real sites |
+| Sturdier no-AI features | All 8 shipped ([summary](#tirekick-making-the-no-ai-features-sturdier)). Real saved eBay and Marketplace searches are fixtures since #90; listing, sold and category pages are still hand-made |
+| Free parts of briefs 2, 3, 4 and 6 | Built in 0.37.0 to 0.40.0 (age and price moves, the offer helper, "Too cheap?" and same-photo marks, CSV export) |
+| Open source | Apache-2.0 since 2026-10-22; the repository is public |
+| Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
+| Next to build | Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
+| Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Version numbers
 
 PRs #13 to #22 all shipped as 0.36.0, and an older pre-rename build (`second-look-0.36.1.zip`) carries a higher
 number. From 0.37.0 to 0.57.0, CI failed a pull request that didn't raise the version. Since 2026-10-21 (dabloonery) the
 version stays put between Chrome Web Store uploads, and CI only fails one that lowers it (`deno task version-check`).
-
-### Order
-
-1. **0.37.0 housekeeping**: the version check, L1, test docs, this section.
-2. **More free features, and better ones.** Done in 0.37.0 and 0.38.0, from the briefs' parts that need no model:
-   - Brief 4: "Likely scam?" and "Too cheap?" marks ("Typical is $300" since 0.40.0) from a trusted sold median; Marketplace's
-     "Joined Facebook in …" warns on an account made this year. 0.38.0: **Same photo as 2 other listings** on
-     Marketplace, from fingerprints (dHash) of thumbnails on screen, kept 90 days; the same file or the same title
-     doesn't count, and scans are told. *Still open:* eBay, which needs the seller on each card first (sellers there
-     reuse their own photos).
-   - Brief 3: an opening offer and walk-away price from sold prices, with the reason shown, and three message
-     templates to pick, edit and copy, before any analysis. 0.38.0: **They said $…** answers take it, meet in the
-     middle or a last offer, and rewrites the message; Analyze gets the plan and its range is kept near it.
-   - Brief 2: how long a listing has been up, how a saved one moved since you saved it, "the seller may take less",
-     and saved listings' history kept past the 90-day prune. *Still open:* relists.
-   - Brief 6, part 1: saved listings as a spreadsheet (CSV), from Saved and from settings. *Still open:* sync.
-   - 0.39.0, from dabloonery's first live look: a **free read** on every listing before a scan ("Good price · $53 below typical"; since 0.40.0 the price is said in dollars against the "typical" price everywhere, not "% of sold",
-     "Check first", "Off-topic"), which also orders the list; **Work one out from sold prices** on a listing page
-     gives the offer without an analysis; the Marketplace home feed hides **off-topic** posts (rentals, services,
-     jobs, pets, "looking for", $1 placeholders: `TKRules.offTopic`), on by default there, one click to show; search
-     ideas on the feed; color back (navy dark theme, tags tinted by verdict); the toolbar icon opens Tirekick's page as
-     a popup off the stores, and its right-click menu has one entry of ours ("Open Tirekick in a tab"). *Still open:* learning what you skip
-     on the feed (titles you mark Not interested) to hide more like them.
-   - 0.40.0: the price chip says "typical" instead of "sold" ("$53 below typical", the source on hover); no browser
-     box of past entries over Tirekick's text boxes; a quieter slate navy in dark; "1 possible scam" in the page summary. The AI choice is neutral: one "AI service" menu lists every supported service side by side, a fresh install picks none, and the panel's menu offers only the services you set up.
-   - 0.40.2, the review pass's clear-cut fixes: no stray "null" in the toolbar popup with one saved search; each
-     card's Save / Sold / Not interested are one toolbar with one Tab stop (arrow keys inside); long tags wrap inside
-     the card; "$55" instead of "$55–$55"; "$39 above typical" said once; the footer's AI menu on one line; a tighter
-     header and footer in short windows; 24px targets on the small text links; settings fields stay clear of the
-     sticky section links; the website's skip link, footer targets and the navy band's link line contrast. The
-     choices that are dabloonery's (which verdict wins when price and score disagree, a bigger text floor, "sold" wording,
-     the offer warning, the search-ideas name, the light theme's main button) wait on dabloonery.
-   - 0.41.0, dabloonery's six choices from the review pass: when the score and the price disagree the **price check
-     wins** (`TKRules.priceVerdict`: far under the typical price reads "Great price, if it's real" in the scam color
-     and counts as a skip; over 125% of it is no better than Fair price); a **13px floor** for chips and labels and
-     **14px** for reasons, price lines and the welcome; **"typical price (recent eBay sales)"** instead of "sold" in
-     the panel (the cards' "Sold ↗" stays: it opens eBay's sold listings); a one-line **warning** when an offer is
-     under half the ask; one name, **Search ideas**; the **orange main button** in light mode too.
-   - 0.42.0, a light shift toward everyday buyers (dabloonery, 2026-10-15): the store summary and description lead with
-     "Good price or scam?"; reseller tools stay, with neutral words ("price gap after fees", not "margin";
-     "to sell on", not "fix up and flip"); resale gets one quiet line in the listing.
-   - 0.43.0, the logo's tread made visible (dabloonery, 2026-10-15, a one-off exception to "don't change the logo"):
-     same tire, shape and colors, with fewer, chunkier marks set just in from the rim in a muted orange-navy
-     (`TKTheme.logoTread`, used by the icons, the site and the panel mark). The 16 and 32 px icons drop the navy tile, so the toolbar shows just the tire.
-3. **Live check in Vivaldi (dabloonery)**: an eBay search with Sold prices, one scan, a Marketplace search, Analyze on a
-   listing, the Vivaldi checks in REFERENCE's security review; save the real pages the fixtures need.
-4. **Brief 1, options 1 and 2**: alerts on saved searches, also from the free signals above (at your price, far
-   under sold), not only from a model's "Great".
-5. **Store, when dabloonery is ready.** A public privacy-policy page is required; a free GitHub Pages site works, and a
-   domain such as tirekick.app is optional (dabloonery to decide). Then the contact address, `homepage_url` and 1.0.0.
-6. **Brief 7, built-in browser AI**, the first feature after the 1.0.0 launch (dabloonery: "let's make that a
-   priority"). A free model with no key, where the browser has one.
-7. **Brief 5, more stores** (Craigslist first).
-
-### For dabloonery, in order (2026-10-14)
-
-1. **Review and merge the 0.40.0 PR** on GitHub: open it and press **Merge pull request** (or ask Claude to).
-2. **Install 0.40.0 in Vivaldi.** Unzip `tirekick-0.40.0.zip` into the folder Vivaldi already loads Tirekick from,
-   replacing its files (same folder name and place, so your saved data stays), then press the reload arrow on
-   Tirekick in `vivaldi://extensions`. The card there should say 0.40.0. (Or ask Claude to update the folder.)
-3. **The live check, about 20 minutes.** Each one is something the tests can't reach:
-   - An eBay search (say "pentax k1000"): open the panel, press **Sold prices**. Do numbers appear, and "$… below typical"
-     on the cards? Any "Too cheap?" chips look right?
-   - Press **Scan** once with your key. Tags on the cards, and the ranked list?
-   - Open a listing from that search: is there an **Offer** box with a message you can copy? Type a price under
-     **They said $**: does the advice make sense?
-   - A Marketplace search, then one listing: does it say how long ago it was listed, and warn if the seller joined
-     Facebook this year? Scroll a while: any **Same photo as … other listings** marks, and do they look right?
-   - Saved: **Download (CSV)** opens in a spreadsheet.
-   - eBay: open a new listing or search tab without refreshing: does the panel's tab appear by itself? Click a card
-     in the panel's list: is the outline on top of its neighbors, and do the reasons pop-ups sit above other tags?
-   - The Marketplace home page: are rentals, massages and "looking for" posts gone, and **Hide off-topic** off
-     brings them back? Anything real hidden by mistake?
-   - Vivaldi: the toolbar icon opens a popup on other sites and the panel on eBay and Marketplace; its number, Alt+Shift+L (change it at `vivaldi://extensions/shortcuts`), right-click a photo ("Check this photo"), right-click
-     selected text ("Look up").
-   - Tell Claude what broke, with a screenshot if you can.
-4. **Save real pages for the tests** while you're there (right-click the page, **Save as**, "Webpage, HTML only"):
-   an eBay search, an eBay sold search, an eBay listing, a Marketplace search and a Marketplace listing. Put them in
-   your Second-Look folder under `tests/fixtures/real/` and say so.
-5. **Decide on a domain** (dabloonery: "I might"). Not required: a free GitHub Pages address works for the privacy policy. If you want
-   tirekick.app, register it; either way, set up a contact email address for the store listing.
-6. **Store accounts:** ~~a Chrome Web Store developer account~~ (done: dabloonery paid the fee, 2026-10-15). Still to
-   set: trader or non-trader status in the developer dashboard.
-7. ~~**Screenshots 1 and 2** from real eBay pages~~ (done: real captures in 0.49.1).
-8. **Before going public:** decide whether to rewrite history to remove your email from old commits, and turn on
-   GitHub's "Keep my email address private".
 
 ### Open source (decided 2026-10-14, done early on 2026-10-22)
 
@@ -174,14 +88,14 @@ Audit of both repos and the accounts around them:
 | Code comments (`rules.js`, `theme.js`, `panel.js`) | dabloonery's name | Done in 0.42.2 |
 | Website repo `tirekick-site` | "© 2026 Tirekick™", support@tirekick.app, no personal details, one commit by Claude | Clean |
 | Store listing, privacy policy, site contact | support@tirekick.app | Clean, once the mailbox forwards |
-| Main repo commit history | personal email on 25 commits (24 by dabloonery, 1 by Claude) | dabloonery, step 1 |
+| Main repo commit history | was a personal email on 25 commits | Clean (checked 2026-10-22: GitHub noreply addresses only) |
 | GitHub owner `dabloonery` | in both repo addresses and as the author of every merge | dabloonery, step 2 |
 | Chrome Web Store publisher name and contact email | not set yet | dabloonery, step 3 |
-| Internal notes (`AGENTS.md`, this file, `REFERENCE.md`, `store/SUBMISSION-CHECKLIST.md`, `store/SECURITY-REVIEW.md`) | "dabloonery" as the decision maker | Claude, step 5 |
+| Internal notes (`AGENTS.md`, this file, `REFERENCE.md`, `store/SECURITY-REVIEW.md`) | "dabloonery" as the decision maker | Claude, step 5 |
 
 Steps for dabloonery, in order. None of these can be done from the project, and steps 1 and 2 can't be undone:
 
-1. **Commit history (recommended: publish a clean copy, don't rewrite this repo).** At 1.0.0, rather than
+1. ~~**Commit history**~~ (done: the public repository's history carries only noreply addresses, checked 2026-10-22). *Was:* **(recommended: publish a clean copy, don't rewrite this repo).** At 1.0.0, rather than
    making this repository public, push a copy whose history has the personal email swapped for GitHub's
    private address (`118295889+dabloonery@users.noreply.github.com`) to a new public repo, and keep this one
    private. Rewriting this repo in place also works, but GitHub keeps old pull requests' commits, so the email
@@ -221,8 +135,6 @@ Steps for dabloonery, in order. None of these can be done from the project, and 
    in the files listed in the table, so the public repo carries no names.
 
 ---
-
-<!-- merged from store-prep/SUBMISSION-CHECKLIST.md -->
 
 ## Built for one person, reassessed for everyone
 
@@ -305,7 +217,7 @@ Distribution is **Public**, all regions.
 7. [x] **Site:** tirekick.app on HTTPS (done 2026-10-15) with `/privacy` loading, ready to publish the same day with the store
    link in place of `STORE_LISTING_URL` and a matching "Beta" mention.
 8. [x] The store build is exactly **0.50.0** (dabloonery, 2026-10-15); pre-launch changes stay 0.49.x. `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
-9. [ ] **dabloonery's OK to submit.** Then the forms in the checklist below (section 5), Distribution: Public.
+9. [x] **dabloonery's OK to submit.** Done: 0.50.0 is live on the store as a public beta (by 2026-10-21).
 
 **During the beta.** Feedback comes from strangers only (dabloonery doesn't want to involve people they know): the
 support address and, if dabloonery wants, one forum post (r/Flipping or r/eBay). Fixes ship as 0.x updates through
@@ -437,99 +349,22 @@ helps the second.
 
 ---
 
-## Tirekick: Chrome Web Store submission checklist
+## Chrome Web Store: each upload
 
-*2026-10-14. The order to do things in, who does each, and what's ready. Nothing here has been
-submitted or published.* Store form answers are in `store/LISTING.md`; the security review is in
-`store/SECURITY-REVIEW.md`; the draft website is in `site/`.
+*The first submission (0.50.0, the public beta) is done; its full checklist (accounts, domain, images, store
+forms) is in git history before 2026-10-22. Store form answers are in `store/LISTING.md`; the security review
+is in `store/SECURITY-REVIEW.md`.* Nothing is uploaded without dabloonery's OK.
 
-**dabloonery** = needs your accounts, money or hands. **Claude** = can be done in the project.
-
-### 1. Accounts and domain (dabloonery)
-
-- [x] Register **tirekick.app** (dabloonery, 2026-10-15). `.app` domains only work over HTTPS, which any of the hosts below handle for free.
-- [ ] Set up a contact address on it (support@tirekick.app, forwarded to your inbox). The store
-      shows it publicly, and the privacy policy needs one.
-- [x] Create a Chrome Web Store developer account (done, 2026-10-15) at https://chrome.google.com/webstore/devconsole
-      (one-time registration fee; needs a Google account with 2-Step Verification).
-- [ ] In the developer account, declare **trader or non-trader** status (an EU requirement). A free hobby
-      project with no income is usually non-trader. Traders must show a public address and phone number.
-- [ ] Verify the contact email the dashboard asks for.
-
-### 2. Website and privacy policy (Claude drafts, dabloonery deploys)
-
-- [x] Landing, privacy and help pages: `site/index.html`, `site/privacy.html`, `site/support.html` (static,
-      no scripts, no tracking, fonts self-hosted, links relative so any address works). The pages speak to
-      both audiences dabloonery agreed on (`plans/tirekick-future.md`): everyday buyers (free scam marks, checking a big
-      purchase) and resellers (sold prices on Marketplace, Reseller mode), with AI last and optional. The help page
-      answers the "will this get my account banned" worry. Colors brighter than the extension's light theme on purpose.
-- [ ] Set up support@tirekick.app (already filled in on the site, in `store/PRIVACY.md` and the listing):
-      register tirekick.app and forward the mailbox.
-- [x] Launch the site with the extension (2026-10-17): the store listing is public and `site/index.html` links to it instead of
-      `STORE_LISTING_URL`.
-- [ ] Publish it. GitHub Pages is free for **public** repositories only (private ones need a paid plan), and this
-      one stays private until 1.0.0, so: make a small public repository just for the site (steps in
-      `site/README.md`), giving `https://dabloonery.github.io/<name>/`. At launch, when this repository goes
-      public, the **Website** workflow (`.github/workflows/pages.yml`, run by hand) can publish `site/` from here
-      instead. A domain such as tirekick.app is optional; either host can use one later.
-- [ ] Check `<site address>/privacy` loads in a private window. That is the **privacy policy URL** for the
-      store; `<site address>/support` is the support page.
-
-### 3. Code and repo
-
-*Status 2026-10-14: the redesign fixes and the ux-spec port (0.36.0) are on `main`, plus the robustness PRs #14 to #21. Nothing below is done yet.*
-
-- [ ] **dabloonery:** rename the GitHub repo to `tirekick` (Settings, General). GitHub redirects the old address.
-- [x] Apache-2.0 `LICENSE` and README license section (2026-10-22, during the beta; the repo was already public).
-- [x] **Claude:** set `homepage_url` to `https://tirekick.app`, update the listing link, and replace the contact
-      placeholders (0.40.2). The site has a `CNAME` for tirekick.app; publishing steps are in `site/README.md`.
-- [x] **Claude (optional):** the L1 hardening from the security review (links through `safeUrl`). Done in 0.37.0.
-- [ ] **Claude:** bump the version for the store build (a 0.x version for the public beta; **1.0.0** when the beta ends, see [Public beta launch](#public-beta-launch)).
-- [ ] Run `deno task test`, then `deno task pack`. Unzip `dist/tirekick-<version>.zip` into a fresh folder,
-      load it with **Load unpacked**, and click through: an eBay search, the panel, a scan with your key,
-      a Marketplace search, settings, a backup and restore.
-
-### 4. Store images
-
-| Asset | Size | Status |
-|---|---|---|
-| Store icon | 128 × 128 | ✅ `icons/icon128.png` |
-| Screenshots (1 to 5) | 1280 × 800 | ✅ 1 to 3 are dabloonery's real captures (eBay search, eBay listing, Marketplace), 4 and 5 are drawn by `screenshots.ts` |
-| Small promo tile | 440 × 280 | ✅ `store/promo-small.png` (with the logo, `scripts/store-art.sh`) |
-| Marquee promo tile | 1400 × 560 | ✅ `store/promo-marquee.png` (optional; used if the store features the extension) |
-
-Retaking screenshots 1 to 3 (**dabloonery**, since it needs your eBay session and API key):
-
-1. Set the browser window so the page area is 1280 × 800 (Chrome DevTools device toolbar, "Responsive",
-   1280 × 800, zoom 100%), or capture larger and crop to 16:10.
-2. **1-ebay-search:** run a real eBay search with 30+ results (something photogenic: film cameras, guitars,
-   handheld consoles), open the panel, press Scan, wait for the dots. Capture with the panel open.
-3. **2-ebay-listing:** open one of the better-scored listings, press Analyze this listing, capture once the
-   verdict, offer and price history show. **3-marketplace:** a Marketplace search after a scan.
-4. Check nothing personal shows (your eBay username, saved addresses, browser bookmarks bar, other tabs).
-5. Drop them into `store/screenshots/` with the same names. Claude can crop, resize, remove personal details and check them.
-
-### 5. Fill in the store forms (dabloonery, with `store/LISTING.md` open)
-
-- [ ] **Package:** upload `dist/tirekick-<version>.zip`.
-- [ ] **Store listing:** description, category (Shopping), language, the images above.
-- [ ] **Privacy:** single purpose, each permission's justification, "No, I am not using remote code",
-      the data-use boxes and the three certifications, privacy policy URL `https://tirekick.app/privacy`.
-- [ ] **Distribution:** Public, all regions. (Or **Unlisted** first if you'd like a soft launch: only
-      people with the link can install it, and you can switch to Public later.)
-- [ ] **Test instructions** (shown to the reviewer): paste "Notes for the reviewer" from `store/LISTING.md`.
-- [ ] Submit for review. First reviews usually take a few days and can run longer with broad host
-      permissions (see M1 in the security review).
-
-### 6. After approval
-
-- [ ] Put the store link on the website's "Add to Chrome" button (Claude).
-- [ ] Install from the store on a clean Chrome profile and check the first-run settings page opens.
-- [ ] Install the store build in **Vivaldi** too and run the four checks in the security review's
-      Vivaldi section (icon and badge, shortcut, the two right-click entries).
-- [ ] Keep the unpacked copy you use day to day separate from the store install: they have different
-      extension IDs, so saved data doesn't move between them. Use **Save a backup** and **Restore**
-      in settings to carry it across.
+- [ ] dabloonery says which build goes up; the version is set then (it stays put between uploads).
+- [ ] `deno task test`, then `deno task pack`. Unzip `dist/tirekick-<version>.zip` into a fresh folder, load it
+      with **Load unpacked**, and click through: an eBay search, the panel, a scan with a key, a Marketplace
+      search, settings, a backup and restore.
+- [ ] If what's read, stored or requested changed: `store/PRIVACY.md`, `site/privacy.html` (and tirekick-site)
+      and `store/LISTING.md` say so before the upload.
+- [ ] After approval: install from the store in Chrome and in **Vivaldi**, and run the checks in the security
+      review's Vivaldi section (icon and badge, shortcut, the right-click entries).
+- Keep the unpacked copy used day to day separate from the store install: they have different extension IDs, so
+  saved data doesn't move between them (**Save a backup** and **Restore** carry it across).
 
 ### If the review comes back with questions
 
@@ -546,119 +381,20 @@ Retaking screenshots 1 to 3 (**dabloonery**, since it needs your eBay session an
 
 ## Tirekick: making the no-AI features sturdier
 
-Audit dated 2026-10-14, of `main` (0.35.0) plus the unpushed `claude/ux-spec` branch (0.36.x, since ported to `main` as 0.36.0).
-AI scoring stays the core feature; this covers everything that works without a model or an outside service.
-No code changes until the ux-spec port is merged. Then each section below is its own PR, with tests, in this order.
+*Planned 2026-10-14; all eight items shipped in 0.36.0 (#14 to #21). The full plan, with how each part could
+break, is in git history before 2026-10-22.*
 
-**Status (2026-10-14):** all 8 shipped to `main` as PRs #14 to #21. Still open from item 1: swap the hand-made fixtures for real saved eBay and Marketplace pages (needs dabloonery to save a few from Vivaldi).
+1. **Layout watch**: on results pages the panel counts how many listings it could read (`TKRules.readHealth`),
+   keeps it per store in `siteHealth`, and Home says when a store looks broken.
+2. **Storage that can't silently fill up**: caps per record, and a storage error that says so and points at Backup.
+3. **One writer for shared data**: `send("storeEdit", …)` through the background (`applyEdit` in `lib/shared.js`).
+4. **Restore that can't break the panel**: backups are checked, and older shapes upgraded.
+5. **Sold prices you can trust more**: a confidence on every median, paced and cached lookups (`lib/sold.js`).
+6. **Plain logic out of the panel**: `content/rules.js`, unit tested without a page.
+7. **Parsing edge cases and words**: prices, ranges, shipping, lots and auctions, in the adapter unit tests.
+8. **Upgrades from older versions**: `TKShared.upgradeStorage` with `STORAGE_VERSION`.
 
-### What's in scope
-
-| Feature | Where it lives | Tested today |
-|---|---|---|
-| Reading listings off eBay and Marketplace (cards, listing pages, prices, shipping, auctions, lots, seller ratings) | `content/adapters.js` | Unit tests for the parsers; e2e against hand-made fixture pages |
-| Scam signs (reposted codes, off-site contact, disguised phone numbers) | `adapters.js`, `rules.js`, `panel.js` | Good unit coverage of the patterns |
-| Filter bar and filter words, deals, "fix-up project" and "motivated seller" words | `rules.js`, `panel.js` | Unit tests for word matching |
-| "Seen before", "New to you", price drops, duplicates | inside `panel.js` | Only through e2e, no unit tests |
-| Sold-price lookups (median, pacing, eBay's browser check) | `panel.js` on main, `lib/sold.js` on ux-spec | e2e only; the summary math has no unit tests |
-| Saved listings and searches, alerts and the toolbar number | `panel.js`, `lib/shared.js`, `home.js` | Unit tests for alerts; saving through e2e |
-| Settings, backup and restore, migrations | `options.js`, `shared.js`, `background.js` | Settings limits unit-tested; restore through e2e |
-
-### How each can break
-
-**Site layout changes (the biggest risk).** Both sites change markup without notice. The adapters layer selectors
-and fall back, but when they all miss, the panel just shows fewer listings or none. Nobody is told unless they press
-"Check this page". The Marketplace fixture is synthetic, and the eBay fixtures are hand-made reductions, so the tests
-can stay green while real pages have already moved on.
-*Update 2026-10-22 (PRs #61, #66, #74 and the end-to-end check after them):* a change can no longer turn into a
-wrong price, which was the worse failure: a renamed eBay price class used to take the first dollar amount on the
-card (the title's "$1", the shipping, a struck-through or "Save $5" amount, a foreign price without its currency)
-and mark the card "Likely scam". The fallback now takes only a piece of the card that is one whole price, or leaves
-it unknown so the layout watch says so. Price ranges and reworded auctions aren't compared with the typical price,
-and Marketplace cards read the right title and price when Facebook moves the lines around. `e2e/free.ts` checks a
-redesigned eBay page (`?changed=price`, `?changed=noprice`) keeps its marks or shows none.
-*Update 2026-10-22, real pages:* dabloonery saved a real eBay search and a real Marketplace search (`*-real.html` fixtures,
-sanitized by `tests/helpers/trim-page.py`). Marketplace read all 90 cards right. eBay showed three misses the hand-made
-pages hid: a price range split over three pieces was read as its low end (10 of 60 cards), "0% positive (0)" (a seller with
-no ratings) wasn't read, and on both sites Tirekick read its own tag and chips back as listing text, so an earlier
-"Likely scam" went into the next scan. All fixed; cards now carry eBay's condition too. Still hand-made: the listing,
-sold and category pages, and the Marketplace feed and listing page.
-
-**Odd listings.** Prices like "C $20" or "AU $35" are read as US dollars. A price range ("$45 to $60") takes the low end.
-Titles with accents or non-English text lose letters in word matching ("Pokémon" becomes "pok mon", so a filter word of
-"pokémon" can miss). "Best offer accepted" is read from card text that's cut at 300 characters, so it can be missed.
-
-**Missing data.** A card with no price, no photo or no shipping line mostly degrades cleanly. What isn't handled: a
-listing page that loads in pieces (the read happens before the price arrives), and sold searches with too few sales,
-which are cached as "none" for six hours.
-
-**Storage filling up.** The extension doesn't have the `unlimitedStorage` permission, so it gets 10 MB. Kept scores
-(3,000 listings with photo notes), the score cache, listing memory (6,000) and the rest add up over months. Every write
-swallows its error, so once storage is full, saving a listing quietly does nothing.
-
-**Two tabs at once.** Saved listings, searches, hidden listings, filters, scam codes and the sold-price pacing are each
-read, changed and written back. Two tabs doing that at the same moment can lose one change. For sold prices it also
-means two tabs can both pass the "8 an hour, 5 seconds apart" check and push eBay toward its browser check.
-
-**Restoring a backup.** Saved listings and searches are cleaned, but listing memory, hidden listings, filters, scam codes
-and mode settings go in as they are. A hand-edited or damaged file (a filter whose words aren't text, a record that
-isn't an object) can make the panel throw on every page until storage is cleared. There's no file size limit.
-
-**Offline or eBay unreachable.** Lookups fail with the browser's own "Failed to fetch". The panel keeps working, but
-the message doesn't say what happened.
-
-### The plan, in priority order
-
-#### 1. Say when a site has changed (layout watch)
-- On every results page, compare cards found with listings read, and how many have a title and price. When most
-  are missing, show one plain notice in the panel ("eBay's page changed and Tirekick can only read 3 of 48 listings")
-  with "Check this page" and a link to report it.
-- Keep a small per-site health note (last good read, last bad read) and show it on Home.
-- Replace the fixtures with real saved pages (eBay results, sold, category, listing; Marketplace feed, search,
-  listing) and pin the expected values per field. **This needs you:** save a few real pages from Vivaldi when we get
-  here. I'll give you the list.
-
-#### 2. Storage that can't silently fill up
-- Add `unlimitedStorage` (Chrome shows no install warning for it), and keep the caps as housekeeping.
-- One write helper for every collection: it catches a failed write, tells you once in the panel, and logs which
-  collection it was. Show storage use in "Check this page" and Settings.
-- Test: fill storage in a test profile and check that saving still works or says why not.
-
-#### 3. One writer for shared data
-- Move the read-change-write of saved listings, searches, hidden listings, filters, scam codes and sold-price pacing
-  into the background worker, one queue, so tabs can't overwrite each other or both pass the lookup limit.
-- Test: two tabs saving and hiding at the same time lose nothing; two tabs looking up prices stay under the limit.
-
-#### 4. Restore that can't break the panel
-- Check the shape of every collection in a backup, not just saved items: types, lengths, dates, and a size limit on
-  the file. Leave out what doesn't fit and say how much.
-- Saved-listing photos only from the sites' own image hosts.
-- Unit tests with damaged and hostile backups, and a round trip (back up, wipe, restore, compare).
-
-#### 5. Sold prices you can trust more
-- Builds on the ux-spec work (best offers, lots, for-parts, outliers and a confidence are already handled there).
-- Leave out non-US prices and price ranges. Read "best offer accepted" from the whole card.
-- Cache "too few sales" for one hour instead of six, and say "you're offline" or "eBay didn't answer" plainly.
-- Unit-test the summary on saved sold pages: medians, what's left out, confidence.
-
-#### 6. Pull the plain logic out of the panel so it can be tested
-- "Seen before", price drops and history, duplicates, the scam-code memory and the deal check live inside the
-  4,000-line panel script, where only browser tests reach them. Move them to `rules.js` and `shared.js` as plain
-  functions with unit tests. No behavior change.
-
-#### 7. Parsing edge cases and words
-- A table of tricky prices, titles, auctions and seller ratings, plus a test that the adapters never throw on a
-  broken or empty page.
-- Word matching that handles accents and other alphabets; unbalanced quotes and a lone "-" in filters.
-
-#### 8. Upgrades from older versions
-- A test that starts from each older storage shape (Second Look keys, the two word lists, old themes, old caches) and
-  checks the current version reads it without losing anything.
-
-### What I'd do first
-
-Items 1 to 4 are where people actually lose data or get wrong answers silently. 5 to 8 are accuracy and test depth.
-Each is a separate PR so you can stop after any of them.
+*Still open:* real saved listing, sold and category pages (real eBay and Marketplace searches are fixtures since #90).
 
 ---
 
@@ -666,7 +402,7 @@ Each is a separate PR so you can stop after any of them.
 
 ## Tirekick feature briefs
 
-The briefs (1 to 7 written 2026-10-14, 8 to 10 on 2026-10-15) are written so another agent can pick one up cold. Each is a plan only: nothing here has been built or tested.
+The briefs (1 to 7 written 2026-10-14, 8 to 10 on 2026-10-15) are written so another agent can pick one up cold. Each started as a plan; where a part has been built since, the brief or [Where things stand](#where-things-stand) says so.
 
 | # | Brief | Size | Depends on |
 |---|---|---|---|
@@ -686,7 +422,7 @@ Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
 ### Read this before any brief
 
-**Where the code is.** `github.com/dabloonery/Second-Look`, `main` is Tirekick 0.36.0 (as of 2026-10-14): the UX-spec work (auto-scan, per-search "What I want", the hub page, the site table, sold-price pacing) is ported and merged (PR #13), and so are the robustness PRs #14 to #21. Start from the latest `main`; the site table is `TKSites` in `lib/sites.js`.
+**Where the code is.** `github.com/dabloonery/tirekick`; start from the latest `main` (0.57.0 on 2026-10-22). The site table is `TKSites` in `lib/sites.js`.
 
 **What already exists (don't rebuild it).** Several of these ideas are partly built. Each brief has a "What's there today" section with file and line references to main at `381f758`. Line numbers will drift; search for the names.
 
@@ -905,7 +641,7 @@ As a buyer, I want Tirekick to warn me that this $60 iPhone uses the same photo 
 2. **Brand-new seller accounts on Marketplace.** Marketplace listing pages show "Joined Facebook in 2026" and sometimes seller ratings. Read them in the Marketplace item reader (`content/adapters.js`) into `sellerJoined` and `sellerCount`, so `sellerWarning` applies there too, plus a new reason: joined within the last N months. Cards don't show this; it's a listing-page mark and a hover-card line once the listing has been opened.
 3. **Price far under sold.** A deterministic rule in `content/rules.js`: total under ~40% of the working sold median (with at least ~8 sales, not a for-parts listing, not an auction, not a lot) gives the chip "Likely scam: far under sold price", or a softer "Too cheap? Check it" between 40% and 55%. Thresholds in one table. Shown only when the sold reference exists.
 4. **One place for the reasons.** The hover card and the listing view already list scam reasons (`f.campaign`, title code, off-site). Add the new ones in the same shape so the order and wording stay consistent, and so a scan can confirm or clear them (as it does for title codes).
-5. **Per-store rules.** Off-site contact and phone numbers are normal on Craigslist (see brief 5 and `docs/plan-more-sites.md`). Key the new rules by `site` so a later store can opt out.
+5. **Per-store rules.** Off-site contact and phone numbers are normal on Craigslist (see brief 5). Key the new rules by `site` so a later store can opt out.
 
 #### Files likely touched
 
@@ -948,11 +684,23 @@ As a buyer who also shops OfferUp and Craigslist, I want the same scores, sold-p
 
 - **The site table:** `lib/sites.js` (`SITES`, documented `Site` typedef: id, key prefix, hosts, matches, page types, item and search URLs, image hosts, `local`, card behavior, `titleCodes`, `soldReference`). Background, page scripts, the hub and settings read it instead of naming a store.
 - **Per-site readers:** the maps in `content/adapters.js` (`READERS`, `ITEM_READERS`, `LISTING_LINKS`, `CARD_FINDERS`, `SEARCH_BUILDERS`, `BROWSE_CONTEXT`).
-- **The how-to:** `docs/adding-a-site.md` (step by step, including permissions and tests) and **the plan:** `docs/plan-more-sites.md` (what OfferUp and Craigslist are like, how scams differ, the order, risks). Read both in full before starting; this brief doesn't repeat them.
+- **The how-to:** `docs/adding-a-site.md` (step by step, including permissions and tests). Read it in full before starting.
 - **The guard test:** `tests/unit/sites.test.mjs` fails until a new site has every field and every per-site map.
 - **Sold prices:** eBay's sold listings stay the price reference for every store (`soldReference: false` for the others), paced by `lib/sold.js`.
 
 Note: some places still hard-code the two stores on main (`TKShared.safeUrl`, `itemUrl`, `searchUrl` and `isListingImage` in `lib/shared.js`, `cleanSaved`'s key pattern `^(ebay|fb):` in `options/options.js`). Check whether the port moved them onto the table; if not, do that first, in its own small commit.
+
+#### What OfferUp and Craigslist are like (2026-10-13)
+
+| | OfferUp | Craigslist |
+|---|---|---|
+| Pages | A React app (offerup.com/search?q=…, /item/detail/<id>); cards load as you scroll and are recycled, like Marketplace | Server-rendered per city (sfbay.craigslist.org/search/sss?query=…, /…/d/<slug>/<id>.html); the newer gallery and list layouts are built with script, the old "result-row" one still appears |
+| Reading cards | By the link to /item/detail/ and the text inside it (the Marketplace approach: no class names) | `.cl-search-result` / gallery cards: title link, `.priceinfo`, location; the listing page has `#postingbody` and an attributes block (condition, make, model) |
+| Price and shipping | Local pickup mostly; some "Ships" with a shipping price on the listing | Local only; prices are often round, sometimes $0 or $1 as a placeholder |
+| Seller | Star rating, number of ratings, "TruYou" verified, join date, response time | None |
+| What a scam looks like | Moving to text/email to pay by Zelle, Cash App or gift cards; "shipping only" for a local-looking item; brand-new account with no ratings | "I'm away, I'll ship it", payment before seeing it, fake escrow or overpayment, email relays. Phone numbers and "text me" are normal here, not a sign |
+
+Risks: Both sites' terms limit automated collection. Tirekick would read only pages you are looking at, never fetch from these sites in the background: the same line it holds on eBay and Facebook. OfferUp may show less without signing in, and changes its app often; Craigslist's script-built layouts vary by city and device. Photo checks need their image hosts (images.craigslist.org, OfferUp's CDN) added to the allowed photo hosts.
 
 #### Order and per-store notes
 

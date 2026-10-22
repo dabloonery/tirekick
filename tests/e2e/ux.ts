@@ -26,6 +26,17 @@ await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: tagAt[0], y: t
 const chipLook = await p.ev(`(()=>{const b=[...document.querySelectorAll('.tirekick-sticker .tk-under .tk-acts button')].find(x=>x.textContent==='Save'); if(!b) return 'none'; const cs=getComputedStyle(b); return cs.backgroundColor+' '+cs.borderRadius})()`);
 ok("hover chips on a tag keep their chip look", !/rgba\(0, 0, 0, 0\)|^none/.test(chipLook) && chipLook.endsWith("999px"), chipLook);
 
+// the hover box can be put away with Esc without moving the mouse (WCAG 1.4.13); the panel stays open
+const popShown = () => p.ev(`getComputedStyle(document.querySelector('.tirekick-sticker .tk-pop')).display`);
+ok("the tag's hover box shows on hover", (await popShown()) === "block", await popShown());
+await p.key("Escape"); await sleep(150);
+ok("Esc puts the hover box away", (await popShown()) === "none", await popShown());
+ok("…and leaves the panel open", await R(`return r.querySelector('.wrap').classList.contains('open')`));
+await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 }, p.sessionId); await sleep(100);
+await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: tagAt[0], y: tagAt[1] }, p.sessionId); await sleep(250);
+ok("it's back on the next hover", (await popShown()) === "block", await popShown());
+await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 }, p.sessionId); await sleep(100);
+
 // nothing new: Scan again is secondary
 ok("Scan again is secondary", (await R(`const b=r.querySelector('[data-act=scan]'); return b.className+'|'+b.textContent`)).startsWith("ghost|Scan again"), await R(`return r.querySelector('[data-act=scan]').className`));
 

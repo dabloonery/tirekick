@@ -143,6 +143,12 @@ Where the rules stood, before any change:
 | The same, still a warning after a scan that read the reason | 19 of 20 |
 | Honest cheap listings that don't say why, marked | 8 of 8 (4 Likely scam) |
 
+The changes, one PR each:
+
+| Problem | Effect on real listings | Now |
+|---|---|---|
+| The bait share the scan and Analyze send the model ("SCAM SIGNAL: the total is N% of the typical price … the usual bait") was worked out from the raw card or listing, which has no for-parts, missing-word or not-your-search facts, and against the eBay total rather than the pickup price | "Nintendo Switch OLED for parts, no power" at $105 went to the model as bait at 42%, while its card rightly showed no warning; a model told that is likely to say suspicious, and a model's suspicious is never overruled. On Marketplace the model got two different percentages for one listing | The share comes from the card's own facts, the same ones its chip uses. Analyze gives the listing its for-parts and missing-word facts, so its price check doesn't turn a broken one into "Great price, if it's real" either (`tests/e2e/real.ts` checks what each listing line sends) |
+
 ## Spending estimates
 
 Checked against current published prices (per million tokens, input/output): Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 under 100K-token prompts (a scan batch is far smaller). These match. Cache reads are counted at 0.1× input; Opus 5.5 and Sonnet 5.5 now charge 0.05×, so estimates run slightly high on cached prompts, never low. Every figure is labeled an estimate; the real balance is at console.anthropic.com.

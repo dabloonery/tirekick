@@ -359,8 +359,11 @@ async function testClaude() {
     const res = await fetch(`https://api.anthropic.com/v1/models/${encodeURIComponent(model)}`, {
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
     });
-    if (res.status === 401) throw new Error("The API key was rejected.");
+    if (res.status === 401) throw new Error(`The API key was rejected.${/^sk-ant-/.test(key) ? " Copy it again from console.anthropic.com." : " Claude API keys start with sk-ant-; for another service's key, pick that service above."}`);
+    if (res.status === 403) throw new Error(`The key works, but it isn't allowed to use "${model}".`);
     if (res.status === 404) throw new Error(`The key works, but there's no model called "${model}".`);
+    // Busy or down: the key wasn't checked either way.
+    if (res.status === 429 || res.status >= 500) throw new Error(`The Claude API is busy or having a problem (error ${res.status}), so the key wasn't checked. Try again in a minute.`);
     if (!res.ok) throw new Error(`The Claude API answered ${res.status}.`);
     const info = await res.json();
     testMsg.textContent = `Connected. ${info.display_name || model} is available.`;

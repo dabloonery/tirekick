@@ -101,5 +101,18 @@ items = await extract(p);
 ok("Facebook Marketplace (synthetic page): titles and prices", eq(items.map((i: any) => [i.title, i.price]), [["Nintendo Game Boy Advance SP", 40], ["Game Boy Advance SP M2465", 25], ["Box of old cartridges, take them all", 0], ["Super Nintendo console with 2 controllers", 120]]), items.map((i: any) => [i.title, i.price]));
 ok("…clean links, title codes and Just listed", items[0].url === "https://www.facebook.com/marketplace/item/1001/" && items[1].titleCode === "M2465" && items[1].justListed === true && items[0].titleCode === "", [items[0].url, items[1].titleCode, items[1].justListed]);
 ok("…page type and search words", (await p.ev(`Tirekick.pageType()`)) === "results" && (await p.ev(`Tirekick.facebookQuery()`)) === "game boy");
+// Facebook changes its cards: the title moves above the price, a new label appears on the photo, the old price
+// sits on the same line as the new one. The price and title must still be right, or unknown.
+{
+  const cards = [
+    `<a href="/marketplace/item/2001/"><div>Switch OLED $200 firm</div><div>$250</div><div>Chicago, IL</div></a>`,
+    `<a href="/marketplace/item/2002/"><div>Popular near you</div><div>$250</div><div>Nintendo Switch OLED</div><div>Toronto, ON</div></a>`,
+    `<a href="/marketplace/item/2003/"><div><span>$165</span><span>$180</span></div><div>PS5 disc edition</div><div>Chicago, IL</div></a>`,
+    `<a href="/marketplace/item/2004/"><div>PS5 disc edition</div><div>Chicago, IL</div></a>`,
+    `<a href="/marketplace/item/2005/"><div>$40</div><div>Couch, Grey</div><div>Chicago, IL</div></a>`,
+  ].join("");
+  const r = await p.ev(`(() => { document.querySelector('[role=main]').innerHTML = ${JSON.stringify(cards)}; return Tirekick.extractFacebook(document).map((it) => [it.title, it.price, it.wasPrice ?? null]); })()`);
+  ok("Marketplace cards rearranged: the title above the price, a new label, old and new price on one line, no price, a title with a comma", eq(r, [["Switch OLED $200 firm", 250, null], ["Nintendo Switch OLED", 250, null], ["PS5 disc edition", 165, 180], ["PS5 disc edition", null, null], ["Couch, Grey", 40, null]]), r);
+}
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

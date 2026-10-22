@@ -109,7 +109,7 @@ export function report(rows = runCases(), all = false) {
     `  honest marked Likely scam: ${s.falseRed.length} of ${s.honest}; Check first: ${s.falseAmber.length} (${pct(s.falseAmber.length, s.honest)})`,
     `  price word as labeled: ${s.priced - s.wrongWord.length} of ${s.priced}`,
     `  after a scan, shown verdict as labeled: ${s.scanned - s.wrongShown.length} of ${s.scanned}; scams Analyze would clear: ${s.deepCleared.length}`,
-    `Honest listings far under typical (${s.clear} that should clear: they say why, or sales go that low; ${s.warn} that don't)`,
+    `Honest listings far under typical (${s.clear} that should clear: they say why, sales go that low, or the site explains it; ${s.warn} that don't)`,
     `  should clear, marked Likely scam: ${s.clearRed.length}; Check first: ${s.clearAmber.length}; still a warning after a scan: ${s.clearStuck.length}; verdict as labeled: ${s.clear - s.clearWrong.length} of ${s.clear}`,
     `  the rest, marked Likely scam: ${s.warnRed.length}; marked at all: ${s.warnMarked.length} of ${s.warn}`,
   ];

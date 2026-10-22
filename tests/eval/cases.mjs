@@ -177,6 +177,7 @@ export const CHEAP = [
   cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White Console", 125, 0, seller(100, 1)), "warn", "none", "suspicious", "50% from a new seller, no reason (the PR #54 trade-off)"),
   cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White Console", 132, 0, seller(100, 6)), "warn", "none", "suspicious", "52% from a seller with 6 ratings"),
   cheap(ebay("canon ae-1", "Canon AE-1 35mm camera body", 55, 0, seller(99.5, 300)), "warn", "none", "suspicious", "34% on a reference from 19 sales: Check first, not Likely scam"),
+  cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White Console", 128, 0, seller(99.7, "1.5K")), "clear", "none", "good", "51% from an established eBay seller: eBay's guarantee stands behind it"),
   // Marketplace, with a reason
   cheap(fb("ps5 console", "PS5 disc, controller has drift, moving", 140), "clear", "flaw", "good", "46% of pickup"),
   cheap(fb("macbook air m1", "MacBook Air M1 2020 cracked bezel works", 190), "clear", "flaw", "good", "47% of pickup"),
@@ -186,8 +187,8 @@ export const CHEAP = [
   cheap(fb("dewalt dcd771", "DeWalt DCD771 drill, no charger, one battery", 28), "clear", "missing parts", "good", "45% of pickup"),
   // Marketplace, no reason
   cheap(fb("nintendo switch oled", "Nintendo Switch OLED - moving, need gone", 110), "warn", "quick sale", "suspicious", "46% of pickup"),
-  cheap(fb("nintendo switch oled", "Switch OLED", 115), "warn", "none", "suspicious", "48% of pickup"),
-  cheap(fb("ps5 console", "PS5", 160), "warn", "none", "suspicious", "52% of pickup"),
+  cheap(fb("nintendo switch oled", "Switch OLED", 115), "clear", "none", "good", "48% of pickup: a pickup seller pays no eBay fee (the line is 86% of 55%)"),
+  cheap(fb("ps5 console", "PS5", 160), "clear", "none", "good", "52% of pickup, under the fee allowance"),
   cheap(fb("pentax k1000", "Old Pentax camera K1000 my dads", 45), "warn", "none", "suspicious", "41% of pickup, an estate find"),
   cheap(fb("nintendo switch oled", "Nintendo Switch OLED", 120, { page: "Joined Facebook in 2026. Moving out of state, must sell this week." }), "warn", "quick sale", "suspicious", "50% from an account made this year"),
 ];

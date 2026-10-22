@@ -1929,7 +1929,10 @@
     // What to do about it differs by site: on eBay its guarantee covers you if you pay through eBay; a pickup
     // sale has none, so see it working before any money changes hands.
     const safely = mk?.local ? " Meet in a public place, see it working, and pay only then: never ahead, and never by gift card or a payment app's friends option." : " Pay only through eBay, which covers a listing that isn't as described; never by a link or contact sent outside it.";
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}${safely}`]);
+    // What the scan or Analyze read about why it's cheap (priceVerdict uses it), and what would lift the mark.
+    const read = f.url && scored.get(keyOf(f.url))?.cheapWhy;
+    const lifts = cheap?.seller || (f.titleCode && !f.codeOk) ? "" : cheap?.level === "far" ? " Analyze can lift this to Fair price if the listing says something is missing or it's a cheaper version." : " A scan that reads a reason in the listing (a flaw, missing parts, a cheaper version) lifts this, no higher than Good price.";
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}${read && read !== "none" ? ` The scan's reading: ${read}.` : ""}${lifts}${safely}`]);
     // Cheap, and the listing says why (or an established eBay seller): no warning, and no "Great price" either.
     const said = f.vsSold != null && !cheap && !unrelated && TKRules.cheapForReason(f, mk);
     if (said) c.push(["plain", `Under typical: ${said.why || "established seller"}`, `This is ${said.pct}% of the typical price (${from(mk)}), ${said.why ? `and the listing says why: “${said.why}”. Check the photos show it, and ask about anything else.` : `from a seller with ${f.sellerCount} ratings, ${f.sellerPct}% positive. Read the description for anything missing or wrong.`}${safely}`]);
@@ -2731,7 +2734,7 @@
   function shownV(it, f = facts.get(keyOf(it.url)), opts) {
     const market = it.refWorking > 0 && !it.refIsEstimate ? { median: it.refPrice ?? it.refWorking, confidence: it.refRough ? "rough" : "good" } : marketOf({ ...f, ...it });
     const pv = TKRules.priceVerdict(it.verdict, { ...f, ...it }, market, opts);
-    return { v: pv.v, score: pv.score ?? it.score, why: pv.why || "", label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label, priceWarn: pv.v === "suspicious" && it.verdict !== "suspicious" };
+    return { v: pv.v, score: pv.score ?? it.score, why: pv.why || "", label: pv.label || (VERDICT[pv.v] || VERDICT.fair).label, priceWarn: pv.v === "suspicious" && it.verdict !== "suspicious", level: pv.level || "" };
   }
 
   // Every listing on the page, scored or not: before a scan the list is the page in a form you
@@ -2745,7 +2748,13 @@
   // The score as shown: moved into the price check's verdict when that wins, so a "Great price, if it's real" at
   // 91 doesn't head the list. Worked out once per item per render (shownMemo), not in every comparison.
   let shownMemo = null;
-  const sc = (it) => (it.score == null ? -1 : (shownMemo?.get(it) ?? shownV(it)).score);
+  // A "Too cheap?" warning (not Likely scam) the model liked sorts just under Fair price, above the passes: it's a
+  // listing to check, not one to skip. Its own score still shows.
+  const sc = (it) => {
+    if (it.score == null) return -1;
+    const sv = shownMemo?.get(it) ?? shownV(it);
+    return sv.priceWarn && sv.level === "low" ? TKRules.BANDS.fair[0] - 0.5 : sv.score;
+  };
   // Before a scan, "best first" goes by the free read: good prices up, warnings and off-topic down.
   const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, marketOf(facts.get(keyOf(it.url)) || it))?.rank ?? 0.5);
   const dealOf = (it) => (facts.get(keyOf(it.url))?.deal ? 1 : 0);

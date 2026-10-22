@@ -32,7 +32,7 @@ Request: "prettier and more useful". The panel's paper-and-ink look was kept (sc
 
 Change (`content/panel.js`): hover actions are now clipped rather than hidden and appear on hover or focus; the score tag is a focusable group that opens its reasons card on focus.
 
-Evidence: `tests/run.sh` 11/11 PASS on this build; on the previous tree the three new card checks fail (focus did not move, focused box 0x0). The tag's focus-to-reasons behaviour is **not covered by a test** (needs a scan) and the card marks did not render visibly in the unstyled fixture, so their appearance on real eBay/Facebook pages is **unverified**. Touch devices are not addressed.
+Evidence: `tests/run.sh` 11/11 PASS on this build; on the previous tree the three new card checks fail (focus did not move, focused box 0x0). The tag's focus-to-reasons behavior is **not covered by a test** (needs a scan) and the card marks did not render visibly in the unstyled fixture, so their appearance on real eBay/Facebook pages is **unverified**. Touch devices are not addressed.
 
 # Browser pass (0.22.1): found by driving the page with real key presses
 
@@ -42,7 +42,7 @@ Observed (real Enter/Tab): Enter on the tab opens the panel with focus inside; T
 
 Bug found: pressing Enter on Save saved the listing but the card's marks were redrawn and focus fell to the page body. Fix: `decorate` remembers which control had focus and refocuses the same position after redrawing. Re-tested with a real Enter: focus stays on "★ Saved". Automated check added (the headless run is now 12 checks).
 
-Not fixed / noted: about 8 Tab stops per card (tag, three actions, reasons-card buttons), which is a lot on a 60-listing page; a "next card" shortcut would help. Still unchecked: the other hover actions' redraw behaviour (Not interested), Facebook layout, a screen reader.
+Not fixed / noted: about 8 Tab stops per card (tag, three actions, reasons-card buttons), which is a lot on a 60-listing page; a "next card" shortcut would help. Still unchecked: the other hover actions' redraw behavior (Not interested), Facebook layout, a screen reader.
 
 # Live eBay check (read-only, one search page)
 
@@ -95,7 +95,7 @@ Not verified: the panel on live eBay/Facebook (the extension is not loaded in th
 
 Applied from the "Second Look UX and visual design" canvas (v3, dark first):
 - **Theme**: dark is the default palette. Settings → On the page → Theme: Match my browser (default; dark when the browser does not say), Dark, Light. The panel and the photo-check card follow it. The marks on cards follow the page's own measured background brightness (re-checked each second), falling back to the browser, then dark.
-- **Contrast** (measured on the palettes): text 4.6:1 or better in both themes; control borders use a separate 3:1+ colour (the divider colour is 1.4:1); `color-scheme` is set so native checkboxes and menus match; text on verdict/accent fills uses a dark ink on dark theme (white on those fills failed there).
+- **Contrast** (measured on the palettes): text 4.6:1 or better in both themes; control borders use a separate 3:1+ color (the divider color is 1.4:1); `color-scheme` is set so native checkboxes and menus match; text on verdict/accent fills uses a dark ink on dark theme (white on those fills failed there).
 - **Type**: Atkinson Hyperlegible (Next / Mono) if installed, else the system font; larger text for titles, meta and hints; numbers monospaced. The bundled serif and its loader were removed (`fonts/`, `getFont`).
 - **Results**: square score box with the verdict word beside every number, price in its own right-hand column, plain-language headline after a scan ("2 worth a look" / "Nothing here is a bargain"), "N look like scams" in the summary line.
 - **Marks on the page**: same position as before, restyled (outlined score box with word, 4px corners, larger text, tokens per page brightness).
@@ -107,7 +107,7 @@ Not applied: the in-flow "Details" strip under each card's price (marks stay as 
 
 Checked against the MV3 checklist: Manifest V3 only; every icon is a real file at its stated size (16/32/48/128); `action` is declared; permissions are `storage`, `contextMenus`, `scripting` with host permissions scoped to eBay, Facebook, the AI services and local model addresses (the broad `https://*/*` is optional, asked for only when you pick a custom AI address); no `tabs` permission needed (no `tab.url` is read); the message listener returns `true` for async replies; the right-click photo check confirms with an on-page card; no `eval`, inline scripts or remote code; spending, cooldowns and scores are kept in `chrome.storage`, not worker variables (the few module variables are request-scoped: abort handles and two promise queues that only order writes).
 
-Changed: the background message handler is now async/await instead of a `.then` chain. Left as is on purpose: the promise queues (`spendQueue`, `syncing`) because they exist to serialise writes, and about ten `.then` calls on `chrome.storage` in the content script and settings page (no behaviour difference).
+Changed: the background message handler is now async/await instead of a `.then` chain. Left as is on purpose: the promise queues (`spendQueue`, `syncing`) because they exist to serialize writes, and about ten `.then` calls on `chrome.storage` in the content script and settings page (no behavior difference).
 
 Measured: decorating 200 cards takes about 0.9 s with a worst main-thread stall of 12 to 39 ms (headless Chrome, three runs), so no batching is needed.
 
@@ -135,5 +135,5 @@ Also done in 0.26.1: the "add a key" card now sits above the welcome card; eBay 
 - New installs default to Sonnet 5.5; the system prompt carries `cache_control` and spend counts cache writes (1.25x) and reads (0.1x). Not measured: the real saving (needs a live key; Sonnet caches from 1,024 tokens, our instructions are roughly 1,600, so it should apply, Opus's larger minimum may not).
 - "Check this page" diagnostic on "No listings found" / unreadable listing. Verified by `tests/e2e/diagnostic.ts` on an empty page; not yet seen on a live site that changed layout.
 
-# 0.28.0: type, colour and button hierarchy
-Inventory found 16 font sizes (9 to 24, with 10.5/11.5/12.5/13.5 as near-duplicates), weights 400/500/600/700, and row actions that looked like plain muted text. Now: one size scale and weights 400/600/700 across panel, marks, toast and settings; three button tiers (settings: Test connection filled, clear-actions red outline; settings section headings 18/600 instead of 11px caps); in-list actions underlined; "Start over" quiet; reasons 13px under 15px titles; tag word and verdict line share vocabulary (Fair price, Scam?). Checked by eye in dark and light at 1x in headless Chrome; contrast values unchanged (colours were not changed except a `--danger` token reusing the existing red). Not user-tested.
+# 0.28.0: type, color and button hierarchy
+Inventory found 16 font sizes (9 to 24, with 10.5/11.5/12.5/13.5 as near-duplicates), weights 400/500/600/700, and row actions that looked like plain muted text. Now: one size scale and weights 400/600/700 across panel, marks, toast and settings; three button tiers (settings: Test connection filled, clear-actions red outline; settings section headings 18/600 instead of 11px caps); in-list actions underlined; "Start over" quiet; reasons 13px under 15px titles; tag word and verdict line share vocabulary (Fair price, Scam?). Checked by eye in dark and light at 1x in headless Chrome; contrast values unchanged (colors were not changed except a `--danger` token reusing the existing red). Not user-tested.

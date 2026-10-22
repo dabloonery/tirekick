@@ -5,7 +5,7 @@
 //   deno task eval              the scorecard and every listing that came out wrong
 //   EVAL_ALL=1 deno task eval   every listing
 import { loadScripts } from "../helpers/load.mjs";
-import { MARKETS, CASES } from "./cases.mjs";
+import { MARKETS, CASES, CHEAP } from "./cases.mjs";
 
 const { R, TK } = await loadScripts();
 const SETTINGS = { minSellerRatings: 10, minSellerPct: 97 }; // the defaults (background.js)
@@ -28,7 +28,7 @@ const readCard = (c) => {
 
 // What every case on one search shows, worked out the way pagePass does it: reposts found across the
 // search's cards first (the same title under another code), then each card on its own.
-export function runCases(cases = CASES) {
+export function runCases(cases = [...CASES, ...CHEAP]) {
   const stems = new Map(); // site|stem -> Set of codes
   const cards = cases.map((c) => ({ c, it: readCard(c) }));
   for (const { c, it } of cards) {
@@ -55,17 +55,21 @@ export function runCases(cases = CASES) {
     const card = free?.v === "suspicious" ? (free.word === "Likely scam" ? "red" : "amber") : free?.word === "Off-topic" ? "off" : "clean";
     const word = free && free.v !== "suspicious" && free.word !== "Off-topic" && free.word !== "Price dropped" ? free.v : "none";
     // After a scan: the scripted model verdict, through the price check that wins over it.
-    const shown = c.scan ? R.priceVerdict(c.scan, { ...f, related: c.scanRelated ?? f.related, score: 70 }, market).v : null;
+    const shown = c.scan ? R.priceVerdict(c.scan, { ...f, related: c.scanRelated ?? f.related, score: 70, ...(c.cheapWhy && { cheapWhy: c.cheapWhy }) }, market).v : null;
     return { c, f, free, card, word, shown };
   });
 }
 
 // The scorecard: scams caught (red or amber) and missed, honest listings marked, price words that match.
+// Honest cheap listings (group "cheap") are scored on their own: how many that say why they're cheap are still
+// marked Likely scam before a scan, and still a warning after one.
 export function score(rows) {
   const scams = rows.filter((r) => r.c.truth === "scam");
-  const honest = rows.filter((r) => r.c.truth === "honest");
+  const honest = rows.filter((r) => r.c.truth === "honest" && r.c.group !== "cheap");
+  const clear = rows.filter((r) => r.c.group === "cheap" && r.c.expect === "clear");
+  const warn = rows.filter((r) => r.c.group === "cheap" && r.c.expect === "warn");
   const priced = honest.filter((r) => r.c.word);
-  const scanned = rows.filter((r) => r.c.scan);
+  const scanned = rows.filter((r) => r.c.scan && r.c.group !== "cheap");
   const okShown = (r) => (r.c.truth === "scam" ? r.shown === "suspicious" || r.shown === "pass" : r.shown === (r.c.shown || r.c.scan));
   return {
     scams: scams.length,
@@ -79,6 +83,14 @@ export function score(rows) {
     wrongWord: priced.filter((r) => r.word !== r.c.word),
     scanned: scanned.length,
     wrongShown: scanned.filter((r) => !okShown(r)),
+    clear: clear.length,
+    clearRed: clear.filter((r) => r.card === "red"),
+    clearAmber: clear.filter((r) => r.card === "amber"),
+    clearStuck: clear.filter((r) => r.shown === "suspicious"),
+    clearWrong: clear.filter((r) => r.shown !== r.c.shown),
+    warn: warn.length,
+    warnRed: warn.filter((r) => r.card === "red"),
+    warnMarked: warn.filter((r) => r.card === "red" || r.card === "amber"),
   };
 }
 
@@ -87,11 +99,14 @@ export function report(rows = runCases(), all = false) {
   const s = score(rows);
   const pct = (n, d) => (d ? `${Math.round((n / d) * 100)}%` : "-");
   const out = [
-    `Free checks on ${rows.length} labeled listings (${s.scams} scams, ${s.honest} honest)`,
+    `Free checks on ${rows.length} labeled listings (${s.scams} scams, ${s.honest} honest, ${s.clear + s.warn} honest and far under typical)`,
     `  scams marked Likely scam: ${s.red} of ${s.scams} (${pct(s.red, s.scams)}); Check first: ${s.amber}; missed: ${s.missed.length}`,
     `  honest marked Likely scam: ${s.falseRed.length} of ${s.honest}; Check first: ${s.falseAmber.length} (${pct(s.falseAmber.length, s.honest)})`,
     `  price word as labeled: ${s.priced - s.wrongWord.length} of ${s.priced}`,
     `  after a scan, shown verdict as labeled: ${s.scanned - s.wrongShown.length} of ${s.scanned}`,
+    `Honest listings far under typical (${s.clear} that say why, ${s.warn} that don't)`,
+    `  saying why, marked Likely scam: ${s.clearRed.length}; Check first: ${s.clearAmber.length}; still a warning after a scan: ${s.clearStuck.length}; verdict as labeled: ${s.clear - s.clearWrong.length} of ${s.clear}`,
+    `  not saying why, marked Likely scam: ${s.warnRed.length}; marked at all: ${s.warnMarked.length} of ${s.warn}`,
   ];
   const group = (title, list) => list.length && out.push(title, ...list.map(line));
   group("Scams missed:", s.missed);
@@ -99,6 +114,8 @@ export function report(rows = runCases(), all = false) {
   group("Honest listings marked Check first:", s.falseAmber);
   group("Price word not as labeled:", s.wrongWord.map((r) => ({ ...r, c: { ...r.c, note: `labeled ${r.c.word}, read ${r.word}` } })));
   group("After a scan, not as labeled:", s.wrongShown);
+  group("Honest and cheap for a reason, marked Likely scam:", s.clearRed);
+  group("Honest and cheap for a reason, not as labeled after a scan:", s.clearWrong.map((r) => ({ ...r, c: { ...r.c, note: `labeled ${r.c.shown}, ${r.c.note}` } })));
   if (all) group("Every listing:", rows);
   return out.join("\n");
 }

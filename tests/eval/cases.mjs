@@ -13,6 +13,11 @@
 // text: what the card says besides the title and price (seller rating, bids, time left).
 // page: a Marketplace listing's page text, for the checks that only run once it's opened.
 // foreign: the currency when it isn't US dollars ("CA$", "£"), as Marketplace shows it to buyers elsewhere.
+// cheapWhy: the scripted scan's answer to why a low price is low ("none", "flaw", "missing parts", "different
+//   model", "quick sale"), as background.js asks for it.
+// group "cheap": an honest listing priced far under typical (CHEAP below). expect "clear": the card says why (a
+//   flaw, missing parts, a cheaper model), so it shouldn't stay a scam once a scan has read it; "warn": it doesn't,
+//   and a warning is fair. Kept out of the honest totals above and scored on their own.
 
 // Typical prices (recent eBay sales, used) for each search: the median total, the typical shipping in it,
 // and how much to trust it.
@@ -25,6 +30,7 @@ export const MARKETS = {
   "dewalt dcd771": { median: 75, ship: 13, confidence: "fair", n: 22 },
   "airpods pro 2": { median: 120, ship: 6, confidence: "good", n: 60 },
   "canon ae-1": { median: 160, ship: 15, confidence: "fair", n: 19 },
+  "nintendo switch": { median: 200, ship: 14, confidence: "fair", n: 52 }, // Lites, V1s and OLEDs together
 };
 
 const ebay = (query, title, price, shipping, text, rest = {}) => ({ site: "ebay", query, title, price, shipping, text, ...rest });
@@ -129,4 +135,55 @@ export const CASES = [
   // ---------- Marketplace: macbook air m1 (pickup $402) ----------
   fb("macbook air m1", "MacBook Air M1 2020 256GB", 350, { truth: "honest", word: "fair" }),
   fb("macbook air m1", "Macbook Air M1 8GB 256GB space gray A2337", 160, { truth: "scam", scan: "great", note: "bait with the real model number" }),
+
+  // ---------- scams that give the same excuses as honest cheap listings (CHEAP below) ----------
+  ebay("nintendo switch oled", "Nintendo Switch OLED - minor scratch, works perfect", 79, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "flaw", note: "bait with a flaw story, 31% from a new seller" }),
+  ebay("nintendo switch oled", "Nintendo Switch OLED moving sale must go", 89, 0, seller(100, 1), { truth: "scam", scan: "good", cheapWhy: "quick sale" }),
+  ebay("airpods pro 2", "Apple AirPods Pro 2nd Generation USB-C", 29.99, 0, seller(99.1, "1.2K"), { truth: "scam", scan: "good", cheapWhy: "none", note: "a fake from an established seller, 25%" }),
+  ebay("iphone 13 128gb", "iPhone 13 Mini 128GB Unlocked NEW SEALED", 89, 0, seller(100, 0), { truth: "scam", scan: "great", cheapWhy: "different model", note: "\"mini\" bait, 31%" }),
+  ebay("nintendo switch oled", "Nintendo Switch OLED console only no dock", 69, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "missing parts", note: "27% from a new seller" }),
+  ebay("canon ae-1", "Canon AE-1 Program film camera tested", 45, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "none", note: "28% on a fair reference, new seller" }),
+  fb("nintendo switch oled", "Nintendo Switch OLED small scratch K9F21", 95, { truth: "scam", scan: "good", cheapWhy: "flaw", note: "a code and a flaw story" }),
+  fb("ps5 console", "PS5 Slim moving sale", 110, { truth: "scam", scan: "good", cheapWhy: "quick sale", page: "Joined Facebook in 2026. Moving tomorrow, first to pay gets it." }),
+  fb("iphone 13 128gb", "iPhone 13 128gb minor scratches", 85, { truth: "scam", scan: "good", cheapWhy: "flaw", note: "30% of pickup, no other sign" }),
+  fb("macbook air m1", "MacBook Air M1 like new, moving", 150, { truth: "scam", scan: "good", cheapWhy: "quick sale", page: "Joined Facebook in 2026." }),
+];
+
+// Honest listings priced far under typical: the ones the checks are most likely to call scams. Written from what
+// people really write when they sell something cheap: a flaw, missing parts, a lock, a cheaper version than the
+// search, a quick sale, or no reason at all.
+const cheap = (c, expect, cheapWhy, shown, note) => ({ ...c, truth: "honest", group: "cheap", expect, scan: shown === "suspicious" ? "good" : shown, cheapWhy, shown, note });
+export const CHEAP = [
+  // eBay, with a reason on the card
+  cheap(ebay("nintendo switch oled", "Nintendo Switch OLED - dead pixel on screen, otherwise works", 115, 12, seller(99.8, "2K")), "clear", "flaw", "good", "50%"),
+  cheap(ebay("nintendo switch oled", "Nintendo Switch OLED heavy wear, drift on joycons", 105, 10, seller(99.1, 300)), "clear", "flaw", "fair", "46%"),
+  cheap(ebay("nintendo switch oled", "Nintendo Switch OLED console only, no dock", 118, 0, seller(99.5, 600)), "clear", "missing parts", "good", "47%"),
+  cheap(ebay("nintendo switch oled", "Nintendo Switch OLED console only, no dock", 118, 0, seller(100, 2)), "clear", "missing parts", "good", "47% from a new seller"),
+  cheap(ebay("iphone 13 128gb", "iPhone 13 128GB Unlocked - battery 76%, scratches", 150, 0, seller(99.5, 410)), "clear", "flaw", "good", "52%"),
+  cheap(ebay("iphone 13 128gb", "iPhone 13 128GB Verizon - carrier locked", 150, 0, seller(99, 200)), "clear", "flaw", "fair", "52%, locked to a carrier"),
+  cheap(ebay("iphone 13 128gb", "Apple iPhone 13 Mini 128GB Pink Unlocked", 155, 0, seller(99.6, "1K")), "clear", "different model", "good", "53%: a mini sells for less"),
+  cheap(ebay("macbook air m1", "MacBook Air M1 8GB 256GB - dent on corner, screen spots", 200, 0, seller(99.9, 700)), "clear", "flaw", "good", "48%"),
+  cheap(ebay("macbook air m1", "MacBook Air M1 MDM locked", 160, 0, seller(99, 300)), "clear", "flaw", "fair", "38%: locked to a company, close to parts"),
+  cheap(ebay("airpods pro 2", "AirPods Pro 2 - right earbud only + case", 45, 0, seller(99, 150)), "clear", "missing parts", "fair", "38%"),
+  cheap(ebay("airpods pro 2", "Apple AirPods Pro 1st Generation", 52, 0, seller(99.5, "3K")), "clear", "different model", "good", "43%: the older generation"),
+  cheap(ebay("nintendo switch", "Nintendo Switch Lite Turquoise", 85, 0, seller(99.7, 900)), "clear", "different model", "good", "43% of a search that mixes models"),
+  cheap(ebay("pentax k1000", "Pentax K1000 SLR body, meter dead, shutter works", 45, 12, seller(99.6, 800)), "clear", "flaw", "good", "46%"),
+  cheap(ebay("canon ae-1", "Canon AE-1 Program - shutter squeak, as found", 60, 15, seller(99.4, 260)), "clear", "flaw", "fair", "47%"),
+  // eBay, no reason on the card
+  cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White - moving sale, works perfectly", 125, 0, seller(100, 0)), "warn", "quick sale", "suspicious", "50% from a new seller: moving isn't a reason"),
+  cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White Console", 125, 0, seller(100, 1)), "warn", "none", "suspicious", "50% from a new seller, no reason (the PR #54 trade-off)"),
+  cheap(ebay("nintendo switch oled", "Nintendo Switch OLED White Console", 132, 0, seller(100, 6)), "warn", "none", "suspicious", "52% from a seller with 6 ratings"),
+  // Marketplace, with a reason
+  cheap(fb("ps5 console", "PS5 disc, controller has drift, moving", 140), "clear", "flaw", "good", "46% of pickup"),
+  cheap(fb("macbook air m1", "MacBook Air M1 2020 cracked bezel works", 190), "clear", "flaw", "good", "47% of pickup"),
+  cheap(fb("iphone 13 128gb", "iPhone 13 128gb small crack on back, battery 80%", 140), "clear", "flaw", "good", "50% of pickup"),
+  cheap(fb("iphone 13 128gb", "iPhone 13 mini 128gb", 140), "clear", "different model", "good", "50% of pickup"),
+  cheap(fb("nintendo switch", "Nintendo Switch Lite gray", 80), "clear", "different model", "good", "43% of pickup"),
+  cheap(fb("dewalt dcd771", "DeWalt DCD771 drill, no charger, one battery", 28), "clear", "missing parts", "good", "45% of pickup"),
+  // Marketplace, no reason
+  cheap(fb("nintendo switch oled", "Nintendo Switch OLED - moving, need gone", 110), "warn", "quick sale", "suspicious", "46% of pickup"),
+  cheap(fb("nintendo switch oled", "Switch OLED", 115), "warn", "none", "suspicious", "48% of pickup"),
+  cheap(fb("ps5 console", "PS5", 160), "warn", "none", "suspicious", "52% of pickup"),
+  cheap(fb("pentax k1000", "Old Pentax camera K1000 my dads", 45), "warn", "none", "suspicious", "41% of pickup, an estate find"),
+  cheap(fb("nintendo switch oled", "Nintendo Switch OLED", 120, { page: "Joined Facebook in 2026. Moving out of state, must sell this week." }), "warn", "quick sale", "suspicious", "50% from an account made this year"),
 ];

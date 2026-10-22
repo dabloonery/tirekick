@@ -20,6 +20,13 @@ const ok = (n: string, v: boolean, why = "") => { console.log((v ? "PASS " : "FA
 ok("5 listings read, 2 flagged as reposted-code scams", (await sh(a, `return r.querySelector('.pi-line').textContent`)).includes("5") && (await a.ev(`document.querySelectorAll('.tirekick-marks').length`)) + 5 >= 5);
 const repostPop = await a.ev(`[...document.querySelectorAll('a[href*="/item/222/"]')].map(x=>x.closest('[data-tk-cell]')?.querySelector('.tk-pop')?.textContent||'').join('')`);
 ok("a reposted scam's hover card says it once", (repostPop.match(/other codes/g) || []).length === 1 && !/reposted scam/.test(repostPop), repostPop);
+// a 200px card that clips its contents: the hover card narrows to fit inside it instead of being cut off
+await c.send("Target.activateTarget", { targetId: a.targetId }); await sleep(200); // a background tab skips animation frames
+const dotAt = await a.ev(`(()=>{const b=document.querySelector('a[href*="/item/333/"]').closest('[data-tk-cell]').querySelector('.tirekick-sticker .tk-score').getBoundingClientRect(); return [b.x+b.width/2,b.y+b.height/2]})()`);
+await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: dotAt[0], y: dotAt[1] }, a.sessionId); await sleep(400);
+const fit = await a.ev(`(()=>{const card=document.querySelector('a[href*="/item/333/"]'); const p=card.closest('[data-tk-cell]').querySelector('.tk-pop'); const r=p.getBoundingClientRect(), b=card.getBoundingClientRect(); return {pop:[Math.round(r.left),Math.round(r.right)], card:[Math.round(b.left),Math.round(b.right)]}})()`);
+ok("the hover card fits inside a narrow card that clips", fit.pop[0] >= fit.card[0] && fit.pop[1] <= fit.card[1], JSON.stringify(fit));
+await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 }, a.sessionId); await sleep(100);
 ok("marked-down card says it was $75", (await a.ev(`document.body.textContent.includes('was $75')`)));
 ok("scan scored the rest (5 stickers)", (await a.ev(`document.querySelectorAll('.tirekick-sticker').length`)) === 5);
 ok("scores restored in a second tab", (await b.ev(`document.querySelectorAll('.tirekick-sticker').length`)) >= 3);

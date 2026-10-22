@@ -38,7 +38,7 @@ plentiful; fill gaps". So the free parts of the feature briefs come before anyth
 | Plan | State |
 |---|---|
 | Store checklist | The writing, accounts, privacy page and screenshots are done. Not submitted, and won't be without Myer's OK |
-| Sturdier no-AI features | All 8 items shipped (#14 to #21). Still open: real saved eBay and Marketplace pages in place of the hand-made fixtures |
+| Sturdier no-AI features | All 8 items shipped (#14 to #21). Real saved eBay and Marketplace searches added as fixtures (2026-10-22); listing, sold and category pages are still hand-made |
 | Security review | No blockers. L1 done in 0.37.0 |
 | US English fixes (REFERENCE §5) | Done |
 | Feature briefs | See "Order" below |
@@ -527,8 +527,13 @@ card (the title's "$1", the shipping, a struck-through or "Save $5" amount, a fo
 and mark the card "Likely scam". The fallback now takes only a piece of the card that is one whole price, or leaves
 it unknown so the layout watch says so. Price ranges and reworded auctions aren't compared with the typical price,
 and Marketplace cards read the right title and price when Facebook moves the lines around. `e2e/free.ts` checks a
-redesigned eBay page (`?changed=price`, `?changed=noprice`) keeps its marks or shows none. Real saved pages are
-still the open item.
+redesigned eBay page (`?changed=price`, `?changed=noprice`) keeps its marks or shows none.
+*Update 2026-10-22, real pages:* Myer saved a real eBay search and a real Marketplace search (`*-real.html` fixtures,
+sanitized by `tests/helpers/trim-page.py`). Marketplace read all 90 cards right. eBay showed three misses the hand-made
+pages hid: a price range split over three pieces was read as its low end (10 of 60 cards), "0% positive (0)" (a seller with
+no ratings) wasn't read, and on both sites Tirekick read its own tag and chips back as listing text, so an earlier
+"Likely scam" went into the next scan. All fixed; cards now carry eBay's condition too. Still hand-made: the listing,
+sold and category pages, and the Marketplace feed and listing page.
 
 **Odd listings.** Prices like "C $20" or "AU $35" are read as US dollars. A price range ("$45 to $60") takes the low end.
 Titles with accents or non-English text lose letters in word matching ("Pokémon" becomes "pok mon", so a filter word of

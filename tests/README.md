@@ -17,7 +17,7 @@ it) and a fake Claude API that keeps every request, so tests can check the model
 | `unit/shared.test.mjs` | the link check, settings limits, spend totals, the toolbar-number rules, the old word lists → one line |
 | `unit/eval.test.mjs`, `eval/` | the accuracy eval: labeled listings (`eval/cases.mjs`) through the free checks, with floors on scams caught, honest ones marked, price words, and honest listings far under typical (`CHEAP`, scored on their own). `deno task eval` prints the scorecard and what came out wrong (`EVAL_ALL=1` for every listing). Add a listing that fooled the checks here first, labeled, then change the rules. `eval/model.mjs` (`ANTHROPIC_API_KEY=... deno task eval:model`) sends the cheap listings and their look-alike scams through the real scan prompt and the price check, and says where the model's verdict or `cheapWhy` differs from the label: by hand after a prompt change, never in CI (it costs money and the answers vary) |
 | `unit/adapters.test.mjs`, `offsite.test.mjs` | prices, shipping, lots, auctions, seller ratings, the scam code and off-site contact patterns (and ordinary sentences that must not match) |
-| `e2e/adapters.ts` | the site adapters against the saved pages in `fixtures/`: eBay (two layouts and categories), sold prices, a listing page, Marketplace |
+| `e2e/adapters.ts` | the site adapters against the saved pages in `fixtures/`: eBay (two layouts and categories, and a real saved search), sold prices, a listing page, Marketplace (synthetic and a real saved search) |
 | `e2e/features.ts` | Buyer and Reseller, Home and the toolbar number, which model does what, budget and billing, safe links and restores, settings, the sold-price route from Facebook, no errors logged |
 | `e2e/ux.ts` | row links on hover, Filter and the spend popover, the Sort menu, docking and widths |
 | `e2e/scores-persist.ts` | scores kept with each listing across tabs, searches and reloads |
@@ -46,9 +46,11 @@ The adapters (`content/adapters.js`) are the part most likely to break, and `e2e
 2. `tests/e2e/run.sh adapters.ts` shows which expectations fail. Fix the selectors in `content/adapters.js`, then adjust the
    expected values if the page you saved has different listings.
 
-The eBay fixtures are small hand-made reductions of the layouts the adapters handle. **`facebook-marketplace.html` is
-synthetic**: Facebook's real markup is generated and changes constantly, so the adapter reads link text instead of class
-names. Replace it with a real saved page when you have one.
+`ebay-results-real.html` and `facebook-marketplace-real.html` are real searches (October 2026), trimmed and sanitized with
+`python3 tests/helpers/trim-page.py ebay|facebook saved.html out.html`: only the result cards, no scripts or tracking, and
+made-up item ids, seller names, places and photos. Run a fresh save through it the same way, then read the titles before
+committing (they stay as sellers wrote them). The other eBay fixtures are small hand-made reductions of older layouts, and
+`facebook-marketplace.html` is synthetic: Facebook's markup is generated, so the adapter reads link text, not class names.
 
 ## Adding a test
 

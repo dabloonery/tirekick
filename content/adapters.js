@@ -108,12 +108,39 @@
     return n >= 2 && n <= 200 ? n : 0;
   };
 
+  // Tirekick's own tag and chips sit inside the cards it marks. Read back as the listing's text, they fed
+  // earlier verdicts ("Likely scam", "Typical price", "Code in title") into the next scan and the card checks.
+  TK.OURS = ".tirekick-sticker, .tirekick-marks";
+  // A card's visible text (one line per block), without ours.
+  TK.ownText = (el) => {
+    if (!el) return "";
+    const ours = el.querySelectorAll(TK.OURS);
+    if (!ours.length) return el.innerText || el.textContent || "";
+    if (!el.getClientRects().length) {
+      // not laid out (hidden, or a parsed page): innerText is the bare text, so take ours out of a copy
+      const copy = el.cloneNode(true);
+      copy.querySelectorAll(TK.OURS).forEach((n) => n.remove());
+      return copy.textContent || "";
+    }
+    const drop = new Map(); // ours, line by line: each chip is a block of its own
+    for (const n of ours) for (const l of (n.innerText || "").split("\n").map((x) => x.trim()).filter(Boolean)) drop.set(l, (drop.get(l) || 0) + 1);
+    return (el.innerText || "")
+      .split("\n")
+      .filter((l) => {
+        const k = drop.get(l.trim());
+        if (k) drop.set(l.trim(), k - 1);
+        return !k;
+      })
+      .join("\n");
+  };
+
   // Every text piece with a space between, so neighbours like "3 bids" + "Ends in 2d" don't run
-  // together ("3 bidsEnds in 2d") the way textContent joins them.
+  // together ("3 bidsEnds in 2d") the way textContent joins them. Never ours.
+  const skipOurs = { acceptNode: (n) => (n.parentElement?.closest(TK.OURS) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) };
   TK.spacedText = (el) => {
     if (!el) return "";
     const out = [];
-    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, el.querySelector(TK.OURS) ? skipOurs : null);
     for (let n = walk.nextNode(); n; n = walk.nextNode()) out.push(n.nodeValue);
     return out.join(" ").replace(/\s+/g, " ");
   };
@@ -136,9 +163,10 @@
     const lot = TK.lotSize(title);
     if (lot) f.lot = lot;
     // Seller rating: "99.5% positive (1.2K)" (2025 cards), "name (1,234) 99.5%" (older), or the listing page's seller card.
-    const a = t.match(/(\d{2,3}(?:\.\d+)?)%\s*positive(?:\s*feedback)?\s*\(([\d,.]+)\s*([KM])?\)/i);
+    // A seller with no ratings yet shows "0% positive (0)".
+    const a = t.match(/(\d{1,3}(?:\.\d+)?)%\s*positive(?:\s*feedback)?\s*\(([\d,.]+)\s*([KM])?\)/i);
     const b = t.match(/\(([\d,.]+)\s*([KM])?\)\s*(\d{2,3}(?:\.\d+)?)%/);
-    const pct = t.match(/(\d{2,3}(?:\.\d+)?)%\s*positive/i);
+    const pct = t.match(/(\d{1,3}(?:\.\d+)?)%\s*positive/i);
     if (a) Object.assign(f, { sellerPct: +a[1], sellerCount: count(a[2], a[3]) });
     else if (b) Object.assign(f, { sellerPct: +b[3], sellerCount: count(b[1], b[2]) });
     else if (pct) f.sellerPct = +pct[1];
@@ -266,6 +294,22 @@
     }
     return "";
   };
+  // The price as the card shows it. 2025 cards split a range over three pieces ("$139.99", "to", "$349.99"),
+  // each with the price class: read them together, or the low end passes for the price.
+  const EBAY_PRICE = ".s-card__price, .s-item__price, .bsig__price";
+  const ebayPrice = (card) => {
+    const first = [...card.querySelectorAll(EBAY_PRICE)].find((n) => n.textContent.trim() && !n.closest(STRUCK));
+    if (!first) return "";
+    const row = first.parentElement ? [...first.parentElement.children].filter((n) => n.matches(EBAY_PRICE) && !n.matches(STRUCK)) : [first];
+    return row.map((n) => n.textContent.trim()).join(" ");
+  };
+  // The condition eBay gives under the title ("Pre-Owned", "Parts Only", "Very Good - Refurbished"). The same
+  // row can hold the seller's own blurb ("Like New Available, All Colors"), so only eBay's own words count.
+  const EBAY_CONDITION = /^(?:brand new|new|new \(other\)|new (?:with|without) (?:tags|box)|new with defects|open box|pre-owned|used|parts only|for parts or not working|(?:certified|excellent|very good|good|seller|manufacturer) - refurbished|(?:seller|manufacturer) refurbished|refurbished|remanufactured)$/i;
+  const ebayCondition = (card) =>
+    [...card.querySelectorAll(".s-card__subtitle span, .s-card__subtitle, .s-item__subtitle .SECONDARY_INFO, .s-item__subtitle, .bsig__listingCondition")]
+      .map((n) => squash(n.textContent, 60))
+      .find((t) => EBAY_CONDITION.test(t)) || "";
   TK.extractEbay = (root = document, { strict = false } = {}) => {
     const cards = root.querySelectorAll(`${TK.EBAY_CARDS}, li.srp-river-answer`);
     const out = [];
@@ -287,9 +331,10 @@
       title = squash(title.replace(/^New Listing/i, "").replace(/Opens in a new window or tab$/i, ""), 160);
       if (!title || /^shop on ebay$/i.test(title)) continue;
 
-      const priceText = squash(firstText(card, [".s-card__price", ".s-item__price", ".bsig__price"]) || cardPrice(card, titleEl), 60);
+      const priceText = squash(ebayPrice(card) || cardPrice(card, titleEl), 60);
+      const condition = ebayCondition(card);
 
-      const text = card.innerText || card.textContent;
+      const text = TK.ownText(card);
       out.push(
         withTotal({
           site: "ebay",
@@ -300,6 +345,7 @@
           // it isn't compared with the typical price.
           ...(TK.isPriceRange(priceText) && { priceRange: true }),
           shipping: TK.parseShipping(text),
+          ...(condition && { condition }),
           url,
           imageUrl: firstImage(card),
           raw: squash(text),
@@ -387,11 +433,11 @@
 
       // innerText gives one line per text block, but only for cards being shown; a card we've hidden
       // (filtered, not interested) falls back to its text pieces, which split the same way here.
-      let lines = (a.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean);
+      let lines = TK.ownText(a).split("\n").map((l) => l.trim()).filter(Boolean);
       if (lines.length < 2 && !a.getClientRects().length) {
         const walk = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
         lines = [];
-        for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest(".tirekick-sticker, .tirekick-marks")) lines.push(n.nodeValue.trim());
+        for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest(TK.OURS)) lines.push(n.nodeValue.trim());
       }
       if (!lines.length) return;
       // A line that is only a price (or two: "$165$180", new and old side by side) before one that merely has a

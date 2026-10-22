@@ -104,9 +104,9 @@ export function report(rows = runCases(), all = false) {
     `  honest marked Likely scam: ${s.falseRed.length} of ${s.honest}; Check first: ${s.falseAmber.length} (${pct(s.falseAmber.length, s.honest)})`,
     `  price word as labeled: ${s.priced - s.wrongWord.length} of ${s.priced}`,
     `  after a scan, shown verdict as labeled: ${s.scanned - s.wrongShown.length} of ${s.scanned}`,
-    `Honest listings far under typical (${s.clear} that say why, ${s.warn} that don't)`,
-    `  saying why, marked Likely scam: ${s.clearRed.length}; Check first: ${s.clearAmber.length}; still a warning after a scan: ${s.clearStuck.length}; verdict as labeled: ${s.clear - s.clearWrong.length} of ${s.clear}`,
-    `  not saying why, marked Likely scam: ${s.warnRed.length}; marked at all: ${s.warnMarked.length} of ${s.warn}`,
+    `Honest listings far under typical (${s.clear} that should clear: they say why, or sales go that low; ${s.warn} that don't)`,
+    `  should clear, marked Likely scam: ${s.clearRed.length}; Check first: ${s.clearAmber.length}; still a warning after a scan: ${s.clearStuck.length}; verdict as labeled: ${s.clear - s.clearWrong.length} of ${s.clear}`,
+    `  the rest, marked Likely scam: ${s.warnRed.length}; marked at all: ${s.warnMarked.length} of ${s.warn}`,
   ];
   const group = (title, list) => list.length && out.push(title, ...list.map(line));
   group("Scams missed:", s.missed);

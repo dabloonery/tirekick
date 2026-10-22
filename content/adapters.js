@@ -328,6 +328,15 @@
     }
     return keys.size;
   };
+  // A search the site itself says found nothing (eBay's "No exact matches found", Marketplace's "No listings
+  // found"), so an empty page isn't mistaken for a layout the reader can't follow. Only asked when nothing
+  // was read, and only when no listing is linked at all.
+  TK.NO_RESULTS = /no exact matches found|\b0 results (found )?for\b|no (results|listings) found|couldn['\u2019]?t find any (results|listings)|no listings match/i;
+  TK.saysNoResults = (root = document) => {
+    if (TK.linkedListings(root) > 0) return false;
+    const area = ["#srp-river-results", ".srp-results", '[role="main"]', "main"].map((s) => root.querySelector(s)).find(Boolean) || root.body || root;
+    return TK.NO_RESULTS.test((area.innerText ?? area.textContent ?? "").slice(0, 5000));
+  };
   // A listing's card on the page, found again from its key (per site: a new site adds its own). The first
   // link to an item can sit outside the results (a carousel, "recently viewed"), so prefer one in a card.
   TK.CARD_FINDERS = {

@@ -142,10 +142,14 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   if (u.hostname === "www.facebook.com") return new Response(fbPage("Marketplace", u.searchParams.has("dark")), { headers: { "content-type": "text/html" } });
   // A sold search for "blockme" is refused, like eBay's browser check.
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /blockme/.test(u.searchParams.get("_nkw") || "")) return new Response("denied", { status: 403 });
+  // A sold search for "nosales" finds nothing, the way eBay says so.
+  if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1" && /nosales/.test(u.searchParams.get("_nkw") || "")) return new Response(`<!doctype html><title>sold | eBay</title><div class="srp-results"><h3 class="srp-save-null-search__heading">No exact matches found</h3><ul></ul></div>${"<!-- page chrome -->".repeat(9000)}`, { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1") return new Response(soldPage(u.searchParams.get("_nkw") || "item"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/sch/") && u.searchParams.has("real")) return new Response(realPage(), { headers: { "content-type": "text/html" } });
   // ?changed: the same results after a redesign the adapter doesn't know (new card class names, links intact).
   if (u.pathname.startsWith("/sch/") && u.searchParams.has("changed")) return new Response(page("Pentax results").replaceAll("s-card", "x-tile"), { headers: { "content-type": "text/html" } });
+  // ?none: a search with no results, as eBay shows it (a heading, no cards).
+  if (u.pathname.startsWith("/sch/") && u.searchParams.has("none")) return new Response(page("Pentax results").replace(/<ul>[\s\S]*<\/ul>/, '<div class="srp-results"><h3 class="srp-save-null-search__heading">No exact matches found</h3><p>Try checking your spelling or use more general terms</p></div>'), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/sch/")) return new Response(u.searchParams.has("empty") ? "<!doctype html><title>x</title><ul></ul>" : page("Pentax results"), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/itm/")) return new Response(`<!doctype html><html><head><meta charset="utf-8"><title>Pentax K1000 | eBay</title></head><body><main>
 <h1 class="x-item-title__mainTitle"><span class="ux-textspans">Pentax K1000 35mm SLR Film Camera w 50mm PK Mount</span></h1>

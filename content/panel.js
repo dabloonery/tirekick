@@ -3631,6 +3631,10 @@
       const items = left.map((it) => Object.assign(it, facts.get(keyOf(it.url)) ? { isNew: facts.get(keyOf(it.url)).isNew, drop: facts.get(keyOf(it.url)).drop } : {}));
       left.forEach((it) => skipped.delete(keyOf(it.url)));
       skipped.forEach((k) => seen.add(k));
+      if (!items.length && !scored.size && !leftOut && TK.saysNoResults()) {
+        setStatus(`${TK.site().name} found no listings for this search, so there's nothing to score. Try fewer or broader words.`);
+        return;
+      }
       if (!items.length) {
         setStatus(
           scored.size || leftOut

@@ -48,6 +48,30 @@ await c.send("Performance.enable", {}, p.sessionId);
 await sleep(3000);
 const take = async () => w(`(() => { const m = __msgs, s = __writes; self.__msgs = {}; self.__writes = { n: 0, ms: 0, bytes: 0 }; return { m, s }; })()`);
 await take();
+// PROFILE_OUT=file: where the idle minute's main-thread time went (self and inclusive time per function);
+// with PROFILE_SCROLL=1, the scrolling's instead.
+const prof = Deno.env.get("PROFILE_OUT");
+const PROFILE_SCROLL = !!Deno.env.get("PROFILE_SCROLL");
+const startProfile = async () => { await c.send("Profiler.enable", {}, p.sessionId); await c.send("Profiler.setSamplingInterval", { interval: 500 }, p.sessionId); await c.send("Profiler.start", {}, p.sessionId); };
+async function dumpProfile(file: string) {
+  const { profile: pr } = await c.send("Profiler.stop", {}, p.sessionId);
+  const byId = new Map(pr.nodes.map((n: any) => [n.id, n]));
+  const self = new Map<number, number>();
+  for (let i = 0; i < pr.samples.length; i++) self.set(pr.samples[i], (self.get(pr.samples[i]) || 0) + (pr.timeDeltas[i] || 0));
+  const totals = new Map<string, number>();
+  const name = (f: any) => `${f.functionName || "(anonymous)"} ${f.url.split("/").pop()}:${f.lineNumber + 1}`;
+  for (const [id, us] of self) totals.set(name((byId.get(id) as any).callFrame), (totals.get(name((byId.get(id) as any).callFrame)) || 0) + us);
+  const walk = (id: number): number => {
+    const n: any = byId.get(id);
+    let t = self.get(id) || 0;
+    for (const ch of n.children || []) t += walk(ch);
+    if (/\.js$/.test(n.callFrame.url) && n.callFrame.functionName) totals.set("[incl] " + name(n.callFrame), (totals.get("[incl] " + name(n.callFrame)) || 0) + t);
+    return t;
+  };
+  walk(pr.nodes[0].id);
+  await Deno.writeTextFile(file, [...totals].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([n, us]) => `${String(Math.round(us / 1000)).padStart(6)} ms  ${n}`).join("\n"));
+}
+if (prof && PROFILE_SCROLL) await startProfile();
 let last = await metrics(p);
 const t0 = Date.now();
 let mark = t0;
@@ -64,32 +88,14 @@ while (Date.now() - t0 < SCROLL_S * 1000) {
   }
 }
 const scroll = await take();
+if (prof && PROFILE_SCROLL) await dumpProfile(prof);
 const fmt = ({ m, s }: any, secs: number) => `${Object.entries(m).sort((a: any, b: any) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(", ") || "none"}\n    ${Object.values(m).reduce((a: any, b: any) => a + b, 0)} messages in ${secs} s; worker storage writes: ${s.n}, ${Math.round(s.ms)} ms, ${(s.bytes / 1e6).toFixed(1)} MB written`;
 console.log(`  messages while scrolling: ${fmt(scroll, SCROLL_S)}`);
-// PROFILE_OUT=file: where the idle minute's main-thread time went (self and inclusive time per function).
-const prof = Deno.env.get("PROFILE_OUT");
-if (prof) { await c.send("Profiler.enable", {}, p.sessionId); await c.send("Profiler.setSamplingInterval", { interval: 500 }, p.sessionId); await c.send("Profiler.start", {}, p.sessionId); }
+if (prof && !PROFILE_SCROLL) await startProfile();
 const idleStart = await metrics(p);
 await sleep(60000);
 const idleEnd = await metrics(p);
-if (prof) {
-  const { profile: pr } = await c.send("Profiler.stop", {}, p.sessionId);
-  const byId = new Map(pr.nodes.map((n: any) => [n.id, n]));
-  const self = new Map<number, number>();
-  for (let i = 0; i < pr.samples.length; i++) self.set(pr.samples[i], (self.get(pr.samples[i]) || 0) + (pr.timeDeltas[i] || 0));
-  const totals = new Map<string, number>();
-  const name = (f: any) => `${f.functionName || "(anonymous)"} ${f.url.split("/").pop()}:${f.lineNumber + 1}`;
-  for (const [id, us] of self) totals.set(name((byId.get(id) as any).callFrame), (totals.get(name((byId.get(id) as any).callFrame)) || 0) + us);
-  const walk = (id: number): number => {
-    const n: any = byId.get(id);
-    let t = self.get(id) || 0;
-    for (const ch of n.children || []) t += walk(ch);
-    if (/\.js$/.test(n.callFrame.url) && n.callFrame.functionName) totals.set("[incl] " + name(n.callFrame), (totals.get("[incl] " + name(n.callFrame)) || 0) + t);
-    return t;
-  };
-  walk(pr.nodes[0].id);
-  await Deno.writeTextFile(prof, [...totals].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([n, us]) => `${String(Math.round(us / 1000)).padStart(6)} ms  ${n}`).join("\n"));
-}
+if (prof && !PROFILE_SCROLL) await dumpProfile(prof);
 console.log(`left open, idle for 60 s: busy ${Math.round((idleEnd.TaskDuration - idleStart.TaskDuration) * 1000)} ms\n  messages: ${fmt(await take(), 60)}`);
 const sizes = await o.ev(`(async () => { const all = await chrome.storage.local.get(null); const out = {}; for (const [k, v] of Object.entries(all)) out[k] = [JSON.stringify(v).length, v && typeof v === "object" ? Object.keys(v).length : 0]; return out; })()`);
 const total = Object.values(sizes).reduce((a: number, [b]: any) => a + b, 0);

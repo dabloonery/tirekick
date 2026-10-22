@@ -137,15 +137,19 @@ version stays put between Chrome Web Store uploads, and CI only fails one that l
 8. **Before going public:** decide whether to rewrite history to remove your email from old commits, and turn on
    GitHub's "Keep my email address private".
 
-### Open source at 1.0.0 (decided 2026-10-14)
+### Open source (decided 2026-10-14, done early on 2026-10-22)
 
-Myer agreed: license Tirekick under **Apache-2.0** and make the repository public at the 1.0.0 store launch.
-Before it goes public:
+Myer agreed: license Tirekick under **Apache-2.0** and make the repository public at the 1.0.0 store launch. The
+repository went public with the beta, and on 2026-10-22 Myer chose to switch the license then too, rather than
+wait for 1.0.0.
 
 - [x] Scrub personal paths from the docs (the home-folder path in REFERENCE's rename notes, removed in 0.37.0).
-- [ ] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL).
-- [ ] Remove Myer's personal email from the commit history: see [Brand over personal name](#brand-over-personal-name).
-- [ ] Check again that no keys, tokens or private details are in the files or the history.
+- [x] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL;
+      the disclaimer and trademark note moved to `NOTICE`, which ships in the store zip). 2026-10-22.
+- [x] Remove Myer's personal email from the commit history: checked 2026-10-22, every commit uses a GitHub
+      noreply address.
+- [x] Check again that no keys, tokens or private details are in the files or the history (2026-10-22: a pattern
+      search of every commit found no API keys, tokens or private keys).
 
 The name, alongside it:
 
@@ -280,7 +284,7 @@ Nothing is submitted until Myer says so.*
 manifest's description) starts with "Beta.", and the description opens with a short beta note asking for
 feedback at support@tirekick.app. The name stays **Tirekick**, so nothing needs renaming when the beta ends.
 The version stays 0.x during the beta; **1.0.0** marks the end of it, and the open-source step
-([Open source at 1.0.0](#open-source-at-100-decided-2026-10-14)) stays tied to 1.0.0, not to the beta.
+([Open source](#open-source-decided-2026-10-14-done-early-on-2026-10-22)) was done during the beta (2026-10-22).
 Distribution is **Public**, all regions.
 
 **Gates, in order.** Each must be done before submitting:
@@ -476,8 +480,7 @@ submitted or published.* Store form answers are in `store/LISTING.md`; the secur
 *Status 2026-10-14: the redesign fixes and the ux-spec port (0.36.0) are on `main`, plus the robustness PRs #14 to #21. Nothing below is done yet.*
 
 - [ ] **Myer:** rename the GitHub repo to `tirekick` (Settings, General). GitHub redirects the old address.
-- [ ] **Claude, at 1.0.0:** Apache-2.0 `LICENSE` and README license section; then the repo goes public (see
-      [Open source at 1.0.0](#open-source-at-100-decided-2026-10-14) for what to do first).
+- [x] Apache-2.0 `LICENSE` and README license section (2026-10-22, during the beta; the repo was already public).
 - [x] **Claude:** set `homepage_url` to `https://tirekick.app`, update the listing link, and replace the contact
       placeholders (0.40.2). The site has a `CNAME` for tirekick.app; publishing steps are in `site/README.md`.
 - [x] **Claude (optional):** the L1 hardening from the security review (links through `safeUrl`). Done in 0.37.0.

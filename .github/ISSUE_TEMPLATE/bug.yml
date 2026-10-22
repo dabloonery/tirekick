@@ -1,0 +1,28 @@
+name: Something's wrong
+description: A wrong price, a mark that doesn't fit, a page Tirekick can't read, or anything that breaks.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: eBay or Marketplace, search or listing page. A public listing link helps.
+  - type: textarea
+    id: report
+    attributes:
+      label: The "Check this page" report, if the panel offered one
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Tirekick version and browser
+      description: The version is on the extensions page (for example 0.50.0, Vivaldi 7.6).
+  - type: markdown
+    attributes:
+      value: Please leave API keys, your address and other people's names or photos out of screenshots.

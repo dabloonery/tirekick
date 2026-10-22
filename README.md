@@ -2,8 +2,8 @@
 
 Kick the tires before you buy.
 
-> Working on Tirekick (person or agent)? Read [AGENTS.md](AGENTS.md) first: it points to the
-> roadmap and reference docs in [docs/](docs/) and lists the standing rules.
+> Want to help? [CONTRIBUTING.md](CONTRIBUTING.md) covers setup, the tests and the house rules. Agents: read
+> [AGENTS.md](AGENTS.md) first.
 
 A browser extension for buying on secondhand marketplaces, starting with eBay and Facebook Marketplace. It puts a small
 score tag on every listing you're looking at, compares prices with what the same thing actually
@@ -420,12 +420,20 @@ flagged. Every change keeps to these:
 
 ## How Tirekick is made
 
-Tirekick is built with AI help, openly. Its maintainer designed and directs it: who it's for, what it does,
-every product, wording and design decision, and what ships when. They test it on real eBay and Facebook
-Marketplace pages in Vivaldi and catch problems the automated tests miss. Claude, Anthropic's AI model, writes
-most of the code and documentation under that direction, through pull requests in this repository. Nothing
-reaches the main branch without the maintainer's approval and a passing test suite (`deno task test`), and
-commits written with Claude say so in their `Co-Authored-By` line.
+The maintainer writes the basis of Tirekick, meaning who it's for, what it does, and the first version of each
+feature, rule and piece of wording. Then it goes through Claude, Anthropic's AI model, to make it more accurate and
+efficient, with tighter code, more tests and clearer wording, through pull requests in this repository. Every
+change has to pass the full test suite (`deno task test`) before it reaches main, and commits made with Claude say
+so in their `Co-Authored-By` line.
+
+**A note on AI.** I use AI to build Tirekick, and I try to weigh what it costs as well as what it gives. The costs
+are real. Models take a lot of energy and water to train and run. They make it easier to deceive people, and the
+kind of scam listing Tirekick looks for can now be written in seconds. They are also being used to cut jobs and
+weaken labor rights, often trained on the work of the very people they replace, while the gains go to a few. I
+still believe AI can make us more productive and do real good, but only when it's used with care, where it truly
+helps and not where a simpler tool would do. That's the line Tirekick tries to hold. Its core checks are plain
+rules that run without any AI, a model is only called when you ask for one, a scan sends as little as it can, and a
+person decides what Tirekick does and stands behind what ships.
 
 ## License and disclaimer
 
@@ -442,7 +450,7 @@ their respective owners.
 
 ## Tests
 
-`deno task test` runs everything (needs `google-chrome-stable`, `deno`, `python3` and `openssl`): the fixture
+`deno task test` runs everything (needs Chrome or Chromium, `deno`, `python3` and `openssl`; see CONTRIBUTING.md): the fixture
 pages and plain rules (`tests/run.sh`), then the real unpacked extension in headless Chrome against eBay- and
 Marketplace-shaped pages and a mock Claude API (`tests/e2e/`), ending with a performance guard on a long
 Marketplace feed. Nothing touches the real sites or a real model. `tests/README.md` lists what each file checks and

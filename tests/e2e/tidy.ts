@@ -110,6 +110,22 @@ await op.ev(`(()=>{const s=document.getElementById('service'); s.value='openai:g
 await sleep(600);
 const gem = await op.ev(`chrome.storage.local.get(['provider','oaiPreset','oaiUrl']).then(s => ({ ...s, box: !document.getElementById('oaiBox').hidden, link: document.getElementById('keyLink').href }))`);
 ok("…picking Gemini sets it up, with a link to Gemini's key page", gem?.provider === "openai" && gem.oaiPreset === "gemini" && /generativelanguage/.test(gem.oaiUrl) && gem.box && /aistudio/.test(gem.link), gem);
+// Each service keeps its own key: switching never sends one company's key to another.
+const GEM = "https://generativelanguage.googleapis.com";
+await op.ev(`chrome.storage.local.set({ oaiKey: 'gem-key', oaiKeyFor: '${GEM}', oaiModel: 'm' })`);
+const pick = (v) => op.ev(`(()=>{const s=document.getElementById('service'); s.value='${v}'; s.dispatchEvent(new Event('change'));})()`);
+await pick("openai:openrouter");
+await sleep(600);
+const away = await op.ev(`chrome.storage.local.get(['oaiKey','oaiKeyFor','oaiKeys']).then(s => ({ ...s, field: document.getElementById('oaiKey').value }))`);
+ok("…switching to OpenRouter puts the Gemini key away instead of sending it there", away?.oaiKey === "" && away.field === "" && away.oaiKeyFor === "https://openrouter.ai" && away.oaiKeys?.[GEM] === "gem-key", away);
+await pick("openai:gemini");
+await sleep(600);
+const back = await op.ev(`chrome.storage.local.get(['oaiKey','oaiKeyFor','oaiKeys']).then(s => ({ ...s, field: document.getElementById('oaiKey').value }))`);
+ok("…and switching back brings it back", back?.oaiKey === "gem-key" && back.field === "gem-key" && back.oaiKeyFor === GEM && !(GEM in (back.oaiKeys || {})), back);
+// A key that doesn't match the address (a restored backup can change the address) isn't sent at all.
+await op.ev(`chrome.storage.local.set({ oaiUrl: 'https://openrouter.ai/api/v1' })`);
+const sent = await op.ev(`chrome.runtime.sendMessage({ type: 'suggestSearches', payload: { site: 'ebay', query: 'psp' } })`);
+ok("…the background refuses to send a key to another address", sent?.ok === false && /entered for Gemini, so it isn't sent to OpenRouter/.test(sent.error), sent);
 await op.close();
 
 ok("no page logged an error", !errors.length, errors.slice(0, 5));

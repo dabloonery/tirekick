@@ -223,6 +223,30 @@ await reset(`{anthropicKey:'sk-ant-test'}`);
   ok("Home, empty: says what will show up", /Nothing new/.test(home), home.slice(0, 80));
 }
 
+// ---- Test connection in settings: each answer says what it means (the API is stubbed on the page) ----
+{
+  const s = await open(`chrome-extension://${EXT}/options/options.html`);
+  await sleep(600);
+  for (const [status, key, says] of [
+    [401, "sk-proj-abc", /rejected\. Claude API keys start with sk-ant-/],
+    [401, "sk-ant-typo", /rejected\. Copy it again/],
+    [403, "sk-ant-x", /isn't allowed to use/],
+    [529, "sk-ant-x", /busy or having a problem \(error 529\), so the key wasn't checked/],
+    [200, "sk-ant-x", /^Connected\. Claude Sonnet 5\.5 is available\.$/],
+  ] as [number, string, RegExp][]) {
+    const text = await s.ev(`(async () => {
+      window.fetch = async () => new Response(JSON.stringify(${status} === 200 ? { display_name: "Claude Sonnet 5.5" } : { type: "error", error: { message: "x" } }), { status: ${status} });
+      document.getElementById('provider').value = 'anthropic';
+      document.getElementById('anthropicKey').value = '${key}';
+      document.getElementById('test').click();
+      await new Promise((r) => setTimeout(r, 300));
+      return document.getElementById('testMsg')?.textContent || '';
+    })()`);
+    ok(`Test connection in settings: a ${status} for a key like ${key} says what it means`, says.test(text), text);
+  }
+  await s.close();
+}
+
 // ---- Delete everything ----
 await store(`{anthropicKey:'sk-ant-test', saved:{'ebay:1':{t:'x',u:'https://www.ebay.com/itm/1',p:1,p0:1,a:1,a0:1}}}`);
 {

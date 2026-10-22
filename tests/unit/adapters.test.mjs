@@ -42,6 +42,8 @@ test("cardFacts: auctions, offers, lots and seller ratings", () => {
   assert.deepEqual([a.auction, a.bids, a.timeLeft, a.hoursLeft], [true, 3, "2d 4h", 52]);
   assert.equal(TK.cardFacts("Time left 45m", "x").auction, undefined, "no bids, no auction");
   assert.equal(TK.cardFacts("or Best Offer", "x").bestOffer, true);
+  for (const t of ["Current bid", "Starting bid · Ends Fri 10:12", "Place bid"]) assert.equal(TK.cardFacts(`$5.00 ${t}`, "x").auction, true, `reworded: ${t}`);
+  assert.equal(TK.cardFacts("Buy It Now · Bidding is not available", "x").auction, undefined);
   assert.equal(TK.cardFacts("", "Lot of 6 games").lot, 6);
   assert.deepEqual(pick(TK.cardFacts("retro 99.2% positive (412)", "x")), { sellerPct: 99.2, sellerCount: 412 });
   assert.deepEqual(pick(TK.cardFacts("name (1.2K) 99.5%", "x")), { sellerPct: 99.5, sellerCount: 1200 });

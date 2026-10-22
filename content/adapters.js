@@ -123,7 +123,8 @@
     const f = {};
     const bids = t.match(/\b(\d+)\s+bids?\b/i);
     const left = t.match(/\b(\d+[dhms](?:\s*\d+[hms]){0,2})\s+left\b/i) || t.match(/time left[:\s]+(\d+[dhms](?:\s*\d+[hms]){0,2})/i) || t.match(/\bends?\s+in\s+(\d+[dhms](?:\s*\d+[hms]){0,2})/i); // cards say "6d left", listing pages "Ends in 6d 20h"
-    if (bids || (left && /bid/i.test(t))) {
+    // "0 bids · 6d left"; and in case eBay rewords it, "Current bid", "Starting bid" and a "Place bid" button.
+    if (bids || (left && /bid/i.test(t)) || /\b(?:current|starting|opening) bid\b|\bplace (?:a )?bid\b/i.test(t)) {
       f.auction = true;
       f.bids = bids ? +bids[1] : 0;
       if (left) {
@@ -295,6 +296,9 @@
           title,
           priceText,
           price: TK.usdPrice(priceText, text),
+          // "$12.99 to $59.99": versions at different prices. The low end may not be the one searched for, so
+          // it isn't compared with the typical price.
+          ...(TK.isPriceRange(priceText) && { priceRange: true }),
           shipping: TK.parseShipping(text),
           url,
           imageUrl: firstImage(card),
@@ -474,6 +478,7 @@
         title,
         priceText,
         price: TK.usdPrice(priceText, firstText(document, [".x-price-approx", '[data-testid="x-price-approx"]'])),
+        ...(TK.isPriceRange(priceText) && { priceRange: true }),
         shipping: TK.parseShipping(shippingText, true),
         // the label sits in .ux-textspans (the text beside it repeats it for screen readers and adds a "More information" button)
         condition: squash(firstText(document, [".x-item-condition-text .ux-textspans", ".x-item-condition-text", '[data-testid="x-item-condition"]']), 120),

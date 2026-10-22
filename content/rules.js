@@ -223,7 +223,7 @@
   // `why` (f.saysWhy from compareFacts, or worked out here) is set on "low" and "reason" for the chip to say.
   const cheapLevel = (f, market) => {
     if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
-    if (f.auction || f.lot || f.project || f.accessory || f.foreign || f.related === false) return null;
+    if (f.auction || f.lot || f.project || f.accessory || f.foreign || f.priceRange || f.related === false) return null;
     const pct = f.total / market.median;
     if (pct >= R.TOO_CHEAP.low) return null;
     const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, market.query || "");
@@ -305,7 +305,7 @@
     f.accessory = (!f.ownMarket && R.accessoryOf(f.title, query)) || "";
     f.offWords = (!f.ownMarket && R.missingWord(f.title, query)) || "";
     f.saysWhy = R.cheapReason(f.title, f.text, f.ownMarket ? "" : query); // why it's cheap, in its own words (tooCheap)
-    const vs = market?.median > 0 && f.total != null && !f.foreign && !f.lot && !f.auction && !f.accessory && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
+    const vs = market?.median > 0 && f.total != null && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.accessory && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
     f.cheap = (vs != null && (R.tooCheap(f, market)?.level || (R.cheapForReason(f, market) && "reason"))) || ""; // backs up a title code (codeBacked)
     return vs;
   };
@@ -341,7 +341,7 @@
     if (said) return R.RANK[verdict] > R.RANK.good ? moved("good", { why: `Held at Good price: ${R.dollars(it.total)} is ${said.pct}% of the typical ${typical}, and the listing says why (“${said.why}”).` }) : keep;
     const cheap = R.tooCheap(it, market);
     if (cheap) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}${cheap.seller ? `, from a seller with a warning (${it.sellerWarn})` : ""}. Far under what the same thing sells for is the usual bait: check it's real before you pay.` });
-    if (!it.auction && !it.lot && !it.project && !it.accessory && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return moved("fair", { why: `Held at Fair price: ${R.dollars(it.total)} is ${pct}% of the typical ${typical}.` });
+    if (!it.auction && !it.lot && !it.project && !it.accessory && !it.priceRange && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return moved("fair", { why: `Held at Fair price: ${R.dollars(it.total)} is ${pct}% of the typical ${typical}.` });
     return keep;
   };
   // The first word of the search that the title doesn't have ("" if it has them all). Spacing and hyphens
@@ -457,8 +457,8 @@
   // Opens midway between the cheaper quarter of sales and the median (at the cheaper quarter when the
   // seller looks soft), never above the asking price, never under 60% of it (lower reads as a lowball
   // and gets ignored). Walk away above the median. Returns null when there's nothing solid to go on.
-  R.offerPlan = ({ price, shipping = 0, auction, lot, project, foreign, soft = "none" } = {}, market) => {
-    if (!(market?.median > 0) || !(market.p25 > 0) || price == null || !(price > 0) || auction || lot || project || foreign) return null;
+  R.offerPlan = ({ price, shipping = 0, auction, lot, project, foreign, priceRange, soft = "none" } = {}, market) => {
+    if (!(market?.median > 0) || !(market.p25 > 0) || price == null || !(price > 0) || auction || lot || project || foreign || priceRange) return null;
     const ship = Number(shipping) || 0;
     const total = price + ship;
     const reasons = [`the typical price is $${market.p25}–$${market.p75} (${market.n} recent eBay sales)`];

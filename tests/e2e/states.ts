@@ -1,6 +1,7 @@
 // Every state the panel can be in when things don't go to plan, on the real extension: what it says,
-// and whether it offers the way out. Rejected key, rate limit, an answer cut off, no connection, the
-// budget used up, a scan under way and stopped, a page with nothing to scan, and Delete everything in
+// and whether it offers the way out. Rejected key, rate limit, an answer cut off, no connection, out of
+// credit, a key without access, overload, a fault on the API's side, an answer that isn't JSON, the budget
+// used up, a scan under way and stopped, a page with nothing to scan, and Delete everything in
 // settings. Prints PASS/FAIL lines; with STATES_OUT=dir it also saves a screenshot of each.
 //   tests/e2e/run.sh states.ts
 import { start, EXT, sleep } from "./lib.ts";
@@ -59,13 +60,19 @@ const cases: [string, string, RegExp, string][] = [
   ["a rate limit", `{anthropicKey:'ratelimit'}`, /short break/, ""],
   ["an answer cut off", `{anthropicKey:'cutoff'}`, /cut off/, "Open settings"],
   ["no connection", `{anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:9'}`, /Can't reach/, ""],
+  // The API's own error bodies are JSON: the panel says what happened in words, never the raw body.
+  ["out of credit", `{anthropicKey:'nocredit'}`, /^Your Anthropic account is out of credit\. Add some under Plans & Billing/, ""],
+  ["a key without access", `{anthropicKey:'forbidden'}`, /^The Claude API won't let that key do this \(Your API key does not have permission[^{]*\)\. Check the key/, "Open settings"],
+  ["overloaded", `{anthropicKey:'overloaded'}`, /overloaded right now/, ""],
+  ["a fault on the API's side", `{anthropicKey:'servererror'}`, /^The Claude API had a problem on its side \(error 500\)\. Try again in a minute\.$/, ""],
+  ["an answer that isn't JSON", `{anthropicKey:'garbage'}`, /didn't make sense/, "Open settings"],
 ];
 for (const [name, extra, says, fix] of cases) {
   await reset(extra);
   const p = await openPanel(SEARCH);
   const [text, err, btn] = await scanAndRead(p);
   await shot(p, `error_${name.replace(/\W+/g, "_")}`);
-  ok(`${name}: says so plainly`, says.test(text) && err, text);
+  ok(`${name}: says so plainly`, says.test(text) && err && !/[{}]/.test(text), text);
   const seen = await inView(p, ".view-page .statusrow");
   ok(`${name}: the message is in view, not scrolled away`, seen === true, seen);
   ok(`${name}: ${fix ? `offers ${fix}` : "no fix button (Scan again is the retry)"}`, btn === fix, btn || "none");

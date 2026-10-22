@@ -209,6 +209,16 @@ test("tooCheap: far under a trusted sold median, not for auctions, lots, broken 
   assert.equal(R.tooCheap({ total: 15, related: false }, m), null, "nor is what a scan called a different item");
 });
 
+test("a price range ($12.99 to $59.99) isn't compared: its low end may be another version", () => {
+  const m = { median: 200, p25: 170, p75: 230, n: 20, confidence: "good" };
+  const f = { title: "Nintendo Switch OLED console", total: 13, price: 13, priceRange: true };
+  assert.equal(R.tooCheap(f, m), null);
+  assert.equal(R.compareFacts({ ...f }, m, "nintendo switch oled"), null, "no share of the typical price, so no price word");
+  assert.deepEqual(R.priceVerdict("great", { ...f, score: 80 }, m), { v: "great" }, "a scan's verdict isn't turned into Likely scam");
+  assert.equal(R.priceVerdict("great", { total: 400, priceRange: true, score: 80 }, m).v, "great", "nor held at Fair by its low end");
+  assert.equal(R.offerPlan({ price: 13, priceRange: true }, m), null, "no offer on an unknown version");
+});
+
 test("accessoryOf: an accessory or part for what was searched, not the thing itself", () => {
   const yes = [
     ["nintendo switch", "Case for Nintendo Switch"], ["nintendo switch", "Nintendo Switch Carrying Case"], ["nintendo switch", "Nintendo Switch Pro Controller"],

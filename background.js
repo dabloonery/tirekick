@@ -511,6 +511,7 @@ const priceLine = (it) => {
     : `total: $${it.total}${ship}`,
   ];
   if (it.auction) parts.push(`AUCTION: that is the current bid, ${it.bids || 0} bid${it.bids === 1 ? "" : "s"}${it.timeLeft ? `, ${it.timeLeft} left` : ""}`);
+  if (it.priceRange) parts.push(`PRICE RANGE: ${it.priceText}, versions at different prices; the total is the cheapest version, which may not be the one searched for`);
   if (it.lot) parts.push(`lot of ${it.lot}${it.total != null ? ` (about $${Math.round(it.total / it.lot)} each)` : ""}`);
   if (it.bestOffer) parts.push("accepts offers");
   return parts.join(" | ");

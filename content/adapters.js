@@ -362,6 +362,8 @@
 
   // A price line, in dollars or the buyer's own currency ("$165", "CA$200", "£85").
   const FB_PRICE = /^(?:CA|C|AU|A|NZ|US)?\$\s?[\d,]|^[£€]\s?[\d,]/;
+  const FB_PRICE_ONLY = /^(?:(?:(?:CA|C|AU|A|NZ|US)?\$|[£€])\s?[\d,]+(?:\.\d\d)?){1,2}$|^free$/i;
+  const FB_PLACE = /^\p{Lu}[\p{L} .'-]{1,30}, (?:[A-Z]{2}|\p{Lu}[\p{L} .'-]{2,30})$/u;
   const FB_LABELS = /^(just listed|sponsored|price dropped|partner listing|new listing|shipping available|ships to you|free shipping|pending|sold)$/i;
   // A card that hasn't changed since it was last read (same link, same text) isn't read again: the feed is
   // read whenever more listings load, and reading every card each time made long feeds stutter. The photo
@@ -392,15 +394,23 @@
         for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.trim() && !n.parentElement.closest(".tirekick-sticker, .tirekick-marks")) lines.push(n.nodeValue.trim());
       }
       if (!lines.length) return;
-      const priceLine = lines.find((l) => /\$\s?[\d,]|^[£€]\s?[\d,]|^free$/i.test(l)) || "";
-      // Facebook's own labels on the photo are lines too; they're never the title.
-      const rest = lines.filter((l) => l !== priceLine && !FB_PRICE.test(l) && !FB_LABELS.test(l));
-      const title = squash(rest[0] || "", 160);
+      // A line that is only a price (or two: "$165$180", new and old side by side) before one that merely has a
+      // dollar amount in it: should Facebook put the title first, "Switch OLED $200 firm" isn't the price.
+      const priceLine = lines.find((l) => FB_PRICE_ONLY.test(l)) || lines.find((l) => /\$\s?[\d,]|^[£€]\s?[\d,]|^free$/i.test(l)) || "";
+      // Facebook's own labels on the photo are lines too; they're never the title. Today a card is labels, price,
+      // title, place. Should a new label appear before the price, or the title move above it, the title is still
+      // the first line after the price that isn't a place ("Chicago, IL"), else the first one before it.
+      const at = lines.indexOf(priceLine);
+      const isText = (l) => l !== priceLine && !FB_PRICE.test(l) && !FB_LABELS.test(l);
+      const named = (ls) => ls.find((l) => isText(l) && !FB_PLACE.test(l));
+      const title = squash((at >= 0 && (named(lines.slice(at + 1)) || named(lines.slice(0, at)))) || lines.find(isText) || "", 160);
       if (!title) return;
-      // A marked-down listing shows the new price first and the old one struck through after it ("$165" "$180").
+      // A marked-down listing shows the new price first and the old one struck through after it ("$165" "$180"),
+      // on the next line or the same one.
       const foreign = TK.currencyOf(priceLine);
       const now = TK.parseAmount(priceLine);
-      const was = lines.slice(lines.indexOf(priceLine) + 1).map((l) => (FB_PRICE.test(l) ? TK.parseAmount(l) : null)).find((n) => n != null);
+      const sameLine = priceLine.match(/(?:\$|[£€])\s?[\d,]+(?:\.\d\d)?\s*((?:CA|C|AU|A|NZ|US)?\$\s?[\d,]+(?:\.\d\d)?|[£€]\s?[\d,]+(?:\.\d\d)?)$/)?.[1];
+      const was = sameLine ? TK.parseAmount(sameLine) : lines.slice(at + 1).map((l) => (FB_PRICE.test(l) ? TK.parseAmount(l) : null)).find((n) => n != null);
 
       const item = withTotal({
           site: "facebook",

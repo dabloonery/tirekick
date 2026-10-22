@@ -1,0 +1,13 @@
+name: An idea
+description: Something Tirekick could do better or do next.
+labels: [idea]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help, and when would you use it?
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: Ideas that need Tirekick to browse or fetch store pages by itself can't be built (README, Ground rules). The roadmap is in docs/ROADMAP.md.

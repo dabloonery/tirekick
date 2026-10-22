@@ -521,6 +521,9 @@ test("the scan prompt's price lines are the cards' (priceWord, TOO_CHEAP)", asyn
   assert.equal(R.priceWord(1.06).v, "pass");
   assert.equal(R.TOO_CHEAP.low, 0.55);
   for (const base of ["RANK_BASE", "ITEM_BASE"]) assert.match(bg.match(new RegExp(`const ${base} = \`[^\`]+\``))?.[0] || "", /\$\{PRICE_BANDS\}[\s\S]*\$\{OFFSITE_RULE\}/, base);
+  // A listing selling several versions isn't a scam on its own (both prompts).
+  for (const base of ["RANK_BASE", "ITEM_BASE"]) assert.match(bg.match(new RegExp(`const ${base} = \`[^\`]+\``))?.[0] || "", /\$\{VERSIONS_RULE\}/, base);
+  assert.doesNotMatch(bg, /keyword-stuffed titles/, "no longer a red flag by itself");
 });
 
 test("forPickup: a pickup listing is compared without the shipping in eBay's totals", () => {

@@ -114,5 +114,48 @@ ok("…page type and search words", (await p.ev(`Tirekick.pageType()`)) === "res
   const r = await p.ev(`(() => { document.querySelector('[role=main]').innerHTML = ${JSON.stringify(cards)}; return Tirekick.extractFacebook(document).map((it) => [it.title, it.price, it.wasPrice ?? null]); })()`);
   ok("Marketplace cards rearranged: the title above the price, a new label, old and new price on one line, no price, a title with a comma", eq(r, [["Switch OLED $200 firm", 250, null], ["Nintendo Switch OLED", 250, null], ["PS5 disc edition", 165, 180], ["PS5 disc edition", null, null], ["Couch, Grey", 40, null]]), r);
 }
+
+// Real saved pages (trimmed and sanitized: ids, sellers, places and photos replaced). Hand-made fixtures only test
+// what we thought the sites do; these are what they did do.
+p = await page("https://www.ebay.com/sch/i.html?_nkw=ipod+classic+5.5", "ebay-results-real");
+items = await extract(p);
+{
+  const by = (k: string) => items.filter((i: any) => i[k]);
+  ok("real eBay page: 60 listings, the 'Shop on eBay' placeholder and the carousel skipped, each once", items.length === 60 && new Set(items.map((i: any) => i.url)).size === 60 && !items.some((i: any) => /shop on ebay/i.test(i.title)), items.length);
+  ok("…every one has a title (without eBay's screen-reader words) and a price", items.every((i: any) => i.title && !/opens in a new window|^new listing/i.test(i.title) && i.price > 0), items.filter((i: any) => !i.price).map((i: any) => i.title));
+  ok("…a range split over three pieces is read whole and marked, not taken for its low end", by("priceRange").length === 10 && items[4].priceText === "$139.99 to $349.99" && items[4].price === 139.99, [by("priceRange").length, items[4].priceText]);
+  const cond: Record<string, number> = {};
+  for (const i of items) cond[i.condition] = (cond[i.condition] || 0) + 1;
+  ok("…eBay's condition under the title, never the seller's blurb beside it", eq(cond, { "Brand New": 3, "Very Good - Refurbished": 5, "Excellent - Refurbished": 7, "Pre-Owned": 42, "Parts Only": 2, "Open Box": 1 }) && items[6].condition === "Very Good - Refurbished", cond);
+  ok("…'Parts Only' with nothing about it in the title", items[52].condition === "Parts Only" && !/parts|broken|repair/i.test(items[52].title), [items[52].title, items[52].condition]);
+  ok("…seller ratings, a seller with none yet ('0% positive (0)') included", eq([items[20].sellerPct, items[20].sellerCount, items[45].sellerPct, items[45].sellerCount], [99.5, 164500, 0, 0]), [items[20].sellerCount, items[45].sellerPct, items[45].sellerCount]);
+  ok("…auctions with their bids, offers, shipping", eq(items.filter((i: any) => i.auction).map((i: any) => i.bids), [1, 19, 1]) && by("bestOffer").length === 12 && eq([items[0].shipping, items[5].shipping, items[5].total], [0, 9.35, 92.34]), [items.filter((i: any) => i.auction).map((i: any) => i.bids), by("bestOffer").length]);
+}
+// Tirekick's own tag and chips sit inside the cards. Read back, an earlier "Likely scam" or "Typical price"
+// went into the next scan as listing text, and a chip could pass for a card fact.
+{
+  const ours = `<div class="tirekick-marks"><span class="tk-chip">Likely scam</span><span class="tk-chip">3 bids</span><span class="tk-chip">or Best Offer</span><span class="tk-chip">99% positive (2)</span></div>`;
+  const r = await p.ev(`(() => { const card = Tirekick.extract()[5].el; card.querySelector("a").insertAdjacentHTML("beforebegin", ${JSON.stringify(ours)}); const it = Tirekick.extract()[5]; return [it.raw, !!it.auction, !!it.bestOffer, it.sellerCount]; })()`);
+  ok("eBay: Tirekick's own marks on a card are not read as the listing's", !/Likely scam|3 bids|Best Offer/i.test(r[0]) && eq(r.slice(1), [false, false, 8300]), r);
+}
+await p.close();
+
+p = await page("https://www.facebook.com/marketplace/search?query=ipod+classic", "facebook-marketplace-real");
+items = await extract(p);
+{
+  // Facebook's own label on each link says "<title>, <price>, [reduced from <old>,] <place>, listing <id>".
+  const labels = await p.ev(`[...document.querySelectorAll('a[href*="/marketplace/item/"]')].map((a) => a.getAttribute("aria-label"))`);
+  const wrong = items.filter((it: any, n: number) => {
+    const [, title, price, was] = labels[n].replace(/\s+/g, " ").match(/^(.*), \$([\d,.]+), (?:reduced from \$([\d,.]+), )?/) || [];
+    return it.title !== title || it.price !== +price.replace(/,/g, "") || (it.wasPrice ?? null) !== (was ? +was.replace(/,/g, "") : null);
+  });
+  ok("real Marketplace page: all 90 listings, each title, price and old price as Facebook labels it", items.length === 90 && !wrong.length, wrong.map((i: any) => [i.title, i.price]));
+  ok("…no place, 'Ships to you' or 'Partner listing' taken for a title; clean links", !items.some((i: any) => /, [A-Z]{2}$|^ships to you$|^partner listing$/i.test(i.title)) && items[0].url === "https://www.facebook.com/marketplace/item/900000000000001/", items[0].url);
+  ok("…codes at the end of a title, 'Just listed'", eq(items.filter((i: any) => i.titleCode).map((i: any) => i.titleCode), ["T5949", "Y8WV", "M5769"]) && items.filter((i: any) => i.justListed).length === 2);
+  const ours = `<div class="tirekick-marks"><span class="tk-chip">Code in title: X1</span><span class="tk-chip">$5</span><span class="tk-chip">Not interested</span></div>`;
+  const r = await p.ev(`(() => { document.querySelectorAll('a[href*="/marketplace/item/"]')[2].insertAdjacentHTML("afterbegin", ${JSON.stringify(ours)}); const it = Tirekick.extractFacebook(document)[2]; return [it.title, it.price, it.wasPrice, it.raw]; })()`);
+  ok("Marketplace: Tirekick's own marks inside a card are not read as the listing's", r[0] === "PS1 Japanese edition" && r[1] === 50 && r[2] === 70 && !/Code in title|Not interested/.test(r[3]), r);
+}
+await p.close();
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

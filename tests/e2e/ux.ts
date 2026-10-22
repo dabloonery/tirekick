@@ -20,6 +20,12 @@ ok("row links show on hover", (await vis()) === "visible", await vis());
 ok("Open is under every price, at rest too", await R(`const rows=[...r.querySelectorAll('.list .row')]; return rows.length > 0 && rows.every((x)=>{const o=x.querySelector('.pr .open'); return o && getComputedStyle(o).visibility==='visible' && /\\/itm\\//.test(o.href)})`));
 ok("a title shows the card on the page (it's a button, not a link)", await R(`return r.querySelector('.list .row .title').tagName === 'BUTTON'`));
 
+// a scored card's tag: on hover, Save / Sold / Not interested are chips (a fill of their own), not bare text over the photo
+const tagAt = await p.ev(`(()=>{const b=document.querySelector('.tirekick-sticker .tk-score').getBoundingClientRect(); return [b.x+b.width/2, b.y+b.height/2]})()`);
+await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: tagAt[0], y: tagAt[1] }, p.sessionId); await sleep(250);
+const chipLook = await p.ev(`(()=>{const b=[...document.querySelectorAll('.tirekick-sticker .tk-under .tk-acts button')].find(x=>x.textContent==='Save'); if(!b) return 'none'; const cs=getComputedStyle(b); return cs.backgroundColor+' '+cs.borderRadius})()`);
+ok("hover chips on a tag keep their chip look", !/rgba\(0, 0, 0, 0\)|^none/.test(chipLook) && chipLook.endsWith("999px"), chipLook);
+
 // nothing new: Scan again is secondary
 ok("Scan again is secondary", (await R(`const b=r.querySelector('[data-act=scan]'); return b.className+'|'+b.textContent`)).startsWith("ghost|Scan again"), await R(`return r.querySelector('[data-act=scan]').className`));
 

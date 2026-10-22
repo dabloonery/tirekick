@@ -226,6 +226,7 @@ test("accessoryOf: an accessory or part for what was searched, not the thing its
     ["nintendo switch", "Tempered glass screen protector Nintendo Switch"], ["iphone 12", "iPhone 12 case"], ["iphone 12", "iPhone 12 replacement screen"],
     ["game boy sp", "Game Boy SP charger"], ["game boy sp", "Game Boy Advance SP replacement shell"], ["dewalt drill", "DeWalt 20V MAX battery"],
     ["pentax k1000", "Pentax K1000 lens cap"], ["ps5", "Sony PS5 DualSense Controller"], ["apple watch", "Apple Watch charger"], ["nikon d3100", "Nikon D3100 manual"],
+    ["ipod classic", "iPod classic battery"], ["ipod classic", "New battery for iPod classic"], ["ipod classic", "Apple iPod Classic 4th Generation 40GB Empty Box Only"],
   ];
   for (const [q, t] of yes) assert.ok(R.accessoryOf(t, q), `${t} (search: ${q})`);
   const no = [
@@ -235,6 +236,9 @@ test("accessoryOf: an accessory or part for what was searched, not the thing its
     ["dewalt drill", "DeWalt 20V MAX drill with 2 batteries"], ["pentax k1000", "Pentax K1000 35mm film camera with 50mm lens"], ["pentax k1000", "Pentax K1000 with 50mm f/2 lens and case"],
     ["ps5", "PS5 Console Disc Edition"], ["xbox one", "Xbox One S 1TB Console"], ["nikon d3100", "Nikon D3100 body only"], ["", "Case for Nintendo Switch"],
     ["nintendo switch oled", "Nintendo Switch OLED white + 3 games + case"], ["ps5", "PS5 Slim & extra controller"],
+    // a battery put in it (a real iPod search, 2026-10): 12 of 60 cards end like this
+    ["ipod classic 5.5", "APPLE iPOD CLASSIC 7TH GEN. GRAY 120GB...NEW BATTERY..."], ["ipod classic 5.5", "APPLE iPOD CLASSIC 5.5th Atomic Ocean Blue 512gb SSD Wolfson DAC Battery"],
+    ["ipod classic 5.5", "Apple iPod 5th Video Black - A1136 - 256GB Flash Storage + 3000mAh Battery"], ["ipod classic 5.5", "Apple iPod Classic 5th Gen Wolfson DAC 30GB Original Rebuild 850mAh Battery"],
   ];
   for (const [q, t] of no) assert.equal(R.accessoryOf(t, q), "", `${t} (search: ${q})`);
   assert.equal(R.accessoryOf("Case for Nintendo Switch", "nintendo switch"), "case", "says which word gave it away");
@@ -455,6 +459,19 @@ test("missingWord: the first word of the search a title leaves out", () => {
   assert.equal(R.missingWord("Nintendo Switch OLED", "nintendo switch -case"), "", "nor a word the search leaves out");
   assert.equal(R.missingWord("Lot of 3 Game Boy games", "a game boy"), "", "nor short words");
   assert.equal(R.missingWord("", "pentax"), "");
+});
+
+test("offSearch: none of the search's words in the title, so its price isn't compared with the search's", () => {
+  for (const t of ["Phone", "Bose soundlink", "Portable DVD PLAYER", "Polaroid Snap"]) assert.ok(R.offSearch(t, "ipod classic"), t);
+  for (const t of ["Apple iPod Touch 4th Generation 32GB", "MagSafe Charger I phones I pods", "Apple Ipod Classic 6th Generation Silver (80 Gb)"]) assert.equal(R.offSearch(t, "ipod classic"), false, t);
+  assert.equal(R.offSearch("Phone", ""), false, "no search, nothing to miss");
+  assert.equal(R.offSearch("Phone", "-case"), false, "only words left out");
+  const f = { title: "Shokz", total: 50 };
+  assert.equal(R.compareFacts(f, { median: 100, confidence: "good" }, "ipod classic"), null);
+  assert.equal(R.freeRead(f, { median: 100, confidence: "good" }), null, "no Great price for headphones in an iPod search");
+  const g = { title: "Zelda game", total: 15 };
+  R.compareFacts(g, { median: 100, confidence: "good" }, "ipod classic");
+  assert.equal(R.freeRead(g, { median: 100, confidence: "good" }), null, "nor Check first for a $15 game");
 });
 
 test("tooCheap: a title missing a search word is Check first, not Likely scam", () => {

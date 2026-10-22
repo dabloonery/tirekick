@@ -228,10 +228,14 @@
     if (pct >= R.TOO_CHEAP.low) return null;
     const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, market.query || "");
     const out = (level, extra) => ({ level, pct: Math.round(pct * 100), ...(why && level !== "far" && { why }), ...extra });
+    // Real sales went this low (the cheapest tenth of them, market.p10): honest prices land here too, as in a search
+    // that mixes models ("nintendo switch": Lites, V1s and OLEDs), so it isn't bait on price alone.
+    if (market.p10 > 0 && f.total >= market.p10) return why ? out("reason") : null;
     // Under the firm cutoff only something missing or a cheaper version explains it: "minor scratches" doesn't
     // take 60% off, and it's the story bait tells.
+    // A "fair" reference (fewer sales, or a wider spread) can't say a price alone is bait: that needs a "good" one.
     const big = why && !FLAW.test(why);
-    if (pct < R.TOO_CHEAP.far) return big && f.sellerWarn ? out("far", { seller: true }) : out(f.offWords || big ? "low" : "far");
+    if (pct < R.TOO_CHEAP.far) return f.sellerWarn && !f.offWords ? out("far", { seller: true }) : out(f.offWords || big || market.confidence !== "good" ? "low" : "far");
     if (f.sellerWarn && !f.offWords) return why ? out("low") : out("far", { seller: true });
     return out(why ? "reason" : "low");
   };
@@ -314,7 +318,7 @@
     const ship = market?.ship;
     if (!local || !(ship > 0) || !(market.median > ship * 2) || f?.shipping != null || f?.auction) return market;
     const r = (n) => Math.round(n * 100) / 100;
-    return { ...market, median: r(market.median - ship), p25: r(Math.max(1, (market.p25 ?? market.median) - ship)), p75: r((market.p75 ?? market.median) - ship), pickupShip: ship };
+    return { ...market, median: r(market.median - ship), ...(market.p10 > 0 && { p10: r(Math.max(1, market.p10 - ship)) }), p25: r(Math.max(1, (market.p25 ?? market.median) - ship)), p75: r((market.p75 ?? market.median) - ship), pickupShip: ship };
   };
 
   // When the score and the price disagree, the price check wins (2026-10-15). Far under the typical

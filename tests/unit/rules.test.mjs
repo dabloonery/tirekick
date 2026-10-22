@@ -493,6 +493,7 @@ test("the scan prompt's price lines are the cards' (priceWord, TOO_CHEAP)", asyn
 test("forPickup: a pickup listing is compared without the shipping in eBay's totals", () => {
   const m = { median: 52, p25: 45, p75: 60, n: 20, confidence: "good", ship: 12 };
   assert.deepEqual(R.forPickup(m, { shipping: null }, true), { ...m, median: 40, p25: 33, p75: 48, pickupShip: 12 });
+  assert.equal(R.forPickup({ ...m, p10: 30 }, { shipping: null }, true).p10, 18, "the cheapest tenth comes down by the shipping too");
   assert.equal(R.forPickup(m, { shipping: null }, false), m, "only on a local site");
   assert.equal(R.forPickup(m, { shipping: 0 }, true), m, "a listing that ships (free) keeps the totals");
   assert.equal(R.forPickup(m, { shipping: null, auction: true }, true), m);
@@ -598,4 +599,18 @@ test("accessoryOf and PROJECT: one earbud is a part, a locked device is for part
   assert.equal(R.accessoryOf("AirPods Pro 2 - right earbud only + case", "airpods pro 2"), "right earbud only");
   assert.equal(R.clueOf(R.PROJECT, "MacBook Air M1 MDM locked"), "mdm locked");
   assert.equal(R.clueOf(R.PROJECT, "iPhone 13 iCloud locked"), "icloud locked");
+});
+
+test("tooCheap: real sales this low, and a reference with fewer sales", () => {
+  const mixed = { median: 200, p10: 95, confidence: "fair" }; // a "nintendo switch" search: Lites, V1s and OLEDs
+  assert.equal(R.tooCheap({ title: "Nintendo Switch Console Gray", total: 105 }, mixed), null, "the cheapest tenth of sales went this low");
+  assert.equal(R.tooCheap({ title: "Nintendo Switch Console Gray", total: 90 }, mixed).level, "low");
+  assert.deepEqual(R.cheapForReason({ title: "Nintendo Switch Lite", total: 100 }, mixed), { pct: 50, why: "lite" }, "still says why");
+  // Under 40% on a "fair" reference: Check first on price alone, Likely scam with a seller warning
+  const fair = { median: 160, confidence: "fair" };
+  assert.equal(R.tooCheap({ title: "Canon AE-1 35mm camera body", total: 55 }, fair).level, "low");
+  assert.equal(R.tooCheap({ title: "Canon AE-1 35mm camera body", total: 55, sellerWarn: "New seller" }, fair).level, "far");
+  assert.equal(R.tooCheap({ title: "Canon AE-1 35mm camera body", total: 55 }, { ...fair, confidence: "good" }).level, "far");
+  // Old cached answers have no p10: as before
+  assert.equal(R.tooCheap({ title: "Nintendo Switch OLED", total: 60 }, { median: 252, confidence: "good" }).level, "far");
 });

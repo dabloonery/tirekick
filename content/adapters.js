@@ -167,7 +167,10 @@
     const a = t.match(/(\d{1,3}(?:\.\d+)?)%\s*positive(?:\s*feedback)?\s*\(([\d,.]+)\s*([KM])?\)/i);
     const b = t.match(/\(([\d,.]+)\s*([KM])?\)\s*(\d{2,3}(?:\.\d+)?)%/);
     const pct = t.match(/(\d{1,3}(?:\.\d+)?)%\s*positive/i);
-    if (a) Object.assign(f, { sellerPct: +a[1], sellerCount: count(a[2], a[3]) });
+    // "0% positive (782)": eBay's percentage covers the last 12 months, so a seller with ratings but none this year
+    // shows 0%. That says nothing about the seller (a real search had six of them); only the count is kept.
+    if (a && +a[1] === 0 && count(a[2], a[3]) > 0) f.sellerCount = count(a[2], a[3]);
+    else if (a) Object.assign(f, { sellerPct: +a[1], sellerCount: count(a[2], a[3]) });
     else if (b) Object.assign(f, { sellerPct: +b[3], sellerCount: count(b[1], b[2]) });
     else if (pct) f.sellerPct = +pct[1];
     const ratings = !a && !b && t.match(/\(([\d,.]+)\s*([KM])?\)\s*(?:feedback|ratings?)/i);
@@ -408,7 +411,8 @@
 
   // A price line, in dollars or the buyer's own currency ("$165", "CA$200", "£85").
   const FB_PRICE = /^(?:CA|C|AU|A|NZ|US)?\$\s?[\d,]|^[£€]\s?[\d,]/;
-  const FB_PRICE_ONLY = /^(?:(?:(?:CA|C|AU|A|NZ|US)?\$|[£€])\s?[\d,]+(?:\.\d\d)?){1,2}$|^free$/i;
+  // "Free$40": a listing marked down to free, the old price struck through beside it.
+  const FB_PRICE_ONLY = /^(?:(?:(?:CA|C|AU|A|NZ|US)?\$|[£€])\s?[\d,]+(?:\.\d\d)?){1,2}$|^free(?:\s*(?:(?:CA|C|AU|A|NZ|US)?\$|[£€])\s?[\d,]+(?:\.\d\d)?)?$/i;
   const FB_PLACE = /^\p{Lu}[\p{L} .'-]{1,30}, (?:[A-Z]{2}|\p{Lu}[\p{L} .'-]{2,30})$/u;
   // A price shown struck through (the old one, on a marked-down listing). Facebook styles a box around
   // the price, and a strike isn't inherited in computed style, so ask the browser for the price's box and
@@ -499,8 +503,9 @@
       const boxes = a.getClientRects().length ? TK.priceBoxes(a) : [];
       const live = boxes.find((b) => !b.struck);
       const old = boxes.find((b) => b.struck);
-      let now = TK.parseAmount(priceLine);
-      const sameLine = priceLine.match(/(?:\$|[£€])\s?[\d,]+(?:\.\d\d)?\s*((?:CA|C|AU|A|NZ|US)?\$\s?[\d,]+(?:\.\d\d)?|[£€]\s?[\d,]+(?:\.\d\d)?)$/)?.[1];
+      const free = /^free/i.test(priceLine);
+      let now = free ? 0 : TK.parseAmount(priceLine);
+      const sameLine = priceLine.match(/(?:(?:\$|[£€])\s?[\d,]+(?:\.\d\d)?|^free)\s*((?:CA|C|AU|A|NZ|US)?\$\s?[\d,]+(?:\.\d\d)?|[£€]\s?[\d,]+(?:\.\d\d)?)$/i)?.[1];
       let was = sameLine ? TK.parseAmount(sameLine) : lines.slice(at + 1).map((l) => (FB_PRICE.test(l) ? TK.parseAmount(l) : null)).find((n) => n != null);
       if (live && old) (now = live.price), (was = old.price);
       else if (old && !live) was = null;
@@ -509,7 +514,7 @@
           site: "facebook",
           title,
           priceText: live && old ? live.text : priceLine,
-          price: live && old ? now : /^free$/i.test(priceLine) ? 0 : now,
+          price: now,
           shipping: TK.parseShipping(lines.join(" ")), // usually null: most Marketplace sales are local pickup
           ...(foreign && { foreign }),
           url: new URL(href, location.origin).href.split("?")[0],

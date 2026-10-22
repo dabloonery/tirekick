@@ -48,9 +48,9 @@ The adapters (`content/adapters.js`) are the part most likely to break, and `e2e
 2. `tests/e2e/run.sh adapters.ts` shows which expectations fail. Fix the selectors in `content/adapters.js`, then adjust the
    expected values if the page you saved has different listings.
 
-`ebay-results-real.html` and `facebook-marketplace-real.html` are real searches (October 2026), trimmed and sanitized with
+The `*-real.html` fixtures are real searches (October 2026: eBay iPods, bikes and couches; Marketplace iPods, couches, dumbbells and the home feed), trimmed and sanitized with
 `python3 tests/helpers/trim-page.py ebay|facebook saved.html out.html`: only the result cards, no scripts or tracking, and
-made-up item ids, seller names, places and photos. Run a fresh save through it the same way, then read the titles before
+made-up item ids, seller names, places, ZIP codes and photos. Run a fresh save through it the same way, then read the titles before
 committing (they stay as sellers wrote them). The other eBay fixtures are small hand-made reductions of older layouts, and
 `facebook-marketplace.html` is synthetic: Facebook's markup is generated, so the adapter reads link text, not class names.
 

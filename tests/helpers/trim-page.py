@@ -32,6 +32,12 @@ def clean(root):
                 p = t.strip()
                 places.setdefault(p, FAKE_PLACES[len(places) % len(FAKE_PLACES)] if len(places) < len(FAKE_PLACES) else f"Town {len(places)}, IL")
                 t.replace_with(places[p])
+        # the town on its own, in a title ("ISO Albuquerque Journal") or a longer place name
+        towns = sorted({p.rsplit(",", 1)[0] for p in places}, key=len, reverse=True)
+        for t in root.find_all(string=True):
+            v = str(t)
+            for town in towns: v = v.replace(town, "Springfield")
+            if v != str(t): t.replace_with(v)
     for el in [root] + root.find_all(True):
         for k in list(el.attrs):
             if k not in KEEP or (site == "facebook" and k == "class"): del el[k]  # Facebook's class names are generated noise
@@ -48,6 +54,7 @@ def clean(root):
             if el.get(k):
                 v = el[k]
                 for real, made_up in places.items(): v = v.replace(real, made_up)
+                for town in sorted({p.rsplit(",", 1)[0] for p in places}, key=len, reverse=True): v = v.replace(town, "Springfield")
                 el[k] = re.sub(r"listing (\d+)", lambda m: "listing " + fake_id(m.group(1), 900000000000000), v)
 
 if site == "ebay":
@@ -78,6 +85,8 @@ if site == "ebay":
         elif re.match(r"^\d{1,3}(?:\.\d)?% positive", t):
             prev = sp.find_previous_sibling("span")
             if prev is not None and re.fullmatch(r"\S+\s*", prev.get_text()): prev.string = seller(prev.get_text().strip()) + " "
+    for t in keep.find_all(string=re.compile(r"\b\d{5}\b")):  # "Free pickup: 3 mi from 87106": the buyer's ZIP code
+        t.replace_with(re.sub(r"(from|near|to) \d{5}\b", r"\1 62701", str(t)))
     body = f'<div class="srp-river-main"><div class="s-clipped"><ul>{placeholder or ""}</ul></div><div id="srp-river-results" class="srp-river-results clearfix"><h2>Results</h2>{keep}</div></div>'
     title = "for sale | eBay"
 else:

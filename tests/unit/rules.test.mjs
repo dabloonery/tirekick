@@ -654,6 +654,7 @@ test("priceVerdict: the model's reason for a low price (cheapWhy)", () => {
   assert.equal(R.priceVerdict("fair", at("Nintendo Switch OLED", 125, { cheapWhy: "flaw" }), m).v, "fair");
   assert.equal(R.priceVerdict("great", at("Nintendo Switch OLED", 125, { cheapWhy: "quick sale" }), m).v, "suspicious", "a quick sale is no reason");
   assert.equal(R.priceVerdict("great", at("Nintendo Switch OLED", 125, { cheapWhy: "none" }), m).v, "suspicious");
+  assert.equal(R.priceVerdict("great", at("Nintendo Switch OLED", 125, { cheapWhy: "none" }), m).level, "low", "the panel sorts a Too cheap? above a Likely scam");
   assert.equal(R.priceVerdict("great", at("Nintendo Switch OLED", 125, { cheapWhy: "missing parts", sellerCount: 1 }), m).v, "suspicious", "not beside a strong seller sign");
   // Under 40%: only Analyze, only something missing or a cheaper version, no better than Fair
   assert.equal(R.priceVerdict("good", at("Nintendo Switch OLED", 90, { cheapWhy: "missing parts" }), m).v, "suspicious", "a scan doesn't clear it");

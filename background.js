@@ -448,7 +448,9 @@ const VERDICT_BANDS = "Pick the verdict first, then a score inside its range: gr
 // The same price lines as the cards' free read (TKRules.priceWord, TKRules.TOO_CHEAP), so a scan's verdict starts
 // where the card's price word does and only moves for what the model reads in the listing.
 const PRICE_BANDS = `Price against the sold-price reference ("% of working median"): 60% or less is a great price, up to 80% good, up to 105% fair, above that a pass on price alone.
-Start from that and move it for condition, what the buyer wants, and risk. A working item under 55% with no reason given is too cheap to trust: suspicious.
+Start from that and move it for condition, what the buyer wants, and risk. A working item under 55% with no reason given is too cheap to trust: suspicious, when its line has a SCAM SIGNAL
+"the total is N% of the typical price". Under 55% without that signal, the price check has already cleared the price (real sales
+go that low, a pickup seller pays no eBay fees, or an established eBay seller): the low price alone is no reason for suspicious.
 cheapWhy: when the total is under about 55% of the typical price, what in the listing itself explains it: "flaw" (a stated defect: dead pixel,
 weak battery, carrier locked, heavy wear), "missing parts" (console only, no charger, one earbud), "different model" (a cheaper version than
 the typical price is for: Lite, mini, 1st generation, less storage), "quick sale" (only moving, must go, need gone), or "none". Only what the

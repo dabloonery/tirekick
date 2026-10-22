@@ -7,7 +7,9 @@ deno test --allow-read tests/unit/     # no browser: the plain rules and helpers
 tests/e2e/run.sh features.ts           # the real extension in headless Chrome; also scores-persist.ts, marketplace.ts, ux.ts, adapters.ts
 ```
 
-Needs `google-chrome-stable`, `deno`, `python3` and `openssl`. Nothing touches the real eBay, Facebook or Claude API:
+Needs Chrome or Chromium, `deno`, `python3` and `openssl`. `chrome.sh` picks the browser: `$CHROME_BIN`, else an installed
+Chrome or Chromium, else Playwright's (cloud containers have it). In a Claude Code cloud session `.claude/hooks/session-start.sh`
+installs deno from npm, so `deno task test` runs with no setup. Nothing touches the real eBay, Facebook or Claude API:
 `tests/e2e/server.ts` serves eBay- and Marketplace-shaped pages at their real addresses (the browser maps the hosts to
 it) and a fake Claude API that keeps every request, so tests can check the model, effort and fallbacks sent.
 

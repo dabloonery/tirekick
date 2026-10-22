@@ -66,7 +66,8 @@ Conventions that matter:
 
 `deno task test` runs everything (`tests/all.sh`): the fixture pages in headless Chrome, the unit tests,
 then the real extension end to end against a local fake eBay, Facebook and AI server (`tests/e2e/`).
-It needs `google-chrome-stable`, `deno`, `python3` and `openssl`. For quick runs:
+It needs Chrome or Chromium (`tests/chrome.sh` finds one), `deno`, `python3` and `openssl`; cloud sessions get deno
+from `.claude/hooks/session-start.sh`. For quick runs:
 `deno task test:unit` (no browser) or `tests/e2e/run.sh features.ts`. `deno task pack` builds the
 store zip from an allowlist. See `tests/README.md` for which file checks what, and for refreshing
 fixtures when a store changes its markup.

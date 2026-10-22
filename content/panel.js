@@ -3262,11 +3262,23 @@
 
   // ---------- listings that loaded after the last scan ----------
 
+  // The listing links only change when the page adds, removes or re-points elements. A watcher counts those
+  // changes, so the checks on the timer below (and the links read here) skip a long feed that hasn't changed:
+  // reading every link each second was most of what an idle tab with 2,000 cards cost. Our own tags going on
+  // don't count; one coming off does (Facebook dropping it when it recycles a card).
+  let pageVersion = 0;
+  let keysMemo = null;
+  const ours = (n) => n.nodeType === 1 && (n.classList.contains("tirekick-sticker") || n.classList.contains("tirekick-marks") || n.id === "tirekick-styles");
+  new MutationObserver((recs) => {
+    if (recs.some((r) => r.type === "attributes" || r.removedNodes.length || [...r.addedNodes].some((n) => !ours(n)))) (pageVersion++, (keysMemo = null));
+  }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["href"] });
   const currentKeys = () => {
+    if (keysMemo) return new Set(keysMemo);
     const sel = TK.listingLinks();
     const keys = new Set();
     document.querySelectorAll(sel).forEach((a) => keys.add(keyOf(a.href)));
-    return keys;
+    keysMemo = keys;
+    return new Set(keys);
   };
 
   let lastDeals = 0;
@@ -4509,14 +4521,16 @@
   // One timer for everything that has to notice page changes: navigation, newly loaded
   // listings, and Facebook dropping our stickers when it recycles cards.
   let ticks = 0;
+  const ranAt = { fb: -1, pass: -1, health: -1, href: "" }; // the pageVersion each check last ran at
   const tick = () => {
     if (!alive()) return retire();
     sync();
     if (document.hidden) return;
+    if (ranAt.href !== location.href) (ranAt.href = location.href), pageVersion++; // a new page: everything runs again
     syncPageTheme(); // the page's own light or dark (cheap: it only writes when that changes)
-    reapplyFacebook();
-    if (!scanning) pagePass(); // cheap when nothing changed: compares the listing links only
-    if (ticks % 3 === 0) checkHealth().catch(() => {});
+    if (ranAt.fb !== pageVersion) (ranAt.fb = pageVersion), reapplyFacebook();
+    if (!scanning && !passing && ranAt.pass !== pageVersion) (ranAt.pass = pageVersion), pagePass(); // cheap when nothing changed: compares the listing links only
+    if (ticks % 3 === 0 && ranAt.health !== pageVersion) (ranAt.health = pageVersion), checkHealth().catch(() => {});
     if (++ticks % 2 === 0) refreshPending();
   };
   const timer = setInterval(tick, 1000);

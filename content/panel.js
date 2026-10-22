@@ -2617,6 +2617,8 @@
       under.unshift(chip);
     }
     const line = (text) => (text ? h("div", { class: "tk-flags" }, text) : null);
+    // A reposted scam judged without a model: the campaign line says it all, so its stock reason and flag don't repeat it.
+    const reposted = !!f.campaign && !!item.flags?.includes("reposted scam");
     return h(
       "div",
       { class: "tirekick-sticker", "data-v": v.v, tabindex: "0", role: "group", "aria-label": `Tirekick: score ${v.score}, ${v.label}. Tab to the reasons and actions.` },
@@ -2637,7 +2639,7 @@
         f.campaign ? line(`Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`) : null,
         !f.campaign && f.titleCode && !f.codeOk ? line(`The title ends in the code ${f.titleCode}. Bulk-posted fakes on Marketplace end that way, and so do real model numbers: check it's this item's model number.`) : null,
         f.photoTwins ? line(photoTwinsText(f.photoTwins)) : null,
-        item.reason || "",
+        reposted ? "" : item.reason || "",
         movedSince(item) ? line(`Scored when the typical price was ${dollars(Math.round(item.scoredRef))}; it's ${dollars(Math.round(item.refPrice ?? item.refWorking))} now. The price word and checks use today's; scan again for a new score.`) : null,
         item.scannedAt ? line(`Scored ${shortDate(item.scannedAt)}${item.scannedWith ? ` with ${nameOf(item.scannedWith)}` : ""}${item.scannedKind === "scan" || !item.scannedKind ? ", from the card's title, price and text (not the photos or the description)" : ", from the listing's page"}.`) : null,
         // How the numbers were made, and how far to trust them
@@ -2654,7 +2656,7 @@
         f.dup ? line(`${f.dup} listings on this page share this title or photo: a repost, or one seller with several.`) : null,
         item.fault && !/^none$/i.test(item.fault) ? line(`Likely fault: ${item.fault}${item.difficulty ? ` (difficulty ${item.difficulty}/5)` : ""}`) : null,
         item.photoAdjust ? line(`Photo check ${signed(item.photoAdjust)}: ${(item.photos || []).flatMap((p) => p.why).join("; ") || "see panel"}`) : null,
-        item.flags?.length ? line(item.flags.join(", ")) : null,
+        item.flags?.length ? line(item.flags.filter((x) => !(reposted && x === "reposted scam")).join(", ") || null) : null,
         item.imageUrl &&
         h(
           "div",

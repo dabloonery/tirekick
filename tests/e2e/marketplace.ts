@@ -16,8 +16,10 @@ console.log("stickers:", await a.ev(`document.querySelectorAll('.tirekick-sticke
 console.log("rows:", await sh(a, `return [...r.querySelectorAll('.list .row')].map(x=>x.querySelector('.title').textContent.slice(0,28)+' | '+(x.querySelector('.tag')?.getAttribute('aria-label')||'-')+' | '+x.querySelector('.pr').textContent)`));
 const b = await open(url); await sleep(2000);
 console.log("2nd tab stickers (no scan):", await b.ev(`document.querySelectorAll('.tirekick-sticker').length`));
-const ok = (n: string, v: boolean) => { console.log((v ? "PASS " : "FAIL ") + n); if (!v) Deno.exitCode = 1; };
+const ok = (n: string, v: boolean, why = "") => { console.log((v ? "PASS " : "FAIL ") + n + (v ? "" : ": " + why)); if (!v) Deno.exitCode = 1; };
 ok("5 listings read, 2 flagged as reposted-code scams", (await sh(a, `return r.querySelector('.pi-line').textContent`)).includes("5") && (await a.ev(`document.querySelectorAll('.tirekick-marks').length`)) + 5 >= 5);
+const repostPop = await a.ev(`[...document.querySelectorAll('a[href*="/item/222/"]')].map(x=>x.closest('[data-tk-cell]')?.querySelector('.tk-pop')?.textContent||'').join('')`);
+ok("a reposted scam's hover card says it once", (repostPop.match(/other codes/g) || []).length === 1 && !/reposted scam/.test(repostPop), repostPop);
 ok("marked-down card says it was $75", (await a.ev(`document.body.textContent.includes('was $75')`)));
 ok("scan scored the rest (5 stickers)", (await a.ev(`document.querySelectorAll('.tirekick-sticker').length`)) === 5);
 ok("scores restored in a second tab", (await b.ev(`document.querySelectorAll('.tirekick-sticker').length`)) >= 3);

@@ -45,6 +45,29 @@ ok("…page type and search words", (await p.ev(`Tirekick.pageType()`)) === "res
   await q.close();
 }
 
+// eBay renames its price class: the cards are still read, but a price must never come from the title, the
+// shipping or a struck-through old price (a price read that low is a "Likely scam" mark). Unknown beats wrong.
+{
+  const q = await page("https://www.ebay.com/sch/i.html?_nkw=game+boy+sp", "ebay-results");
+  const renamed = await q.ev(`(() => { const d = new DOMParser().parseFromString(document.documentElement.outerHTML.replaceAll("s-card__price", "s-card__amount"), "text/html"); return Tirekick.extractEbay(d).map((it) => it.price); })()`);
+  ok("a renamed price class: the fixture's prices are still read", eq(renamed, [52, 79, 38, 41, 90]), renamed);
+  const card = (id: number, inner: string, title = `Game Boy Advance SP ${id}`) => `<li class='s-card'><a href='https://www.ebay.com/itm/40000000000${id}'><div class='s-card__title'>${title}</div></a>${inner}</li>`;
+  const odd = [
+    card(1, `<div class='s-card__amount'>$52.00</div>`, "Game Boy SP - $1 NO RESERVE"),
+    card(2, `<div class='x'><span>+$8.50 delivery</span></div><div class='s-card__amount'>$52.00</div>`),
+    card(3, `<span class='strikethrough'>$79.99</span><div class='s-card__amount'>$52.00</div>`),
+    card(4, `<div><s>$79.99</s></div><div class='s-card__amount'>$52.00</div>`),
+    card(5, `<div><span>Was:</span><span>$79.99</span></div><div class='s-card__amount'>$52.00</div>`),
+    card(6, `<div><span>Save</span><span>$5.00</span></div><div class='s-card__amount'>$52.00</div>`),
+    card(7, `<div class='s-card__amount'>C $40.00</div><span>+$9.00 delivery</span>`),
+    card(8, `<div class='s-card__price'>C $40.00</div><span>+US $5.00 shipping</span>`),
+    card(9, `<span>+$8.50 delivery</span><span>Free returns</span>`),
+  ].join("");
+  const r = await q.ev(`(() => { const d = new DOMParser().parseFromString(${JSON.stringify(`<ul>${odd}</ul>`)}, "text/html"); return Tirekick.extractEbay(d).map((it) => it.price); })()`);
+  ok("…not the title's '$1', the shipping, a struck-through, 'Was' or 'Save' amount; another currency stays unknown, even next to a US shipping cost; no price at all is unknown", eq(r, [52, 52, 52, 52, 52, 52, null, null, null]), r);
+  await q.close();
+}
+
 p = await page("https://www.ebay.com/sch/i.html?_nkw=snes", "ebay-results-old");
 items = await extract(p);
 ok("eBay results (older layout)", items.length === 2 && items[0].title === "Super Nintendo SNES Console Bundle 2 Controllers" && eq([items[0].price, items[0].shipping, items[0].total, items[1].price, items[1].shipping], [95, 12.35, 107.35, 24.99, 0]), items.map((i: any) => [i.title, i.price, i.shipping]));

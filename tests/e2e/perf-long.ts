@@ -69,7 +69,7 @@ async function dumpProfile(file: string) {
     return t;
   };
   walk(pr.nodes[0].id);
-  await Deno.writeTextFile(file, [...totals].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([n, us]) => `${String(Math.round(us / 1000)).padStart(6)} ms  ${n}`).join("\n"));
+  await Deno.writeTextFile(file, [...totals].sort((a, b) => b[1] - a[1]).slice(0, 80).map(([n, us]) => `${String(Math.round(us / 1000)).padStart(6)} ms  ${n}`).join("\n"));
 }
 if (prof && PROFILE_SCROLL) await startProfile();
 let last = await metrics(p);

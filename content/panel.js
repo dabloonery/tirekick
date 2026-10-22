@@ -2128,9 +2128,9 @@
     const pop = node.querySelector(".tk-pop");
     if (!pop) return;
     node.style.removeProperty("--tk-nudge");
+    pop.style.removeProperty("max-width");
     requestAnimationFrame(() => {
-      const r = pop.getBoundingClientRect();
-      if (!r.width) return;
+      if (!pop.getBoundingClientRect().width) return;
       let lo = 0, hi = document.documentElement.clientWidth;
       for (let n = node.parentElement; n && n !== document.body; n = n.parentElement) {
         if (getComputedStyle(n).overflowX === "visible") continue;
@@ -2138,6 +2138,9 @@
         lo = Math.max(lo, b.left);
         hi = Math.min(hi, b.right);
       }
+      // A box that clips narrower than the card (a narrow Marketplace cell): the card narrows to fit inside it
+      if (pop.getBoundingClientRect().width > hi - lo - 12) pop.style.setProperty("max-width", `${Math.max(140, Math.floor(hi - lo - 12))}px`);
+      const r = pop.getBoundingClientRect();
       const nudge = r.left < lo + 6 ? lo + 6 - r.left : r.right > hi - 6 ? hi - 6 - r.right : 0;
       if (nudge) node.style.setProperty("--tk-nudge", `${Math.round(nudge)}px`);
     });

@@ -5,6 +5,7 @@
     "pack": "deno run --allow-read --allow-write scripts/pack.mjs",
     "screenshots": "tests/e2e/run.sh screenshots.ts",
     "version-check": "deno run --allow-read --allow-run --allow-env scripts/version-check.mjs",
-    "eval": "deno run --allow-read --allow-env tests/eval/pipeline.mjs"
+    "eval": "deno run --allow-read --allow-env tests/eval/pipeline.mjs",
+    "eval:model": "deno run --allow-read --allow-env --allow-net tests/eval/model.mjs"
   }
 }

@@ -194,6 +194,17 @@
     if (f.sellerJoined >= new Date(now).getFullYear()) return `Account made in ${f.sellerJoined}`;
     return "";
   };
+  // A seller sign strict enough to make a low price "Likely scam" (cheapLevel), whatever your own limits for the
+  // Check first warning are: 4 ratings or fewer, under 95% positive, under 98% with fewer than 20 ratings, or an
+  // account made this year. Honest small sellers (6 ratings, all positive) still get the warning, not the mark.
+  // Returns a few words ("a seller with 2 ratings") or "".
+  R.riskySeller = (f, now = Date.now()) => {
+    const n = f?.sellerCount, pct = f?.sellerPct;
+    if (n != null && n <= 4) return n === 0 ? "a new seller" : `a seller with ${n} rating${n === 1 ? "" : "s"}`;
+    if (pct != null && (pct < 95 || (pct < 98 && n != null && n < 20))) return `a seller at ${pct}% positive`;
+    if (f?.sellerJoined >= new Date(now).getFullYear()) return `an account made in ${f.sellerJoined}`;
+    return "";
+  };
 
   // A price far under what the same thing sells for is the other half of most scams: the bait. Only with
   // a sold reference worth trusting (not "rough"), and never for what that reference doesn't describe:
@@ -217,8 +228,9 @@
   };
   // Price alone, under the firm cutoff: "far" (Likely scam), unless the title leaves out a search word or says why
   // it's cheap ("low", Check first). Under the softer cutoff: "low", or "reason" when the card says why. A seller
-  // with a warning (few ratings, an account made this year) makes the softer band "far" too: in the eval every
-  // such listing was a scam and honest new sellers price near the typical price. A reason doesn't clear that pair,
+  // with a strong warning (R.riskySeller: a handful of ratings, a poor score, an account made this year) makes the
+  // softer band "far" too: in the eval every such listing was a scam and honest new sellers price near the typical
+  // price. `seller` on the result is that warning, in words. A reason doesn't clear that pair,
   // but keeps it at "low".
   // `why` (f.saysWhy from compareFacts, or worked out here) is set on "low" and "reason" for the chip to say.
   const cheapLevel = (f, market) => {
@@ -235,8 +247,9 @@
     // take 60% off, and it's the story bait tells.
     // A "fair" reference (fewer sales, or a wider spread) can't say a price alone is bait: that needs a "good" one.
     const big = why && !FLAW.test(why);
-    if (pct < R.TOO_CHEAP.far) return f.sellerWarn && !f.offWords ? out("far", { seller: true }) : out(f.offWords || big || market.confidence !== "good" ? "low" : "far");
-    if (f.sellerWarn && !f.offWords) return why ? out("low") : out("far", { seller: true });
+    const risky = !f.offWords && (f.sellerRisk ?? R.riskySeller(f)); // sellerRisk: worked out by the caller (the eval, at a fixed date)
+    if (pct < R.TOO_CHEAP.far) return risky ? out("far", { seller: risky }) : out(f.offWords || big || market.confidence !== "good" ? "low" : "far");
+    if (risky) return why ? out("low") : out("far", { seller: risky });
     return out(why ? "reason" : "low");
   };
 
@@ -340,7 +353,7 @@
     const said = R.cheapForReason(it, market);
     if (said) return R.RANK[verdict] > R.RANK.good ? moved("good", { why: `Held at Good price: ${R.dollars(it.total)} is ${said.pct}% of the typical ${typical}, and the listing says why (“${said.why}”).` }) : keep;
     const cheap = R.tooCheap(it, market);
-    if (cheap) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}${cheap.seller ? `, from a seller with a warning (${it.sellerWarn})` : ""}. Far under what the same thing sells for is the usual bait: check it's real before you pay.` });
+    if (cheap) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}${cheap.seller ? `, from ${cheap.seller}` : ""}. Far under what the same thing sells for is the usual bait: check it's real before you pay.` });
     if (!it.auction && !it.lot && !it.project && !it.accessory && !it.priceRange && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return moved("fair", { why: `Held at Fair price: ${R.dollars(it.total)} is ${pct}% of the typical ${typical}.` });
     return keep;
   };

@@ -1900,7 +1900,7 @@
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
   const sellerWarning = (f) => TKRules.sellerWarning(f, prefs);
-  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed", "wasPrice", "foreign", "priceRange"];
+  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "sellerJoined", "titleCode", "offSite", "justListed", "wasPrice", "foreign", "priceRange"];
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(TK.bigImage(img))}`;
 
 
@@ -1926,7 +1926,7 @@
     const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
     const unrelated = f.url && scored.get(keyOf(f.url))?.related === false; // a scan said it's something else
     const cheap = f.vsSold != null && !unrelated && TKRules.tooCheap(f, mk);
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` The seller has a warning too (${f.sellerWarn}): the two together are how most scams look.` : ""}`]);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}`]);
     // Cheap, and the listing says why: no warning, and no "Great price" either.
     const said = f.vsSold != null && !cheap && !unrelated && TKRules.cheapForReason(f, mk);
     if (said) c.push(["plain", `Under typical: ${said.why}`, `This is ${said.pct}% of the typical price (${from(mk)}), and the listing says why: “${said.why}”. Check the photos show it, and ask about anything else.`]);

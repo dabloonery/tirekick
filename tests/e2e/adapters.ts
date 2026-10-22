@@ -55,7 +55,7 @@ ok("eBay category page", eq(items.map((i: any) => [i.title, i.price]), [["Sony P
 
 p = await page("https://www.ebay.com/sch/i.html?_nkw=x", "ebay-sold");
 const m = await p.ev(`(({samples, ...m}) => ({...m, samples: samples.length}))(Tirekick.summarizeSold(document.documentElement.outerHTML))`);
-ok("sold listings become a median; eBay's looser matches are left out", m.n === 8 && m.median === 56 && m.p25 === 51 && m.p75 === 59 && m.samples === 5, m);
+ok("sold listings become a median; eBay's looser matches are left out", m.n === 8 && m.median === 56 && m.p25 === 51 && m.p75 === 59 && m.samples === 5 && m.p10 > 0 && m.p10 <= m.p25, m);
 ok("…too few sales to trust gives nothing", (await p.ev(`Tirekick.summarizeSold("<ul><li class='s-card'><a href='https://www.ebay.com/itm/9'><div class='s-card__title'>x</div></a><div class='s-card__price'>$5</div></li></ul>")`)) === null);
 {
   const card = (id: number, price: string, extra = "") => `<li class='s-card'><a href='https://www.ebay.com/itm/${id}'><div class='s-card__title'>Pentax K1000 camera body ${id}</div></a><div class='s-card__price'>${price}</div>${extra}</li>`;

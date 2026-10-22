@@ -1,7 +1,8 @@
 // Every state the panel can be in when things don't go to plan, on the real extension: what it says,
 // and whether it offers the way out. Rejected key, rate limit, an answer cut off, no connection, out of
-// credit, a key without access, overload, a fault on the API's side, an answer that isn't JSON, the budget
-// used up, a scan under way and stopped, a page with nothing to scan, and Delete everything in
+// credit, a key without access, overload, a fault on the API's side, an answer that isn't JSON, no AI set
+// up, sold prices that can't be had (none sold, eBay's check, offline), a search with no results, the
+// budget used up, a scan under way and stopped, a page with nothing to scan, and Delete everything in
 // settings. Prints PASS/FAIL lines; with STATES_OUT=dir it also saves a screenshot of each.
 //   tests/e2e/run.sh states.ts
 import { start, EXT, sleep } from "./lib.ts";
@@ -77,6 +78,63 @@ for (const [name, extra, says, fix] of cases) {
   ok(`${name}: the message is in view, not scrolled away`, seen === true, seen);
   ok(`${name}: ${fix ? `offers ${fix}` : "no fix button (Scan again is the retry)"}`, btn === fix, btn || "none");
   ok(`${name}: Scan is still there to try again`, await R(p, `return !r.querySelector('[data-act=scan]').hidden`));
+}
+
+// ---- no AI set up at all: the free parts work, and Scan isn't offered ----
+await reset(`{useSoldComps:true}`);
+{
+  const p = await openPanel(SEARCH);
+  const ui = await R(p, `const s=r.querySelector('[data-act=scan]'); return [s.offsetHeight === 0, !r.querySelector('.setup').hidden, r.querySelector('.setup').textContent, r.querySelector('.setup button')?.textContent]`);
+  await shot(p, "no_ai");
+  ok("no AI yet: no Scan button, and the setup card says what's free and where to add one", ui[0] && ui[1] && /work without one/.test(ui[2]) && ui[3] === "Open settings", ui);
+  await R(p, `r.querySelector('[data-act=prices]').click()`);
+  await sleep(600);
+  for (let i = 0; i < 20 && (await R(p, `return r.querySelector('.wrap').classList.contains('busy')`)); i++) await sleep(500);
+  const m = await R(p, `return r.querySelector('.market').textContent`);
+  ok("no AI yet: Typical price still works", /Typical price/.test(m), m.slice(0, 80));
+}
+
+// ---- sold prices that can't be had: none sold, eBay's check, offline ----
+for (const [name, q, says] of [
+  ["no sales at all", "nosales camera", /Not enough eBay sales/],
+  ["eBay asks for a browser check", "blockme", /paused \d+ min \(eBay asked for a browser check\)/],
+] as [string, string, RegExp][]) {
+  // Both pages list the same items: give the last tab's remembered scores time to land before clearing
+  // storage, or this page restores them and has nothing new to scan.
+  await closeAll();
+  await sleep(1500);
+  await reset(`{anthropicKey:'sk-ant-test', useSoldComps:true}`);
+  const p = await openPanel(`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`);
+  const [text, err] = await scanAndRead(p);
+  const m = await R(p, `return r.querySelector('.market').textContent`);
+  await shot(p, `sold_${name.replace(/\W+/g, "_")}`);
+  ok(`sold prices, ${name}: the price box says so`, says.test(m), m);
+  ok(`sold prices, ${name}: the scan still scores the listings`, /Scored \d+/.test(text) && !err, text);
+}
+await reset(`{anthropicKey:'sk-ant-test', useSoldComps:true}`);
+{
+  const p = await openPanel(SEARCH);
+  await c.send("Network.enable", {}, p.sessionId);
+  await c.send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }, p.sessionId);
+  await R(p, `r.querySelector('[data-act=prices]').click()`);
+  await sleep(600);
+  for (let i = 0; i < 20 && (await R(p, `return r.querySelector('.wrap').classList.contains('busy')`)); i++) await sleep(500);
+  const m = await R(p, `return [r.querySelector('.market').textContent, r.querySelector('.market a')?.textContent]`);
+  await c.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }, p.sessionId);
+  ok("sold prices offline: says so, and links eBay's own sold search", /offline|Couldn't reach eBay/.test(m[0]) && m[1] === "See sold listings on eBay", m);
+}
+
+// ---- a search with no results ----
+await reset(`{anthropicKey:'sk-ant-test'}`);
+{
+  const p = await openPanel(SEARCH + "&none=1");
+  const [text, err, btn] = await scanAndRead(p);
+  const warn = await R(p, `return r.querySelector('.readwarn').hidden`);
+  await shot(p, "empty_search");
+  ok("a search with no results: says the site found nothing, not that its layout changed", /^eBay found no listings for this search/.test(text) && !err && !btn, [text, btn]);
+  ok("…and no layout warning", warn);
+  const health = await o.ev(`chrome.storage.local.get('siteHealth').then(v => v.siteHealth?.ebay || null)`);
+  ok("…and Home isn't told eBay looks broken", !health?.bad, health);
 }
 
 // ---- the budget used up ----

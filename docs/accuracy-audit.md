@@ -143,11 +143,14 @@ Where the rules stood, before any change:
 | The same, still a warning after a scan that read the reason | 19 of 20 |
 | Honest cheap listings that don't say why, marked | 8 of 8 (4 Likely scam) |
 
+After reading what the listing says (`cheapReason`, below): honest cheap listings that say why, Likely scam 0 of 20 (was 2), Check first 1, still a warning after a scan 1 (was 19); scams marked Likely scam 24 of 27, none missed. The one left is "console only, no dock" from a seller with 2 ratings: the seller warning keeps it at Check first.
+
 The changes, one PR each:
 
 | Problem | Effect on real listings | Now |
 |---|---|---|
 | The bait share the scan and Analyze send the model ("SCAM SIGNAL: the total is N% of the typical price … the usual bait") was worked out from the raw card or listing, which has no for-parts, missing-word or not-your-search facts, and against the eBay total rather than the pickup price | "Nintendo Switch OLED for parts, no power" at $105 went to the model as bait at 42%, while its card rightly showed no warning; a model told that is likely to say suspicious, and a model's suspicious is never overruled. On Marketplace the model got two different percentages for one listing | The share comes from the card's own facts, the same ones its chip uses. Analyze gives the listing its for-parts and missing-word facts, so its price check doesn't turn a broken one into "Great price, if it's real" either (`tests/e2e/real.ts` checks what each listing line sends) |
+| A low price was a warning whatever the listing said about it: only "missing" and "console only" counted, and only beside a seller warning | "Switch OLED - dead pixel on screen, otherwise works" at 50%, "iPhone 13 - battery 76%, scratches" at 52%, "MacBook Air M1 - dent on corner" at 48%, an "iPhone 13 Mini" in an iPhone 13 search at 53%: all "Too cheap?" before a scan and "Great price, if it's real" after one; "MacBook Air M1 MDM locked" and "AirPods Pro 2 - right earbud only" at 38% were red Likely scam | `TKRules.cheapReason` reads why a listing says it's cheap: a flaw (dead pixel, drift, a battery under 85%, a carrier lock, dents, worn), something missing ("console only", "no dock") or a cheaper version than the search (lite, mini, 1st gen, a smaller size). Said away ("no scratches") doesn't count, nor do "moving" and "must go". Between 40% and 55% such a listing has no warning and no price word, a plain "Under typical: dead pixel" chip instead, and a scan's word stands, held at Good price. Under 40% a flaw story doesn't explain it (bait tells one), and something missing makes it Check first, not Likely scam. A seller warning beside it stays Check first, and a title code is still backed by the low price. iCloud, MDM and activation locks read as for parts; one earbud as a part |
 
 ## Spending estimates
 

@@ -515,7 +515,7 @@ test("tooCheap: under the softer cutoff from a seller with a warning is far, unl
   const m = { median: 252, confidence: "good" };
   assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 110, sellerWarn: "New seller" }, m), { level: "far", pct: 44, seller: true });
   assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 110 }, m), { level: "low", pct: 44 });
-  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED - missing Joy-Cons", total: 110, sellerWarn: "Seller: 4 ratings" }, m), { level: "low", pct: 44 });
+  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED - missing Joy-Cons", total: 110, sellerWarn: "Seller: 4 ratings" }, m), { level: "low", pct: 44, why: "missing joy-cons" });
   assert.deepEqual(R.tooCheap({ title: "Switch OLED", total: 110, sellerWarn: "New seller", offWords: "nintendo" }, m), { level: "low", pct: 44 }, "a title missing a search word stays low");
   assert.equal(R.tooCheap({ title: "Nintendo Switch OLED", total: 229, sellerWarn: "New seller" }, m), null, "a new seller at a normal price isn't too cheap");
   const pv = R.priceVerdict("great", { title: "Nintendo Switch OLED", total: 110, sellerWarn: "New seller", score: 90 }, m);
@@ -543,4 +543,59 @@ test("a price in another currency isn't compared with US sales", () => {
   assert.equal(R.priceVerdict("great", { ...f, total: 60, score: 90 }, m).v, "great");
   assert.equal(R.offerPlan({ price: 180, foreign: "CA$" }, m), null);
   assert.ok(R.compareFacts({ title: "Nintendo Switch OLED", price: 180, total: 180 }, m, "nintendo switch oled") > 0.7, "dollars still are");
+});
+
+test("cheapReason: a flaw, something missing or a cheaper version, in the listing's words", () => {
+  const why = (t, q = "") => R.cheapReason(t, "", q);
+  assert.equal(why("Nintendo Switch OLED - dead pixel on screen, otherwise works"), "dead pixel");
+  assert.equal(why("iPhone 13 128GB Unlocked - battery 76%, scratches"), "battery 76%");
+  assert.equal(why("iPhone 13 128GB Verizon - carrier locked"), "carrier locked");
+  assert.equal(why("MacBook Air M1 8GB 256GB - dent on corner, screen spots"), "dent");
+  assert.equal(why("Nintendo Switch OLED heavy wear, drift on joycons"), "heavy wear");
+  assert.equal(why("Pentax K1000 film camera, needs light seals"), "needs light seals");
+  assert.equal(why("Nintendo Switch OLED console only, no dock"), "console only");
+  assert.equal(why("DeWalt DCD771 drill, no charger"), "no charger");
+  assert.equal(why("Apple iPhone 13 Mini 128GB Pink", "iphone 13 128gb"), "mini");
+  assert.equal(why("Nintendo Switch Lite Turquoise", "nintendo switch"), "lite");
+  assert.equal(why("Nintendo Switch Lite Turquoise", "nintendo switch lite"), "", "the version searched for isn't a cheaper one");
+  assert.equal(why("Apple iPhone 13 64GB", "iphone 13 128gb"), "64GB", "a smaller size than the search names");
+  assert.equal(why("MacBook Air M1 8GB 256GB", "macbook air m1 256gb"), "", "memory beside storage isn't a size");
+  // Said away, or no reason at all
+  assert.equal(why("Switch OLED barely used, no scratches"), "");
+  assert.equal(why("scratch-free screen, works without issues"), "");
+  assert.equal(why("not missing anything, battery 91%"), "");
+  assert.equal(why("Nintendo Switch OLED - moving sale, must go"), "", "a quick sale isn't a reason: bait says it too");
+  assert.equal(why("Nintendo Switch OLED White, lightly used"), "");
+});
+
+test("tooCheap and cheapForReason: a listing that says why it's cheap", () => {
+  const m = { median: 252, confidence: "good" };
+  const at = (title, total, extra = {}) => ({ title, total, ...extra });
+  // 40-55%: no warning when it says why, a plain chip instead
+  assert.equal(R.tooCheap(at("Nintendo Switch OLED - dead pixel", 125), m), null);
+  assert.deepEqual(R.cheapForReason(at("Nintendo Switch OLED - dead pixel", 125), m), { pct: 50, why: "dead pixel" });
+  assert.equal(R.cheapForReason(at("Nintendo Switch OLED", 125), m), null);
+  assert.equal(R.freeRead({ ...at("Nintendo Switch OLED - dead pixel", 125), vsSold: 125 / 252 }, m), null, "no warning, no price word");
+  // A seller warning beside it: still Check first, never cleared
+  assert.equal(R.tooCheap(at("Nintendo Switch OLED - dead pixel", 125, { sellerWarn: "New seller" }), m).level, "low");
+  // Under 40%: a flaw story doesn't explain it (bait tells one); something missing makes it Check first
+  assert.equal(R.tooCheap(at("iPhone 13 128gb minor scratches", 85), m).level, "far");
+  assert.equal(R.tooCheap(at("Nintendo Switch OLED console only", 90), m).level, "low");
+  assert.equal(R.tooCheap(at("Nintendo Switch OLED console only", 90, { sellerWarn: "New seller" }), m).level, "far");
+  // After a scan: the word stands, no better than Good price
+  const pv = R.priceVerdict("great", at("Nintendo Switch OLED - dead pixel", 125, { score: 88 }), m);
+  assert.equal(pv.v, "good");
+  assert.equal(pv.score, 74);
+  assert.match(pv.why, /50% of the typical \$252, and the listing says why \(“dead pixel”\)/);
+  assert.deepEqual(R.priceVerdict("fair", at("Nintendo Switch OLED - dead pixel", 125), m), { v: "fair" });
+  assert.equal(R.priceVerdict("good", at("Nintendo Switch OLED", 125), m).v, "suspicious", "no reason: still the bait warning");
+  // A code on the title is still backed by the low price
+  const coded = { ...at("Nintendo Switch OLED small scratch K9F21", 120), titleCode: "K9F21", vsSold: 120 / 252 };
+  assert.equal(R.freeRead(coded, m).word, "Likely scam");
+});
+
+test("accessoryOf and PROJECT: one earbud is a part, a locked device is for parts", () => {
+  assert.equal(R.accessoryOf("AirPods Pro 2 - right earbud only + case", "airpods pro 2"), "right earbud only");
+  assert.equal(R.clueOf(R.PROJECT, "MacBook Air M1 MDM locked"), "mdm locked");
+  assert.equal(R.clueOf(R.PROJECT, "iPhone 13 iCloud locked"), "icloud locked");
 });

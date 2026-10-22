@@ -48,7 +48,8 @@ const why = await b.ev(`[...document.querySelectorAll('.tk-chip')].find(x => /Sa
 ok("…and the mark says what it means and what to do", /stolen or stock photo\. Ask the seller for a photo with today's date/.test(why), why);
 await b.close();
 
-// Back to the first page: fingerprints aren't fetched again.
+// Back to the first page: fingerprints aren't fetched again. (The closed page's own fingerprint is saved as it closes.)
+await waitFor(async () => (await keptKeys()).split(",").length === 5);
 const before = await o.ev(`chrome.storage.local.get('photoSeen').then(v => Object.values(v.photoSeen || {}).map(r => r.a).join())`);
 const a2 = await open("https://www.facebook.com/marketplace/search?query=film+camera&photos=1");
 await waitFor(async () => /Same photo/.test(JSON.stringify(await marks(a2))));

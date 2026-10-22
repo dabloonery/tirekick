@@ -48,6 +48,8 @@ test("cardFacts: auctions, offers, lots and seller ratings", () => {
   assert.deepEqual(pick(TK.cardFacts("retro 99.2% positive (412)", "x")), { sellerPct: 99.2, sellerCount: 412 });
   assert.deepEqual(pick(TK.cardFacts("name (1.2K) 99.5%", "x")), { sellerPct: 99.5, sellerCount: 1200 });
   assert.deepEqual(pick(TK.cardFacts("98% positive", "x")), { sellerPct: 98 });
+  assert.deepEqual(pick(TK.cardFacts("new_seller 0% positive (0)", "x")), { sellerPct: 0, sellerCount: 0 }, "no ratings yet");
+  assert.deepEqual(pick(TK.cardFacts("argent 0% positive (782)", "x")), { sellerCount: 782 }, "ratings, none in the last 12 months: no percentage");
   function pick(f) { return Object.fromEntries(Object.entries(f).filter(([k]) => k.startsWith("seller"))); }
 });
 

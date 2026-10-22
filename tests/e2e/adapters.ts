@@ -157,5 +157,37 @@ items = await extract(p);
   ok("Marketplace: Tirekick's own marks inside a card are not read as the listing's", r[0] === "PS1 Japanese edition" && r[1] === 50 && r[2] === 70 && !/Code in title|Not interested/.test(r[3]), r);
 }
 await p.close();
+
+// More real searches (2026-10-22): eBay bikes and couches, Marketplace couches, dumbbells and the home feed.
+// Each Marketplace card is checked against the label Facebook puts on its link, where it has one.
+const fbAgainstLabels = async (q: any, its: any[]) => {
+  const labels = await q.ev(`[...document.querySelectorAll('a[href*="/marketplace/item/"]')].map((a) => a.getAttribute("aria-label"))`);
+  return its.filter((it: any, n: number) => {
+    if (!labels[n]) return false;
+    const [, title, price, was] = labels[n].replace(/\s+/g, " ").match(/^(.*), (\$[\d,.]+|FREE|Free), (?:reduced from \$([\d,.]+), )?/) || [];
+    const p = /^free$/i.test(price || "") ? 0 : +String(price).replace(/[$,]/g, "");
+    return it.title !== title?.trim() || it.price !== p || (it.wasPrice ?? null) !== (was ? +was.replace(/,/g, "") : null);
+  });
+};
+for (const [q, fx, n, extra] of [["couch", "facebook-couch-real", 50, ""], ["dumbells", "facebook-dumbbells-real", 71, ""], ["", "facebook-feed-real", 33, ""]] as const) {
+  p = await page(q ? `https://www.facebook.com/marketplace/search/?query=${q}` : "https://www.facebook.com/marketplace/?ref=app_tab", fx);
+  items = await extract(p);
+  const wrong = await fbAgainstLabels(p, items);
+  ok(`real Marketplace ${q || "home feed"}: all ${n} listings, titles, prices and old prices as Facebook labels them`, items.length === n && !wrong.length && items.every((i: any) => i.title && i.price != null), wrong.map((i: any) => [i.title, i.priceText, i.price]));
+  if (fx === "facebook-couch-real") ok("…'Free' marked down from $40 is free, was $40; plain 'Free' is free", eq([items[1].price, items[1].wasPrice, items[5].price, items[5].wasPrice ?? null], [0, 40, 0, null]), [items[1].priceText, items[1].price, items[1].wasPrice]);
+  if (fx === "facebook-feed-real") ok("…the feed's unlabeled partner listings read too, and a real bulk-scam code", eq(items.filter((i: any) => i.titleCode).map((i: any) => i.titleCode), ["A1059", "S1337"]) && (await p.ev(`Tirekick.pageType()`)) === "results" && /home feed/.test(await p.ev(`Tirekick.browseContext()`)), items.filter((i: any) => i.titleCode).map((i: any) => i.title));
+  await p.close();
+}
+for (const [q, fx] of [["bike", "ebay-bike-real"], ["couch", "ebay-couch-real"]]) {
+  p = await page(`https://www.ebay.com/sch/i.html?_nkw=${q}`, fx);
+  items = await extract(p);
+  ok(`real eBay ${q}: 60 listings, each with a title and a price`, items.length === 60 && items.every((i: any) => i.title && i.price > 0), items.length);
+  if (q === "bike") {
+    // "0% positive (782)": eBay's percentage is the last 12 months, so a seller with no ratings this year shows 0%.
+    ok("…'0% positive (N)' with ratings is no percentage, not a 0% seller; '0% positive (0)' is a new seller", items[32].sellerPct === undefined && items[32].sellerCount === 782 && eq([items[7].sellerPct, items[7].sellerCount], [0, 0]), [items[32].sellerPct, items[32].sellerCount]);
+    ok("…pickup-only listings have no shipping to add", items[28].shipping === null && /pickup only/i.test(items[28].raw), items[28].raw);
+  } else ok("…8 price ranges marked", items.filter((i: any) => i.priceRange).length === 8);
+  await p.close();
+}
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

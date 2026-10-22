@@ -302,7 +302,11 @@ The order, one PR each, every one measured by `deno task eval` with the scam num
    different model.
 7. [x] Platforms: established eBay sellers (eBay's guarantee), and Marketplace sellers who don't pay eBay's fee.
 8. [x] Display: the reason on the card, what would clear a mark, and where a price warning sorts.
-9. [x] Optional: the eval with the real prompts, when an API key is set (never in CI).
+9. [x] Optional: the eval with the real prompts, when an API key is set (never in CI). First run (2026-10-22, Haiku):
+   every scam stayed a warning, but 4-5 of the 31 honest cheap listings were flagged because the prompt's 55% rule
+   ignored what the price check had cleared (a pickup seller, an established eBay seller, sales that go that low). The
+   rule now applies only beside the price check's own "the total is N% of the typical price" note: 29-31 of 31 over
+   five runs, scams 11 of 11.
 
 ## After real use (2026-10-16)
 

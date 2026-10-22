@@ -2,10 +2,10 @@
 
 Read these before changing anything:
 
-- [docs/ROADMAP.md](docs/ROADMAP.md): Chrome Web Store checklist, the robustness plan for the
-  no-AI features, and the feature briefs (what to build next).
-- [docs/REFERENCE.md](docs/REFERENCE.md): voice and copy, the rename plan, and the security and
-  permissions review.
+- [docs/ROADMAP.md](docs/ROADMAP.md): where each plan stands, what waits on Myer, the store upload checklist,
+  and the feature briefs (what to build next).
+- [docs/REFERENCE.md](docs/REFERENCE.md): the voice and copy guide, and where every other reference lives
+  (store listing, privacy policy, the security review in `store/SECURITY-REVIEW.md`).
 - README.md **Ground rules**: only pages the user is looking at, no crawling or background fetching
   from the stores, never get past a bot check.
 - [docs/adding-a-site.md](docs/adding-a-site.md) before touching anything store-specific.
@@ -66,8 +66,7 @@ Conventions that matter:
 
 `deno task test` runs everything (`tests/all.sh`): the fixture pages in headless Chrome, the unit tests,
 then the real extension end to end against a local fake eBay, Facebook and AI server (`tests/e2e/`).
-It needs Chrome or Chromium (`tests/chrome.sh` finds one), `deno`, `python3` and `openssl`; cloud sessions get deno
-from `.claude/hooks/session-start.sh`. For quick runs:
+It needs `google-chrome-stable`, `deno`, `python3` and `openssl`. For quick runs:
 `deno task test:unit` (no browser) or `tests/e2e/run.sh features.ts`. `deno task pack` builds the
 store zip from an allowlist. See `tests/README.md` for which file checks what, and for refreshing
 fixtures when a store changes its markup.

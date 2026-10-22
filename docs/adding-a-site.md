@@ -1,6 +1,6 @@
 # Adding a site
 
-How to add a marketplace (OfferUp and Craigslist are planned: `docs/plan-more-sites.md`). Everything
+How to add a marketplace (OfferUp and Craigslist are planned: Brief 5 in `docs/ROADMAP.md`). Everything
 site-specific is in one table and a few per-site maps, so a new site is an entry in each, not edits
 scattered through the panel. `tests/unit/sites.test.mjs` fails until every piece is there.
 

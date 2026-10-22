@@ -1768,12 +1768,17 @@
   const photoWanted = new Map(); // key -> photo address, waiting for its fingerprint
   const photoAsked = new Set(); // keys fingerprinted, or on their way, on this page
   const photoOf = new WeakMap(); // card element -> [key, photo address], for the observer
+  const photoEls = new Map(); // key -> the card element watched for it, until its photo is fingerprinted
   let photoTimer = 0;
   const photoSite = () => !!TK.site()?.photoTwins;
+  // Each listing is checked against the few photos that could be near it (TKShared.photoIndex), not all of them:
+  // comparing every listing on a long feed with every photo kept took most of a second for each batch.
   const markPhotoTwins = () => {
+    const index = TKShared.photoIndex(photoSeen, TKRules.PHOTO_NEAR);
+    const twinsOf = (key) => TKRules.photoTwins(key, Object.fromEntries([...index.near(photoSeen[key].h), key].map((k) => [k, photoSeen[k]])));
     const changed = [];
     for (const [key, f] of facts) {
-      const n = photoSeen[key] ? TKRules.photoTwins(key, photoSeen).length : 0;
+      const n = photoSeen[key]?.h ? twinsOf(key).length : 0;
       if ((f.photoTwins || 0) !== n) {
         f.photoTwins = n;
         changed.push([key, elFor(key)]);
@@ -1803,19 +1808,26 @@
     if (photoTimer || !photoWanted.size || !alive()) return;
     photoTimer = setTimeout(async () => {
       const batch = [...photoWanted].slice(0, 6).map(([k, u]) => [k, u, facts.get(k)?.title]);
-      batch.forEach(([k]) => photoWanted.delete(k));
+      for (const [k] of batch) {
+        photoWanted.delete(k);
+        if (photoEls.has(k)) photoObserver.unobserve(photoEls.get(k));
+        photoEls.delete(k);
+      }
       if (await hashPhotos(batch).then((ks) => ks.length)) markPhotoTwins();
       photoTimer = 0;
       pumpPhotos();
     }, 600);
   };
+  // Only photos still on screen are fingerprinted: scrolling fast past a long feed would otherwise queue every
+  // card passed, and the tab kept fetching photos for a minute after you stopped. One that scrolled away
+  // before its turn waits until it's back.
   const photoObserver = "IntersectionObserver" in window
     ? new IntersectionObserver((entries) => {
         for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          photoObserver.unobserve(e.target);
           const [key, url] = photoOf.get(e.target) || [];
-          if (key && facts.get(key)?.imageUrl === url) photoWanted.set(key, url);
+          if (!key) continue;
+          if (!e.isIntersecting) photoWanted.delete(key);
+          else if (facts.get(key)?.imageUrl === url) photoWanted.set(key, url);
         }
         pumpPhotos();
       }, { rootMargin: "200px" })
@@ -1834,6 +1846,7 @@
         continue;
       }
       photoOf.set(it.el, [key, it.imageUrl]);
+      photoEls.set(key, it.el);
       photoObserver.observe(it.el);
     }
     if (known) markPhotoTwins();

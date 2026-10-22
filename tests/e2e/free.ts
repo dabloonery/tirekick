@@ -47,6 +47,24 @@ const capChips = ((await chips()).find(([pr]: string[]) => pr === "$8.00") || []
 ok("an accessory for the search isn't compared with the thing's typical price, so it's no scam", /No price check/.test(capChips) && !/Too cheap|Likely scam|typical/.test(capChips), capChips);
 await p.close();
 
+// ---------- eBay changed its cards ----------
+// A renamed price class with a "Save $5.00" coupon above each price: the same prices, so the same marks (the
+// first dollar amount on the card would make every one "Likely scam").
+{
+  const q = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000&changed=price");
+  const qchips = () => q.ev(`[...document.querySelectorAll('.s-card')].map(c => [c.querySelector('.s-card__amount')?.textContent, [...(c.querySelector('.tirekick-sticker')?.shadowRoot || c).querySelectorAll('.tk-chip')].map(x => x.textContent).join(' | ')])`);
+  await waitFor(async () => JSON.stringify(await qchips()).includes("typical"));
+  const qs = await qchips();
+  ok("a renamed price class next to a coupon: every card shows the marks it had before", JSON.stringify(qs) === JSON.stringify(cs), { now: qs, before: cs });
+  await q.close();
+  // No price readable at all: no price marks, and the panel says it couldn't read the prices.
+  const n = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000&changed=noprice");
+  const warned = await waitFor(() => R(n, `const w=r.querySelector('.readwarn'); return !w.hidden && /found a price on only 0/.test(w.textContent)`));
+  const nchips = await n.ev(`[...document.querySelectorAll('.s-card')].map(c => [...(c.querySelector('.tirekick-sticker')?.shadowRoot || c).querySelectorAll('.tk-chip')].map(x => x.textContent).join(' | ')).join(' || ')`);
+  ok("prices gone from the cards: the panel says so, and no card gets a price mark", warned && !/Too cheap|Likely scam\?|typical/.test(nchips), { warned, nchips, note: await R(n, `return r.querySelector('.readwarn').textContent`) });
+  await n.close();
+}
+
 // ---------- a pickup listing, against eBay totals that include shipping ----------
 await store(`{soldCache:{"v2:used:pentax k1000":{at:Date.now(), market:${JSON.stringify({ ...MARKET, median: 100, p25: 90, p75: 115, ship: 12 })}}}}`);
 const fb = await open("https://www.facebook.com/marketplace/search?query=pentax+k1000");

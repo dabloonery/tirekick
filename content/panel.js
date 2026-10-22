@@ -1869,7 +1869,7 @@
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
   const sellerWarning = (f) => TKRules.sellerWarning(f, prefs);
-  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed", "wasPrice", "foreign"];
+  const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "titleCode", "offSite", "justListed", "wasPrice", "foreign", "priceRange"];
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(TK.bigImage(img))}`;
 
 
@@ -2125,7 +2125,7 @@
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
   // A listing can be priced on its own when it has none yet, and it's one thing (not a lot, not a bid).
-  const canPrice = (f) => cfg.useSoldComps !== false && f.vsSold == null && !f.priceNote && !f.foreign && !f.lot && !f.auction && !f.project && f.total != null && !!TK.titleToQuery(f.title || "");
+  const canPrice = (f) => cfg.useSoldComps !== false && f.vsSold == null && !f.priceNote && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.project && f.total != null && !!TK.titleToQuery(f.title || "");
   // One listing's typical price, from its own title: the answer when the page has no search, or its words
   // are a whole category. One eBay lookup, paced and cached like the page's.
   const priceOne = async (key, btn) => {
@@ -3952,7 +3952,7 @@
   };
   // The offer plan from sold prices (TKRules.offerPlan) for a listing, or null.
   const planFor = (f, market, soft = "none") =>
-    (market = pickupOf(market, f)) ? TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, foreign: f.foreign, soft }, market) : null;
+    (market = pickupOf(market, f)) ? TKRules.offerPlan({ price: f.price, shipping: f.total != null && f.price != null ? f.total - f.price : 0, auction: f.auction, lot: f.lot, project: f.project, foreign: f.foreign, priceRange: f.priceRange, soft }, market) : null;
   // A message to the seller you can edit, a pick of kinds, Copy, and "They said $…" for the seller's answer,
   // which says whether to take it, meet in the middle or make a last offer (TKRules.counterOffer) and
   // rewrites the message to match. Nothing is typed into the site or sent.

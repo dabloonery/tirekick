@@ -47,6 +47,7 @@ export function runCases(cases = [...CASES, ...CHEAP]) {
     }
     if (it.titleCode && R.codeInSearch(it.titleCode, c.query)) f.codeOk = true;
     f.sellerWarn = R.sellerWarning(it, SETTINGS, NOW);
+    f.sellerRisk = R.riskySeller(it, NOW);
     f.project = R.clueOf(R.PROJECT, `${c.title} ${c.text || ""}`);
     const base = MARKETS[c.query];
     const market = R.forPickup(base, f, c.site === "facebook");

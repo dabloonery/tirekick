@@ -524,14 +524,32 @@ test("codeInSearch: a title code that is the searched model number isn't a scamm
 
 test("tooCheap: under the softer cutoff from a seller with a warning is far, unless the title says what's missing", () => {
   const m = { median: 252, confidence: "good" };
-  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 110, sellerWarn: "New seller" }, m), { level: "far", pct: 44, seller: true });
+  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 110, sellerCount: 0 }, m), { level: "far", pct: 44, seller: "a new seller" });
   assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 110 }, m), { level: "low", pct: 44 });
-  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED - missing Joy-Cons", total: 110, sellerWarn: "Seller: 4 ratings" }, m), { level: "low", pct: 44, why: "missing joy-cons" });
-  assert.deepEqual(R.tooCheap({ title: "Switch OLED", total: 110, sellerWarn: "New seller", offWords: "nintendo" }, m), { level: "low", pct: 44 }, "a title missing a search word stays low");
-  assert.equal(R.tooCheap({ title: "Nintendo Switch OLED", total: 229, sellerWarn: "New seller" }, m), null, "a new seller at a normal price isn't too cheap");
-  const pv = R.priceVerdict("great", { title: "Nintendo Switch OLED", total: 110, sellerWarn: "New seller", score: 90 }, m);
+  assert.deepEqual(R.tooCheap({ title: "Nintendo Switch OLED - missing Joy-Cons", total: 110, sellerCount: 4 }, m), { level: "low", pct: 44, why: "missing joy-cons" });
+  assert.deepEqual(R.tooCheap({ title: "Switch OLED", total: 110, sellerCount: 0, offWords: "nintendo" }, m), { level: "low", pct: 44 }, "a title missing a search word stays low");
+  assert.equal(R.tooCheap({ title: "Nintendo Switch OLED", total: 229, sellerCount: 0 }, m), null, "a new seller at a normal price isn't too cheap");
+  const pv = R.priceVerdict("great", { title: "Nintendo Switch OLED", total: 110, sellerCount: 0, score: 90 }, m);
   assert.equal(pv.v, "suspicious");
-  assert.match(pv.why, /from a seller with a warning \(New seller\)/);
+  assert.match(pv.why, /from a new seller\. /);
+});
+
+test("riskySeller: only a strong seller sign makes a low price Likely scam", () => {
+  const now = Date.UTC(2026, 9, 22);
+  assert.equal(R.riskySeller({ sellerCount: 0 }, now), "a new seller");
+  assert.equal(R.riskySeller({ sellerCount: 1 }, now), "a seller with 1 rating");
+  assert.equal(R.riskySeller({ sellerCount: 4, sellerPct: 100 }, now), "a seller with 4 ratings");
+  assert.equal(R.riskySeller({ sellerCount: 6, sellerPct: 100 }, now), "", "a small honest seller: your warning, not the mark");
+  assert.equal(R.riskySeller({ sellerCount: 400, sellerPct: 94.1 }, now), "a seller at 94.1% positive");
+  assert.equal(R.riskySeller({ sellerCount: 12, sellerPct: 97 }, now), "a seller at 97% positive");
+  assert.equal(R.riskySeller({ sellerCount: 300, sellerPct: 97 }, now), "", "97% over hundreds of sales is ordinary");
+  assert.equal(R.riskySeller({ sellerJoined: 2026 }, now), "an account made in 2026");
+  assert.equal(R.riskySeller({ sellerJoined: 2019 }, now), "");
+  assert.equal(R.riskySeller({}, now), "");
+  const m = { median: 252, confidence: "good" };
+  assert.equal(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 125, sellerCount: 6, sellerPct: 100 }, m).level, "low", "6 ratings at 50%: Check first");
+  assert.equal(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 125, sellerCount: 2 }, m).level, "far");
+  assert.equal(R.tooCheap({ title: "Nintendo Switch OLED Console", total: 125, sellerRisk: "" , sellerCount: 2 }, m).level, "low", "the caller's sellerRisk wins");
 });
 
 test("accessoryOf: a game in a console search, and two parts joined by and", () => {
@@ -588,11 +606,11 @@ test("tooCheap and cheapForReason: a listing that says why it's cheap", () => {
   assert.equal(R.cheapForReason(at("Nintendo Switch OLED", 125), m), null);
   assert.equal(R.freeRead({ ...at("Nintendo Switch OLED - dead pixel", 125), vsSold: 125 / 252 }, m), null, "no warning, no price word");
   // A seller warning beside it: still Check first, never cleared
-  assert.equal(R.tooCheap(at("Nintendo Switch OLED - dead pixel", 125, { sellerWarn: "New seller" }), m).level, "low");
+  assert.equal(R.tooCheap(at("Nintendo Switch OLED - dead pixel", 125, { sellerCount: 0 }), m).level, "low");
   // Under 40%: a flaw story doesn't explain it (bait tells one); something missing makes it Check first
   assert.equal(R.tooCheap(at("iPhone 13 128gb minor scratches", 85), m).level, "far");
   assert.equal(R.tooCheap(at("Nintendo Switch OLED console only", 90), m).level, "low");
-  assert.equal(R.tooCheap(at("Nintendo Switch OLED console only", 90, { sellerWarn: "New seller" }), m).level, "far");
+  assert.equal(R.tooCheap(at("Nintendo Switch OLED console only", 90, { sellerCount: 0 }), m).level, "far");
   // After a scan: the word stands, no better than Good price
   const pv = R.priceVerdict("great", at("Nintendo Switch OLED - dead pixel", 125, { score: 88 }), m);
   assert.equal(pv.v, "good");
@@ -619,7 +637,7 @@ test("tooCheap: real sales this low, and a reference with fewer sales", () => {
   // Under 40% on a "fair" reference: Check first on price alone, Likely scam with a seller warning
   const fair = { median: 160, confidence: "fair" };
   assert.equal(R.tooCheap({ title: "Canon AE-1 35mm camera body", total: 55 }, fair).level, "low");
-  assert.equal(R.tooCheap({ title: "Canon AE-1 35mm camera body", total: 55, sellerWarn: "New seller" }, fair).level, "far");
+  assert.equal(R.tooCheap({ title: "Canon AE-1 35mm camera body", total: 55, sellerCount: 0 }, fair).level, "far");
   assert.equal(R.tooCheap({ title: "Canon AE-1 35mm camera body", total: 55 }, { ...fair, confidence: "good" }).level, "far");
   // Old cached answers have no p10: as before
   assert.equal(R.tooCheap({ title: "Nintendo Switch OLED", total: 60 }, { median: 252, confidence: "good" }).level, "far");

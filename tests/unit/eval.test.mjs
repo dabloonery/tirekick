@@ -29,3 +29,7 @@ test("eval: honest cheap listings that say why", () => {
   assert.deepEqual(titles(s.clearRed), [], report(rows));
   assert.ok(s.clearStuck.length <= 1, report(rows));
 });
+
+test("eval: honest cheap listings that don't say why are Likely scam only beside a strong seller sign", () => {
+  assert.ok(s.warnRed.length <= 3, report(rows));
+});

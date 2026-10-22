@@ -521,6 +521,14 @@ No code changes until the ux-spec port is merged. Then each section below is its
 and fall back, but when they all miss, the panel just shows fewer listings or none. Nobody is told unless they press
 "Check this page". The Marketplace fixture is synthetic, and the eBay fixtures are hand-made reductions, so the tests
 can stay green while real pages have already moved on.
+*Update 2026-10-22 (PRs #61, #66, #74 and the end-to-end check after them):* a change can no longer turn into a
+wrong price, which was the worse failure: a renamed eBay price class used to take the first dollar amount on the
+card (the title's "$1", the shipping, a struck-through or "Save $5" amount, a foreign price without its currency)
+and mark the card "Likely scam". The fallback now takes only a piece of the card that is one whole price, or leaves
+it unknown so the layout watch says so. Price ranges and reworded auctions aren't compared with the typical price,
+and Marketplace cards read the right title and price when Facebook moves the lines around. `e2e/free.ts` checks a
+redesigned eBay page (`?changed=price`, `?changed=noprice`) keeps its marks or shows none. Real saved pages are
+still the open item.
 
 **Odd listings.** Prices like "C $20" or "AU $35" are read as US dollars. A price range ("$45 to $60") takes the low end.
 Titles with accents or non-English text lose letters in word matching ("Pokémon" becomes "pok mon", so a filter word of

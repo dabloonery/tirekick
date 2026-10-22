@@ -108,6 +108,8 @@ test("prices in another currency aren't read as US dollars", () => {
   assert.equal(TK.usdPrice("$20.00"), 20);
   assert.equal(TK.usdPrice("C $20.00"), null, "unknown rather than wrong");
   assert.equal(TK.usdPrice("C $20.00", "C $20.00 Approximately US $14.60 Buy It Now"), 14.6, "eBay's own conversion when it's there");
+  assert.equal(TK.usdPrice("C $20.00", "C $20.00 +US $5.00 shipping"), null, "a US shipping cost is not the price");
+  assert.equal(TK.usdPrice("C $20.00", "C $20.00 US $5.00 delivery"), null);
 });
 
 test("price ranges are spotted", () => {

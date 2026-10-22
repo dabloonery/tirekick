@@ -25,9 +25,10 @@
   // those as US dollars would be wrong by a third or more, so such a price is treated as unknown, unless
   // the same text also gives eBay's US-dollar conversion ("Approximately US $14.60").
   TK.foreignCurrency = (text) => /(?:^|[^A-Za-z])(?:C|CA|AU|A|NZ|HK|S|SG)\s?\$|[£€¥]|\b(?:GBP|EUR|CAD|AUD|JPY)\b/.test((text || "").replace(/\u00a0/g, " "));
+  // Only an amount that isn't a shipping cost ("+US $5.00 shipping" sits on the same card).
   TK.usdPrice = (priceText, context = "") => {
     if (!TK.foreignCurrency(priceText)) return TK.parsePrice(priceText);
-    const us = (context || "").replace(/\u00a0/g, " ").match(/US\s?\$\s?([\d,]+(?:\.\d{1,2})?)/);
+    const us = (context || "").replace(/\u00a0/g, " ").match(/(?<!\+\s?)US\s?\$\s?([\d,]+(?:\.\d{1,2})?)(?![\d.,]|\s*(?:[A-Za-z]+\s+)?(?:shipping|delivery|postage))/);
     return us ? parseFloat(us[1].replace(/,/g, "")) : null;
   };
   // The currency a price is in when it isn't US dollars ("CA$", "C $", "AU $", "£", "€"), or "". Marketplace
@@ -245,6 +246,25 @@
   // strict: stop at eBay's "Results matching fewer words" divider (used for the sold-price median,
   // where those looser matches would skew the numbers).
   TK.EBAY_CARDS = "li.s-card, li.s-item, li.brwrvr__item-card";
+  // When eBay renames its price class, the first dollar amount on the card can be the title's ("$1 no
+  // reserve"), the shipping or a struck-through old price, and a price read that low is a "Likely scam" mark.
+  // So the fallback is the first piece of the card whose whole text is one price ("$52.00", "C $40.00",
+  // "$12.99 to $59.99"), outside the title, not struck through, and not labeled as something else ("Was",
+  // "List price", "Save", "+… delivery"). None: the price stays unknown and the layout watch says so.
+  const MONEY = String.raw`(?:(?:US|C|CA|AU|A|NZ|HK|S|SG)\s?\$|\$|[£€¥]|(?:GBP|EUR|CAD|AUD|JPY)\s)\s?[\d,]+(?:\.\d{1,2})?`;
+  const PRICE_ONLY = new RegExp(String.raw`^${MONEY}(?:\s*(?:to|-|–)\s*${MONEY})?$`);
+  const STRUCK = "s, del, strike, [class*=strike i]";
+  const LABEL_BEFORE = /(?:\bwas|list price|original|msrp|previous price|\bsave|\boff|\+)\s*:?\s*$/i;
+  const LABEL_AFTER = /^\s*(?:delivery|shipping|postage|off\b|savings)/i;
+  const cardPrice = (card, titleEl) => {
+    for (const el of card.querySelectorAll("span, div, strong, b, p")) {
+      const t = squash(el.textContent, 80);
+      if (!PRICE_ONLY.test(t) || titleEl?.contains(el) || el.closest(STRUCK) || el.querySelector(STRUCK)) continue;
+      if (LABEL_BEFORE.test(el.previousSibling?.textContent || "") || LABEL_AFTER.test(el.nextSibling?.textContent || "")) continue;
+      return t;
+    }
+    return "";
+  };
   TK.extractEbay = (root = document, { strict = false } = {}) => {
     const cards = root.querySelectorAll(`${TK.EBAY_CARDS}, li.srp-river-answer`);
     const out = [];
@@ -261,11 +281,12 @@
       if (seen.has(key)) continue;
       seen.add(key);
 
-      let title = firstText(card, [".s-card__title", ".s-item__title", ".bsig__title__text", ".bsig__title", '[role="heading"]', "h3"]) || link.textContent;
+      const titleEl = [".s-card__title", ".s-item__title", ".bsig__title__text", ".bsig__title", '[role="heading"]', "h3"].map((sel) => card.querySelector(sel)).find((n) => n?.textContent.trim()) || link;
+      let title = titleEl.textContent;
       title = squash(title.replace(/^New Listing/i, "").replace(/Opens in a new window or tab$/i, ""), 160);
       if (!title || /^shop on ebay$/i.test(title)) continue;
 
-      const priceText = squash(firstText(card, [".s-card__price", ".s-item__price", ".bsig__price"]) || (card.textContent.match(/\$\s?[\d,]+(?:\.\d{2})?/) || [""])[0], 60);
+      const priceText = squash(firstText(card, [".s-card__price", ".s-item__price", ".bsig__price"]) || cardPrice(card, titleEl), 60);
 
       const text = card.innerText || card.textContent;
       out.push(

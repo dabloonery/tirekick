@@ -1190,6 +1190,23 @@
       return false; // a browser without :open has a native menu, which keeps its Esc to itself
     }
   };
+  // Esc first closes a card's hover box (reasons, actions) that's open under the pointer or focus, and only
+  // then tucks the panel away: a box that pops up on hover can be put away without moving the mouse.
+  const shutBy = new WeakSet(); // Esc presses spent closing a hover box, which the panel then ignores
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || e.defaultPrevented) return;
+    const open = [...document.querySelectorAll(".tirekick-sticker:is(:hover, :focus-within), [data-tirekick-key]:hover .tirekick-marks, .tirekick-marks:focus-within")].filter((n) => !n.classList.contains("tk-shut") && n.querySelector(".tk-pop, .tk-why"));
+    if (!open.length) return;
+    for (const n of open) {
+      n.classList.add("tk-shut"); // back on the next visit: when the pointer leaves the card, or focus leaves the tag
+      const back = new AbortController();
+      const shown = () => (n.classList.remove("tk-shut"), back.abort());
+      (n.closest("[data-tirekick-key]") || n).addEventListener("pointerleave", shown, { signal: back.signal });
+      n.addEventListener("focusout", (ev) => n.contains(ev.relatedTarget) || shown(), { signal: back.signal });
+    }
+    shutBy.add(e);
+    e.preventDefault();
+  }, { ...until, capture: true });
   // From the page too: Esc anywhere tucks it away, except while typing in the site's own boxes.
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || e.defaultPrevented || !wrap.classList.contains("open")) return;
@@ -1198,7 +1215,7 @@
     setOpen(false);
   }, until);
   root.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape" || !wrap.classList.contains("open")) return;
+    if (e.key !== "Escape" || !wrap.classList.contains("open") || shutBy.has(e)) return;
     if (e.composedPath().some(isOpenMenu)) return; // Esc closes the Sort or model menu, not the panel
     if (!spendDetail.hidden) {
       showSpend(false);
@@ -1645,6 +1662,7 @@
         background:var(--tk-paper); color:var(--tk-ink); border-radius:12px; box-shadow:0 0 0 1px var(--tk-line), var(--tk-shadow);
         font:400 13px/1.5 ${UI}; white-space:normal; text-transform:none; cursor:auto; }
       .tirekick-sticker:hover .tk-pop, .tirekick-sticker:focus-within .tk-pop { display:block; }
+      .tirekick-sticker.tk-shut .tk-pop, .tirekick-marks.tk-shut .tk-why { display:none !important; }
       .tirekick-sticker:focus-visible { outline:2px solid var(--tk-ink); outline-offset:3px; }
       .tirekick-sticker .tk-pop b { display:block; margin-bottom:4px; font:800 17px/1.25 ${DISPLAY}; letter-spacing:-.01em; }
       .tirekick-sticker .tk-pop b .tk-pw { color:var(--c); font:700 15px/1.25 ${UI}; letter-spacing:normal; }

@@ -14,7 +14,7 @@
   body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 var(--ui); -webkit-font-smoothing:antialiased; }
   main { max-width:680px; margin:0 auto; padding:44px 24px 64px; }
   header { display:flex; align-items:center; gap:12px; margin-bottom:26px; }
-  .mark { width:36px; height:36px; flex:none; border-radius:22%; }
+  .mark { width:36px; height:36px; flex:none; }
   h1 { margin:0; flex:1; font:800 34px/1.1 var(--display); letter-spacing:-.035em; }
   /* the wordmark's i's are dotted with brand-orange tread dots (as in the panel and settings) */
   .wm-i { position:relative; display:inline-block; }
@@ -94,7 +94,7 @@
 <body>
 <main>
   <header>
-    <img class="mark" src="../icons/icon48.png" width="36" height="36" alt="">
+    <svg class="mark" viewBox="0 0 36 36" width="36" height="36" aria-hidden="true"></svg>
     <h1><span role="img" aria-label="Tirekick">t<span class="wm-i" aria-hidden="true">&#305;</span>rek<span class="wm-i" aria-hidden="true">&#305;</span>ck</span></h1>
     <a class="tab-link" href="hub.html" target="_blank" title="This page in its own tab">Open in a tab ↗</a>
     <a href="../options/options.html" id="settings-link">Settings</a>

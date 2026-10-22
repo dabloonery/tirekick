@@ -14,7 +14,7 @@
   body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 var(--ui); -webkit-font-smoothing:antialiased; }
   main { max-width:620px; margin:0 auto; padding:48px 24px 64px; }
   header { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
-  .mark { width:36px; height:36px; flex:none; border-radius:22%; }
+  .mark { width:36px; height:36px; flex:none; }
   h1 { margin:0; font:800 34px/1.1 var(--display); letter-spacing:-.035em; }
   h1 small { font:400 15px/1 var(--ui); color:var(--muted); margin-left:8px; letter-spacing:0; }
   /* the wordmark's i's are dotted with brand-orange tread dots (as in the panel) */
@@ -97,7 +97,7 @@
 <body>
 <main>
   <header>
-    <img class="mark" src="../icons/icon48.png" width="36" height="36" alt="">
+    <svg class="mark" viewBox="0 0 36 36" width="36" height="36" aria-hidden="true"></svg>
     <h1><span role="img" aria-label="Tirekick">t<span class="wm-i" aria-hidden="true">&#305;</span>rek<span class="wm-i" aria-hidden="true">&#305;</span>ck</span><small>settings</small></h1>
   </header>
   <p class="lede">Changes save as you make them and apply to open eBay and Facebook tabs straight away.</p>
@@ -124,8 +124,8 @@
     </div>
     <div class="field">
       <label for="theme">Theme</label>
-      <select id="theme"><option value="match">Match my browser</option><option value="dark">Dark</option><option value="light">Light</option></select>
-      <span class="hint">Match follows your browser, or dark if it doesn't say. The marks on eBay and Marketplace cards follow the page itself.</span>
+      <select id="theme"><option value="match">Match the page</option><option value="dark">Dark</option><option value="light">Light</option></select>
+      <span class="hint">Match gives the panel the page's own colors: light on a light eBay page, dark on a dark Facebook. This settings page follows your browser.</span>
     </div>
     <div class="field check">
       <input id="autoScan" type="checkbox">

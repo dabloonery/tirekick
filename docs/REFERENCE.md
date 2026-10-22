@@ -318,7 +318,7 @@ Every visible "Second Look" becomes "Tirekick". The ones a user sees:
 | What you're into help | Every judgement takes it into account. … | Every judgment takes it into account. … |
 | Slim tab help | …turn this off: Second Look then loads only when you click its toolbar icon. … | …turn this off and Tirekick loads only when you click its toolbar icon. … |
 | Backup help | Everything Second Look keeps lives only in this browser. … | Everything Tirekick keeps lives only in this browser. … |
-| Match theme help | Match follows your browser, and is dark if it does not say. | Match follows your browser, or dark if it doesn't say. |
+| Match theme help | Match gives the panel the page's own colors. | Match gives the panel the page's own colors: light on a light eBay page, dark on a dark Facebook. |
 
 #### 4.5 Errors (`background.js`, `panel.js`)
 

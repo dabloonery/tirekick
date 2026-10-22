@@ -56,8 +56,11 @@ export function runCases(cases = [...CASES, ...CHEAP]) {
     const card = free?.v === "suspicious" ? (free.word === "Likely scam" ? "red" : "amber") : free?.word === "Off-topic" ? "off" : "clean";
     const word = free && free.v !== "suspicious" && free.word !== "Off-topic" && free.word !== "Price dropped" ? free.v : "none";
     // After a scan: the scripted model verdict, through the price check that wins over it.
-    const shown = c.scan ? R.priceVerdict(c.scan, { ...f, related: c.scanRelated ?? f.related, score: 70, ...(c.cheapWhy && { cheapWhy: c.cheapWhy }) }, market).v : null;
-    return { c, f, free, card, word, shown };
+    const scanned = { ...f, related: c.scanRelated ?? f.related, score: 70, ...(c.cheapWhy && { cheapWhy: c.cheapWhy }) };
+    const shown = c.scan ? R.priceVerdict(c.scan, scanned, market).v : null;
+    // The same answer from Analyze, which may clear more (priceVerdict's deep).
+    const deep = c.scan ? R.priceVerdict(c.scan, scanned, market, { deep: true }).v : null;
+    return { c, f, free, card, word, shown, deep };
   });
 }
 
@@ -84,6 +87,7 @@ export function score(rows) {
     wrongWord: priced.filter((r) => r.word !== r.c.word),
     scanned: scanned.length,
     wrongShown: scanned.filter((r) => !okShown(r)),
+    deepCleared: scams.filter((r) => r.deep && r.deep !== "suspicious" && r.deep !== "pass"),
     clear: clear.length,
     clearRed: clear.filter((r) => r.card === "red"),
     clearAmber: clear.filter((r) => r.card === "amber"),
@@ -104,7 +108,7 @@ export function report(rows = runCases(), all = false) {
     `  scams marked Likely scam: ${s.red} of ${s.scams} (${pct(s.red, s.scams)}); Check first: ${s.amber}; missed: ${s.missed.length}`,
     `  honest marked Likely scam: ${s.falseRed.length} of ${s.honest}; Check first: ${s.falseAmber.length} (${pct(s.falseAmber.length, s.honest)})`,
     `  price word as labeled: ${s.priced - s.wrongWord.length} of ${s.priced}`,
-    `  after a scan, shown verdict as labeled: ${s.scanned - s.wrongShown.length} of ${s.scanned}`,
+    `  after a scan, shown verdict as labeled: ${s.scanned - s.wrongShown.length} of ${s.scanned}; scams Analyze would clear: ${s.deepCleared.length}`,
     `Honest listings far under typical (${s.clear} that should clear: they say why, or sales go that low; ${s.warn} that don't)`,
     `  should clear, marked Likely scam: ${s.clearRed.length}; Check first: ${s.clearAmber.length}; still a warning after a scan: ${s.clearStuck.length}; verdict as labeled: ${s.clear - s.clearWrong.length} of ${s.clear}`,
     `  the rest, marked Likely scam: ${s.warnRed.length}; marked at all: ${s.warnMarked.length} of ${s.warn}`,
@@ -115,6 +119,7 @@ export function report(rows = runCases(), all = false) {
   group("Honest listings marked Check first:", s.falseAmber);
   group("Price word not as labeled:", s.wrongWord.map((r) => ({ ...r, c: { ...r.c, note: `labeled ${r.c.word}, read ${r.word}` } })));
   group("After a scan, not as labeled:", s.wrongShown);
+  group("Scams Analyze would clear:", s.deepCleared);
   group("Honest and cheap for a reason, marked Likely scam:", s.clearRed);
   group("Honest and cheap for a reason, not as labeled after a scan:", s.clearWrong.map((r) => ({ ...r, c: { ...r.c, note: `labeled ${r.c.shown}, ${r.c.note}` } })));
   if (all) group("Every listing:", rows);

@@ -381,7 +381,7 @@ The order, one PR each, every one measured by `deno task eval` with the scam num
 4. [x] The too-cheap line from where real sales end (the cheapest tenth), and no Likely scam on price alone from a
    reference with a wide spread.
 5. [x] A fixed seller sign for "cheap plus a seller warning is Likely scam" (0.54.x), not the user's own rating setting.
-6. [ ] The model says why a low price is low (`cheapWhy`), and the price check accepts a flaw, missing parts or a
+6. [x] The model says why a low price is low (`cheapWhy`), and the price check accepts a flaw, missing parts or a
    different model.
 7. [ ] Platforms: established eBay sellers (eBay's guarantee), and Marketplace sellers who don't pay eBay's fee.
 8. [ ] Display: the reason on the card, what would clear a mark, and where a price warning sorts.

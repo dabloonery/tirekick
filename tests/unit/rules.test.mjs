@@ -642,3 +642,25 @@ test("tooCheap: real sales this low, and a reference with fewer sales", () => {
   // Old cached answers have no p10: as before
   assert.equal(R.tooCheap({ title: "Nintendo Switch OLED", total: 60 }, { median: 252, confidence: "good" }).level, "far");
 });
+
+test("priceVerdict: the model's reason for a low price (cheapWhy)", () => {
+  const m = { median: 252, confidence: "good" };
+  const at = (title, total, extra = {}) => ({ title, total, score: 85, ...extra });
+  // 40-55%, no reason on the card: a scan that read one keeps its word, no better than Good
+  const pv = R.priceVerdict("great", at("Nintendo Switch OLED", 125, { cheapWhy: "missing parts" }), m);
+  assert.equal(pv.v, "good");
+  assert.match(pv.why, /the scan read why \(missing parts\)/);
+  assert.equal(R.priceVerdict("fair", at("Nintendo Switch OLED", 125, { cheapWhy: "flaw" }), m).v, "fair");
+  assert.equal(R.priceVerdict("great", at("Nintendo Switch OLED", 125, { cheapWhy: "quick sale" }), m).v, "suspicious", "a quick sale is no reason");
+  assert.equal(R.priceVerdict("great", at("Nintendo Switch OLED", 125, { cheapWhy: "none" }), m).v, "suspicious");
+  assert.equal(R.priceVerdict("great", at("Nintendo Switch OLED", 125, { cheapWhy: "missing parts", sellerCount: 1 }), m).v, "suspicious", "not beside a strong seller sign");
+  // Under 40%: only Analyze, only something missing or a cheaper version, no better than Fair
+  assert.equal(R.priceVerdict("good", at("Nintendo Switch OLED", 90, { cheapWhy: "missing parts" }), m).v, "suspicious", "a scan doesn't clear it");
+  const deep = R.priceVerdict("good", at("Nintendo Switch OLED", 90, { cheapWhy: "missing parts" }), m, { deep: true });
+  assert.equal(deep.v, "fair");
+  assert.match(deep.why, /Held at Fair price/);
+  assert.equal(R.priceVerdict("good", at("Nintendo Switch OLED", 90, { cheapWhy: "flaw" }), m, { deep: true }).v, "suspicious", "a flaw story doesn't take 60% off");
+  assert.equal(R.priceVerdict("good", at("Nintendo Switch OLED", 90, { cheapWhy: "missing parts", sellerCount: 0 }), m, { deep: true }).v, "suspicious");
+  assert.equal(R.priceVerdict("good", at("Nintendo Switch OLED K9F21", 90, { cheapWhy: "missing parts", titleCode: "K9F21", sellerCount: 50, sellerPct: 100 }), m, { deep: true }).v, "suspicious", "not with a title code");
+  assert.equal(R.priceVerdict("suspicious", at("Nintendo Switch OLED", 125, { cheapWhy: "missing parts" }), m).v, "suspicious", "the model's own warning stands");
+});

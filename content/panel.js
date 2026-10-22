@@ -161,6 +161,10 @@
       ${THEME_DARK}
     }
     @media (prefers-color-scheme: light) { .wrap { ${THEME_LIGHT} } }
+    /* Match (the default) follows the page you're on, not the browser: a light eBay page gets a light panel
+       even when the browser is dark. The browser setting only decides before the page's colors are known. */
+    .wrap[data-page-theme="light"]:not([data-theme]) { ${THEME_LIGHT} }
+    .wrap[data-page-theme="dark"]:not([data-theme]) { ${THEME_DARK} }
     .wrap[data-theme="dark"] { ${THEME_DARK} }
     .wrap[data-theme="light"] { ${THEME_LIGHT} }
 `;
@@ -223,6 +227,7 @@
     .wrap[data-side="left"] .count { left:auto; right:-9px; }
     .wrap[data-side="left"] [data-act="toggle"] svg { transform:scaleX(-1); }
     .nav { display:flex; min-width:0; }
+    .nav button[hidden] { display:none; }
     .nav button { border:0; background:none; margin:0 16px -1px 0; padding:12px 0 10px; white-space:nowrap; border-bottom:2px solid transparent; color:var(--muted); font:600 13px/1 var(--ui); cursor:pointer; }
     .nav button:hover { color:var(--ink); }
     .nav button[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--accent); }
@@ -309,6 +314,8 @@
     .q-sum button:hover { text-decoration-color:currentColor; }
     .q-sum button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .wrap:not(.q-folded) .q-sum, .q-folded .qwrap { display:none; }
+    .inputs-done { justify-self:start; align-self:flex-start; }
+    .inputs-done[hidden] { display:none; }
     .browse-note b { color:var(--ink); font-weight:600; }
 
     .scan { min-height:42px; background:var(--btn); color:var(--on-btn); border:var(--bw) solid var(--btn); border-radius:var(--r-sm); padding:11px; font:600 14px/1 var(--ui);
@@ -708,6 +715,7 @@
         <div class="q-sum"><span class="q-sum-text"></span> <button data-act="edit-q" title="Compare prices against other words">Change</button></div>
         <div class="qwrap"><label for="q">Compare prices against</label><input autocomplete="off" id="q" placeholder="e.g. Pentax K1000">
           <div class="hint browse-note" hidden>No search here (or only a category), so there's no one typical price for the page. Point at a listing and press <b>Typical price</b> for its own, from recent eBay sales. A scan goes by what you're into and what you want, and its prices are estimates (<i>est.</i>).</div></div>
+        <button class="ghost inputs-done" data-act="inputs-done" hidden title="Fold these boxes away again (Esc)">Done</button>
         </div>
         <div class="inputs-sum" hidden><span class="sum-text"></span><button data-act="edit-inputs" title="Change what you want or what prices are compared against">Edit</button></div>
         <button class="scan" data-act="scan">Scan this page</button>
@@ -767,7 +775,7 @@
   const $ = (sel) => root.querySelector(sel);
   $(".wordmark-slot").replaceWith(THEME.wordmark(h));
   const wrap = $(".wrap");
-  // Theme: Setup's Match (the default) follows the browser, falling back to dark; Dark and Light force one.
+  // Theme: Setup's Match (the default) follows the page's own colors (syncPageTheme); Dark and Light force one.
   let themePref = "";
   const applyTheme = (t) => {
     themePref = t === "dark" || t === "light" ? t : "";
@@ -876,6 +884,8 @@
         ? [h("b", {}, `\u201c${qNow}\u201d`), " is a whole category, too broad for one typical price. Point at a listing and press Typical price for its own."]
         : ["Typical price from recent eBay sales of ", h("b", {}, `\u201c${qNow}\u201d`)]));
     }
+    // Opened with Change or Edit: a Done button folds the boxes away again.
+    $(".inputs-done").hidden = !((editingQ && qNow) || (editingInputs && done));
     const fold = done && !editingInputs && !typingHere;
     wrap.classList.toggle("folded", fold);
     inputsSum.hidden = !fold;
@@ -901,6 +911,20 @@
     editingInputs = true;
     updateFold();
     wantEl.focus();
+  });
+  const foldInputs = () => {
+    editingQ = false;
+    editingInputs = false;
+    root.activeElement?.blur?.();
+    updateFold();
+  };
+  $('[data-act="inputs-done"]').addEventListener("click", foldInputs);
+  // Esc in the boxes folds them too (and doesn't close the panel), once there's something to fold to.
+  $(".inputs").addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || $(".inputs-done").hidden) return;
+    e.preventDefault();
+    e.stopPropagation();
+    foldInputs();
   });
 
   const setStatus = (...a) => setStatusNow(...a);
@@ -1475,6 +1499,7 @@
           ? `${MODES[lens].name}. Press Analyze to judge this listing as ${MODES[lens].as}.`
           : `${MODES[lens].name}. Scan again to judge these listings as ${MODES[lens].as} (anything already judged this way comes back free).`
       );
+    else setStatus(""); // switching back before scanning: the other mode's line no longer applies
     refreshPending();
   };
   root.querySelectorAll("button[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
@@ -1650,6 +1675,9 @@
       html[data-tk-skip="hide"] :is([data-tk-v="pass"], [data-tk-v="suspicious"]) { display:none !important; }
       /* Facebook's later grid cells paint over earlier ones: lift the card whose tag you're hovering (set by fit()) */
       [data-tk-lift] { position:relative; z-index:2147483000 !important; }
+      /* Each card's marks stay inside its own layer, so the page's floating boxes (Facebook's Messenger
+         pop-ups, menus) are drawn over them instead of under them. The lift above still raises a card you point at. */
+      [data-tk-cell] { isolation:isolate; }
       /* the links at the foot of the hover card; the chips toolbar (also .tk-acts) under the tag keeps its chip look */
       .tirekick-sticker .tk-pop .tk-acts { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; padding-top:8px; border-top:1px solid var(--tk-rule); }
       .tirekick-sticker .tk-pop .tk-acts :is(button, a) { all:unset; cursor:pointer; color:var(--tk-ink); font-weight:600; font-size:13px;
@@ -2095,7 +2123,10 @@
     }
     if (f.hidden || f.filtered) cell.setAttribute("data-tk-hide", f.hidden ? "not-interested" : "filter");
     else cell.removeAttribute("data-tk-hide");
-    if (it || likelyScam(f)) cell.setAttribute("data-tk-v", it ? shownV(it, f).v : "suspicious");
+    // A price warning ("Great price, if it's real") is its own value: Skipped's Hide leaves it on the page,
+    // as the list does (skipV), so the page and the panel never disagree about what's hidden.
+    const sv = it && shownV(it, f);
+    if (it || likelyScam(f)) cell.setAttribute("data-tk-v", it ? (sv.priceWarn ? "pricewarn" : sv.v) : "suspicious");
     else cell.removeAttribute("data-tk-v");
     // Clear the whole cell, not just this host: on Facebook the host can be a different box than
     // last time (layout settles after load), and old marks left on the other one made two layers.
@@ -2189,10 +2220,18 @@
   const priceOne = async (key, btn) => {
     const f = facts.get(key);
     if (!f) return;
-    const query = TK.titleToQuery(f.title);
+    let query = TK.titleToQuery(f.title);
     if (btn) (btn.disabled = true), (btn.textContent = "Checking\u2026");
     try {
-      const m = await soldMarket(query, "used");
+      let m = await soldMarket(query, "used");
+      // A whole title often matches too few sales word for word ("… with 3 games and case"): one more try
+      // with its first four words, which is where the make and model are. Only on too few sales, never
+      // after a refusal, so it's at most one extra lookup, paced like the rest.
+      const words = query.split(" ");
+      if (!(m?.median > 0) && words.length > 4) {
+        query = words.slice(0, 4).join(" ");
+        m = await soldMarket(query, "used");
+      }
       if (m?.median > 0) f.ownMarket = { median: m.median, p25: m.p25, p75: m.p75, n: m.n, confidence: m.confidence, query };
       else f.priceNote = `Not enough recent eBay sales of \u201c${query}\u201d to compare.`;
     } catch (e) {
@@ -3188,7 +3227,7 @@
   const rememberScan = (it, kind = "scan", summary) => {
     if (!alive() || it.score == null) return;
     const key = keyOf(it.url);
-    const snap = { kind, at: Date.now(), m: modelNow(kind), p: priceOf(it), t: (it.title || "").slice(0, 120) };
+    const snap = { kind, at: Date.now(), m: modelNow(kind), p: priceOf(it), pp: it.price ?? null, t: (it.title || "").slice(0, 120) };
     for (const f of SNAP) if (it[f] !== undefined) snap[f] = it[f];
     snap.lens ||= lens;
     if (summary) snap.reason = summary;
@@ -3228,7 +3267,9 @@
       const key = keyOf(it.url);
       if (scored.has(key) || seen.has(key)) continue;
       const s = storedScan(key);
-      if (!s || s.p !== priceOf(it)) continue;
+      // The same price, or the same asking price: a listing analyzed on its own page often has its shipping
+      // there and not on the card, and a full analysis mustn't be redone (and charged) by a page scan.
+      if (!s || (s.p !== priceOf(it) && !(s.pp != null && s.pp === it.price))) continue;
       Object.assign(it, Object.fromEntries(SNAP.filter((f) => s[f] !== undefined).map((f) => [f, s[f]])), { scannedAt: s.at, scannedWith: s.m, scannedKind: s.kind, restored: true });
       if (lastMarket) followMarket(it, lastMarket); // compared with today's typical price, not the one it was scored at
       scored.set(key, it);
@@ -4380,7 +4421,7 @@
         .err { color:var(--v-suspicious); }
         button { width:26px; height:26px; display:grid; place-items:center; background:none; border:0; border-radius:var(--r-sm); color:var(--muted); cursor:pointer; align-self:start; font:16px/1 var(--ui); }
         button:hover { color:var(--ink); background:var(--paper-2); }
-      </style><div class="wrap"${themePref ? ` data-theme="${themePref}"` : ""}><img alt=""><div><b>Photo check</b><span class="txt"></span></div><button aria-label="Close">\u00d7</button></div>`;
+      </style><div class="wrap" data-page-theme="${wrap.dataset.pageTheme || ""}"${themePref ? ` data-theme="${themePref}"` : ""}><img alt=""><div><b>Photo check</b><span class="txt"></span></div><button aria-label="Close">\u00d7</button></div>`;
       toastRoot.querySelector("button").addEventListener("click", () => host.remove());
     }
     const host = toastRoot.host;
@@ -4542,7 +4583,10 @@
       showIdeasBtn();
       ideasBox.hidden = true;
       wrap.dataset.page = type;
-      setView(type === "other" ? "home" : "page"); // nothing to do here: the overview
+      // Nothing to scan here (eBay's home page, other pages): the overview, with no "This page" tab.
+      const nothingHere = type === "other" || type === "home";
+      $('[role="tab"][data-view="page"]').hidden = nothingHere;
+      setView(nothingHere ? "home" : "page");
       applyIntro();
       ideasList.replaceChildren();
       ideasStatus.textContent = "";

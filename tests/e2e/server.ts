@@ -86,8 +86,12 @@ const bmp = (name: string) => {
 // &img=1: each card has its own photo (p<i>, all different) from the Facebook image host, so photo fingerprints run too.
 const benchPage = (n: number, churn = true, img = false) => {
   const words = ["Nintendo", "Game Boy", "Pentax", "Canon", "camera", "console", "lens", "controller", "bundle", "working", "for parts", "untested", "M2465", "K7731"];
+  // Titles differ the way a real feed's do (one in fifty is posted again under the same title), so a page of
+  // repeats doesn't make every card's "Same title" count change each time more load.
+  const more = ["with case", "boxed", "mint", "tested", "black", "silver", "with charger", "like new", "as is", "with games", "clean"];
   const card = (i: number) => {
-    const t = `${words[i % words.length]} ${words[(i * 7) % words.length]} ${words[(i * 3) % words.length]}${i % 9 === 0 ? " Q" + (1000 + i) : ""}`;
+    const j = i % 50 === 49 ? i - 1 : i;
+    const t = `${words[j % words.length]} ${words[(j * 7) % words.length]} ${words[(j * 3) % words.length]} ${more[j % more.length]} ${2000 + (j % 13)}${j % 9 === 0 ? " Q" + (1000 + j) : ""}`;
     return "<div class=\"x1 x2 x3\">".repeat(14) + `<a href="/marketplace/item/${100000 + i}/">${IMG ? `<img class="ph" alt="" src="https://scontent.test.fbcdn.net/v/t45/p${i}_n.bmp?stp=dst">` : '<div class="ph"></div>'}<div>$${20 + (i * 13) % 300}</div><div>${t}</div><div>Albuquerque, NM</div></a>` + "</div>".repeat(14);
   };
   const IMG = img;
@@ -97,6 +101,7 @@ const benchPage = (n: number, churn = true, img = false) => {
 let next = ${n};
 const IMG = ${img};
 const words = ${JSON.stringify(words)};
+const more = ${JSON.stringify(more)};
 const card = ${card.toString()};
 const add = (k) => { let h = ""; for (let i = 0; i < k; i++) h += card(next++); document.getElementById("g").insertAdjacentHTML("beforeend", h); };
 // infinite scroll, and Facebook-style churn: class names change all over the page several times a second

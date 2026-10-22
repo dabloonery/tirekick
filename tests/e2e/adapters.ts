@@ -64,6 +64,8 @@ ok("…page type and search words", (await p.ev(`Tirekick.pageType()`)) === "res
     card(9, `<span>+$8.50 delivery</span><span>Free returns</span>`),
   ].join("");
   const r = await q.ev(`(() => { const d = new DOMParser().parseFromString(${JSON.stringify(`<ul>${odd}</ul>`)}, "text/html"); return Tirekick.extractEbay(d).map((it) => it.price); })()`);
+  const pr = await q.ev(`(() => { const d = new DOMParser().parseFromString(${JSON.stringify(`<ul>${card(1, "<div class='s-card__price'>$12.99 to $59.99</div>")}${card(2, "<div class='s-card__price'>$5.00</div><span>Current bid</span>")}</ul>`)}, "text/html"); return Tirekick.extractEbay(d).map((it) => [it.price, !!it.priceRange, !!it.auction]); })()`);
+  ok("a price range is marked (its low end isn't compared), and a reworded auction is still an auction", eq(pr, [[12.99, true, false], [5, false, true]]), pr);
   ok("…not the title's '$1', the shipping, a struck-through, 'Was' or 'Save' amount; another currency stays unknown, even next to a US shipping cost; no price at all is unknown", eq(r, [52, 52, 52, 52, 52, 52, null, null, null]), r);
   await q.close();
 }

@@ -138,12 +138,14 @@
   // it takes their colors and glyphs; `rank` sorts unscored listings (higher first).
   R.freeRead = (f = {}, market) => {
     const cheap = f.vsSold != null ? R.tooCheap(f, market) : null;
-    if (R.likelyScam(f) || R.codeBacked(f, cheap) || cheap?.level === "far") return { v: "suspicious", word: "Likely scam", rank: -2 };
+    const said = f.vsSold != null && !cheap ? R.cheapForReason(f, market) : null; // cheap, and says why: still backs a code
+    if (R.likelyScam(f) || R.codeBacked(f, cheap || said) || cheap?.level === "far") return { v: "suspicious", word: "Likely scam", rank: -2 };
     if (f.photoTwins || f.sellerWarn || (f.offSite && !f.offSiteOk) || cheap || f.dup || (f.titleCode && !f.codeOk)) return { v: "suspicious", word: "Check first", rank: -1 };
     const off = R.offTopic(f);
     if (off) return { v: "pass", word: "Off-topic", rank: -1 };
-    // A broken or untested one is compared with working ones' prices: cheap for a reason, so no price word.
-    if (f.vsSold == null || f.project) return f.drop ? { v: "good", word: "Price dropped", rank: 1 } : null;
+    // A broken or untested one is compared with working ones' prices: cheap for a reason, so no price word. So is
+    // one that says why it's cheap (a flaw, something missing): it isn't a great price on the thing searched for.
+    if (f.vsSold == null || f.project || said) return f.drop ? { v: "good", word: "Price dropped", rank: 1 } : null;
     return R.priceWord(f.vsSold);
   };
   // The price against the typical price (the middle of recent eBay sales, or the model's estimate), in dollars:
@@ -203,18 +205,81 @@
   // turned up in it ("Mario Kart 8 Deluxe - Nintendo Switch" in a "switch oled" search), so a price far under
   // is only "low" (Check first), never "far" (Likely scam) on price alone. Bait copies the search's words.
   R.TOO_CHEAP = { far: 0.4, low: 0.55 };
-  const INCOMPLETE = /\b(?:missing|without|no (?:joy ?cons?|dock|charger|controllers?|lens|battery|batteries|box|cables?|stand)|(?:console|tablet|body|unit|handheld|screen) only)\b/;
   R.tooCheap = (f, market) => {
+    const c = cheapLevel(f, market);
+    return c && c.level !== "reason" ? c : null;
+  };
+  // Under the softer cutoff with a reason on the card (R.cheapReason) and nothing else against it: not a warning,
+  // but the price chip says why it's cheap. { pct, why } or null.
+  R.cheapForReason = (f, market) => {
+    const c = cheapLevel(f, market);
+    return c?.level === "reason" ? { pct: c.pct, why: c.why } : null;
+  };
+  // Price alone, under the firm cutoff: "far" (Likely scam), unless the title leaves out a search word or says why
+  // it's cheap ("low", Check first). Under the softer cutoff: "low", or "reason" when the card says why. A seller
+  // with a warning (few ratings, an account made this year) makes the softer band "far" too: in the eval every
+  // such listing was a scam and honest new sellers price near the typical price. A reason doesn't clear that pair,
+  // but keeps it at "low".
+  // `why` (f.saysWhy from compareFacts, or worked out here) is set on "low" and "reason" for the chip to say.
+  const cheapLevel = (f, market) => {
     if (!(market?.median > 0) || market.confidence === "rough" || f?.total == null || f.total <= 0) return null;
     if (f.auction || f.lot || f.project || f.accessory || f.foreign || f.related === false) return null;
     const pct = f.total / market.median;
-    // Under the softer cutoff and from a seller with a warning (few ratings, an account made this year): two
-    // signs that rarely meet on an honest listing, so it's "far" too. In the eval (tests/eval) every such
-    // listing was a scam; honest new sellers price near the typical price.
-    // Not when the title says what's missing ("missing Joy-Cons", "body only"): that's cheap for a reason.
-    const seller = pct < R.TOO_CHEAP.low && pct >= R.TOO_CHEAP.far && !!f.sellerWarn && !f.offWords && !INCOMPLETE.test(R.normTitle(f.title));
-    const level = (pct < R.TOO_CHEAP.far && !f.offWords) || seller ? "far" : pct < R.TOO_CHEAP.low ? "low" : "";
-    return level ? { level, pct: Math.round(pct * 100), ...(seller && { seller: true }) } : null;
+    if (pct >= R.TOO_CHEAP.low) return null;
+    const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, market.query || "");
+    const out = (level, extra) => ({ level, pct: Math.round(pct * 100), ...(why && level !== "far" && { why }), ...extra });
+    // Under the firm cutoff only something missing or a cheaper version explains it: "minor scratches" doesn't
+    // take 60% off, and it's the story bait tells.
+    const big = why && !FLAW.test(why);
+    if (pct < R.TOO_CHEAP.far) return big && f.sellerWarn ? out("far", { seller: true }) : out(f.offWords || big ? "low" : "far");
+    if (f.sellerWarn && !f.offWords) return why ? out("low") : out("far", { seller: true });
+    return out(why ? "reason" : "low");
+  };
+
+  // Why a listing says it's cheap, in its own words: a flaw ("dead pixel", "battery 76%", "carrier locked"),
+  // something missing ("console only, no dock"), or a cheaper version than the search ("mini" in an iPhone 13
+  // search). Returns the words, or "". Said away ("no scratches", "scratch-free") doesn't count, and nor do the
+  // quick-sale words ("moving", "must go"): bait uses them as much as anyone. `query`: the search, so a version
+  // the search names ("switch lite") isn't a cheaper one.
+  const FLAW = new RegExp(String.raw`\b(` + [
+    String.raw`(?:dead|stuck|bad) pixels?`, String.raw`scratch(?:ed|es)?`, String.raw`scuff(?:ed|s)?`, String.raw`dent(?:ed|s)?`, String.raw`dings?`,
+    String.raw`(?:small |hairline )?cracks? (?:on|in) (?:the )?(?:back|bezel|case|corner|side|frame|housing|lens|glass)`,
+    String.raw`cracked (?:back|bezel|case|corner|frame|housing|lens|glass)`, String.raw`(?:small|hairline) crack`, String.raw`chipped`,
+    String.raw`(?:heavy|lots of|signs of) wear`, String.raw`(?:well |very )?worn`, String.raw`stain(?:ed|s)?`, String.raw`drift(?:ing)?`,
+    String.raw`battery (?:health |life |at )?(?:[1-7]\d|8[0-4]) ?%`, String.raw`(?:[1-7]\d|8[0-4]) ?% battery`, String.raw`(?:bad|weak|swollen) battery`,
+    String.raw`needs (?:a )?(?:new )?battery`, String.raw`squeak(?:s|y|ing)?`, String.raw`meter (?:dead|doesn'?t work|not working|is off)`,
+    String.raw`(?:needs |new )?light seals?`, String.raw`(?:carrier|network|sim) locked`, String.raw`(?:verizon|at ?t|at&t|t-mobile|sprint|cricket|metro) locked`,
+    String.raw`locked to (?:verizon|at ?t|at&t|t-mobile|sprint|cricket|metro|a carrier)`, String.raw`(?:screen |lcd )?burn[- ]?in`,
+    String.raw`screen (?:spots?|lines?|bruises?|discolou?ration)`, String.raw`lines? on (?:the )?screen`, String.raw`cosmetic (?:damage|issues?|wear|flaws?)`,
+    String.raw`(?:fair|poor|rough) (?:condition|shape)`, String.raw`as found`, String.raw`(?:has|with) (?:some )?(?:issues?|flaws?|problems?)`, String.raw`haze|fungus|separation`,
+  ].join("|") + String.raw`)(?!\w)`, "i");
+  const PARTS_GONE = String.raw`joy ?cons?|dock|charger|charging (?:cable|case)|controllers?|lens(?:es)?|battery|batteries|cables?|stand|power (?:cord|supply|adapter)|cord|adapter|remote|case|earbuds?|stylus|keyboard|accessories`;
+  const MISSING = new RegExp(String.raw`\b((?:missing|without|no) (?:the |its |a |any )?(?:${PARTS_GONE})|missing [\w-]+|(?:console|tablet|body|unit|handheld|screen|tool|phone|laptop|earbuds?|(?:left|right) (?:earbud|airpod|ear|side)) only)\b`, "i");
+  const CHEAPER = /\b(lite|mini|1st gen(?:eration)?|first gen(?:eration)?|gen ?1|v1|older model)\b/i;
+  const SAID_AWAY = /\b(?:no|not a|not one|zero|without|free of|never|any)\s+(?:\w+\s+)?$/i;
+  R.cheapReason = (title, text = "", query = "") => {
+    const t = R.fold(`${title || ""} ${text || ""}`).replace(/\s+/g, " ");
+    const said = (re) => {
+      for (const m of t.matchAll(new RegExp(re.source, "gi"))) {
+        if (SAID_AWAY.test(t.slice(Math.max(0, m.index - 24), m.index)) || /^[- ]?free\b/.test(t.slice(m.index + m[0].length))) continue;
+        return m[1].toLowerCase();
+      }
+      return "";
+    };
+    const flaw = said(FLAW);
+    if (flaw) return flaw;
+    const missing = t.match(MISSING)?.[1];
+    if (missing && !/^missing (?:nothing|anything|out)\b/.test(missing.toLowerCase()) && !/\bnot (?:be )?$/.test(t.slice(0, t.indexOf(missing.toLowerCase())))) return missing.toLowerCase();
+    const cheaper = t.match(CHEAPER)?.[1];
+    if (cheaper && !R.hasWord(query, cheaper)) return cheaper.toLowerCase();
+    return R.smallerStorage(t, query);
+  };
+  // A smaller size than the search names: "64GB" in an "iphone 13 128gb" search. "" when there's none.
+  R.smallerStorage = (title, query = "") => {
+    const size = (s) => [...R.fold(s).matchAll(/\b(\d+) ?(gb|tb)\b/g)].map((m) => +m[1] * (m[2] === "tb" ? 1024 : 1));
+    const want = size(query)[0];
+    const have = size(title).filter((n) => n >= 16); // not 8GB of memory beside 256GB of storage
+    return want && have.length && Math.max(...have) < want ? `${Math.max(...have) >= 1024 ? Math.max(...have) / 1024 + "TB" : Math.max(...have) + "GB"}` : "";
   };
 
   // A title code that is the model number you searched for ("DeWalt 20V Max Drill DCD771C2" in a "dewalt dcd771"
@@ -235,8 +300,9 @@
   R.compareFacts = (f, market, query = "") => {
     f.accessory = (!f.ownMarket && R.accessoryOf(f.title, query)) || "";
     f.offWords = (!f.ownMarket && R.missingWord(f.title, query)) || "";
+    f.saysWhy = R.cheapReason(f.title, f.text, f.ownMarket ? "" : query); // why it's cheap, in its own words (tooCheap)
     const vs = market?.median > 0 && f.total != null && !f.foreign && !f.lot && !f.auction && !f.accessory && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
-    f.cheap = (vs != null && R.tooCheap(f, market)?.level) || ""; // backs up a title code (codeBacked)
+    f.cheap = (vs != null && (R.tooCheap(f, market)?.level || (R.cheapForReason(f, market) && "reason"))) || ""; // backs up a title code (codeBacked)
     return vs;
   };
 
@@ -265,6 +331,10 @@
     const typical = R.dollars(Math.round(market.median));
     const pct = Math.round((it.total / market.median) * 100);
     const moved = (v, extra) => ({ v, ...(it.score != null ? { score: R.fitScore(v, it.score) } : {}), ...extra });
+    // Cheap and saying why (a flaw, something missing, a cheaper version): the scan's word stands, but no better
+    // than Good price, since it isn't the whole thing at a great price.
+    const said = R.cheapForReason(it, market);
+    if (said) return R.RANK[verdict] > R.RANK.good ? moved("good", { why: `Held at Good price: ${R.dollars(it.total)} is ${said.pct}% of the typical ${typical}, and the listing says why (“${said.why}”).` }) : keep;
     const cheap = R.tooCheap(it, market);
     if (cheap) return moved("suspicious", { label: "Great price, if it’s real", why: `${R.dollars(it.total)} is ${cheap.pct}% of the typical ${typical}${cheap.seller ? `, from a seller with a warning (${it.sellerWarn})` : ""}. Far under what the same thing sells for is the usual bait: check it's real before you pay.` });
     if (!it.auction && !it.lot && !it.project && !it.accessory && it.related !== false && it.total > market.median * R.ABOVE_CAP && R.RANK[verdict] > R.RANK.fair) return moved("fair", { why: `Held at Fair price: ${R.dollars(it.total)} is ${pct}% of the typical ${typical}.` });
@@ -297,7 +367,7 @@
     "charging station|stylus|knob|buttons?|ribbon cable|hinge|motherboard";
   const PART_LAST = new RegExp(String.raw`(?:^|\s)((?:${PART})s?)$`);
   const PART_FOR = new RegExp(String.raw`(?:^|\s)((?:${PART})s?) (?:only|for)\b`);
-  const PART_ANY = /\b(compatible with|for use with|replacement|screen protector|tempered glass|empty box|box only|no (?:console|camera|phone|watch|tablet|laptop|device|unit|handset|system|body)|video game(?! (?:console|system))|game cartridge|(?:cartridge|cart|disc|game|case) only|game disc|physical copy|(?:digital|download) code|game card)\b/;
+  const PART_ANY = /\b(compatible with|for use with|replacement|screen protector|tempered glass|empty box|box only|no (?:console|camera|phone|watch|tablet|laptop|device|unit|handset|system|body)|video game(?! (?:console|system))|game cartridge|(?:cartridge|cart|disc|game|case) only|game disc|physical copy|(?:digital|download) code|game card|(?:(?:left|right) )?(?:earbud|airpod|ear ?bud)s? only)\b/;
   // "with", "in", a count ("2 controllers"), or a word that says it's the whole thing: what comes with the item.
   const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|console|system|bundle|cib|complete)(?:\s|$)/;
   const PART_AND = new RegExp(String.raw`\b((?:${PART})s?) and (?=(?:${PART})s?\b)`, "g");
@@ -446,7 +516,7 @@
   // Words that say "fix-up project" (what a fixer hunts for, and Marketplace can't search for all at
   // once) and words that say the seller wants it gone. Read from the title and card text.
   R.PROJECT =
-    /\b(for parts(?: or repair| only)?|parts only|parts or repair|not working|non[- ]?working|untested|as[- ]is|broken|no power|won'?t (?:turn|power) on|doesn'?t (?:work|turn on|power on)|needs (?:repair|work|fixing|a new \w+)|faulty|for repair|disc read error|no (?:display|video|sound|picture)|red ring|yellow light|cracked screen|water damage)\b/i;
+    /\b(for parts(?: or repair| only)?|parts only|parts or repair|not working|non[- ]?working|untested|as[- ]is|broken|no power|won'?t (?:turn|power) on|doesn'?t (?:work|turn on|power on)|needs (?:repair|work|fixing|a new \w+)|faulty|for repair|disc read error|no (?:display|video|sound|picture)|red ring|yellow light|cracked screen|water damage|(?:icloud|activation|mdm) lock(?:ed)?|bad esn|blacklisted)\b/i;
   R.MOTIVATED = /\b(moving(?: sale)?|must go|need(?:s)? (?:it )?gone|estate sale|cleaning out|garage sale|downsizing|first come first served|priced to sell|quick sale)\b/i;
   R.clueOf = (re, text) => (text.match(re)?.[1] || "").toLowerCase().replace(/\s+/g, " ");
 

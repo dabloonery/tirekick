@@ -376,7 +376,7 @@ The order, one PR each, every one measured by `deno task eval` with the scam num
 2. [x] One set of facts for the card, the scan and Analyze. The bait share sent to the model was worked out from the raw
    card, without the for-parts, missing-word and pickup facts, so a for-parts listing at 34% went to the model as "the
    usual bait"; Analyze judged its verdict with no card facts at all.
-3. [ ] Stated reasons read for free (`cheapReason`): flaws, missing parts, locks, cheaper versions. Never Likely scam on
+3. [x] Stated reasons read for free (`cheapReason`): flaws, missing parts, locks, cheaper versions. Never Likely scam on
    price alone when the card says why.
 4. [ ] The too-cheap line from where real sales end (the cheapest tenth), and no Likely scam on price alone from a
    reference with a wide spread.

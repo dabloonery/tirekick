@@ -1893,10 +1893,13 @@
     const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
     const unrelated = f.url && scored.get(keyOf(f.url))?.related === false; // a scan said it's something else
     const cheap = f.vsSold != null && !unrelated && TKRules.tooCheap(f, mk);
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.seller ? ` The seller has a warning too (${f.sellerWarn}): the two together are how most scams look.` : ""}`]);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` The seller has a warning too (${f.sellerWarn}): the two together are how most scams look.` : ""}`]);
+    // Cheap, and the listing says why: no warning, and no "Great price" either.
+    const said = f.vsSold != null && !cheap && !unrelated && TKRules.cheapForReason(f, mk);
+    if (said) c.push(["plain", `Under typical: ${said.why}`, `This is ${said.pct}% of the typical price (${from(mk)}), and the listing says why: “${said.why}”. Check the photos show it, and ask about anything else.`]);
     if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
     else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
-    if (f.vsSold != null && !cheap) {
+    if (f.vsSold != null && !cheap && !said) {
       // Broken ones, likely scams and what a scan called something else: just the number, no "Great price".
       const pw = f.project || unrelated || likelyScam(f) ? null : TKRules.priceWord(f.vsSold);
       c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", working: !!f.project })}`, `Typical price${f.project ? " of a working one" : ""}: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);

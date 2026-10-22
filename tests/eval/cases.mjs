@@ -56,7 +56,7 @@ export const CASES = [
 
   ebay("nintendo switch oled", "Nintendo Switch OLED Handheld Game Console White 64GB", 236, 0, seller(99.9, "1.4K"), { truth: "honest", word: "fair", note: "\"game console\" is the machine" }),
   ebay("nintendo switch oled", "Nintendo Switch OLED console and charger", 225, 0, seller(100, 18), { truth: "honest", word: "fair" }),
-  ebay("nintendo switch oled", "Nintendo Switch OLED - scratched, missing Joy-Cons", 118, 12, seller(100, 4), { truth: "honest", word: "great", note: "a casual seller, cheap because it's missing parts" }),
+  ebay("nintendo switch oled", "Nintendo Switch OLED - scratched, missing Joy-Cons", 118, 12, seller(100, 4), { truth: "honest", word: "none", note: "a casual seller, cheap because it's missing parts: no price word, as for a broken one" }),
   ebay("nintendo switch oled", "Nintendo Switch OLED White, lightly used", 229, 0, seller(100, 2), { truth: "honest", word: "fair", note: "a new seller at a normal price: Check first is fair" }),
 
   // ---------- eBay: iphone 13 128gb ($290) ----------
@@ -129,7 +129,7 @@ export const CASES = [
 
   // ---------- Marketplace: pentax k1000 (pickup $110) ----------
   fb("pentax k1000", "Pentax K1000 with 50mm lens", 90, { truth: "honest", word: "fair" }),
-  fb("pentax k1000", "Pentax K1000 film camera, needs light seals", 48, { truth: "honest", word: "great", note: "cheap for a reason the rules don't know" }),
+  fb("pentax k1000", "Pentax K1000 film camera, needs light seals", 48, { truth: "honest", word: "none", note: "cheap for a reason it says: no price word, as for a broken one" }),
   fb("pentax k1000", "Pentax k1000 35mm camera", 1234, { truth: "honest", word: "none", note: "a stand-in price" }),
 
   // ---------- Marketplace: macbook air m1 (pickup $402) ----------

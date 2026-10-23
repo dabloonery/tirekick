@@ -237,7 +237,7 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
 **In the panel**:
 
 - **Typical price** (under the Scan button, marked free): the eBay sold-price lookup on its own, with
-  no model. Prices already looked up for a search in the last six hours apply by themselves.
+  no model. Prices already looked up for a search in the last day apply by themselves.
 - **The list** shows every listing on the page before any scan, priced with shipping, and sorts
   by cheapest (lots per item), furthest under the sold price, auctions ending soonest, or new and
   cheaper first. Click a title to jump to the card.
@@ -369,8 +369,9 @@ Both sites change their markup without warning. If a scan says "No listings foun
 **eBay shows "Checking your browser" or won't load**: eBay does this to traffic that looks
 automated, and then ordinary page loads get it too for a while (refreshing usually clears it).
 Tirekick's only automated traffic is the sold-price lookups: at least 5 seconds apart, at
-most 8 an hour, remembered for 6 hours, and paused for an hour at the first check (the price
-box then links to eBay's own sold listings). On Facebook, keep an eBay tab open: lookups then run
+most 8 an hour, remembered for a day, one lookup per search even with several tabs asking, and
+paused for an hour at the first check, longer (up to 6 hours) and at half the pace if it comes back the
+same day (the price box then links to eBay's own sold listings). On Facebook, keep an eBay tab open: lookups then run
 from that tab, like eBay's own pages, which eBay questions far less. If it keeps happening, untick "Compare prices with
 recent eBay sales"; if it still happens, untick "Show a slim tab" too, which leaves eBay pages
 untouched until you click the toolbar icon.
@@ -408,7 +409,7 @@ flagged. Every change keeps to these:
   you're looking at as it loads, only while that tab is on your screen.
 - **Requests to the sites are few, spaced and started by you.** eBay sold-price lookups happen because
   you pressed something (or turned on automatic scanning): at most eight an hour, five seconds apart,
-  cached for six hours, from your own browser.
+  cached for a day, from your own browser.
 - **Never get past a bot check.** At the first sign of eBay's "checking your browser" page, lookups stop
   for an hour (half an hour for the background route) and say so. Nothing tries to solve, avoid or
   disguise itself from a check, a captcha or a rate limit.

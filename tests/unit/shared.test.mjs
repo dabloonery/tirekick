@@ -132,7 +132,7 @@ test("soldSlot: one booking for every tab, spaced, capped and paused", () => {
   const opts = { perHour: 3, gap: 5000 };
   const now = 10_000_000;
   assert.deepEqual(S.soldSlot({ cooldownUntil: now + 1 }, now, opts), { pausedUntil: now + 1 });
-  assert.deepEqual(S.soldSlot({}, now, opts), { wait: 0, log: [now] });
+  assert.deepEqual(S.soldSlot({}, now, opts), { wait: 0, log: [now], perHour: 3 });
   let st = { log: [] };
   const waits = [];
   for (let i = 0; i < 4; i++) {
@@ -142,8 +142,45 @@ test("soldSlot: one booking for every tab, spaced, capped and paused", () => {
     st = { log: r.log };
   }
   assert.deepEqual(waits, [0, 5000, 10000, "full"], "asked at the same moment, each gets its own turn, and no more than the hour allows");
-  assert.deepEqual(S.soldSlot({ log: [now - 2 * 3600e3, now - 3600e3 - 1] }, now, opts), { wait: 0, log: [now] }, "older than an hour doesn't count");
-  assert.deepEqual(S.soldSlot({ log: "junk" }, now, opts), { wait: 0, log: [now] });
+  assert.deepEqual(S.soldSlot({ log: [now - 2 * 3600e3, now - 3600e3 - 1] }, now, opts), { wait: 0, log: [now], perHour: 3 }, "older than an hour doesn't count");
+  assert.deepEqual(S.soldSlot({ log: "junk" }, now, opts), { wait: 0, log: [now], perHour: 3 });
+});
+
+test("soldSlot: a search another tab is looking up waits for that answer, and a day after a check runs slower", () => {
+  const opts = { perHour: 8, gap: 5000 };
+  const now = 10_000_000;
+  assert.deepEqual(S.soldSlot({ key: "v2:used:psp", pending: { "v2:used:psp": now + 3000 } }, now, opts), { pending: 3000 }, "no second turn for the same search");
+  assert.deepEqual(S.soldSlot({ key: "v2:used:psp", pending: { "v2:used:psp": now - 1 } }, now, opts), { wait: 0, log: [now], perHour: 8 }, "a lapsed one doesn't hold it up");
+  assert.deepEqual(S.soldSlot({ key: "v2:used:ps2", pending: { "v2:used:psp": now + 3000 } }, now, opts).wait, 0, "another search goes ahead");
+  assert.deepEqual(S.soldSlot({ cooldownUntil: now + 1, key: "k", pending: { k: now + 5 } }, now, opts), { pausedUntil: now + 1 }, "a pause wins");
+  // Within a day of eBay's check: 4 an hour, 15 s apart.
+  let st = { log: [], lastCheck: now - 3600e3 };
+  const waits = [];
+  for (let i = 0; i < 5; i++) {
+    const r = S.soldSlot(st, now, opts);
+    if (r.full) { waits.push(`full ${r.perHour}`); continue; }
+    waits.push(r.wait);
+    st = { ...st, log: r.log };
+  }
+  assert.deepEqual(waits, [0, 15000, 30000, 45000, "full 4"]);
+  assert.equal(S.soldSlot({ lastCheck: now - S.SOLD_WARY_MS - 1 }, now, opts).perHour, 8, "back to the usual pace after a day");
+});
+
+test("soldCooldown: an hour, then longer each time eBay's check comes back the same day", () => {
+  const h = 3600e3;
+  let t = 50 * h;
+  let strikes;
+  const pauses = [];
+  for (let i = 0; i < 5; i++) {
+    const r = S.soldCooldown(strikes, t);
+    pauses.push((r.until - t) / h);
+    strikes = r.strikes;
+    t = r.until + 60e3; // tripped again a minute after it lifted
+  }
+  assert.deepEqual(pauses, [1, 2, 4, 6, 6], "doubles, at most six hours");
+  assert.equal((S.soldCooldown(strikes, t + S.SOLD_WARY_MS).until - t - S.SOLD_WARY_MS) / h, 1, "a quiet day starts over");
+  assert.equal((S.soldCooldown({ n: "junk" }, t).until - t) / h, 1);
+  assert.equal((S.soldCooldown(null, t).until - t) / h, 1);
 });
 
 test("cleanBackup: a damaged or hostile backup can't leave anything that breaks the panel", () => {

@@ -302,6 +302,30 @@ st = await R(fb, `return r.querySelector('.statusrow .status').textContent + ' '
 const paused = await o.ev(`chrome.storage.local.get(['soldWorkerPausedUntil','soldCooldownUntil'])`);
 ok("a refused lookup from Facebook pauses only that route and says how to get going again", /Open eBay/.test(st) && paused.soldWorkerPausedUntil > Date.now() && !(paused.soldCooldownUntil > Date.now()), { st, paused });
 
+// ---------- one eBay lookup for a search two tabs ask at once ----------
+await reset(`{useSoldComps:true}`);
+const slowA = await openPanel("https://www.ebay.com/sch/i.html?_nkw=slowsold+camera");
+const slowB = await openPanel("https://www.ebay.com/sch/i.html?_nkw=slowsold+camera");
+for (const p of [slowA, slowB]) await R(p, `const q=r.querySelector('#q'); q.value='slowsold camera'; q.dispatchEvent(new Event('input'))`);
+await sleep(600);
+await Promise.all([slowA, slowB].map((p) => R(p, `r.querySelector('[data-act=prices]').click()`)));
+await sleep(9000);
+const hits = await slowA.ev(`fetch('/sold-hits').then(r=>r.json())`);
+const both = await Promise.all([slowA, slowB].map((p) => R(p, `return r.querySelector('.market').textContent`)));
+ok("two tabs asking for the same search at once make one eBay lookup, and both get its answer", hits["slowsold camera|3000"] === 1 && both.every((t: string) => /Typical price/.test(t)), { hits, both });
+
+// ---------- eBay's check coming back the same day pauses for longer ----------
+await reset(`{useSoldComps:true, soldStrikes:{n:1, at:Date.now() - 2 * 3600e3}}`);
+const again = await openPanel("https://www.ebay.com/sch/i.html?_nkw=blockme+again");
+await R(again, `const q=r.querySelector('#q'); q.value='blockme again'; q.dispatchEvent(new Event('input'))`);
+await sleep(600);
+await R(again, `r.querySelector('[data-act=prices]').click()`);
+await sleep(2500);
+st = await R(again, `return r.querySelector('.market').textContent`);
+const strikes = await get("soldStrikes");
+const until = await get("soldCooldownUntil");
+ok("a second browser check within a day pauses lookups for two hours, and says so", /paused 2 h/.test(st) && strikes?.n === 2 && until - Date.now() > 1.9 * 3600e3, { st, strikes, until });
+
 // ---------- no errors ----------
 const ours = errors.filter((e) => !/favicon|ERR_|net::/.test(e || ""));
 ok("no page and no extension page logged an error", !ours.length, ours.slice(0, 5));

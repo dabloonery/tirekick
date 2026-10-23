@@ -979,13 +979,27 @@ function storeEdit({ name, edit }) {
   });
 }
 // A turn at an eBay sold-price lookup (TKShared.soldSlot), booked here so tabs can't both take the last one.
-function soldSlot({ perHour, gap }) {
+// soldPending: searches a tab has a turn for and is looking up now, so another tab asking for the same one
+// waits for that answer instead of asking eBay twice. Kept in memory only: losing it costs one lookup.
+const soldPending = {};
+const SOLD_PENDING_MS = 40 * 1000; // a lookup's 30 s timeout, and a little to store the answer
+function soldSlot({ perHour, gap, key }) {
   return oneAtATime(async () => {
-    const { soldLog, soldCooldownUntil } = await chrome.storage.local.get(["soldLog", "soldCooldownUntil"]);
-    const slot = TKShared.soldSlot({ log: soldLog, cooldownUntil: soldCooldownUntil }, Date.now(), { perHour, gap });
-    if (slot.log) await chrome.storage.local.set({ soldLog: slot.log });
+    const { soldLog, soldCooldownUntil, soldStrikes } = await chrome.storage.local.get(["soldLog", "soldCooldownUntil", "soldStrikes"]);
+    const now = Date.now();
+    for (const k of Object.keys(soldPending)) if (soldPending[k] <= now) delete soldPending[k];
+    const slot = TKShared.soldSlot({ log: soldLog, cooldownUntil: soldCooldownUntil, lastCheck: soldStrikes?.at, key, pending: soldPending }, now, { perHour, gap });
+    if (slot.log) {
+      await chrome.storage.local.set({ soldLog: slot.log });
+      if (key) soldPending[key] = now + slot.wait + SOLD_PENDING_MS;
+    }
     return slot;
   });
+}
+// A lookup that has finished (answered or not): a tab waiting on the same search stops waiting.
+async function soldDone({ key }) {
+  delete soldPending[key];
+  return true;
 }
 
 // A store page with the panel on it: there the icon opens or tucks away the panel instead of the popup.
@@ -993,7 +1007,7 @@ async function panelTab(_payload, sender) {
   if (sender?.tab?.id >= 0 && sender.frameId === 0) await chrome.action.setPopup({ tabId: sender.tab.id, popup: "" });
 }
 
-const HANDLERS = { storeEdit, soldSlot, rankBatch, analyzeListing, suggestSearches, checkPhoto, photoHashes, fetchSoldHtml, soldWorkerBlocked, getFont, openOptions, openHome, openTabs, abort, panelTab, getSettings: getPageSettings };
+const HANDLERS = { storeEdit, soldSlot, rankBatch, analyzeListing, suggestSearches, checkPhoto, photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, abort, panelTab, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];

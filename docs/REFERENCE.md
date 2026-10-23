@@ -80,7 +80,7 @@ The one change: the long label for `suspicious` becomes **Likely scam**, so it m
 
 More stores are planned, so copy about what Tirekick *is* never depends on eBay and Marketplace:
 
-- Describe the product with store-neutral words: "secondhand marketplaces", "secondhand listings", "the page you're on" (Myer, 2026-10-15). Write "secondhand", one word, the US spelling.
+- Describe the product with store-neutral words: "secondhand marketplaces", "secondhand listings", "the page you're on" (the maintainer, 2026-10-15). Write "secondhand", one word, the US spelling.
 - Name the supported stores once, near the end, as the current list: "Works on eBay and Facebook Marketplace." Adding a store then means editing that one line.
 - Store names stay where a feature really is store-specific (eBay sold prices, eBay fees, Marketplace scam patterns) and in the privacy page, which must list exactly which sites it reads and contacts, and gets updated with each new store.
 

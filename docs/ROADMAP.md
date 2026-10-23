@@ -1035,8 +1035,12 @@ focus read **Custom**; picking a focus sets the switches again. The switches:
    that a likely scam keeps its chip with `markPrices` and `markOther` off.
 2. **AI off** (built 2026-10-23; the switch sits at the top of AI scores in settings until PR 3 moves it into the fold): `useAI` and every surface above, with the background refusing AI calls. An e2e check that with it
    off a store page and a listing page make no call to the fake AI server.
-3. **Focus cards**: the three cards, Custom, `focusOf` / `focusSettings` with unit tests, README "Everyday use",
-   `docs/ux-spec.md`, and store listing copy if dabloonery wants the focuses named there.
+3. **Focus cards** (built 2026-10-23): the three cards, Custom, `TKRules.FOCUS` and `focusOf` with unit tests, README
+   "Everyday use", `docs/ux-spec.md`. Changed from the plan while building: the third focus is called **Without the
+   AI** (a focus named "No AI" reads like a claim about Tirekick, which the wording rule rules out); the switches
+   stay in Filters and marks and AI scores, next to what they change, instead of moving into a fold; and with
+   price words off the panel's rows drop their free price read and the listing page drops the offer helper, which
+   is worked out from the same prices. Store listing copy can name the focuses if dabloonery wants.
 
 Small to medium in all. No new permission, nothing new read or sent, so `store/PRIVACY.md` doesn't change.
 

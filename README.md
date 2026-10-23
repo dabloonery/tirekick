@@ -95,6 +95,9 @@ scam warning stays readable.
 
 ## Everyday use
 
+- **What should Tirekick do?**, at the top of settings: **Everything** (the default), **Scam check only** (cards show
+  only scam warnings; prices are still looked up to spot listings too cheap to be real, and your AI isn't used) or
+  **Without the AI** (every free check and mark). Scam marks stay on in all three; changing a part by hand reads as Custom.
 - **Buyer / Reseller**, the switch at the top right of the panel, says what you want listings for (see below). Each
   mode remembers its own sort and skipped-listings setting.
 - **What I want**: "working, with charger, under $80". Each search keeps its own (per site and

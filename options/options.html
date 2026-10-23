@@ -89,6 +89,15 @@
   .adv { margin:4px 0 14px; } .adv > summary { color:var(--muted); font-size:14px; justify-content:flex-start; } .adv > summary::after { font-size:16px; }
   summary:hover h2 { text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:4px; }
   [hidden] { display:none !important; }
+  /* What should Tirekick do: three cards, the chosen one outlined */
+  .focus { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:10px; }
+  @media (max-width:560px) { .focus { grid-template-columns:1fr; } }
+  .fcard { display:grid; gap:4px; align-content:start; padding:12px 14px; border:var(--bw) solid var(--rule); border-radius:var(--r); background:var(--paper-2); cursor:pointer; }
+  .fcard input { position:absolute; opacity:0; pointer-events:none; }
+  .fcard b { font:800 17px/1.3 var(--display); }
+  .fcard span { color:var(--muted); font:400 13px/1.45 var(--ui); }
+  .fcard:has(input:checked) { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .fcard:has(input:focus-visible) { outline:2px solid var(--ink); outline-offset:2px; }
   /* The AI turned off: its section keeps only the switch */
   #sec-model.off > :not(h2, p.hint, .ai-switch) { display:none; }
   :focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
@@ -116,7 +125,18 @@
       </div>
     </div>
   </div>
-  <nav class="jump" aria-label="Sections"><a href="#sec-page">On the page</a><a href="#sec-filters">Filters</a><a href="#sec-model">AI scores</a><a href="#sec-judging">Judging</a><a href="#sec-spending">Spending</a><a href="#sec-backup">Backup</a></nav>
+  <nav class="jump" aria-label="Sections"><a href="#sec-focus">What it does</a><a href="#sec-page">On the page</a><a href="#sec-filters">Filters</a><a href="#sec-model">AI scores</a><a href="#sec-judging">Judging</a><a href="#sec-spending">Spending</a><a href="#sec-backup">Backup</a></nav>
+
+  <section id="sec-focus">
+    <h2>What should Tirekick do?</h2>
+    <div class="focus" role="radiogroup" aria-label="What Tirekick does">
+      <label class="fcard"><input type="radio" name="focus" value="everything"><b>Everything</b><span>Scam marks, price words and the other marks, and scores if you add an AI.</span></label>
+      <label class="fcard"><input type="radio" name="focus" value="scams"><b>Scam check only</b><span>Only scam warnings on the cards. Prices are still looked up, to spot listings too cheap to be real. Your AI isn't used.</span></label>
+      <label class="fcard"><input type="radio" name="focus" value="noai"><b>Without the AI</b><span>Every free check and mark: prices, scam marks, filters. Nothing is sent to an AI service.</span></label>
+    </div>
+    <p class="hint" id="focusCustom" hidden>Custom: you've picked the parts yourself under Filters and marks and AI scores. Choose one above to start from it again.</p>
+    <p class="hint">Scam marks stay on in all three. Each part has its own switch further down.</p>
+  </section>
 
   <section id="sec-page">
     <h2>On the page</h2>
@@ -324,6 +344,7 @@
 </main>
 <script src="../lib/sites.js"></script>
 <script src="../lib/shared.js"></script>
+<script src="../content/rules.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

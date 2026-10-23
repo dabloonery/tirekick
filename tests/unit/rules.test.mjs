@@ -734,6 +734,15 @@ test("pickChips: each kind of mark follows its switch, scam marks lead, and only
   assert.equal(R.pickChips(chips, { markLimit: 0 }).length, 3, "a bad limit is the default");
 });
 
+test("focusOf: the three focuses and Custom, from the switches they set", () => {
+  assert.equal(R.focusOf({}), "everything", "a fresh install: every switch at its default");
+  for (const name of Object.keys(R.FOCUS)) assert.equal(R.focusOf(R.FOCUS[name]), name);
+  assert.equal(R.focusOf({ ...R.FOCUS.scams, markLimit: 1, theme: "dark" }), "scams", "marks per listing and other settings don't change the focus");
+  assert.equal(R.focusOf({ markScams: false }), "custom", "scam marks off is never a focus");
+  assert.equal(R.focusOf({ useSoldComps: false }), "custom");
+  for (const f of Object.values(R.FOCUS)) assert.equal(f.markScams && f.useSoldComps, true, "every focus keeps the scam marks and the lookups they need");
+});
+
 test("games in a console search, from a real \"ds\" search: plural, and named after the console's maker", () => {
   for (const t of ["Nintendo DS games", "Various DS games", "DS Games Your Pick"]) assert.equal(R.accessoryOf(t, "ds"), "game", t);
   for (const t of ["Nintendo DS Lite with games", "Two Hand Held Game Consoles with hundreds of Games!!", "Nintendo DSi"]) assert.equal(R.accessoryOf(t, "ds"), "", t);

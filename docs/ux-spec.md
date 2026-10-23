@@ -55,7 +55,7 @@ flowchart LR
 |---|---|---|---|
 | Install | Nothing opens; the tab appears on the next eBay or Marketplace page | — | Implemented |
 | First open, no model | Welcome card: *Add an AI to start scoring* (any service the user has a key for, or a local model; none is pushed) with **Open settings**, then three short points (what Scan does, Buyer or Reseller, the tag's reasons) and that the free marks already work | Open settings | Verified (`audit.ts` first run) |
-| Settings | Status card: *Ready: Sonnet 5.5, scans with Haiku 5.5* or what's missing; Model section first | Paste key → Test connection | Verified (`tests/options`, `features.ts`) |
+| Settings | Status card: *Ready: Sonnet 5.5, scans with Haiku 5.5*, *Ready: scam checks only*, or what's missing; then **What should Tirekick do?** (Everything, Scam check only, Without the AI; Custom when the switches differ), then On the page | Paste key → Test connection | Verified (`tests/options`, `features.ts`) |
 | Search page | Free tags on every card (scam words, off-site contact, "for parts"); the panel has one field (What I want), one line for the compare words (*Prices compared with sold "pentax k1000" · Change*) and **Scan N listings · under 1¢** | Scan | Verified |
 | Scanning | Status line *Ranking 6 listings with Haiku 5.5…*, spinner, **Stop**, a progress hairline under the tabs; the Scan button is disabled | Stop (optional) | Verified (`states.ts`) |
 | Results | *2 worth a look*, the verdict bar, counts, Save search / Try on Marketplace / Start over; the ranked list (a title shows the card on the page, **Open ↗** under the price opens it); tags on the cards | Open the best one | Verified |

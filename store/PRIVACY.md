@@ -16,7 +16,7 @@ All of this is kept in your browser's extension storage and never sent to the de
 - **Listings and searches you saved, and listings you hid**, with the prices you saw.
 - **Listings you've seen** (title, price, when), so it can say "new to you" and show price drops and history. Kept for 90 days.
 - **Photo fingerprints** for Marketplace listings you scroll past: a 16-character code worked out from each thumbnail (not the photo itself), so it can spot the same photo on another listing. Kept for 90 days.
-- **Scores** for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and **sold-price results**, kept for six hours.
+- **Scores** for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and **sold-price results**, kept for a day.
 - **Small preferences**: each mode's sort, each search's "what I want" and filter, and where the panel sits on each site.
 - **A spending estimate** for paid AI, worked out from token counts at list price.
 - **Codes tacked onto listing titles** ("... SP M2465") with the title around them, so the same listing reposted under a new code is marked. Kept for 30 days.

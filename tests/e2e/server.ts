@@ -132,6 +132,7 @@ ${card(24, `${t.split(/\s+/)[0]} strap and cap`, 8)}
 </ul></div></body></html>`;
 };
 let photoHits = 0; // photo requests, to check they stay few
+const soldHits: Record<string, number> = {}; // sold searches asked for, by words and condition, to check they aren't repeated
 const fixturePage = (name: string) => {
   const html = Deno.readTextFileSync(new URL(`tests/fixtures/${name.replace(/[^\w-]/g, "")}.html`, ROOT));
   const scripts = ["lib/sites.js", "lib/shared.js", "content/rules.js", "content/adapters.js"].map((f) => `<script>${Deno.readTextFileSync(new URL(f, ROOT))}</script>`).join("");
@@ -144,6 +145,13 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   if (u.hostname === "scontent.test.fbcdn.net") { photoHits++; return new Response(bmp(u.pathname.match(/\/(\w+)_n\.bmp$/)?.[1] || "a1"), { headers: { "content-type": "image/bmp" } }); }
   if (u.hostname === "www.facebook.com" && u.searchParams.has("photos")) return new Response(fbPhotosPage(u.searchParams.get("photos")!), { headers: { "content-type": "text/html" } });
   if (u.pathname === "/photo-hits") return new Response(String(photoHits));
+  if (u.pathname === "/sold-hits") return new Response(JSON.stringify(soldHits), { headers: { "content-type": "application/json" } });
+  if (u.pathname.startsWith("/sch/") && u.searchParams.get("LH_Sold") === "1") {
+    const k = `${(u.searchParams.get("_nkw") || "").toLowerCase()}|${u.searchParams.get("LH_ItemCondition") || ""}`;
+    soldHits[k] = (soldHits[k] || 0) + 1;
+    // A sold search for "slowsold" takes three seconds, so two tabs asking for it overlap.
+    if (/slowsold/.test(k)) return new Promise<Response>((r) => setTimeout(() => r(new Response(soldPage(u.searchParams.get("_nkw")!), { headers: { "content-type": "text/html" } })), 3000));
+  }
   if (/\.jpg$/.test(u.pathname)) return new Response(Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (x) => x.charCodeAt(0)), { headers: { "content-type": "image/gif" } });
   if (u.hostname === "www.facebook.com" && u.searchParams.has("feed")) return new Response(fbFeedPage(), { headers: { "content-type": "text/html" } });
   // ?currency: the first card priced in Canadian dollars, as Marketplace shows prices to a buyer in Canada.

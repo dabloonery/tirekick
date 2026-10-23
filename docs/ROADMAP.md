@@ -336,7 +336,10 @@ before a scan clears the Reseller line.
 **Why eBay sold search fails so often** (from the code; can't be checked from here): one browser check pauses every
 lookup for an hour; on Facebook with no eBay tab open, lookups come from the background, which eBay trusts less;
 eight lookups an hour at most; and a long title often matches fewer than five clean sales. Opening any eBay tab
-helps the second.
+helps the second. Since the pacing round (after 0.58.0): an answer is kept a day, not six hours; two tabs asking
+for the same search make one lookup and share it; and after a check, the next one the same day pauses for 2 h,
+then 4 h, then 6 h, with half the lookups at three times the spacing for a day, so lookups stop knocking on a
+door eBay has just shut.
 
 **For dabloonery to pick** (not built):
 
@@ -432,7 +435,7 @@ Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
 **The ground rules** (README, "Ground rules", from the ux-spec branch). They exist because eBay's and Meta's terms prohibit unattended collection, and breaking them gets dabloonery's accounts flagged:
 - Only pages you're looking at. Never open, crawl or refresh a store's page by itself. Auto-scan reads only a search tab that's on screen.
-- Requests to the stores are few, spaced and started by you: eBay sold lookups are at most 8 an hour, 5 seconds apart, cached 6 hours (`lib/sold.js` after the port).
+- Requests to the stores are few, spaced and started by you: eBay sold lookups are at most 8 an hour, 5 seconds apart, cached a day (`lib/sold.js` after the port).
 - Never get past a bot check. Stop and say so.
 - Nothing leaves the browser except to the AI service the user chose and eBay's own search. No server, no analytics, no account.
 - Estimates are labeled as estimates.

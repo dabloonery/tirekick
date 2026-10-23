@@ -2659,7 +2659,7 @@
   const cachedMarket = async (query) => {
     if (!query.trim()) return null;
     const { soldCache = {} } = await chrome.storage.local.get("soldCache");
-    const hit = soldCache[`v2:used:${query.trim().toLowerCase()}`];
+    const hit = soldCache[TKSold.keyOf(query, "used")];
     return hit?.market && Date.now() - hit.at < SOLD_TTL_MS ? { ...hit.market, condition: "used" } : null;
   };
 

@@ -730,3 +730,12 @@ test("pickChips: each kind of mark follows its switch, scam marks lead, and only
   assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markScams: false })), ["Code in title: AB12", "At your $50", "Good price · $20 below typical"], "the panel and listing page keep the warning");
   assert.equal(R.pickChips(chips, { markLimit: 0 }).length, 3, "a bad limit is the default");
 });
+
+test("focusOf: the three focuses and Custom, from the switches they set", () => {
+  assert.equal(R.focusOf({}), "everything", "a fresh install: every switch at its default");
+  for (const name of Object.keys(R.FOCUS)) assert.equal(R.focusOf(R.FOCUS[name]), name);
+  assert.equal(R.focusOf({ ...R.FOCUS.scams, markLimit: 1, theme: "dark" }), "scams", "marks per listing and other settings don't change the focus");
+  assert.equal(R.focusOf({ markScams: false }), "custom", "scam marks off is never a focus");
+  assert.equal(R.focusOf({ useSoldComps: false }), "custom");
+  for (const f of Object.values(R.FOCUS)) assert.equal(f.markScams && f.useSoldComps, true, "every focus keeps the scam marks and the lookups they need");
+});

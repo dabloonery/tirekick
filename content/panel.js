@@ -2905,7 +2905,7 @@
       // Not scored (yet): the price is the headline, with what's known for free.
       if (it.score == null) {
         const mk = marketOf(f);
-        const vs = f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true, working: !!f.project })} (${dollars(Math.round(mk.median))})` : "";
+        const vs = prefs.markPrices && f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true, working: !!f.project })} (${dollars(Math.round(mk.median))})` : "";
         const each = it.lot && it.total != null ? `, lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
         listEl.append(
           h(
@@ -2916,7 +2916,7 @@
               {},
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
               (() => {
-                const read = !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
+                const read = prefs.markPrices && !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
                 return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
               })(),
               likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
@@ -4209,7 +4209,8 @@
     const softLine = soft.level !== "none" ? `${soft.level === "likely" ? "The seller looks ready to take less" : "The seller may take less"}: ${soft.why.join(", ")}.` : "";
     // An offer worked out from sold prices, before (and without) any analysis.
     // No sold prices yet: one free lookup (eBay sold listings, no AI) gets you the offer, without an analysis.
-    const offer = itemEl.childElementCount
+    // Price words turned off (Scam check only): no offer either, it's worked out from the same prices.
+    const offer = itemEl.childElementCount || !prefs.markPrices
       ? ""
       : offerBox(f, soft.level) ||
         (!lastMarket && f.price > 0

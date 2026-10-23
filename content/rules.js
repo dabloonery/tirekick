@@ -191,6 +191,15 @@
     const kept = chips.filter((c) => on[c[3]] !== false).map((c, i) => [c, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]);
     return kept.slice(0, Math.max(1, Math.min(3, Math.round(markLimit) || 3))).map(([c]) => c);
   };
+  // The three focuses at the top of settings, as the switches they set. Scam marks stay on in every one,
+  // and so do the eBay sold lookups the "Too cheap?" and "Likely scam?" marks need. Marks per listing is
+  // its own choice. focusOf names the focus a set of settings matches, or "custom".
+  R.FOCUS = {
+    everything: { markScams: true, markPrices: true, markOther: true, useAI: true, useSoldComps: true },
+    scams: { markScams: true, markPrices: false, markOther: false, useAI: false, useSoldComps: true },
+    noai: { markScams: true, markPrices: true, markOther: true, useAI: false, useSoldComps: true },
+  };
+  R.focusOf = (s = {}) => Object.keys(R.FOCUS).find((name) => Object.entries(R.FOCUS[name]).every(([k, v]) => (s[k] ?? true) === v)) || "custom";
   R.SOLD_CHIP = / (below|above) (typical|working ones)$|about (typical|working ones)$/; // the cards' price chip, to leave out where it would repeat
 
   // The price against the sold median, in a word.

@@ -131,6 +131,7 @@ async function load() {
   }
   applyTheme(s.theme);
   showAIOff();
+  showFocus();
   // Chosen once you picked a service, or already set one up before this menu existed.
   chosen = !!(s.serviceChosen || stored.provider || stored.anthropicKey || stored.oaiKey || stored.oaiModel);
   await showLists();
@@ -304,6 +305,20 @@ for (const f of FIELDS) {
     if ((f === "anthropicKey" && document.getElementById(f).value.trim()) || (f === "oaiKey" && document.getElementById(f).value.trim())) document.getElementById("test").click();
   });
 }
+// What should Tirekick do: the focus the switches add up to (TKRules.focusOf), or Custom. Picking one sets them.
+const showFocus = async () => {
+  const s = await chrome.storage.local.get(Object.keys(TKRules.FOCUS.everything));
+  const now = TKRules.focusOf(s);
+  for (const r of document.querySelectorAll('input[name="focus"]')) r.checked = r.value === now;
+  document.getElementById("focusCustom").hidden = now !== "custom";
+};
+for (const r of document.querySelectorAll('input[name="focus"]')) {
+  r.addEventListener("change", async () => {
+    await chrome.storage.local.set(TKRules.FOCUS[r.value]);
+    await load();
+    note(r.value === "scams" ? "Saved. Cards show only scam warnings now." : r.value === "noai" ? "Saved. Your AI isn't used now." : "Saved. Everything is on.");
+  });
+}
 // With the AI off, its section folds down to the switch.
 const showAIOff = () => document.getElementById("sec-model").classList.toggle("off", !document.getElementById("useAI").checked);
 document.getElementById("useAI").addEventListener("change", showAIOff);
@@ -322,12 +337,16 @@ for (const b of document.querySelectorAll("[data-reveal]")) {
 
 // The banner at the top: is the model ready to run, and if not, what's the one thing missing?
 async function showStatus() {
-  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel", "useAI"]);
+  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel", "useAI", "markScams", "markPrices", "markOther", "useSoldComps"]);
   const provider = s.provider || "anthropic";
   const card = document.getElementById("statusCard");
   const keyLink = document.getElementById("keyLink");
   let ready = false, title, text;
-  if (s.useAI === false) {
+  if (TKRules.focusOf(s) === "scams") {
+    ready = true;
+    title = "Ready: scam checks only";
+    text = "Cards show only scam warnings, and your AI isn't used. Change it under What should Tirekick do.";
+  } else if (s.useAI === false) {
     ready = true;
     title = "Ready: price checks and scam marks (your AI is off)";
     text = "Your AI is turned off, so nothing is sent to any AI service. Turn it back on under AI scores.";
@@ -359,7 +378,7 @@ async function showStatus() {
   keyLink.hidden = !keys;
   if (keys) keyLink.href = keys;
 }
-chrome.storage.onChanged.addListener(() => showStatus());
+chrome.storage.onChanged.addListener(() => (showStatus(), showFocus()));
 
 // Claude: checks the key and that the model name exists, without spending anything.
 async function testClaude() {

@@ -58,6 +58,9 @@ test("cardFacts: auctions, offers, lots and seller ratings", () => {
 });
 
 test("titleCode: the random code on the end of bulk-posted Marketplace scams", () => {
+  // Labeled as a model or part number, from a real Marketplace iPod search: what it is, not a code.
+  for (const t of ["Apple iPod Shuffle 2nd Gen 1GB Model A1204", "Apple iPod Shuffle Model # A1204", "HGST HUS726040ALS210 4TB P/N: 0F27003"]) assert.equal(TK.titleCode(t), "", t);
+  assert.equal(TK.titleCode("3ds console T5949"), "T5949");
   for (const [t, c] of [["Nintendo Game Boy Advance SP M2465", "M2465"], ["Halo Special Edition Xbox S1337", "S1337"], ["Nintendo DS Lite Pink U2X503", "U2X503"]]) {
     assert.equal(TK.titleCode(t), c, t);
   }

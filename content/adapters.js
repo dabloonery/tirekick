@@ -216,6 +216,8 @@
     if (words.length < 3) return "";
     const last = words.at(-1).replace(/^[#([]+|[)\].,!]+$/g, "");
     if (!/^[A-Z0-9]{4,8}$/.test(last) || !/[A-Z]/.test(last) || !/\d/.test(last) || NOT_CODE.test(last)) return "";
+    // Labeled as what it is: "Apple iPod Shuffle 2nd Gen 1GB Model A1204", "… P/N: 0F27003".
+    if (/^(?:model|mpn|p\/n|pn|part|sku)[:#]?$/i.test(words.at(-2).replace(/^#$/, "") || "") || /^(?:model|part|p\/n)\s*#?:?$/i.test(words.slice(-3, -1).join(" "))) return "";
     return last;
   };
   // The title without its code, for spotting the same listing posted again under another code.

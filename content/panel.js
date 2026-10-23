@@ -726,7 +726,7 @@
         <label class="autoscan" hidden><input type="checkbox" class="auto-in" role="switch"><span>Scan new listings automatically</span></label>
         <div class="alts">
           <button class="ghost" data-act="ideas" hidden>Search ideas</button>
-          <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own: free, and your AI isn't used">Typical price <span class="cost">free</span></button>
+          <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own: free">Typical price <span class="cost">free</span></button>
         </div>
         <div class="market"></div>
         <div class="setup" hidden><b class="setup-title">Scores are optional.</b> <span class="setup-text">Prices, scam marks and filters work without an AI.</span>
@@ -1164,6 +1164,8 @@
   let cfg = {};
   // The AI turned off in settings (useAI): every AI button and menu goes, and the free checks lead.
   const aiOff = () => cfg.useAI === false;
+  // "Your AI isn't used" only means something to someone who has one turned on: with the AI off it's left out.
+  const noAINote = (text) => (aiOff() ? "" : text);
   const nameOf = (id) => (MODELS.find(([, m]) => m === id)?.[2].split(" \u00b7")[0]) || OLDER[id] || id;
 
   // With Claude the footer offers how careful to be, not a model: each choice sets both the scan model (many
@@ -2279,7 +2281,7 @@
       f.priceNote = e.message;
     }
     f.vsSold = vsSoldOf(f);
-    setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used.` : f.priceNote, !f.ownMarket);
+    setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d.${noAINote(" Free: your AI wasn't used.")}` : f.priceNote, !f.ownMarket);
     redecorateAll();
   };
   // "$55", not "$55–$55", when the two ends meet.
@@ -2292,7 +2294,7 @@
       : h("button", { class: "tk-btn tk-x", "data-i": "save", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
     // No price for it yet: one free lookup of its own title. Otherwise eBay's sold listings, to look yourself.
     f.title && canPrice(f)
-      ? h("button", { class: "tk-btn tk-x", "data-i": "price", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d: free, and your AI isn't used`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
+      ? h("button", { class: "tk-btn tk-x", "data-i": "price", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d: free${noAINote(", and your AI isn't used")}`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
       : f.title ? h("button", { class: "tk-btn tk-x", "data-i": "sold", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ])];
@@ -2917,7 +2919,7 @@
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
               (() => {
                 const read = prefs.markPrices && !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
-                return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
+                return read ? h("div", { class: "meta free-read", "data-v": read.v, title: aiOff() ? "From the typical price (recent eBay sales) and the free checks." : "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
               })(),
               likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
               (() => {
@@ -3979,9 +3981,9 @@
       const market = await getMarket(settings, query, "use");
       if (!market?.median) return setStatus(market ? "Not enough working ones sold to compare with." : "");
       applyMarket(market);
-      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used.`);
+      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d.${noAINote(" Free: your AI wasn't used.")}`);
       const n = [...facts.values()].filter((f) => f.vsSold != null).length;
-      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used. Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
+      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d.${noAINote(" Free: your AI wasn't used.")} Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
     } catch (e) {
       setStatus(e.message, true);
     } finally {
@@ -4180,7 +4182,7 @@
       "Offer ",
       h("b", {}, dollars(plan.open)),
       plan.walkAway > plan.open ? [", walk away above ", h("b", {}, dollars(plan.walkAway))] : null,
-      h("div", { class: "meta" }, `From recent eBay sales; your AI isn't used: ${plan.reasons.join("; ")}.${rough}`),
+      h("div", { class: "meta" }, `From recent eBay sales${noAINote("; your AI isn't used")}: ${plan.reasons.join("; ")}.${rough}`),
       lowballNote(plan.open, f.total ?? f.price),
       messageArea(messages, plan, f)
     );

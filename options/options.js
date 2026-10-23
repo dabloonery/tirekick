@@ -319,8 +319,12 @@ for (const r of document.querySelectorAll('input[name="focus"]')) {
     note(r.value === "scams" ? "Saved. Cards show only scam warnings now." : r.value === "noai" ? "Saved. Your AI isn't used now." : "Saved. Everything is on, AI scores included.");
   });
 }
-// With the AI off, its section folds down to the switch.
-const showAIOff = () => document.getElementById("sec-model").classList.toggle("off", !document.getElementById("useAI").checked);
+// With the AI off, its section folds down to the switch, and Scan automatically (an AI scan) goes too.
+const showAIOff = () => {
+  const off = !document.getElementById("useAI").checked;
+  document.getElementById("sec-model").classList.toggle("off", off);
+  document.getElementById("autoScanField").hidden = off;
+};
 document.getElementById("useAI").addEventListener("change", showAIOff);
 // Scam marks on the cards are turned off only on purpose: the click asks first, and saying no leaves them on.
 document.getElementById("markScams").addEventListener("click", (e) => {

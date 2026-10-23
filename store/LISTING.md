@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-Everything the store's forms ask for. Fill in the two `<…>` placeholders, then upload `dist/tirekick-<version>.zip` from `deno task pack`.
+Everything the store's forms ask for. Upload `dist/tirekick-<version>.zip` from `deno task pack`.
 
 ## Basics
 
@@ -9,7 +9,7 @@ Everything the store's forms ask for. Fill in the two `<…>` placeholders, then
   Beta. Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.
 - **Category:** Shopping
 - **Language:** English
-- **Privacy policy URL:** the public address of `store/PRIVACY.md`. The repository is private for now, so its GitHub page isn't public: host it elsewhere (a GitHub Gist, a GitHub Pages site from a small public repository, or any web page you control) until the repository is opened
+- **Privacy policy URL:** https://tirekick.app/privacy.html (the site's copy of `store/PRIVACY.md`; `site/privacy.html` here and the tirekick-site repo)
 - **Homepage URL:** https://tirekick.app (set in the manifest)
 - **Support contact:** support@tirekick.app (public; works once the tirekick.app mailbox is set up)
 

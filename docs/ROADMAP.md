@@ -25,6 +25,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then Safari)
   - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
   - [Brief 11: Side panel mode](#brief-11-side-panel-mode) (idea from the 2026-10-15 UI audit)
+  - [Brief 12: Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) (2026-10-23 plan: Scam check only, No AI; next to build)
 
 ---
 
@@ -42,7 +43,7 @@ check); those are in git history.*
 | Free parts of briefs 2, 3, 4 and 6 | Built in 0.37.0 to 0.40.0 (age and price moves, the offer helper, "Too cheap?" and same-photo marks, CSV export) |
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
-| Next to build | Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
+| Next to build | Brief 12 (choose what Tirekick shows: Scam check only, No AI; dabloonery's pick, 2026-10-23), then Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Version numbers
@@ -419,6 +420,7 @@ The briefs (1 to 7 written 2026-10-14, 8 to 10 on 2026-10-15) are written so ano
 | 9 | [More browsers](#brief-9-more-browsers) | Small (Edge) to large (Safari) | Nothing new |
 | 10 | [More AI options](#brief-10-more-ai-options) | Small | 0.40.0 service menu |
 | 11 | [Side panel mode](#brief-11-side-panel-mode) | Medium | Nothing new; must keep the drawer for Vivaldi |
+| 12 | [Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) | Small to medium (3 PRs) | Nothing new; waits on dabloonery's answers |
 
 Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
@@ -933,3 +935,123 @@ Added 2026-10-15 from an outside UI audit. Idea only, not planned yet. On 1366×
   the fallback everywhere. Check there before building.
 - **How to know it's done:** with the setting on, a 1280px-wide eBay search shows every column, the panel's rows
   still flash their cards, and with it off nothing changes.
+
+### Brief 12: Choose what Tirekick shows
+
+Added 2026-10-23. Plan only, nothing built yet; the decisions for dabloonery are at the end. dabloonery's idea
+(2026-10-23): some people may want Tirekick for the scam check only, "or something like that". Read
+[the briefs intro](#read-this-before-any-brief) first.
+
+#### Goal
+
+Let someone pick how much Tirekick does on a store page, from "just warn me about scams" to everything, in one
+choice at the top of settings, without making the scam check easier to lose by accident.
+
+#### What people can turn on and off today
+
+| Setting (`background.js` `DEFAULTS`) | Where | What it does |
+|---|---|---|
+| `useSoldComps` (on) | Settings, On the page | eBay sold lookups, so every price word and the "Too cheap?" and "Likely scam?" price marks |
+| `autoMarks` (on) | Settings, Filters and marks | All chips on cards before a scan: scam marks, price words, New to you, drops, auctions, lots, seller warnings |
+| `showTab` (on) | Settings, On the page | The slim tab on store pages; off, Tirekick loads only from the toolbar icon |
+| `autoScan` (off) | Settings and the panel | AI scores new listings as they load |
+| AI service (none) | Settings, AI scores | With none chosen the AI parts stay as quiet invitations; nothing turns them off |
+| `filterWords`, `minSellerRatings`, `minSellerPct` | Settings, Filters and marks | What gets filtered out, when a seller gets a warning |
+| `theme`, `interests`, `feePct`, `monthlyBudget`, `batchSize` | Settings | Look, judging, Reseller fees, spending |
+| Buyer / Reseller, Skipped Show / Dim / Hide, sort, filter bar | The panel, per mode | Kept per mode in `modePrefs` |
+
+**A gap found while reading the code.** Turning off `autoMarks` takes every chip off the cards, scam marks
+included (`decorate` in `content/panel.js` returns before `chipEls`), but a likely scam is still grayed out
+(`fadeParts` with `likelyScam`). So the card goes gray with no reason on it. The panel's rows and the listing page
+still show the warning (both call `chipsFor` without checking `autoMarks`). Part 1 below fixes this either way.
+
+#### The proposal: three focuses, plus switches
+
+One choice, **What should Tirekick do?**, as the first section of settings (before On the page), three cards side
+by side with the current one outlined:
+
+| Focus | What you see | What stays off |
+|---|---|---|
+| **Everything** (default, today's behavior) | Scam marks, price words, every other mark, AI parts once an AI is set up | Nothing |
+| **Scam check only** | Scam marks on cards (reposted, code in title, off-site contact, same photo, "Too cheap?" and "Likely scam?", seller warnings, same title), the panel's list, Save and Not interested on hover | Price words ("Good price", "Above typical"), New to you, drops, auctions, lots, offers, the offer helper, AI parts |
+| **No AI** | Everything that works without the AI | Scan, auto-scan, Analyze's AI verdict, Search ideas, the photo check menu, the quality menu and spending in the footer |
+
+Under the cards, a fold **Choose each part** holds the switches the focuses are made of. Changing one makes the
+focus read **Custom**; picking a focus sets the switches again. The switches:
+
+| New setting | Default | Covers |
+|---|---|---|
+| `markScams` | on | The scam group of chips and the graying of likely scams |
+| `markPrices` | on | Price words, "Under typical: reason", "No price check" |
+| `markOther` | on | New to you, drops, auctions, lots, offers, "At your $" |
+| `useAI` | on | Every AI surface listed under No AI. Keys and models stay stored, so turning it back on needs nothing else |
+| `markLimit` | 3 | Chips per card: **3** (today) or **1**, the most important one (a scam mark always comes first) |
+| `useSoldComps` | on | Unchanged, moved into the fold |
+
+`autoMarks` goes away (see "Storage" below).
+
+#### What stays on for safety
+
+- **No focus turns the scam check off.** Scam check only is the scam check; Everything and No AI keep it too.
+- **Turning `markScams` off is its own choice**, with a plain confirm: "Cards won't say when a listing looks like a
+  scam. The panel and the listing page still will." Even then the panel's rows and the listing page keep their
+  warnings, and the panel's page line counts them ("2 likely scams on this page"). Nothing hides them everywhere.
+- **The judging doesn't change.** `content/rules.js` and the prompts run the same in every focus: `likelyScam`,
+  `tooCheap`, `priceVerdict` and the eval (`tests/eval/`) give the same answers. A focus only changes what's drawn,
+  so the eval numbers stay as they are.
+- **Scam check only keeps the eBay sold lookups.** "Too cheap?" and "Likely scam?" from price are among the
+  strongest signs, and they need a typical price. The price itself just isn't shown as a word unless it's a
+  warning. Someone who turns `useSoldComps` off in the fold gets a one-line note that price-based scam marks stop too.
+- `markLimit` 1 keeps the order `chipsFor` already uses: scam marks first, so the one chip left is the warning.
+
+#### How it maps to the code
+
+- **`content/panel.js` `chipsFor`**: give each chip a group (`scam`, `price`, `other`) as a fourth field, filter by
+  the switches, then `slice(0, markLimit)` instead of `slice(0, 3)`. `decorate` drops its `autoMarks` early return;
+  `sigOf` and the `storage.onChanged` list (`loadPrefs`) take the new keys so open tabs redraw at once. `fadeParts`
+  and `isSkip` follow `markScams` for the graying only.
+- **AI off** (`useAI` false): the panel hides the Scan block, the auto-scan switch, Search ideas, Analyze's AI
+  button and the footer model menu and spend; Home drops the "add an AI" step. `background.js` skips the "Check this
+  photo" menu entry, and its AI handlers in `HANDLERS` (`rankBatch`, `analyzeListing`, `suggestSearches`, `checkPhoto`) refuse with "AI is turned off
+  in settings", so nothing reaches a service even from an old tab. `autoScan` is ignored while it's off.
+- **Scam check only** also hides the panel's price-only parts: the Typical price button and hover chip stay (they
+  feed the scam marks), the offer helper and the margin sort go.
+- **`options/`**: the focus cards and the fold in `options.html`; `options.js` works out Everything / Scam check
+  only / No AI / Custom from the switches, and the status card says the focus ("Ready: scam checks only").
+- **`content/rules.js`**: unchanged, apart from a small pure `TKRules.focusOf(settings)` and its opposite
+  `TKRules.focusSettings(name)`, so the options page and the panel agree and the mapping has unit tests.
+- **Storage**: new keys in `DEFAULTS`, and `TKShared.upgradeStorage` (with `STORAGE_VERSION` 4) turns
+  `autoMarks: false` into `markPrices: false, markOther: false, markScams: true` and removes `autoMarks`. Restore
+  accepts a backup that still has `autoMarks` and maps it the same way.
+
+#### Order of PRs
+
+1. **Mark groups and the safety fix**: the chip groups, the three `mark*` switches, `markLimit`, the storage
+   upgrade, the fold in settings (no focus cards yet). Fixture tests that each switch removes only its group, and
+   that a likely scam keeps its chip with `markPrices` and `markOther` off.
+2. **AI off**: `useAI` and every surface above, with the background refusing AI calls. An e2e check that with it
+   off a store page and a listing page make no call to the fake AI server.
+3. **Focus cards**: the three cards, Custom, `focusOf` / `focusSettings` with unit tests, README "Everyday use",
+   `docs/ux-spec.md`, and store listing copy if dabloonery wants the focuses named there.
+
+Small to medium in all. No new permission, nothing new read or sent, so `store/PRIVACY.md` doesn't change.
+
+#### Open questions (for dabloonery)
+
+1. Are the three focuses right: **Everything**, **Scam check only**, **No AI**? (Recommended. A "Prices only"
+   focus was left out: hiding scam marks shouldn't be a one-click preset.)
+2. People who turned off "Mark cards before you scan": after the upgrade their cards show scam marks again, and
+   nothing else. (Recommended, with a one-time note on Home; the other way keeps gray cards with no reason.)
+3. Scam check only keeps the eBay sold lookups for the price-based scam marks. (Recommended.)
+4. Can scam marks on cards be turned off at all, behind the confirm? (Recommended yes; the panel and listing page
+   still warn.)
+5. Ask on first run which focus someone wants, or leave it in settings? (Recommended: settings only for now; the
+   getting-started steps can link to it.)
+
+#### How to know it's done
+
+- Each focus on the eBay and Marketplace fixtures shows exactly its groups, and switching focus redraws open tabs
+  without a reload.
+- With No AI, no request reaches the fake AI server from any page or menu.
+- A likely scam is never gray without its reason on the card unless `markScams` is off, and then the panel says it.
+- `deno task test` green, the eval's numbers unchanged, and dabloonery checks Scam check only in Vivaldi.

@@ -190,7 +190,10 @@
     .wrap[data-page-theme="dark"] .tab { ${THEME_DARK} background:var(--paper); color:var(--ink); border-color:var(--line); }
     .open .tab { width:0; padding:0; border:0; opacity:0; pointer-events:none; box-shadow:none; overflow:hidden; }
     .tab .mark { width:18px; height:18px; }
-    .tab .tab-label { writing-mode:vertical-rl; font:600 15px/1 var(--display); letter-spacing:.01em; }
+    /* the wordmark, turned to run down the edge: the i's dots move to the glyph's turned top (the physical right) */
+    .tab .tab-label { writing-mode:vertical-rl; font:800 16px/1 var(--display); letter-spacing:-.02em; white-space:nowrap; }
+    ${THEME.wordmarkCss(".tab-label")}
+    .tab-label .wm-i::after { left:auto; right:.075em; top:50%; margin-left:0; margin-top:-.095em; }
     .count { position:absolute; top:-9px; left:-9px; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--ink); color:var(--on-ink);
       font:600 11px/20px var(--ui); font-style:normal; text-align:center; font-variant-numeric:tabular-nums; }
     .count.new { background:var(--accent); color:var(--on-accent); }
@@ -670,7 +673,7 @@
    <div class="drawer">
     <button class="tab" data-act="tab" aria-label="Open Tirekick" title="Tirekick">
       <span class="mark">${MARK}</span>
-      <span class="tab-label">Tirekick</span><i class="count" hidden></i>
+      <span class="tab-label-slot"></span><i class="count" hidden></i>
     </button>
     <div class="panel" role="complementary" aria-label="Tirekick" tabindex="-1">
       <div class="rz rz-w" data-edge="w" aria-hidden="true" title="Drag to change the width"></div><div class="rz rz-e" data-edge="e" aria-hidden="true" title="Drag to change the width"></div>
@@ -774,6 +777,7 @@
 
   const $ = (sel) => root.querySelector(sel);
   $(".wordmark-slot").replaceWith(THEME.wordmark(h));
+  $(".tab-label-slot").replaceWith(THEME.wordmark(h, "tab-label"));
   const wrap = $(".wrap");
   // Theme: Setup's Match (the default) follows the page's own colors (syncPageTheme); Dark and Light force one.
   let themePref = "";

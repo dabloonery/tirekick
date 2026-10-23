@@ -358,6 +358,28 @@ await typeIn(fbp, ".qf-max", "100"); await sleep(300);
 await fbp.key("Escape"); await sleep(2500);
 const fbAt = new URL(await fbp.ev(`location.href`));
 ok("on Marketplace, Esc after a price sets its maxPrice", fbAt.searchParams.get("maxPrice") === "100" && fbAt.searchParams.get("query") === "camera", fbAt.href);
+// the store's own choices: condition and free shipping on eBay, set together when the box folds
+await reset();
+const sr = await openPanel(SEARCH);
+await R(sr, `r.querySelector('.qf-toggle').click()`); await sleep(100);
+const rowEbay = await R(sr, `return [...r.querySelectorAll('.qf-store [data-store]')].map(e=>e.dataset.store).join(',')`);
+ok("eBay's row has condition, format, free shipping and US only", rowEbay === "cond,format,freeShip,usOnly", rowEbay);
+await R(sr, `const s=r.querySelector('select[data-store=cond]'); s.value='used'; s.dispatchEvent(new Event('change',{bubbles:true}))`);
+await R(sr, `r.querySelector('button[data-store=freeShip]').click()`); await sleep(300);
+ok("a store choice waits for the box to fold (no reload yet), and offers Apply", !new URL(await sr.ev(`location.href`)).searchParams.has("LH_FS") && !(await R(sr, `return r.querySelector('.qf-apply').hidden`)));
+await R(sr, `r.querySelector('.qf-toggle').click()`); await sleep(2500);
+const srAt = new URL(await sr.ev(`location.href`));
+ok("folding the box sets eBay's condition and free shipping", srAt.searchParams.get("LH_ItemCondition") === "3000" && srAt.searchParams.get("LH_FS") === "1", srAt.href);
+await R(sr, `r.querySelector('[data-act=tab]').click()`); await sleep(400);
+const srBox = await R(sr, `return [r.querySelector('select[data-store=cond]').value, r.querySelector('button[data-store=freeShip]').getAttribute('aria-pressed'), r.querySelector('.qf-toggle').textContent].join('|')`);
+ok("after the reload the row shows them, and Filter counts them", srBox === "used|true|Filter (2)", srBox);
+const fbr = await openPanel("https://www.facebook.com/marketplace/albuquerque/search?query=camera");
+await R(fbr, `r.querySelector('.qf-toggle').click()`); await sleep(100);
+const rowFb = await R(fbr, `return [...r.querySelectorAll('.qf-store [data-store]')].map(e=>e.dataset.store).join(',')`);
+ok("Marketplace's row has condition, delivery and listed within", rowFb === "cond,delivery,listed", rowFb);
+await R(fbr, `const s=r.querySelector('select[data-store=listed]'); s.value='7'; s.dispatchEvent(new Event('change',{bubbles:true}))`); await sleep(300);
+await R(fbr, `r.querySelector('.qf-apply').click()`); await sleep(2500);
+ok("Apply on Marketplace sets listed in the last week", new URL(await fbr.ev(`location.href`)).searchParams.get("daysSinceListed") === "7");
 await closeAll(/www\.(ebay|facebook)\.com/);
 
 // ---------- no errors ----------

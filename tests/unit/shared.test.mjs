@@ -192,7 +192,7 @@ test("cleanBackup: a damaged or hostile backup can't leave anything that breaks 
       "ebay:999999999": "not a record",
     },
     savedSearches: { "ebay|psp": { q: "psp", site: "mars", url: "https://evil.example/", n: "many" }, "ebay|": { q: "  " }, x: { q: 5 } },
-    quickFilters: { "ebay|psp": { words: 12, min: "5", max: 100, fresh: "yes", broken: "sometimes", a: 9 }, "old": { projects: true } },
+    quickFilters: { "ebay|psp": { words: 12, min: "5", max: 100, fresh: "yes", broken: "sometimes", a: 9 }, "old": { projects: true }, "ebay|cam": { store: { cond: "used", freeShip: "on", "bad key!": "x", format: "<script>" }, a: 2 } },
     notInterested: { "ebay:111111111": { t: "x", a: 3 }, "ebay:222222222": null },
     listingMemory: { "ebay:333333333": { p: 20, pa: 1, f: 1, a: 4, h: [[25, 1], ["x", 2], 7] }, "ebay:444444444": { p: 3 } },
     codeStems: { "game boy advance sp": { c: { M2465: "fb:1", "<b>": "fb:2", K7731: "javascript:x" }, a: 6 }, empty: { c: {} } },
@@ -207,6 +207,7 @@ test("cleanBackup: a damaged or hostile backup can't leave anything that breaks 
   assert.deepEqual(sets.savedSearches, { "ebay|psp": { site: "ebay", q: "psp", url: "https://www.ebay.com/sch/i.html?_nkw=psp", a0: 0, v: 0, n: 0, fresh: 0, deal: 0, deals: 0 } });
   assert.deepEqual(sets.quickFilters["ebay|psp"], { words: "", min: 0, max: 100, fresh: false, broken: "", deal: 0, a: 9 });
   assert.equal(sets.quickFilters.old.broken, "only", "the older Projects only still means broken ones only");
+  assert.deepEqual(sets.quickFilters["ebay|cam"].store, { cond: "used", freeShip: "on" }, "store filters keep only short names and values");
   assert.deepEqual(sets.notInterested, { "ebay:111111111": { t: "x", a: 3 } });
   assert.deepEqual(sets.listingMemory, { "ebay:333333333": { p: 20, pa: 1, f: 1, a: 4, h: [[25, 1]] } });
   assert.deepEqual(sets.codeStems, { "game boy advance sp": { c: { M2465: "fb:1" }, a: 6 } });

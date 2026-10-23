@@ -381,7 +381,7 @@
   // `why` says what the price check saw, in place of a model reason that may still praise the price.
   R.ABOVE_CAP = 1.25;
   // it.cheapWhy: why the model says a low price is low ("flaw", "missing parts", "different model", "quick sale"
-  // or ""). A reason it read in the listing can beat the price check (the maintainer, 2026-10-21): under the softer cutoff a
+  // or ""). A reason it read in the listing can beat the price check (dabloonery, 2026-10-21): under the softer cutoff a
   // scan's or Analyze's word stands, no better than Good price; under the firm one only Analyze (opts.deep, which read
   // the whole listing) clears it, no better than Fair price, for something missing or a cheaper version (a flaw doesn't
   // take 60% off: it's the story bait tells, as in cheapLevel), and never beside a strong seller sign or another

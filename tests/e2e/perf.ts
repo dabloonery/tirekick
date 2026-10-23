@@ -11,7 +11,7 @@ const metrics = async (p: any) => Object.fromEntries((await c.send("Performance.
 
 async function run(label: string, withExtension: boolean) {
   await o.ev(`chrome.storage.local.clear()`);
-  await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true, showTab:${withExtension}, autoMarks:${Deno.env.get("PERF_MARKS") !== "0"}})`);
+  await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true, showTab:${withExtension}, ...Object.fromEntries(['markScams', 'markPrices', 'markOther'].map((k) => [k, ${Deno.env.get("PERF_MARKS") !== "0"}]))})`);
   // PERF_MEMORY=n: a browser that has already seen n listings (the memory of seen listings is that big).
   const nMem = +(Deno.env.get("PERF_MEMORY") || 0);
   if (nMem) await o.ev(`(() => { const m = {}; const now = Date.now(); for (let i = 0; i < ${nMem}; i++) m["fb:" + (900000000 + i)] = { p: 20 + (i % 300), pa: now - i * 6e4, f: now - i * 6e4, a: now - i * 6e4 }; return chrome.storage.local.set({ listingMemory: m }); })()`);

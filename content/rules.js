@@ -177,6 +177,20 @@
     const t = Math.abs(total - ref) <= ref * 0.05 ? `about ${what}` : `$${Math.abs(d)} ${d < 0 ? "below" : "above"} ${what}`;
     return `${rough || est ? "~" : ""}${t}${est ? " (est.)" : ""}`;
   };
+  // The kinds of chip on a listing, each with its own switch in settings: scam marks (and the warnings that go
+  // with them: a new or low-rated seller, the same title twice), price words, and everything else (new to you,
+  // price drops, auctions, lots, offers). A chip is [kind, text, why, group]; "state" ones (why a listing is
+  // hidden) always show. pickChips keeps the groups that are on and at most markLimit chips: "state" first, then
+  // scam marks, then the rest in the order given, so a short limit never drops a warning for a price word. Scam
+  // marks go only where onCard is set: the panel's list and the listing page always warn, so turning them off
+  // never hides a likely scam everywhere.
+  R.CHIP_GROUPS = ["scam", "price", "other"];
+  R.pickChips = (chips, { markScams = true, markPrices = true, markOther = true, markLimit = 3 } = {}, { onCard = false } = {}) => {
+    const on = { scam: markScams || !onCard, price: markPrices, other: markOther };
+    const rank = (c) => (c[3] === "state" ? 0 : c[3] === "scam" ? 1 : 2);
+    const kept = chips.filter((c) => on[c[3]] !== false).map((c, i) => [c, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]);
+    return kept.slice(0, Math.max(1, Math.min(3, Math.round(markLimit) || 3))).map(([c]) => c);
+  };
   R.SOLD_CHIP = / (below|above) (typical|working ones)$|about (typical|working ones)$/; // the cards' price chip, to leave out where it would repeat
 
   // The price against the sold median, in a word.

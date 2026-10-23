@@ -37,7 +37,12 @@ const DEFAULTS = {
   filterWords: '-replica -reproduction -repro -"box only" -"empty box" -"manual only" -"case only" -"photo only" -"picture only"',
   minSellerRatings: 10,
   minSellerPct: 97,
-  autoMarks: true, // chips on cards before any scan: new to you, price drops, warnings
+  // What the chips on listings show, per kind (TKRules.CHIP_GROUPS): scam marks, price words, and the rest
+  // (new to you, price drops, auctions, lots). Scam marks are only ever turned off on the cards themselves.
+  markScams: true,
+  markPrices: true,
+  markOther: true,
+  markLimit: 3, // chips per listing, 1 to 3; scam marks come first
   monthlyBudget: 0, // dollars; 0 = no budget. Claude calls stop once this month's estimated spend reaches it
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
   autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)
@@ -931,7 +936,7 @@ async function getPageSettings() {
 
 // Settings, or one section of it ("model" for the AI setup the panel's setup card points at).
 const openOptions = async ({ section } = {}) =>
-  ["model", "spending", "backup"].includes(section) ? chrome.tabs.create({ url: chrome.runtime.getURL(`options/options.html#sec-${section}`) }) : chrome.runtime.openOptionsPage();
+  ["model", "filters", "spending", "backup"].includes(section) ? chrome.tabs.create({ url: chrome.runtime.getURL(`options/options.html#sec-${section}`) }) : chrome.runtime.openOptionsPage();
 
 // Saved searches, opened in background tabs in one go (a page can only open one tab per click).
 // Only search addresses on the sites this works on (lib/sites.js), and at most 12.

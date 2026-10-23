@@ -93,6 +93,17 @@
         ...bad.map(([, r]) => h("p", { class: "hm-empty" }, `${r.note} Seen ${ago(r.bad)}. Updating Tirekick usually fixes this; if it doesn't, use Check this page in the panel on that page and send what it copies.`)));
     }
 
+    // Once, after the update that split "Mark cards before you scan": it was off here, which also took the scam
+    // marks off the cards while likely scams stayed grayed out, so the scam marks came back on.
+    function marksBack(d) {
+      if (!d.marksBack) return null;
+      return h("section", { class: "hm-sec" }, h("h3", {}, "Scam marks are back on cards"),
+        h("p", { class: "hm-empty" }, "You had turned off marks on cards. Scam warnings show on them again, so a grayed-out listing says why. Price words and the other marks stay off; settings has a switch for each."),
+        h("div", { class: "acts" },
+          h("button", { class: "hm-btn", onclick: () => chrome.storage.local.remove("marksBack") }, "Got it"),
+          h("button", { class: "hm-btn", onclick: () => send("openOptions", { section: "filters" }).catch(() => {}) }, "Open settings")));
+    }
+
     function alertsSection(list) {
       const rows = list.length
         ? list.map((a) =>
@@ -161,7 +172,7 @@
     let refresh = async function () {
       const d = await chrome.storage.local.get({
         provider: "anthropic", oaiModel: "",
-        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {},
+        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {}, marksBack: false,
       });
       // The API key stays in the background script; the page only learns whether there is one.
       d.hasKey = await send("getSettings").then((s) => !!s.hasKey).catch(() => false);
@@ -172,7 +183,7 @@
       // What's new comes first: it's why you'd come back. Getting started follows while you're new to it;
       // the numbers lead to the lists behind them; paid AI spending, if any, folds away at the end.
       const first = list.length ? [alertsSection(list), start(d)] : [start(d), alertsSection(list)];
-      root.replaceChildren(...[health(d), ...first, numbers(d), spend(d), footer()].filter(Boolean));
+      root.replaceChildren(...[health(d), marksBack(d), ...first, numbers(d), spend(d), footer()].filter(Boolean));
       return list;
     }
 

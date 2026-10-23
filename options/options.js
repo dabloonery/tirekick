@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "filterWords", "minSellerRatings", "minSellerPct", "autoMarks", "monthlyBudget", "showTab", "autoScan", "theme"];
+  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "monthlyBudget", "showTab", "autoScan", "theme"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicScanModel", "anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "filterWords"];
 
@@ -303,6 +303,10 @@ for (const f of FIELDS) {
     if ((f === "anthropicKey" && document.getElementById(f).value.trim()) || (f === "oaiKey" && document.getElementById(f).value.trim())) document.getElementById("test").click();
   });
 }
+// Scam marks on the cards are turned off only on purpose: the click asks first, and saying no leaves them on.
+document.getElementById("markScams").addEventListener("click", (e) => {
+  if (!e.target.checked && !confirm("Turn off scam marks on cards? Cards won't say when a listing looks like a scam. The panel's list and the listing page still will.")) e.preventDefault();
+});
 for (const b of document.querySelectorAll("[data-reveal]")) {
   b.addEventListener("click", () => {
     const input = document.getElementById(b.dataset.reveal);
@@ -508,6 +512,8 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
     else settings[f] = clean;
   }
   // A backup from before the two word lists became one.
+  // A backup from before the switches per kind of mark has the one old switch (TKShared.marksFromOld).
+  if (settings.markPrices === undefined && settings.markOther === undefined) Object.assign(settings, TKShared.marksFromOld(data.settings?.autoMarks));
   if (settings.filterWords === undefined && (data.settings?.hideWords !== undefined || data.settings?.needWords !== undefined)) {
     settings.filterWords = TKShared.filterFromLists(String(data.settings.hideWords ?? ""), String(data.settings.needWords ?? ""));
   }

@@ -54,7 +54,7 @@ async function tabWalk(p: any, max = 60) {
 const panel = (p: any, name: string) => front(p).then(() => p.ev(`[innerWidth, innerHeight]`).then(([vw, vh]: number[]) =>
   p.shot(`${OUT}/${name}.png`, { x: Math.max(0, vw - 440), y: 0, width: Math.min(440, vw), height: vh })));
 
-await setStore(`{anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true}`);
+await setStore(`{useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true}`);
 await o.ev(`chrome.storage.local.remove(['scans','listingMemory','saved','savedSearches','notInterested','usage','scoreCache','panelBox'])`);
 
 // ---- names and keyboard, normal display ----

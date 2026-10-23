@@ -130,9 +130,9 @@
   <section id="sec-focus">
     <h2>What should Tirekick do?</h2>
     <div class="focus" role="radiogroup" aria-label="What Tirekick does">
-      <label class="fcard"><input type="radio" name="focus" value="everything"><b>Everything</b><span>Scam marks, price words and the other marks, and scores if you add an AI.</span></label>
+      <label class="fcard"><input type="radio" name="focus" value="noai"><b>Without the AI</b><span>Every free check and mark: prices, scam marks, filters. Nothing is sent to an AI service. This is how Tirekick starts.</span></label>
       <label class="fcard"><input type="radio" name="focus" value="scams"><b>Scam check only</b><span>Only scam warnings on the cards. Prices are still looked up, to spot listings too cheap to be real. Your AI isn't used.</span></label>
-      <label class="fcard"><input type="radio" name="focus" value="noai"><b>Without the AI</b><span>Every free check and mark: prices, scam marks, filters. Nothing is sent to an AI service.</span></label>
+      <label class="fcard"><input type="radio" name="focus" value="everything"><b>Everything, with AI scores</b><span>The free checks and marks, plus Scan, Analyze and search ideas from the AI service you set up under AI scores.</span></label>
     </div>
     <p class="hint" id="focusCustom" hidden>Custom: you've picked the parts yourself under Filters and marks and AI scores. Choose one above to start from it again.</p>
     <p class="hint">Scam marks stay on in all three. Each part has its own switch further down.</p>
@@ -203,7 +203,7 @@
     <p class="hint">Optional. Where the scoring runs: any AI service you have a key for, or a model on your own computer (Ollama or LM Studio, private and free). Listing titles and card text go only to the one you choose.</p>
     <div class="field check ai-switch">
       <input id="useAI" type="checkbox">
-      <label for="useAI">Use an AI<span class="hint">Off, Tirekick shows no Scan, Analyze, Search ideas or photo checks, and sends nothing to any AI service. Prices, scam marks and filters work the same. What you set up below is kept for when you turn it back on.</span></label>
+      <label for="useAI">Use an AI<span class="hint">Off until you turn it on. While it's off, Tirekick shows no Scan, Analyze, Search ideas or photo checks and sends nothing to any AI service; prices, scam marks and filters work the same. Turn it on, then choose a service below. What you set up is kept if you turn it off again.</span></label>
     </div>
     <div class="field">
       <label for="service">AI service</label>

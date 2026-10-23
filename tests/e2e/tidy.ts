@@ -101,7 +101,7 @@ ok("the icon's name is just Tirekick", menus === "Tirekick", menus);
 await hp.close();
 
 // ---------- 0.40.0: no one AI service pushed ----------
-await o.ev(`chrome.storage.local.clear()`);
+await o.ev(`chrome.storage.local.clear().then(() => chrome.storage.local.set({ useAI: true }))`); // the AI turned on, nothing else set up
 const op = await open(`chrome-extension://${EXT}/options/options.html`);
 await sleep(800);
 const fresh = await op.ev(`({ pick: document.getElementById('service').value, title: document.getElementById('statusTitle').textContent, boxes: ['anthropicBox','oaiBox','ollamaBox'].every(id => document.getElementById(id).hidden), link: document.getElementById('keyLink').hidden, n: document.getElementById('service').options.length })`);

@@ -3,7 +3,7 @@
 import { start, EXT, sleep } from "./lib.ts";
 const { open, c } = await start();
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
-await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true})`);
+await o.ev(`chrome.storage.local.set({useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true})`);
 const ok = (n: string, v: boolean, why = "") => { console.log((v ? "PASS " : "FAIL ") + n + (v ? "" : ": " + why)); if (!v) Deno.exitCode = 1; };
 const sh = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
 const a = await open(`https://www.facebook.com/marketplace/albuquerque/search?query=film+camera`); await sleep(2000);

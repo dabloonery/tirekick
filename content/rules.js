@@ -199,7 +199,9 @@
     scams: { markScams: true, markPrices: false, markOther: false, useAI: false, useSoldComps: true },
     noai: { markScams: true, markPrices: true, markOther: true, useAI: false, useSoldComps: true },
   };
-  R.focusOf = (s = {}) => Object.keys(R.FOCUS).find((name) => Object.entries(R.FOCUS[name]).every(([k, v]) => (s[k] ?? true) === v)) || "custom";
+  // A setting that isn't stored has its default: every mark and the lookups on, the AI off (it's opt-in).
+  const FOCUS_DEFAULTS = { markScams: true, markPrices: true, markOther: true, useAI: false, useSoldComps: true };
+  R.focusOf = (s = {}) => Object.keys(R.FOCUS).find((name) => Object.entries(R.FOCUS[name]).every(([k, v]) => (s[k] ?? FOCUS_DEFAULTS[k]) === v)) || "custom";
   R.SOLD_CHIP = / (below|above) (typical|working ones)$|about (typical|working ones)$/; // the cards' price chip, to leave out where it would repeat
 
   // The price against the sold median, in a word.

@@ -57,16 +57,16 @@ const scanAndRead = async (p: any) => {
 
 // ---- errors from the model's service ----
 const cases: [string, string, RegExp, string][] = [
-  ["a rejected key", `{anthropicKey:'bad'}`, /didn't accept that key/, "Open settings"],
-  ["a rate limit", `{anthropicKey:'ratelimit'}`, /short break/, ""],
-  ["an answer cut off", `{anthropicKey:'cutoff'}`, /cut off/, "Open settings"],
-  ["no connection", `{anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:9'}`, /Can't reach/, ""],
+  ["a rejected key", `{useAI:true, anthropicKey:'bad'}`, /didn't accept that key/, "Open settings"],
+  ["a rate limit", `{useAI:true, anthropicKey:'ratelimit'}`, /short break/, ""],
+  ["an answer cut off", `{useAI:true, anthropicKey:'cutoff'}`, /cut off/, "Open settings"],
+  ["no connection", `{useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:9'}`, /Can't reach/, ""],
   // The API's own error bodies are JSON: the panel says what happened in words, never the raw body.
-  ["out of credit", `{anthropicKey:'nocredit'}`, /^Your Anthropic account is out of credit\. Add some under Plans & Billing/, ""],
-  ["a key without access", `{anthropicKey:'forbidden'}`, /^The Claude API won't let that key do this \(Your API key does not have permission[^{]*\)\. Check the key/, "Open settings"],
-  ["overloaded", `{anthropicKey:'overloaded'}`, /overloaded right now/, ""],
-  ["a fault on the API's side", `{anthropicKey:'servererror'}`, /^The Claude API had a problem on its side \(error 500\)\. Try again in a minute\.$/, ""],
-  ["an answer that isn't JSON", `{anthropicKey:'garbage'}`, /didn't make sense/, "Open settings"],
+  ["out of credit", `{useAI:true, anthropicKey:'nocredit'}`, /^Your Anthropic account is out of credit\. Add some under Plans & Billing/, ""],
+  ["a key without access", `{useAI:true, anthropicKey:'forbidden'}`, /^The Claude API won't let that key do this \(Your API key does not have permission[^{]*\)\. Check the key/, "Open settings"],
+  ["overloaded", `{useAI:true, anthropicKey:'overloaded'}`, /overloaded right now/, ""],
+  ["a fault on the API's side", `{useAI:true, anthropicKey:'servererror'}`, /^The Claude API had a problem on its side \(error 500\)\. Try again in a minute\.$/, ""],
+  ["an answer that isn't JSON", `{useAI:true, anthropicKey:'garbage'}`, /didn't make sense/, "Open settings"],
 ];
 for (const [name, extra, says, fix] of cases) {
   await reset(extra);
@@ -80,8 +80,8 @@ for (const [name, extra, says, fix] of cases) {
   ok(`${name}: Scan is still there to try again`, await R(p, `return !r.querySelector('[data-act=scan]').hidden`));
 }
 
-// ---- no AI set up at all: the free parts work, and Scan isn't offered ----
-await reset(`{useSoldComps:true}`);
+// ---- the AI turned on but not set up yet: the free parts work, and Scan isn't offered ----
+await reset(`{useAI:true, useSoldComps:true}`);
 {
   const p = await openPanel(SEARCH);
   const ui = await R(p, `const s=r.querySelector('[data-act=scan]'); return [s.offsetHeight === 0, !r.querySelector('.setup').hidden, r.querySelector('.setup').textContent, r.querySelector('.setup button')?.textContent]`);
@@ -103,7 +103,7 @@ for (const [name, q, says] of [
   // storage, or this page restores them and has nothing new to scan.
   await closeAll();
   await sleep(1500);
-  await reset(`{anthropicKey:'sk-ant-test', useSoldComps:true}`);
+  await reset(`{useAI:true, anthropicKey:'sk-ant-test', useSoldComps:true}`);
   const p = await openPanel(`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`);
   const [text, err] = await scanAndRead(p);
   const m = await R(p, `return r.querySelector('.market').textContent`);
@@ -111,7 +111,7 @@ for (const [name, q, says] of [
   ok(`sold prices, ${name}: the price box says so`, says.test(m), m);
   ok(`sold prices, ${name}: the scan still scores the listings`, /Scored \d+/.test(text) && !err, text);
 }
-await reset(`{anthropicKey:'sk-ant-test', useSoldComps:true}`);
+await reset(`{useAI:true, anthropicKey:'sk-ant-test', useSoldComps:true}`);
 {
   const p = await openPanel(SEARCH);
   await c.send("Network.enable", {}, p.sessionId);
@@ -125,7 +125,7 @@ await reset(`{anthropicKey:'sk-ant-test', useSoldComps:true}`);
 }
 
 // ---- a search with no results ----
-await reset(`{anthropicKey:'sk-ant-test'}`);
+await reset(`{useAI:true, anthropicKey:'sk-ant-test'}`);
 {
   const p = await openPanel(SEARCH + "&none=1");
   const [text, err, btn] = await scanAndRead(p);
@@ -138,7 +138,7 @@ await reset(`{anthropicKey:'sk-ant-test'}`);
 }
 
 // ---- the budget used up ----
-await reset(`{anthropicKey:'sk-ant-test', monthlyBudget:0.0001, usage:{days:{[new Date().toLocaleDateString('en-CA')]:{usd:0.01}}}}`); // usage is kept by local day
+await reset(`{useAI:true, anthropicKey:'sk-ant-test', monthlyBudget:0.0001, usage:{days:{[new Date().toLocaleDateString('en-CA')]:{usd:0.01}}}}`); // usage is kept by local day
 {
   const p = await openPanel(SEARCH);
   const [text, err, btn] = await scanAndRead(p);
@@ -150,7 +150,7 @@ await reset(`{anthropicKey:'sk-ant-test', monthlyBudget:0.0001, usage:{days:{[ne
 
 // ---- automatic scanning, on eBay and on Marketplace, without pressing Scan ----
 for (const [site, url] of [["eBay", SEARCH], ["Marketplace", "https://www.facebook.com/marketplace/albuquerque/search?query=film+camera"]]) {
-  await reset(`{anthropicKey:'sk-ant-test', autoScan:true, monthlyBudget:5}`);
+  await reset(`{useAI:true, anthropicKey:'sk-ant-test', autoScan:true, monthlyBudget:5}`);
   await fetch(`${API}/calls`, { method: "DELETE" });
   const p = await open(url); // the panel stays closed: the tags on the cards are the point
   await c.send("Target.activateTarget", { targetId: p.targetId });
@@ -165,7 +165,7 @@ for (const [site, url] of [["eBay", SEARCH], ["Marketplace", "https://www.facebo
   const again = (await (await fetch(`${API}/calls`)).json()).length;
   ok(`${site}: …once: nothing new, nothing sent again`, again === calls, { calls, again });
 }
-await reset(`{anthropicKey:'bad', autoScan:true}`);
+await reset(`{useAI:true, anthropicKey:'bad', autoScan:true}`);
 await fetch(`${API}/calls`, { method: "DELETE" });
 {
   const p = await open(SEARCH);
@@ -180,7 +180,7 @@ await fetch(`${API}/calls`, { method: "DELETE" });
 }
 
 // ---- a scan under way, then Stop ----
-await reset(`{anthropicKey:'slow'}`);
+await reset(`{useAI:true, anthropicKey:'slow'}`);
 {
   const p = await openPanel(SEARCH);
   await R(p, `r.querySelector('[data-act=scan]').click()`);
@@ -196,7 +196,7 @@ await reset(`{anthropicKey:'slow'}`);
 }
 
 // ---- a page with nothing to scan ----
-await reset(`{anthropicKey:'sk-ant-test'}`);
+await reset(`{useAI:true, anthropicKey:'sk-ant-test'}`);
 {
   const p = await openPanel("https://www.ebay.com/help/nothing-here");
   const s = await R(p, `return [r.querySelector('[data-view=home]').getAttribute('aria-selected'), r.querySelector('[data-act=scan]').hidden]`);
@@ -248,7 +248,7 @@ await reset(`{anthropicKey:'sk-ant-test'}`);
 }
 
 // ---- Delete everything ----
-await store(`{anthropicKey:'sk-ant-test', saved:{'ebay:1':{t:'x',u:'https://www.ebay.com/itm/1',p:1,p0:1,a:1,a0:1}}}`);
+await store(`{useAI:true, anthropicKey:'sk-ant-test', saved:{'ebay:1':{t:'x',u:'https://www.ebay.com/itm/1',p:1,p0:1,a:1,a0:1}}}`);
 {
   const s = await open(`chrome-extension://${EXT}/options/options.html`);
   await sleep(600);

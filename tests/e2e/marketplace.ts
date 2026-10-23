@@ -1,7 +1,7 @@
 import { start, EXT, sleep } from "./lib.ts";
 const { open, c } = await start();
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
-await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true})`);
+await o.ev(`chrome.storage.local.set({useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true})`);
 const sh = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
 const url = `https://www.facebook.com/marketplace/albuquerque/search?query=film+camera`;
 const a = await open(url); await sleep(2000);

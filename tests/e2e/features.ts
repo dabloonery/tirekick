@@ -35,7 +35,7 @@ const closeAll = async (re: RegExp) => {
   const { targetInfos } = await c.send("Target.getTargets");
   for (const t of targetInfos) if (t.type === "page" && re.test(t.url)) await c.send("Target.closeTarget", { targetId: t.targetId }).catch(() => {});
 };
-const BASE = `{anthropicKey:'sk-ant-test', anthropicUrl:'${API}', useSoldComps:false, introDone:true}`;
+const BASE = `{useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'${API}', useSoldComps:false, introDone:true}`;
 const reset = async (extra = "{}") => {
   await closeAll(/www\.(ebay|facebook)\.com/); // open tabs save scores a moment later; they'd refill what's cleared
   await sleep(600);
@@ -103,7 +103,7 @@ const ps = (await o.ev(`chrome.runtime.sendMessage({type:'getSettings'})`)).data
 ok("pages are told which model scans, and never get an API key", ps.scanModel === "claude-haiku-4-5" && !("anthropicKey" in ps) && !("oaiKey" in ps) && ps.hasKey === true, ps.scanModel);
 
 // ---------- money ----------
-await reset(`{anthropicKey:'cutoff'}`);
+await reset(`{useAI:true, anthropicKey:'cutoff'}`);
 p = await openPanel(SEARCH);
 let st = await scan(p);
 const spent = (await get("usage"))?.days?.[new Date().toLocaleDateString("en-CA")]?.usd || 0;

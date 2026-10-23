@@ -43,7 +43,10 @@ const DEFAULTS = {
   markPrices: true,
   markOther: true,
   markLimit: 3, // chips per listing, 1 to 3; scam marks come first
-  useAI: true, // off: no AI surface in the panel, and nothing is sent to any AI service (the AI handlers refuse)
+  // Opt-in (dabloonery, 2026-10-23): off until you turn it on in settings. Off, no AI surface in the panel and
+  // nothing is sent to any AI service (the AI handlers refuse). An install that had an AI set up keeps it on
+  // (TKShared.upgradeStorage).
+  useAI: false,
   monthlyBudget: 0, // dollars; 0 = no budget. Claude calls stop once this month's estimated spend reaches it
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
   autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)

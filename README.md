@@ -420,7 +420,7 @@ flagged. Every change keeps to these:
 
 ## How Tirekick is made
 
-The maintainer writes the basis of Tirekick, meaning who it's for, what it does, and the first version of each
+Tirekick's maintainer, dabloonery, writes the basis of Tirekick, meaning who it's for, what it does, and the first version of each
 feature, rule and piece of wording. Then it goes through Claude, Anthropic's AI model, to make it more accurate and
 efficient, with tighter code, more tests and clearer wording, through pull requests in this repository. Every
 change has to pass the full test suite (`deno task test`) before it reaches main, and commits made with Claude say
@@ -437,7 +437,7 @@ person decides what Tirekick does and stands behind what ships.
 
 ## License and disclaimer
 
-Copyright 2026 The Tirekick authors. Licensed under the [Apache License 2.0](LICENSE); `NOTICE` has the
+Copyright 2026 dabloonery and the Tirekick authors. Licensed under the [Apache License 2.0](LICENSE); `NOTICE` has the
 attribution, the disclaimer below and the trademark note, and travels with every copy.
 The bundled Bricolage Grotesque font is under the SIL Open Font License (`fonts/LICENSE.md`).
 

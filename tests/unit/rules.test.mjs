@@ -752,3 +752,16 @@ test("games in a console search, from a real \"ds\" search: plural, and named af
   R.compareFacts(f, { median: 60, confidence: "fair" }, "ds");
   assert.equal(R.freeRead(f, { median: 60, confidence: "fair" })?.word, "Off-topic", "$1 is a stand-in, not too cheap");
 });
+
+test("real eBay drive and Marketplace iPod searches: specs in the search, parts for it, and empty titles", () => {
+  // A word with a number in it is a spec: "24TB" and "2TB" aren't "4tb", "4 TB" is.
+  for (const t of ["Seagate Exos X24 ST24000NM000H 24TB CMR 7200RPM", "WD Ultrastar DC HC530 14TB SATA", "HGST Ultrastar 2TB 3.5\" Enterprise SATA"]) assert.ok(R.offSearch(t, "4tb hard drive"), t);
+  for (const t of ["Seagate ST4000DM000 4 TB,Internal,5900 RPM", "HGST 4TB SAS Hard Drive 3.5\" 7200RPM"]) assert.equal(R.offSearch(t, "4tb hard drive"), false, t);
+  for (const t of ["PS5 Slim", "Sony PlayStation 5 Digital Edition"]) assert.equal(R.offSearch(t, "ps5"), false, t);
+  assert.equal(R.missingWord("WD Ultrastar 14TB Hard Drive", "4tb hard drive"), "4tb");
+  assert.ok(R.offSearch("📸📸", "ipod"), "nothing to go on");
+  assert.equal(R.offSearch("", ""), false);
+  // A part, then "for" and the search.
+  assert.equal(R.accessoryOf("30‑Pin Apple Composite AV Video Cable w USB Charge/Sync for iPod iPhone iPad", "ipod"), "cable");
+  for (const t of ["iPod Classic 160GB with case for sale", "iPod nano 7th gen charger cable works great for kids"]) assert.equal(R.accessoryOf(t, "ipod"), "", t);
+});

@@ -435,23 +435,35 @@
   // ("a", "of", "3") are skipped.
   const searchWords = (query) =>
     R.quickTerms(String(query)).filter((t) => !t.not).flatMap((t) => R.normTitle(t.w).split(" ")).filter((w) => w.length >= 3 && !/^(?:and|the|for|with|used|new)$/.test(w));
-  const inTitle = (flat, w) => flat.includes(w) || flat.includes(w.replace(/s$/, ""));
+  // A word with a number in it ("4tb", "ps5", "128gb") is a spec: it has to be there on its own, so a "4tb" search
+  // doesn't find "24TB" or "14TB" (a real eBay drive search had both), though "4 TB" still counts.
+  const isSpec = (w) => /\d/.test(w) && /[a-z]/.test(w);
+  const specIn = (norm, w) => new RegExp(`(?<![a-z0-9])${w.replace(/(\d)(?=[a-z])|([a-z])(?=\d)/g, "$1$2 ?").replace(/^ps(?= \?\d)/, "(?:ps|playstation)")}(?!\\d)`).test(norm);
+  const inTitle = (norm, w) => {
+    if (isSpec(w)) return specIn(norm, w);
+    const flat = norm.replace(/\s+/g, "");
+    return flat.includes(w) || flat.includes(w.replace(/s$/, ""));
+  };
   R.missingWord = (title, query = "") => {
-    const flat = R.normTitle(title).replace(/\s+/g, "");
-    if (!flat) return "";
-    return searchWords(query).find((w) => !inTitle(flat, w)) || "";
+    const norm = R.normTitle(title);
+    if (!norm.trim()) return "";
+    return searchWords(query).find((w) => !inTitle(norm, w)) || "";
   };
   // None of the search's words in the title: Marketplace fills a search with whatever is for sale nearby ("Phone",
   // "Bose soundlink" in an "ipod classic" search, 70 of 90 cards in one), and its price says nothing against
   // the search's typical price. Not compared at all (compareFacts), so no "Great price" or "Check first" from it.
   // A two-letter search ("ds", "tv") counts too, as a word of its own ("3DS", "DSi" and "TVs" have it, "DVDs" doesn't):
   // a real "ds" search had DVDs, a PS3 and a garage sale all marked against the DS's typical price.
+  // A spec the search names and the title lacks ("2TB" in a "4tb hard drive" search) is another thing too, and so is
+  // a card with no words at all to go on (a real one was titled "📸📸", free).
   R.offSearch = (title, query = "") => {
     const words = searchWords(query);
-    const norm = R.normTitle(title), flat = norm.replace(/\s+/g, "");
+    const norm = R.normTitle(title);
     const short = R.quickTerms(String(query)).filter((t) => !t.not).flatMap((t) => R.normTitle(t.w).split(" ")).filter((w) => /^[a-z]{2}$/.test(w));
     const hasShort = (w) => norm.split(" ").some((x) => new RegExp(`^\\d*${w}[a-z]?$`).test(x));
-    return !!flat && words.length + short.length > 0 && !words.some((w) => inTitle(flat, w)) && !short.some(hasShort);
+    if (!words.length && !short.length) return false;
+    if (!norm.trim()) return true;
+    return (!words.some((w) => inTitle(norm, w)) && !short.some(hasShort)) || words.some((w) => isSpec(w) && !specIn(norm, w));
   };
 
   // An accessory or part for what was searched, not the thing itself: "Case for Nintendo Switch",
@@ -465,6 +477,8 @@
     "charging station|stylus|knob|buttons?|ribbon cable|hinge|motherboard";
   const PART_LAST = new RegExp(String.raw`(?:^|\s)((?:${PART})s?)$`);
   const PART_FOR = new RegExp(String.raw`(?:^|\s)((?:${PART})s?) (?:only|for)\b`);
+  // A part, a few words, then "for" and the search: "Composite AV Video Cable w USB Charge/Sync for iPod iPhone iPad".
+  const PART_FOR_LATER = new RegExp(String.raw`(?:^|\s)((?:${PART})s?)(?: \S+){1,4} for (?!sale|parts|repair|cheap|free)(.*)$`);
   const PART_ANY = /\b(compatible with|for use with|replacement|screen protector|tempered glass|empty box|box only|no (?:console|camera|phone|watch|tablet|laptop|device|unit|handset|system|body)|video game(?! (?:console|system))|game cartridge|(?:cartridge|cart|disc|game|case) only|game disc|physical copy|(?:digital|download) code|game card|(?:(?:left|right) )?(?:earbud|airpod|ear ?bud)s? only)\b/;
   // "with", "in", a count ("2 controllers"), or a word that says it's the whole thing: what comes with the item.
   const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|console|system|bundle|cib|complete)(?:\s|$)/;
@@ -489,6 +503,8 @@
     if (game && !comesWith(t, game)) return "game";
     const forOnly = t.match(PART_FOR);
     if (forOnly && !has(forOnly[1]) && !comesWith(t, forOnly)) return forOnly[1];
+    const forLater = t.match(PART_FOR_LATER);
+    if (forLater && !has(forLater[1]) && !comesWith(t, forLater) && !R.offSearch(forLater[2], query) && R.offSearch(t.slice(0, forLater.index), query)) return forLater[1];
     const last = t.match(PART_LAST);
     if (last && !has(last[1]) && !comesWith(t, last) && !(/^batter/.test(last[1]) && FITTED.test(t.slice(0, last.index + 1)))) return last[1];
     return R.madeFor(title, query);

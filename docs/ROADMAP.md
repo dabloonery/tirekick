@@ -976,7 +976,7 @@ by side with the current one outlined:
 | Focus | What you see | What stays off |
 |---|---|---|
 | **Everything** (default, today's behavior) | Scam marks, price words, every other mark, AI parts once an AI is set up | Nothing |
-| **Scam check only** | Scam marks on cards (reposted, code in title, off-site contact, same photo, "Too cheap?" and "Likely scam?", seller warnings, same title), the panel's list, Save and Not interested on hover | Price words ("Good price", "Above typical"), New to you, drops, auctions, lots, offers, the offer helper, AI parts |
+| **Scam check only** | Scam marks on cards (reposted, code in title, off-site contact, same photo, "Too cheap?" and "Likely scam?", seller warnings, same title), the panel's list, Save and Hide on hover | Price words ("Good price", "Above typical"), New to you, drops, auctions, lots, offers, the offer helper, AI parts |
 | **No AI** | Everything that works without the AI | Scan, auto-scan, Analyze's AI verdict, Search ideas, the photo check menu, the quality menu and spending in the footer |
 
 Under the cards, a fold **Choose each part** holds the switches the focuses are made of. Changing one makes the

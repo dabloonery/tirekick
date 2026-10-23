@@ -163,7 +163,7 @@ it = await openPanel("https://www.ebay.com/itm/184891897312");
 await sleep(1200);
 ok("a listing page doesn't", await R(it, `return r.querySelector('[data-act=ideas]').hidden`));
 await scan(p);
-await R(p, `[...r.querySelector('.list .row').querySelectorAll('button')].find(b=>/Not interested/.test(b.textContent)).click()`);
+await R(p, `[...r.querySelector('.list .row').querySelectorAll('button')].find(b=>b.textContent==='Hide').click()`);
 await sleep(400);
 const before = await p.ev(`[document.querySelectorAll('[data-tk-hide]').length, document.querySelectorAll('.tirekick-marks, .tirekick-sticker').length]`);
 await R(p, `r.querySelector('[data-mode=reseller]').click()`);

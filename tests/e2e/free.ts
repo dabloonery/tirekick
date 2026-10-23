@@ -144,7 +144,7 @@ await sleep(600);
 const qsum = await R(cat, `return r.querySelector('.q-sum-text').textContent`);
 ok("a category's name is called too broad for one typical price", /whole category, too broad for one typical price/.test(qsum), qsum);
 ok("…and gets no page-wide price button", await R(cat, `return r.querySelector('[data-act=prices]').hidden`));
-const cardText = (i: number) => cat.ev(`(()=>{const c=document.querySelectorAll('.s-card')[${i}]; return [...(c.querySelector('.tirekick-sticker')?.shadowRoot || c).querySelectorAll('.tk-chip')].map(x=>x.textContent).join('|')})()`);
+const cardText = (i: number) => cat.ev(`(()=>{const c=document.querySelectorAll('.s-card')[${i}]; return [...(c.querySelector('.tirekick-sticker')?.shadowRoot || c).querySelectorAll('.tk-chip, .tk-btn')].map(x=>x.textContent).join('|')})()`);
 ok("…each card offers its own typical price", /Typical price/.test(await cardText(1)), await cardText(1));
 await cat.ev(`(()=>{const c=document.querySelectorAll('.s-card')[1]; [...(c.querySelector('.tirekick-sticker')?.shadowRoot || c).querySelectorAll('button')].find(b=>b.textContent==='Typical price').click()})()`);
 await waitFor(async () => /typical/.test(await cardText(1)), 15000);

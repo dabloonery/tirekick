@@ -20,11 +20,15 @@ ok("row links show on hover", (await vis()) === "visible", await vis());
 ok("Open is under every price, at rest too", await R(`const rows=[...r.querySelectorAll('.list .row')]; return rows.length > 0 && rows.every((x)=>{const o=x.querySelector('.pr .open'); return o && getComputedStyle(o).visibility==='visible' && /\\/itm\\//.test(o.href)})`));
 ok("a title shows the card on the page (it's a button, not a link)", await R(`return r.querySelector('.list .row .title').tagName === 'BUTTON'`));
 
-// a scored card's tag: on hover, Save / Sold / Not interested are chips (a fill of their own), not bare text over the photo
+// a scored card's tag: on hover, Save / Sold / Hide are buttons (a fill of their own), not bare text over the photo,
+// and squared with an icon, so they don't look like the round chips that say something about the listing
 const tagAt = await p.ev(`(()=>{const b=document.querySelector('.tirekick-sticker .tk-score').getBoundingClientRect(); return [b.x+b.width/2, b.y+b.height/2]})()`);
 await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: tagAt[0], y: tagAt[1] }, p.sessionId); await sleep(250);
-const chipLook = await p.ev(`(()=>{const b=[...document.querySelectorAll('.tirekick-sticker .tk-under .tk-acts button')].find(x=>x.textContent==='Save'); if(!b) return 'none'; const cs=getComputedStyle(b); return cs.backgroundColor+' '+cs.borderRadius})()`);
-ok("hover chips on a tag keep their chip look", !/rgba\(0, 0, 0, 0\)|^none/.test(chipLook) && chipLook.endsWith("999px"), chipLook);
+const btnLook = await p.ev(`(()=>{const b=[...document.querySelectorAll('.tirekick-sticker .tk-under .tk-acts button')].find(x=>x.textContent==='Save'); if(!b) return 'none'; const cs=getComputedStyle(b); return cs.backgroundColor+' '+cs.borderRadius+' '+getComputedStyle(b,'::before').maskImage.slice(0,20)})()`);
+ok("hover buttons on a tag have a fill, square corners and an icon", !/rgba\(0, 0, 0, 0\)|^none/.test(btnLook) && / 6px url\(/.test(btnLook), btnLook);
+ok("…named Save, Sold ↗ and Hide", (await p.ev(`[...document.querySelector('.tirekick-sticker .tk-under .tk-acts').querySelectorAll('button')].map(x=>x.textContent).join('|')`)) === "Save|Sold ↗|Hide", await p.ev(`[...document.querySelector('.tirekick-sticker .tk-under .tk-acts').querySelectorAll('button')].map(x=>x.textContent).join('|')`));
+const chipR = await p.ev(`(()=>{const x=document.querySelector('.tk-chip'); return x ? getComputedStyle(x).borderRadius : '999px'})()`);
+ok("…while the info chips stay round", chipR === "999px", chipR);
 
 // the hover box can be put away with Esc without moving the mouse (WCAG 1.4.13); the panel stays open
 const popShown = () => p.ev(`getComputedStyle(document.querySelector('.tirekick-sticker .tk-pop')).display`);
@@ -36,6 +40,24 @@ await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 }, p.s
 await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: tagAt[0], y: tagAt[1] }, p.sessionId); await sleep(250);
 ok("it's back on the next hover", (await popShown()) === "block", await popShown());
 await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 }, p.sessionId); await sleep(100);
+// a click on the tag (or a button in it) doesn't pin the box open: it goes once the pointer leaves
+await p.click(tagAt[0], tagAt[1]); await sleep(200);
+ok("a click on the tag focuses it, box open", (await popShown()) === "block" && (await p.ev(`document.activeElement.classList.contains('tirekick-sticker')`)), await popShown());
+await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 }, p.sessionId); await sleep(150);
+ok("…and moving the mouse away closes the box", (await popShown()) === "none", await popShown());
+// …but a keyboard user's focus keeps it open wherever the mouse is
+await p.ev(`document.activeElement?.blur?.()`);
+await p.ev(`(()=>{const t=document.querySelector('.tirekick-sticker'); const a=[...t.closest('[data-tk-cell]').querySelectorAll('a')].find(x=>!t.contains(x)) || document.querySelector('a'); a.focus()})()`);
+await p.key("Tab"); await sleep(100);
+const kb = await p.ev(`document.activeElement.classList.contains('tirekick-sticker') && document.activeElement.matches(':focus-visible')`);
+ok("Tab reaches a tag", kb, await p.ev(`document.activeElement.outerHTML.slice(0,80)`));
+{
+  const at2 = await p.ev(`(()=>{const b=document.activeElement.querySelector('.tk-score').getBoundingClientRect(); return [b.x+b.width/2, b.y+b.height/2]})()`);
+  await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: at2[0], y: at2[1] }, p.sessionId); await sleep(100);
+  await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 }, p.sessionId); await sleep(150);
+  ok("a tag focused from the keyboard keeps its box open when the mouse passes", (await p.ev(`getComputedStyle(document.activeElement.querySelector('.tk-pop')).display`)) === "block");
+}
+await p.ev(`document.activeElement?.blur?.()`);
 
 // nothing new: Scan again is secondary
 ok("Scan again is secondary", (await R(`const b=r.querySelector('[data-act=scan]'); return b.className+'|'+b.textContent`)).startsWith("ghost|Scan again"), await R(`return r.querySelector('[data-act=scan]').className`));

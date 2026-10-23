@@ -85,7 +85,7 @@
     check("Setup's Light forces light", getComputedStyle($(".wrap")).getPropertyValue("--paper").trim() === "#FFFFFF", getComputedStyle($(".wrap")).getPropertyValue("--paper"));
     delete $(".wrap").dataset.theme;
 
-    // 4. Card actions that show on hover (Save, Sold, Not interested) can be reached with the keyboard.
+    // 4. Card actions that show on hover (Save, Sold, Hide) can be reached with the keyboard.
     const marks = document.querySelector(".tirekick-marks");
     const save = marks && [...marks.querySelectorAll(".tk-x")].find((b) => /Save/.test(b.textContent));
     check("card marks are on the fixture", !!save, "no hover action found");

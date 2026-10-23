@@ -17,7 +17,7 @@ Tirekick answers on the page itself (a tag on each card) and in a panel beside i
 | **Edge tab** | 34×~150px on the page edge (40px on hover); a count badge | Opening the panel; the number of new listings, or ★ listings at your price | Always there on eBay and Marketplace without covering anything |
 | **Panel** (drawer) | 340 / 380 / 480px wide (S/M/L), `min(760px, 100vh − 48px)` tall; docks right or left | The ranked list, the controls, Saved and Home | Sustained work next to the page. A popup closes when you click the page, which is exactly when you need it |
 | **Card tag** (sticker) | Pill, about 46px tall; the score dot is 38px (48px on narrow cards) | Score, verdict, and the one line that matters (price vs sold, or the margin) | Judgment where you're already looking |
-| **Hover card** | 264px | Why, the actions (Save, Sold ↗, Not interested), find the photo elsewhere | Detail on demand; reachable by Tab (the tag is focusable) |
+| **Hover card** | 264px | Why, the actions (Save, Typical price or Sold ↗, Hide), find the photo elsewhere | Detail on demand; reachable by Tab (the tag is focusable) |
 | **Photo check card** | Panel-styled card | Result of a photo check | Feedback without leaving the listing |
 | **Toolbar icon** | Chrome toolbar; badge | Open/close the panel (Alt+Shift+L), alerts count; right-click → Home | The standard extension entry point |
 | **Settings** | Tab, 620px column | Model, spending, judging, filters, page options, backup and data | Long-lived configuration belongs in a full page |
@@ -45,7 +45,7 @@ flowchart LR
   C -- yes --> F[Search page: tags on cards]
   F --> G[Scan]
   G --> H[Ranked list, verdict bar, tags]
-  H --> I[Open / Save / Not interested / Sold prices]
+  H --> I[Open / Save / Hide / Sold prices]
   I --> J[Later: Home and the toolbar badge<br/>price drops, saved searches at your price]
   J --> F
   H -.-> K[Settings: Backup and your data<br/>Save, restore, Delete everything]
@@ -129,7 +129,7 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | Better searches · Sold prices | Equal secondary buttons, side by side |
 | Status line | One line, `role=status`. Errors in the verdict red with a left rule, and the fix button. Stop sits beside it while busy |
 | Verdict bar | One segment per verdict, as wide as its count; `role=img` with the counts as its name |
-| List row | Score dot, title (scrolls to and flashes the card), verdict, why, price with **Open ↗** under it (always shown). The row you point at or Tab into is tinted and shows Check photo / Save / Not interested |
+| List row | Score dot, title (scrolls to and flashes the card), verdict, why, price with **Open ↗** under it (always shown). The row you point at or Tab into is tinted and shows Check photo / Save / Hide |
 | Filter bar | Sticky at the top of the list. One-click toggles in sight (New only, Hide broken, Hide off-topic, on by default on a feed with no search), Sort, and Skips and scams (Show / Dim / Hide). Filter opens words, price range and your price; Enter or Esc folds it; the button counts what's set inside |
 | Free read | Before a scan, each row's verdict-colored word from free facts (`TKRules.freeRead`): price against sold, Check first, Likely scam, Off-topic. Orders "best first" until scores arrive |
 | Card tag | Focusable; hover or focus shows the hover card. Never covers Facebook's "Just listed" corner: on Marketplace, where that label sits at the top left, the tag goes top right |

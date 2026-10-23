@@ -41,7 +41,7 @@ const cards = () => p.ev(`[...document.querySelectorAll('.s-card')].map(c => {
   return { title: c.querySelector('.s-card__title').textContent, price: c.querySelector('.s-card__price').textContent,
     v: s?.dataset.v || m?.dataset?.v || c.getAttribute('data-tk-v') || '', word: s?.querySelector('.tk-verdict')?.textContent || '',
     score: s ? +s.querySelector('.tk-score b')?.textContent : null, dial: s?.querySelector('.tk-score i')?.textContent || '',
-    chips: q(s || m || c, '.tk-chip').filter(t => !/^(Save|Saved|Sold ↗|Typical price|Not interested)$/.test(t)), pop: q(s, '.tk-pop > *').concat(s ? [] : []), popText: s?.querySelector('.tk-pop')?.textContent || '' };
+    chips: q(s || m || c, '.tk-chip').filter(t => !/^(Save|Saved|Sold ↗|Typical price|Hide)$/.test(t)), pop: q(s, '.tk-pop > *').concat(s ? [] : []), popText: s?.querySelector('.tk-pop')?.textContent || '' };
 })`);
 const rows = () => R(p, `return [...r.querySelectorAll('.list .row')].map(x => ({ title: x.querySelector('.title')?.textContent, tag: x.querySelector('.tag') ? [x.querySelector('.tag').dataset.v, +x.querySelector('.tag span').textContent, x.querySelector('.tag i').textContent] : null, meta: [...x.querySelectorAll('.meta')].map(m=>m.textContent).join(' / '), reason: x.querySelector('.reason')?.textContent || '', flags: [...x.querySelectorAll('.fchip,.flag')].map(f=>f.textContent).join(' | '), skip: x.classList.contains('skip') }))`);
 const dump = (label: string, cs: any[], rs: any[]) => {

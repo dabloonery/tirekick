@@ -131,13 +131,13 @@
     ["adult", /\b(?:escorts?|sugar (?:daddy|baby|mama)|onlyfans|companionship|feel (?:good|relaxed) tonight|incall|outcall)\b/i],
   ];
   const THING = /\b(?:chairs?|guns?|tables?|pillows?|cushions?|seats?|pads?|devices?|machines?|massagers?|kits?|books?|dvds?)\b/i; // "massage chair" is an item
-  // A stand-in asking price: "$1234", "$12,345", "$1111", "$99999" (sellers use them to mean "message me").
+  // A stand-in asking price: "$1" (a real "ds" search had 9 of them, each read as too cheap), "$1234", "$12,345", "$1111", "$99999" (sellers use them to mean "message me").
   // Compared with sold prices one read "$12263 above typical" (real-site check, 0.49.1), so it gets no
   // price comparison and says what it is instead.
   R.placeholderPrice = (price) => {
     if (!(price > 0)) return false;
     const d = String(Math.round(price));
-    return (d.length >= 4 && "1234567890".startsWith(d)) || /^1{4,}$|^9{5,}$/.test(d);
+    return price === 1 || (d.length >= 4 && "1234567890".startsWith(d)) || /^1{4,}$|^9{5,}$/.test(d);
   };
   // So far from the typical price (20 times or more) that the two can't be about the same thing: a different
   // item in the search, or a stand-in price. Either way a dollar gap would mislead.
@@ -435,10 +435,14 @@
   // None of the search's words in the title: Marketplace fills a search with whatever is for sale nearby ("Phone",
   // "Bose soundlink" in an "ipod classic" search, 70 of 90 cards in one), and its price says nothing against
   // the search's typical price. Not compared at all (compareFacts), so no "Great price" or "Check first" from it.
+  // A two-letter search ("ds", "tv") counts too, as a word of its own ("3DS", "DSi" and "TVs" have it, "DVDs" doesn't):
+  // a real "ds" search had DVDs, a PS3 and a garage sale all marked against the DS's typical price.
   R.offSearch = (title, query = "") => {
     const words = searchWords(query);
-    const flat = R.normTitle(title).replace(/\s+/g, "");
-    return !!flat && words.length > 0 && !words.some((w) => inTitle(flat, w));
+    const norm = R.normTitle(title), flat = norm.replace(/\s+/g, "");
+    const short = R.quickTerms(String(query)).filter((t) => !t.not).flatMap((t) => R.normTitle(t.w).split(" ")).filter((w) => /^[a-z]{2}$/.test(w));
+    const hasShort = (w) => norm.split(" ").some((x) => new RegExp(`^\\d*${w}[a-z]?$`).test(x));
+    return !!flat && words.length + short.length > 0 && !words.some((w) => inTitle(flat, w)) && !short.some(hasShort);
   };
 
   // An accessory or part for what was searched, not the thing itself: "Case for Nintendo Switch",
@@ -456,7 +460,7 @@
   // "with", "in", a count ("2 controllers"), or a word that says it's the whole thing: what comes with the item.
   const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|console|system|bundle|cib|complete)(?:\s|$)/;
   const PART_AND = new RegExp(String.raw`\b((?:${PART})s?) and (?=(?:${PART})s?\b)`, "g");
-  const GAME = /(?:^|\s)(game)(?!\s(?:console|system|boy|cube|gear|pad|controller|card))(?:\s|$)/;
+  const GAME = /(?:^|\s)(games?)(?!\s(?:consoles?|systems?|boy|cube|gear|pad|controller|card))(?:\s|$)/;
   const comesWith = (t, m) => WITH.test(t.slice(0, m.index + 1)) || (/s$/.test(m[1]) && /(?:^|\s)\d+\s?$/.test(t.slice(0, m.index + 1)));
   // "...NEW BATTERY", "3000mAh Battery", "SSD Wolfson DAC Battery": a battery put in it, the way refurbished
   // iPods, phones and handhelds are sold (12 of 60 cards in a real iPod search), not a battery for sale.
@@ -491,7 +495,7 @@
     "renewed|apple|sony|nintendo|microsoft|samsung|google|canon|nikon").split("|"));
   const PLATFORM = /\b(?:switch|ps[1-5]|playstation|xbox|game ?boy|gba|n?3?ds|wii|gamecube|n64|nintendo 64|snes|nes|genesis|dreamcast|vita|psp|steam deck)\b/;
   const MACHINE = /^(?:console|consoles|system|bundle|handheld|lite|oled|slim|pro|modded|jailbroken|hacked|\d+(?:gb|tb))$/;
-  const TAIL_OK = new Set("game|games|video|edition|version|physical|digital|ntsc|pal|us|usa|cib|complete|new|sealed|for|the|and".split("|"));
+  const TAIL_OK = new Set("game|games|video|edition|version|physical|digital|ntsc|pal|us|usa|cib|complete|new|sealed|for|the|and|nintendo|sony|microsoft|sega".split("|"));
   R.madeFor = (title, query = "") => {
     const raw = String(title ?? "");
     for (const m of raw.matchAll(/\s[-\u2013\u2014|:]\s|\s*[(\[]|\s+for\s+/gi)) {

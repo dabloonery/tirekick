@@ -218,10 +218,12 @@ sent to any AI service. Turn it on to add them; turning it off again keeps your 
 - **A category isn't a price.** Words like "Electronics" or "Home & Garden" get no page-wide comparison: the
   panel says they're too broad, and each listing can be priced from its own title.
 
-**Filtering a search.** **New only**, **Hide broken** and **Hide off-topic** sit above the list, one click each.
+**Filtering a search.** **New only**, **Hide broken**, **Hide accessories** and **Hide off-topic** sit above the list, one click each.
 The **Filter** button opens the words, price range and your price, and says how many are set; Enter or Esc
 folds them away again, and a search's saved filter applies with the box folded. Each search remembers its own.
 
+- **Hide accessories** drops games, cases, chargers and parts for what you searched ("Case for Switch OLED" in a
+  Switch OLED search), the same ones that get no price check, so only the thing itself is left.
 - **Hide off-topic** drops what isn't an item for sale: rentals and rooms, services (massage, cleaning, hair),
   jobs, pets, "looking for" posts and $1 placeholder prices. It's on by itself on the Marketplace home page, where
   that clutter lives; turn it off there and Tirekick remembers.

@@ -102,7 +102,8 @@
 
   // The filter bar: words (title and card text), a price range (shipping included when the card shows it),
   // "seen before", and broken listings ("hide" drops them, "only" keeps just those).
-  R.quickReason = (f, quick) => {
+  // query: the page's search, for "Hide accessories" (a game, case or part for what you searched, R.accessoryOf).
+  R.quickReason = (f, quick, query = "") => {
     const why = R.termsReason(`${f.title || ""} ${f.text || ""}`, quick.words);
     if (why) return why;
     const p = f.total ?? f.price;
@@ -114,6 +115,10 @@
     if (quick.junk) {
       const off = R.offTopic(f);
       if (off) return `off-topic: ${off}`;
+    }
+    if (quick.parts && !f.ownMarket) {
+      const part = R.accessoryOf(f.title, query);
+      if (part) return `accessory or part: ${part}`;
     }
     return "";
   };

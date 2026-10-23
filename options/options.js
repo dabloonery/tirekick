@@ -344,7 +344,7 @@ async function showStatus() {
   let ready = false, title, text;
   if (TKRules.focusOf(s) === "scams") {
     ready = true;
-    title = "Ready: scam checks only";
+    title = "Ready: scam check only";
     text = "Cards show only scam warnings, and your AI isn't used. Change it under What should Tirekick do.";
   } else if (s.useAI !== true) {
     // The AI is opt-in (dabloonery, 2026-10-23): until it's turned on, the free checks are the whole setup.

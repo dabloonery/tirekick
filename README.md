@@ -80,9 +80,9 @@ code on the end of the title: "Nintendo Game Boy Advance SP M2465", "Halo Specia
 S1337". Tirekick watches for it:
 
 - **Reposted under new codes**: the same title seen with two different codes, on one page or any
-  page in the last month, is marked "Scam: reposted" and grayed out straight away,
+  page in the last month, is marked "Scam: reposted" and grayed out right away,
   with no model and no key needed. A scan marks these Likely scam without sending them to the model.
-- **Code in title**: a lone code gets a chip and counts as a likely scam straight away: grayed out,
+- **Code in title**: a lone code gets a chip and counts as a likely scam right away: grayed out,
   last in every sort, never a deal at your price. A scan spells it out for the model, which marks
   it Likely scam unless the code is the item's real model number (Pentax K1000, PS Vita PCH1001);
   then the chip and the graying go away.
@@ -115,7 +115,7 @@ scam warning stays readable.
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
   price, auctions ending soonest, biggest margin, or new and cheaper first.
-- **Skipped and suspicious listings are grayed out** on the page; switch to Show or Hide with
+- **Skipped listings and likely scams are grayed out** on the page; switch to Show, Dim or Hide with
   **Skips and scams** above the list.
 - **Before any scan, each row has a free read**: Great, Good or Fair price, or Above typical, from the sold
   prices; Check first or Likely scam from the free warnings; Off-topic. "Best first" sorts by it until a scan
@@ -201,7 +201,7 @@ sent to any AI service. Turn it on to add them; turning it off again keeps your 
 - **Too cheap**: under 40% of a trusted typical price reads "Likely scam? Typical is $300", under 55%
   "Too cheap? Typical is $300" (not for broken ones, lots or auctions, and not when the sold prices are
   only a rough guide).
-- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" straight away.
+- **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" right away.
 - **New to you** on a search you've looked at before (not on feeds, and not when most of the
   page is new anyway).
 - **Auctions ending soon**: "Ends in 45m · no bids" in the last three hours.
@@ -249,7 +249,7 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
   by cheapest (lots per item), furthest under the sold price, auctions ending soonest, or new and
   cheaper first. Click a title to jump to the card.
 - **Saved**: listings you save, from either site, with the price when you saved them and the
-  latest you've seen ("$52 (↓ from $60)"), and searches you save with **Save this search**, which
+  latest you've seen ("$52 (↓ from $60)"), and searches you save with **Save search**, which
   remember when you last looked and how many were at your price; they're in the **Saved** view, with
   a small line of each saved listing's price over time, and what you've hidden folded away at the bottom. **Open all searches** opens each
   in a background tab, for a daily round. "Copy the list" gives you titles, prices and links as text, and
@@ -265,7 +265,7 @@ page says), how a saved one moved ("Down $25 (−21%) since you saved it"), and 
 at and when to walk away, worked out from the sales, with a message to the seller you can pick, edit and copy
 (nothing is typed into the site or sent). When the seller answers, type their price under **They said $** and it
 says whether to take it, meet in the middle or make a last offer at your walk-away price, and rewrites the message.
-With a key, **Analyze** is given the same plan and keeps its offer range near it. Marketplace listings also warn when the seller's account was made this
+With the AI on, **Analyze** is given the same plan and keeps its offer range near it. Marketplace listings also warn when the seller's account was made this
 year ("Joined Facebook in 2026").
 
 **In settings**: words to always filter by, in the filter bar's syntax (`-replica -repro -"box only"`
@@ -283,7 +283,7 @@ too, after a confirm; the panel's list and the listing page still warn, and a li
 
 Scans use their own model, **Haiku 5.5** by default (about a fortieth of Opus 5.5's price; a scan sends
 many listings at once), set under "Model for scans" in settings; analyzing one listing, photo
-checks and search ideas use the main model. New installs start the main model on **Sonnet 5.5**, and the scan's fixed instructions are marked for the API's prompt cache, so later batches read them cheaper. Existing installs keep the model they chose. The menu at the bottom of the panel switches models straight away: **Opus 5.5** (best),
+checks and search ideas use the main model. New installs start the main model on **Sonnet 5.5**, and the scan's fixed instructions are marked for the API's prompt cache, so later batches read them cheaper. Existing installs keep the model they chose. The menu at the bottom of the panel switches models right away: **Opus 5.5** (best),
 **Sonnet 5.5** (half the price), **Haiku 5.5** (about a fortieth), the other AI service you've set up,
 or your **Ollama** model (free, local). Next to it is this month's spend on paid AI; click it for
 today, this month, last month and each model's cost per call. Set a monthly budget in settings and
@@ -296,7 +296,7 @@ ideas): nothing new is sent, requests under way are canceled, and what already c
 
 ### Other AI services
 
-Settings → Model → "Other AI services" works with anything that speaks the OpenAI chat API:
+Settings → AI scores → **AI service** lists these, and "Another OpenAI-compatible service" works with anything that speaks the OpenAI chat API:
 
 | Service | Notes |
 |---|---|
@@ -322,7 +322,7 @@ which is at console.anthropic.com.
 Plain and built to be read: dark first, a hairline and a word beside every color, numbers in a
 monospaced face so prices line up. **Settings → On the page → Theme**: *Match the page* (the
 default), *Dark* or *Light*. Match gives the panel and the marks on eBay and Marketplace cards the
-page's own colors (its real background, so a site's dark mode or a dark-mode extension counts). One scale everywhere (panel, card marks, photo card, settings): sizes 11, 12, 13, 14, 15, 18, 22 (10 only inside the score tag), weights 400 and 600 (800 for numerals and headings). Buttons come in three tiers: filled (the one action to take: Scan, Analyze, Test connection), outlined (other actions), and plain underlined text for actions inside a list; a red outline means it clears something. Color carries meaning only: the verdict colors, red for scams and clearing things, orange for "new" and "at your price". The tag's word and the line beside it use the same vocabulary (Great / Great deal, Fair / Fair price, Scam? / Suspicious). Type is Bricolage Grotesque (bundled), a
+page's own colors (its real background, so a site's dark mode or a dark-mode extension counts). One scale everywhere (panel, card marks, photo card, settings): sizes 11, 12, 13, 14, 15, 18, 22 (10 only inside the score tag), weights 400 and 600 (800 for numerals and headings). Buttons come in three tiers: filled (the one action to take: Scan, Analyze, Test connection), outlined (other actions), and plain underlined text for actions inside a list; a red outline means it clears something. Color carries meaning only: the verdict colors, red for scams and clearing things, orange for "new" and "at your price". The tag's word and the line beside it use the same vocabulary (Great / Great deal, Fair / Fair price, Scam? / Likely scam). Type is Bricolage Grotesque (bundled), a
 narrower cut for the wordmark, headings, scores and prices. Scores are tread dots: the fill is the verdict, and the tread
 around it shows how much is left, one mark per 5 points (a full ring is a great deal), Skip is hollow and Likely scam carries a "!" badge, and each verdict word has its own
 glyph, so color is never the only cue. Palettes, type, the dot and the glyphs all live in `lib/theme.js`, which the
@@ -357,7 +357,7 @@ A 4B model is a quick first filter, not an appraiser: read its reasons. With 4 G
 
 ## Privacy
 
-Listing titles and card text go to the model you pick; with Ollama or LM Studio nothing leaves your computer
+With the AI on, listing titles and card text go only to the model you pick; with Ollama or LM Studio nothing leaves your computer
 except eBay sold-price searches (turn those off in settings). What you've seen, saved, hidden and spent
 is kept only in this browser. Settings can clear what's seen and hidden; remove saved things from
 the Saved section. **Settings → Backup** saves it all to a file (never your API keys) and restores

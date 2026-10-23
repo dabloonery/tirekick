@@ -110,7 +110,7 @@ async function ollamaChat({ model, messages, format, numCtx = 8192, signal }) {
     throw new Error(`Can't reach Ollama at ${ollamaUrl}. Is it running? (systemctl status ollama)`);
   }
   if (res.status === 403) {
-    throw new Error("Ollama blocked this extension (403). Add its ID to OLLAMA_ORIGINS — see README step 3.");
+    throw new Error("Ollama blocked this extension (403). Add its ID to OLLAMA_ORIGINS (README step 3).");
   }
   if (!res.ok) {
     const text = await res.text();
@@ -192,7 +192,7 @@ async function anthropicMessageOnce({ system, content, schema, maxTokens = 16000
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     const msg = apiErrorText(text);
-    if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognize the model "${model}". Check it in the extension options.`);
+    if (res.status === 404 && /model/i.test(text)) throw new Error(`Claude doesn't recognize the model "${model}". Check it in settings.`);
     // Nothing was scored and nothing was charged; say which side the fix is on.
     if (OUT_OF_CREDIT.test(msg)) throw new Error("Your Anthropic account is out of credit. Add some under Plans & Billing at console.anthropic.com, then scan again.");
     if (res.status === 403) throw new Error(`The Claude API won't let that key do this (${msg || "permission error"}). Check the key and model in settings.`);

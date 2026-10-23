@@ -86,7 +86,7 @@ await reset(`{useAI:true, useSoldComps:true}`);
   const p = await openPanel(SEARCH);
   const ui = await R(p, `const s=r.querySelector('[data-act=scan]'); return [s.offsetHeight === 0, !r.querySelector('.setup').hidden, r.querySelector('.setup').textContent, r.querySelector('.setup button')?.textContent]`);
   await shot(p, "no_ai");
-  ok("no AI yet: no Scan button, and the setup card says what's free and where to add one", ui[0] && ui[1] && /work without one/.test(ui[2]) && ui[3] === "Open settings", ui);
+  ok("no AI yet: no Scan button, and the setup card says what's free and where to add one", ui[0] && ui[1] && /work without an AI/.test(ui[2]) && ui[3] === "Open settings", ui);
   await R(p, `r.querySelector('[data-act=prices]').click()`);
   await sleep(600);
   for (let i = 0; i < 20 && (await R(p, `return r.querySelector('.wrap').classList.contains('busy')`)); i++) await sleep(500);

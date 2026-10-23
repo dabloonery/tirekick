@@ -77,7 +77,7 @@ ok("the new seller's card says what the rule is", /Seller: 3 ratings \(your rule
 ok("a card with nothing to warn about has no reasons box", !(await whyOf("Nintendo Switch OLED Model White")), await whyOf("Nintendo Switch OLED Model White"));
 const freeLine = await R(p, `return r.querySelector('.pi-line')?.textContent || ''`);
 const count = (w: string) => freeRows.filter((x: any) => x.meta.startsWith(w)).length;
-ok("the page line counts scams and warnings the way the cards show them", freeLine.includes(`${count("Likely scam")} possible scam`) && freeLine.includes(`${count("Check first")} to be careful with`), { freeLine, scams: count("Likely scam"), careful: count("Check first") });
+ok("the page line counts scams and warnings the way the cards show them", freeLine.includes(`${count("Likely scam")} likely scam`) && freeLine.includes(`${count("Check first")} to be careful with`), { freeLine, scams: count("Likely scam"), careful: count("Check first") });
 await p.shot("real_free.png");
 ok("a seller with 3 ratings is Check first", /Check first/.test(row(freeRows, "Nintendo Switch OLED Splatoon").meta), row(freeRows, "Nintendo Switch OLED Splatoon"));
 
@@ -118,7 +118,7 @@ const worth = afterRows.filter((x: any) => x.tag && (x.tag[0] === "good" || x.ta
 ok("the page summary counts what the rows show (not the game the scan set aside)", head.startsWith(`${worth} worth a look`), { head, worth });
 const line = await R(p, `return r.querySelector('.pi-line')?.textContent || ''`);
 const scams = afterRows.filter((x: any) => x.tag?.[0] === "suspicious").length;
-ok("…and as many possible scams as the tags say", line.includes(`${scams} possible scam`), { line, scams });
+ok("…and as many likely scams as the tags say", line.includes(`${scams} likely scam`), { line, scams });
 await p.shot("real_scan.png");
 
 // ---------- the market moves: remembered scores are compared with today's typical price ----------

@@ -117,7 +117,7 @@
     const searches = Object.entries(savedSearches).sort((a, b) => (b[1].v || 0) - (a[1].v || 0));
     const body = $("#saved-body");
     if (!items.length && !searches.length) {
-      return body.replaceChildren(h("p", { class: "empty" }, `Nothing saved yet. On ${TKSites.all.map((s) => s.name).join(" or ")}, point at a listing's tag and press Save, or save a search from the panel.`));
+      return body.replaceChildren(h("p", { class: "empty" }, `Nothing saved yet. On ${TKSites.all.map((s) => s.name).join(" or ")}, hover a card and press Save, or use Save search in the panel.`));
     }
     const listRows = items.map(([k, r]) => {
       const cheaper = S.dropped(r);

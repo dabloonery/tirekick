@@ -25,7 +25,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then Safari)
   - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
   - [Brief 11: Side panel mode](#brief-11-side-panel-mode) (idea from the 2026-10-15 UI audit)
-  - [Brief 12: Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) (2026-10-23 plan: Scam check only, No AI; next to build)
+  - [Brief 12: Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) (2026-10-23: Without the AI, Scam check only, Everything; built 2026-10-23)
 
 ---
 
@@ -43,7 +43,7 @@ check); those are in git history.*
 | Free parts of briefs 2, 3, 4 and 6 | Built in 0.37.0 to 0.40.0 (age and price moves, the offer helper, "Too cheap?" and same-photo marks, CSV export) |
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
-| Next to build | Brief 12 (choose what Tirekick shows: Scam check only, No AI; dabloonery's pick, 2026-10-23), then Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
+| Next to build | Brief 12 (choose what Tirekick shows) is built; next is Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Version numbers
@@ -1020,7 +1020,7 @@ focus read **Custom**; picking a focus sets the switches again. The switches:
 - **Scam check only** also hides the panel's price-only parts: the Typical price button and hover chip stay (they
   feed the scam marks), the offer helper and the margin sort go.
 - **`options/`**: the focus cards and the fold in `options.html`; `options.js` works out Everything / Scam check
-  only / No AI / Custom from the switches, and the status card says the focus ("Ready: scam checks only").
+  only / No AI / Custom from the switches, and the status card says the focus ("Ready: scam check only").
 - **`content/rules.js`**: unchanged, apart from a small pure `TKRules.focusOf(settings)` and its opposite
   `TKRules.focusSettings(name)`, so the options page and the panel agree and the mapping has unit tests.
 - **Storage**: new keys in `DEFAULTS`, and `TKShared.upgradeStorage` (with `STORAGE_VERSION` 4) turns

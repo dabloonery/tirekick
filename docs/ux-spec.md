@@ -70,7 +70,7 @@ Every message names what happened and what to do; where the fix is somewhere els
 | State | Where | Copy (exact) | Way out |
 |---|---|---|---|
 | No model yet | Welcome card / setup card | *Add an AI to start scoring.* Lists services side by side, none first. | **Open settings** |
-| Key rejected | Status line, error style | *The Claude API key was rejected. Check it in the extension options.* | **Open settings**; Scan stays in view to retry |
+| Key rejected | Status line, error style | *The Claude API key was rejected. Check it in settings.* | **Open settings**; Scan stays in view to retry |
 | Rate limit | Status line | *Claude API rate limit hit. Wait a moment and scan again.* (after two quiet retries) | Scan |
 | Overloaded (529/5xx) | Status line | *The Claude API is overloaded right now. Try again in a minute.* | Scan (Implemented) |
 | Answer cut off | Status line | *Claude's answer was cut off. Lower "Listings per request" in settings and try again.* | **Open settings** |
@@ -126,7 +126,7 @@ Shape and space: radius 12px (panel, cards), 7px (controls), 999px (pills, switc
 | What I want / compare words | One field, What I want. The compare words come from the page's search and are one line with **Change** until changed; after a scan both fold into *Comparing "…" · wants …* with **Edit**, or **Add what you want** when it's empty |
 | Mode hint | What the mode is for, as This page's first line: during your first three scans, and after a switch until the next scan |
 | Scan | The one primary button. Says the count and the estimated cost. Becomes a quiet *Scan again* when nothing is new |
-| Better searches · Sold prices | Equal secondary buttons, side by side |
+| Search ideas · Typical price | Equal secondary buttons, side by side |
 | Status line | One line, `role=status`. Errors in the verdict red with a left rule, and the fix button. Stop sits beside it while busy |
 | Verdict bar | One segment per verdict, as wide as its count; `role=img` with the counts as its name |
 | List row | Score dot, title (scrolls to and flashes the card), verdict, why, price with **Open ↗** under it (always shown). The row you point at or Tab into is tinted and shows Check photo / Save / Hide |

@@ -766,7 +766,7 @@
       <div class="foot">
         <div class="spend-detail" hidden></div>
         <div class="foot-row">
-          <label class="model-pick" title="Which model judges listings. Changes straight away."><span class="sr">Model</span><select class="model"></select></label>
+          <label class="model-pick" title="Which model judges listings. Changes right away."><span class="sr">Model</span><select class="model"></select></label>
           <button class="spend" aria-expanded="false" title="What Tirekick has spent on paid AI services"></button>
         </div>
         <div class="budget" hidden><i></i></div>
@@ -1189,8 +1189,8 @@
     modelSel.replaceChildren(...opts.map(([prov, m, label, more]) => h("option", { value: `${prov}|${m}`, title: more || label }, label)));
     $(".model-pick").title =
       cfg.provider === "anthropic"
-        ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes straight away; settings has each one.`
-        : "Which model judges listings. Changes straight away.";
+        ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes right away; settings has each one.`
+        : "Which model judges listings. Changes right away.";
     const q = qualityNow();
     modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : cfg.hasKey ? `anthropic|${q ? `q:${q[0]}` : "custom"}` : "|";
   };
@@ -1341,7 +1341,7 @@
     const keyless = /LM Studio/.test(cfg.oaiName || "");
     const missing =
       cfg.provider === "anthropic" && !cfg.hasKey
-        ? ["Scores are optional.", "Prices, scam marks and filters work without one. To score listings too, add any AI service you have a key for, or a free model on your own computer, in settings."]
+        ? ["Scores are optional.", "Prices, scam marks and filters work without an AI. To score listings too, add any AI service you have a key for, or a free model on your own computer, in settings."]
         : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
@@ -3138,7 +3138,7 @@
       h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75}, ${m.n} sales${m.confidence === "rough" ? ", a rough guide" : ""}`)
     );
   const renderMarket = (market) => {
-    if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a market price.");
+    if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a typical price.");
     const groups = [
       market.median != null && ["Working / used", market.samples],
       market.parts && ["For parts", market.parts.samples],
@@ -3515,7 +3515,7 @@
     piBar.hidden = !done.length;
     const scamN = warns.filter((w) => w === "scam").length;
     const bits = [`<b>${all.length}</b> listings`];
-    if (scamN) bits.push(`<b>${scamN}</b> possible scam${scamN === 1 ? "" : "s"}`);
+    if (scamN) bits.push(`<b>${scamN}</b> likely scam${scamN === 1 ? "" : "s"}`);
     const dealN = dealCount();
     if (dealN) bits.push(`<b>${dealN}</b> at your price`);
     if (newN) bits.push(`<b>${newN}</b> new to you`);

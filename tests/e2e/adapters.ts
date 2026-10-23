@@ -158,7 +158,7 @@ items = await extract(p);
 }
 await p.close();
 
-// More real searches (2026-10-22): eBay bikes and couches, Marketplace couches, dumbbells and the home feed.
+// More real searches (2026-10-22): eBay bikes and couches, Marketplace couches, dumbbells, "ds" and the home feed.
 // Each Marketplace card is checked against the label Facebook puts on its link, where it has one.
 const fbAgainstLabels = async (q: any, its: any[]) => {
   const labels = await q.ev(`[...document.querySelectorAll('a[href*="/marketplace/item/"]')].map((a) => a.getAttribute("aria-label"))`);
@@ -169,7 +169,7 @@ const fbAgainstLabels = async (q: any, its: any[]) => {
     return it.title !== title?.trim() || it.price !== p || (it.wasPrice ?? null) !== (was ? +was.replace(/,/g, "") : null);
   });
 };
-for (const [q, fx, n, extra] of [["couch", "facebook-couch-real", 50, ""], ["dumbells", "facebook-dumbbells-real", 71, ""], ["", "facebook-feed-real", 33, ""]] as const) {
+for (const [q, fx, n, extra] of [["couch", "facebook-couch-real", 50, ""], ["dumbells", "facebook-dumbbells-real", 71, ""], ["", "facebook-feed-real", 33, ""], ["ds", "facebook-ds-real", 105, ""]] as const) {
   p = await page(q ? `https://www.facebook.com/marketplace/search/?query=${q}` : "https://www.facebook.com/marketplace/?ref=app_tab", fx);
   items = await extract(p);
   const wrong = await fbAgainstLabels(p, items);

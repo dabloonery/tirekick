@@ -456,10 +456,12 @@ weak battery, carrier locked, heavy wear), "missing parts" (console only, no cha
 the typical price is for: Lite, mini, 1st generation, less storage), "quick sale" (only moving, must go, need gone), or "none". Only what the
 listing says, never a guess; a flaw story with nothing else odd can still be bait. Not cheap, or no listing text: "none".`;
 // One eBay listing selling many versions reads like keyword stuffing; in a real iPod search (2026-10) a scan called a
-// refurbisher's (10K ratings, eBay Refurbished) "Likely scam" for that alone.
+// refurbisher's (10K ratings, eBay Refurbished) "Likely scam" for that alone. Saying big sellers make a scam less likely
+// made the model read few ratings as one: an honest console-only at 47% from 2 ratings turned suspicious (eval, 2026-10-22).
 const VERSIONS_RULE = `Not a scam sign on its own: an eBay listing that sells several versions (a title listing many capacities, colors or
 generations, a PRICE RANGE), or a refurbished, modded or upgraded item that says so. Judge what it is. A seller with thousands of
-ratings at 98% or more, or "eBay Refurbished", makes a scam less likely. Claims that can't both be true ("new sealed" yet modded or
+ratings at 98% or more, or "eBay Refurbished", makes a scam less likely. Few ratings alone don't make one likely: a new seller
+near half the typical price who says plainly what's missing or wrong is often honest. Far lower, or with anything else odd, it's still bait. Claims that can't both be true ("new sealed" yet modded or
 upgraded, a size the item never came in sold as factory new) are misleading: say so, and score it as a pass, not suspicious, unless
 something else points to a scam.`;
 // Listing text comes from strangers: it is read, never obeyed (security review N5).

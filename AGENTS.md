@@ -2,7 +2,7 @@
 
 Read these before changing anything:
 
-- [docs/ROADMAP.md](docs/ROADMAP.md): where each plan stands, what waits on Myer, the store upload checklist,
+- [docs/ROADMAP.md](docs/ROADMAP.md): where each plan stands, what waits on the maintainer, the store upload checklist,
   and the feature briefs (what to build next).
 - [docs/REFERENCE.md](docs/REFERENCE.md): the voice and copy guide, and where every other reference lives
   (store listing, privacy policy, the security review in `store/SECURITY-REVIEW.md`).
@@ -13,17 +13,19 @@ Read these before changing anything:
 Standing rules:
 
 - US English only, in code, copy and docs ("tire", "color").
+- No personal names in the repo (code, comments, docs, commit messages): write "the maintainer" for the owner's
+  decisions, e.g. "(the maintainer, 2026-10-21)".
 - Never present Tirekick as "no AI" or AI-free: it has AI features. Say the core features work without the
-  AI and the AI is optional; for a single action, "your AI isn't used" (Myer, 2026-10-15).
-- Keep the flat Tread Dot look, in color: a subtle slate-navy dark theme, orange main button, verdict colors on tags and rows (Myer wants color as a cue; the neutral graphite round was undone in 0.39.0). Design tokens live in `lib/theme.js`. No gloss, no 3D.
+  AI and the AI is optional; for a single action, "your AI isn't used" (the maintainer, 2026-10-15).
+- Keep the flat Tread Dot look, in color: a subtle slate-navy dark theme, orange main button, verdict colors on tags and rows (the maintainer wants color as a cue; the neutral graphite round was undone in 0.39.0). Design tokens live in `lib/theme.js`. No gloss, no 3D.
 - The extension must work in Vivaldi as well as Chrome.
 - No background polling for alerts. Alerts come only from open tabs and the user-pressed
   "Check my saved searches" button.
 - Add new plans as sections in `docs/ROADMAP.md` or `docs/REFERENCE.md`, not as new files.
-- Never submit to the Chrome Web Store without Myer's OK.
+- Never submit to the Chrome Web Store without the maintainer's OK.
 - One PR per change, with `deno task test` green.
-- Don't change the version in `manifest.json`. It stays as it is until Myer uploads a new build to the
-  Chrome Web Store (the store has 0.50.0, main has 0.57.0); the next number is set at upload time (Myer, 2026-10-21).
+- Don't change the version in `manifest.json`. It stays as it is until the maintainer uploads a new build to the
+  Chrome Web Store (the store has 0.50.0, main has 0.57.0); the next number is set at upload time (the maintainer, 2026-10-21).
 
 ## How the code fits together
 

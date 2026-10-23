@@ -35,7 +35,7 @@ const report: any = {};
 
 for (const mode of ["dark", "light"]) {
   // ---- no key: first run ----
-  await setStore(`{anthropicKey:'', anthropicUrl:'http://localhost:1234', useSoldComps:false}`);
+  await setStore(`{useAI:true, anthropicKey:'', anthropicUrl:'http://localhost:1234', useSoldComps:false}`);
   await o.ev(`chrome.storage.local.remove(['introDone','scans','listingMemory','saved','savedSearches','notInterested','usage'])`);
   let p = await open(`https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`); await scheme(p, mode); await sleep(1500);
   await panelShot(p, `${mode}_01_first_run`);
@@ -44,7 +44,7 @@ for (const mode of ["dark", "light"]) {
   await R(p, `r.querySelector('[data-act=intro-done]').click(); r.querySelector('[data-act=tab]').click()`); await sleep(500);
   await p.shot(`${OUT}/${mode}_02_page_closed.png`, { x: 0, y: 0, width: 1400, height: 900 });
   // ---- with key ----
-  await setStore(`{anthropicKey:'sk-ant-test', introDone:true}`); await sleep(500);
+  await setStore(`{useAI:true, anthropicKey:'sk-ant-test', introDone:true}`); await sleep(500);
   p = await open(`https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`); await scheme(p, mode); await sleep(1500);
   await R(p, `r.querySelector('[data-act=tab]').click()`); await sleep(500);
   await panelShot(p, `${mode}_03_pre_scan`);
@@ -87,13 +87,13 @@ for (const mode of ["dark", "light"]) {
   await it.shot(`${OUT}/${mode}_10_item.png`, { x: 980, y: 20, width: 420, height: 870 });
   report[mode + "_item"] = await R(it, `return (${METRICS})(r)`);
   // error state: bad key
-  await setStore(`{anthropicKey:'bad'}`);
+  await setStore(`{useAI:true, anthropicKey:'bad'}`);
   await o.ev(`chrome.storage.local.remove(['scoreCache','listingMemory','scans'])`); // otherwise remembered scores come back and nothing is sent
   const er = await open(`https://www.ebay.com/sch/i.html?_nkw=film+camera`); await scheme(er, mode); await sleep(1500);
   await R(er, `r.querySelector('[data-act=tab]').click()`); await sleep(400);
   await R(er, `r.querySelector('[data-act=scan]').click()`); await sleep(3500);
   await panelShot(er, `${mode}_11_error`);
-  await setStore(`{anthropicKey:'sk-ant-test'}`);
+  await setStore(`{useAI:true, anthropicKey:'sk-ant-test'}`);
 }
 // settings
 for (const mode of ["dark", "light"]) {

@@ -704,7 +704,7 @@
           <ul class="w-points">
             <li>Cards are marked for likely scams and odd prices as they load.</li>
             <li><b>Typical price</b> compares every listing with recent eBay sales, free. Point at a card for its own, and for <i>Save</i> and <i>Hide</i>.</li>
-            <li>With an AI (optional), <b>Scan</b> scores each listing and says why. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
+            <li>If you turn on an AI in settings (optional, and off until you do), <b>Scan</b> scores each listing and says why. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
           </ul>
           <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
             <button class="ghost setup-go" data-act="open-settings">Open settings</button></div>

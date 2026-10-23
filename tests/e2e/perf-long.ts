@@ -12,7 +12,7 @@ const SCROLL_S = +(Deno.env.get("PERF_SECONDS") || 60);
 const metrics = async (p: any) => Object.fromEntries((await c.send("Performance.getMetrics", {}, p.sessionId)).metrics.map((m: any) => [m.name, m.value]));
 
 await o.ev(`chrome.storage.local.clear()`);
-await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true, showTab:${!Deno.env.get("PERF_ALONE")}})`);
+await o.ev(`chrome.storage.local.set({useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:false, introDone:true, showTab:${!Deno.env.get("PERF_ALONE")}})`);
 if (Deno.env.get("PERF_FULL")) {
   await o.ev(`(() => {
     const now = Date.now(), mem = {}, scans = {}, photos = {};

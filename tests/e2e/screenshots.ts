@@ -13,7 +13,7 @@ for (let i = 0; i < 30; i++) if (i % 2 === 0 || i < 5) {
   days[new Date(NOW - i * DAY).toLocaleDateString("en-CA")] = { usd, calls: 2 + (i % 4), models: { "claude-haiku-5-5": { usd, calls: 2 + (i % 4) } } };
 }
 const seed = {
-  anthropicKey: "sk-ant-test", anthropicUrl: "http://localhost:1234", useSoldComps: false, introDone: true, theme: "dark", provider: "anthropic",
+  useAI: true, anthropicKey: "sk-ant-test", anthropicUrl: "http://localhost:1234", useSoldComps: false, introDone: true, theme: "dark", provider: "anthropic",
   anthropicScanModel: "claude-haiku-5-5", anthropicModel: "claude-sonnet-5-5", usage: { days }, monthlyBudget: 5, alertsAck: {},
   saved: {
     "ebay:100000000001": { t: "Nintendo Game Boy Advance SP AGS-001 Cobalt Blue Working", u: "https://www.ebay.com/itm/100000000001", p0: 70, a0: NOW - 9 * DAY, p: 52, a: NOW - DAY },

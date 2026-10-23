@@ -19,8 +19,9 @@ background.
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens.
-2. Under **AI service**, choose the one you have a key for (or Ollama or LM Studio on your own
-   computer), and paste its key. Settings save as you go, the key is checked
+2. The free checks and marks work right away. AI scores are optional and off until you turn them on: to
+   add them, turn on **Use an AI** under **AI scores**, choose the AI service you have a key for (or Ollama
+   or LM Studio on your own computer), and paste its key. Settings save as you go, the key is checked
    the moment you paste it, and a banner at the top says whether you're ready (or the one thing missing),
    with links to try it on eBay or Marketplace. **Show** reveals a key to check for typos.
 3. Search eBay or Facebook Marketplace. A slim **Tirekick** tab sits on the right edge of every
@@ -28,9 +29,9 @@ background.
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
 
 The first time, the panel opens by itself with a short welcome: what Scan does, what Buyer and
-Reseller change, and that a card's tag has the reasons. With no model set up yet, adding a key comes
-first, with **Open settings** as the one button (the marks on the cards and comparing sold prices work
-without one). **Got it** closes it for good, and the **?** button in the panel header brings it back.
+Reseller change, and that a card's tag has the reasons. If you've turned on the AI but not finished
+setting it up, the missing step comes first, with **Open settings** as the one button (the marks on the
+cards and comparing sold prices work without it). **Got it** closes it for good, and the **?** button in the panel header brings it back.
 Home's **Getting started** keeps track of the first few things to try.
 
 **Where it sits**: docked to the right edge (the default) or the left, in one of three widths.
@@ -95,9 +96,9 @@ scam warning stays readable.
 
 ## Everyday use
 
-- **What should Tirekick do?**, at the top of settings: **Everything** (the default), **Scam check only** (cards show
-  only scam warnings; prices are still looked up to spot listings too cheap to be real, and your AI isn't used) or
-  **Without the AI** (every free check and mark). Scam marks stay on in all three; changing a part by hand reads as Custom.
+- **What should Tirekick do?**, at the top of settings: **Without the AI** (the default: every free check and mark),
+  **Scam check only** (cards show only scam warnings; prices are still looked up to spot listings too cheap to be
+  real, and your AI isn't used) or **Everything, with AI scores** (turns on the AI as well). Scam marks stay on in all three; changing a part by hand reads as Custom.
 - **Buyer / Reseller**, the switch at the top right of the panel, says what you want listings for (see below). Each
   mode remembers its own sort and skipped-listings setting.
 - **What I want**: "working, with charger, under $80". Each search keeps its own (per site and
@@ -186,9 +187,9 @@ estimate of what that kind of item usually sells for, always marked **est.**; pr
 ## Without the AI
 
 Tirekick has AI features, and they're optional. Everything here works without them: it's free, needs no API
-key, and runs only on pages you're looking at. To keep the AI out of the way altogether, turn off **Use an AI**
-in settings (AI scores): Scan, Analyze, Search ideas, photo checks and the model menu go, nothing is sent to any
-AI service, and your setup is kept for when you turn it back on.
+key, and runs only on pages you're looking at. The AI is opt-in: **Use an AI** in settings (AI scores) starts
+off, and while it's off Scan, Analyze, Search ideas, photo checks and the model menu stay hidden and nothing is
+sent to any AI service. Turn it on to add them; turning it off again keeps your setup for later.
 
 **On the cards**, as soon as a results page loads:
 

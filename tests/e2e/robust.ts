@@ -37,7 +37,7 @@ const waitFor = async (fn: () => Promise<unknown>, ms = 8000) => {
   return false;
 };
 
-ok("installing brings storage up to date and notes its version", (await get("storageVersion")) === 4);
+ok("installing brings storage up to date and notes its version", (await get("storageVersion")) === 5);
 
 // ---------- a site that changed its pages ----------
 await reset();

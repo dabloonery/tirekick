@@ -17,7 +17,7 @@ c.on((m: any) => {
 });
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
 await o.ev(`chrome.storage.local.clear()`);
-await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'${API}', useSoldComps:true, introDone:true})`);
+await o.ev(`chrome.storage.local.set({useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'${API}', useSoldComps:true, introDone:true})`);
 const R = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);
 const waitFor = async (fn: () => Promise<unknown>, ms = 10000) => {
   for (let t = 0; t < ms; t += 250) {

@@ -108,7 +108,7 @@ ok("…$320 (over it) says to offer the walk-away price once", /^Offer \$290 onc
 const s3 = await said(265);
 ok("…and $265 (under the opening offer) says take it too", /^Take it at \$265: that's at or under your opening offer/.test(s3?.answer) && /^Deal, \$265 works for me\./.test(s3?.msg), s3);
 // With a key: the plan goes to the analysis, and its range stays near the plan.
-await store(`{anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:true}`);
+await store(`{useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:true}`);
 await fetch("http://localhost:1234/calls", { method: "DELETE" });
 await R(it, `r.querySelector('[data-act=analyze]').click()`);
 await waitFor(() => R(it, `return /Suggested offer/.test(r.querySelector('.offer')?.textContent || '')`), 10000);
@@ -119,7 +119,7 @@ const an = await R(it, `const b=[...r.querySelectorAll('.offer')].find(x=>/Sugge
 ok("…a lowball range from the model ($230–$260) is kept near the plan ($240–$260)", /Suggested offer: \$240–\$260/.test(an?.text || "") && /Kept near the plan from the typical price/.test(an?.text || ""), an);
 ok("…with the same editable message and \"They said\" box", /Would you take \$240\?/.test(an?.msg || "") && an?.said, an);
 await it.close();
-await store(`{anthropicKey:'', useSoldComps:false}`);
+await store(`{useAI:true, anthropicKey:'', useSoldComps:false}`);
 
 // ---------- saved listings as a spreadsheet ----------
 await store(`{saved:{'ebay:1111111111':{t:'Pentax K1000 body',u:'https://www.ebay.com/itm/1111111111',p0:120,a0:${Date.now() - 864e5},p:97,a:${Date.now()}}}}`);
@@ -155,7 +155,7 @@ await store(`{useSoldComps:false}`);
 await cat.close();
 
 // A scan is told the cards' price lines and the free scam signs, so its verdict starts where the card's word does.
-await store(`{anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:true}`);
+await store(`{useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'http://localhost:1234', useSoldComps:true}`);
 await soldFor("pentax k1000");
 await fetch("http://localhost:1234/calls", { method: "DELETE" });
 const sp = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");

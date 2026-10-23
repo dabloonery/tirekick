@@ -735,7 +735,8 @@ test("pickChips: each kind of mark follows its switch, scam marks lead, and only
 });
 
 test("focusOf: the three focuses and Custom, from the switches they set", () => {
-  assert.equal(R.focusOf({}), "everything", "a fresh install: every switch at its default");
+  assert.equal(R.focusOf({}), "noai", "a fresh install: every switch at its default, and the AI is opt-in");
+  assert.equal(R.focusOf({ useAI: true }), "everything");
   for (const name of Object.keys(R.FOCUS)) assert.equal(R.focusOf(R.FOCUS[name]), name);
   assert.equal(R.focusOf({ ...R.FOCUS.scams, markLimit: 1, theme: "dark" }), "scams", "marks per listing and other settings don't change the focus");
   assert.equal(R.focusOf({ markScams: false }), "custom", "scam marks off is never a focus");

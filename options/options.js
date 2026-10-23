@@ -316,7 +316,7 @@ for (const r of document.querySelectorAll('input[name="focus"]')) {
   r.addEventListener("change", async () => {
     await chrome.storage.local.set(TKRules.FOCUS[r.value]);
     await load();
-    note(r.value === "scams" ? "Saved. Cards show only scam warnings now." : r.value === "noai" ? "Saved. Your AI isn't used now." : "Saved. Everything is on.");
+    note(r.value === "scams" ? "Saved. Cards show only scam warnings now." : r.value === "noai" ? "Saved. Your AI isn't used now." : "Saved. Everything is on, AI scores included.");
   });
 }
 // With the AI off, its section folds down to the switch.
@@ -346,10 +346,11 @@ async function showStatus() {
     ready = true;
     title = "Ready: scam checks only";
     text = "Cards show only scam warnings, and your AI isn't used. Change it under What should Tirekick do.";
-  } else if (s.useAI === false) {
+  } else if (s.useAI !== true) {
+    // The AI is opt-in (dabloonery, 2026-10-23): until it's turned on, the free checks are the whole setup.
     ready = true;
-    title = "Ready: price checks and scam marks (your AI is off)";
-    text = "Your AI is turned off, so nothing is sent to any AI service. Turn it back on under AI scores.";
+    title = "Ready: price checks and scam marks";
+    text = "Open an eBay or Marketplace search to see them. AI scores are optional and off: to add them, turn on Use an AI under AI scores below.";
   } else if (!chosen) {
     ready = true; // the price checks, scam marks and filters need no AI
     title = "Ready: price checks and scam marks";
@@ -374,7 +375,7 @@ async function showStatus() {
   document.getElementById("statusTitle").textContent = title;
   document.getElementById("statusText").textContent = text;
   // A button to the chosen service's key page, until it's set up.
-  const keys = chosen && !ready && s.useAI !== false ? serviceInfo(serviceOf()).keys : "";
+  const keys = chosen && !ready && s.useAI === true ? serviceInfo(serviceOf()).keys : "";
   keyLink.hidden = !keys;
   if (keys) keyLink.href = keys;
 }

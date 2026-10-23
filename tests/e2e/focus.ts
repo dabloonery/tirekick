@@ -4,7 +4,13 @@ import { start, EXT, sleep } from "./lib.ts";
 const { open, c } = await start();
 const API = "http://localhost:1234";
 const o = await open(`chrome-extension://${EXT}/options/options.html`);
-await o.ev(`chrome.storage.local.set({anthropicKey:'sk-ant-test', anthropicUrl:'${API}', useSoldComps:false, introDone:true})`);
+await sleep(800);
+// A fresh install: the AI is opt-in, so it starts on Without the AI with the AI switch off and nothing to set up.
+const fresh = await o.ev(`({focus:document.querySelector('input[name=focus]:checked')?.value, ai:document.getElementById('useAI').checked, folded:document.getElementById('sec-model').classList.contains('off'), title:document.getElementById('statusTitle').textContent, text:document.getElementById('statusText').textContent})`);
+console.log((fresh.focus === "noai" && !fresh.ai && fresh.folded ? "PASS " : "FAIL ") + "a fresh install starts on Without the AI, with Use an AI off: " + JSON.stringify(fresh));
+console.log((/^Ready: price checks and scam marks$/.test(fresh.title) && /off: to add them, turn on Use an AI/.test(fresh.text) ? "PASS " : "FAIL ") + "the banner says the free checks are ready and the AI is off until you turn it on: " + fresh.title);
+if (fresh.focus !== "noai" || fresh.ai || !fresh.folded || !/^Ready: price checks and scam marks$/.test(fresh.title)) Deno.exitCode = 1;
+await o.ev(`chrome.storage.local.set({useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'${API}', useSoldComps:false, introDone:true})`);
 await o.ev(`location.reload()`); await sleep(1000);
 const ok = (n: string, v: boolean, why = "") => { console.log((v ? "PASS " : "FAIL ") + n + (v ? "" : ": " + why)); if (!v) Deno.exitCode = 1; };
 const sh = (p: any, js: string) => p.ev(`(()=>{const r=document.getElementById('tirekick-host')?.shadowRoot; if(!r) return 'NO HOST'; ${js}})()`);

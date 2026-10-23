@@ -245,6 +245,17 @@ test("upgradeStorage: what an older version left is carried over or cleaned, onc
   assert.deepEqual([again.set, again.remove], [{}, []], "current storage needs nothing");
 });
 
+test("upgradeStorage: the AI is opt-in, and an install that already had one set up keeps it on", () => {
+  assert.equal(S.upgradeStorage({}).set.useAI, undefined, "a new install starts with the AI off");
+  assert.equal(S.upgradeStorage({ storageVersion: 4, provider: "anthropic" }).set.useAI, undefined, "the default service alone isn't a setup");
+  for (const all of [{ anthropicKey: "k" }, { oaiKey: "k" }, { oaiModel: "m" }, { serviceChosen: true }, { provider: "ollama" }]) {
+    const { set, changed } = S.upgradeStorage({ storageVersion: 4, ...all });
+    assert.equal(set.useAI, true, JSON.stringify(all));
+    assert.ok(changed.includes("AI kept on"));
+  }
+  assert.equal(S.upgradeStorage({ storageVersion: 4, anthropicKey: "k", useAI: false }).set.useAI, undefined, "turned off on purpose stays off");
+});
+
 test("toCsv quotes every field, keeps formulas as text, and opens in Excel as UTF-8", () => {
   const csv = S.toCsv([{ a: 'Game Boy "SP", blue', b: "=HYPERLINK(1)" }, { a: "-5 off", b: -5 }, { a: "Pokémon 🎮", b: null }], [{ key: "a", label: "A" }, { key: "b", label: "B" }]);
   assert.equal(csv[0], "﻿");

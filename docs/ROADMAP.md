@@ -987,7 +987,7 @@ focus read **Custom**; picking a focus sets the switches again. The switches:
 | `markScams` | on | The scam group of chips and the graying of likely scams |
 | `markPrices` | on | Price words, "Under typical: reason", "No price check" |
 | `markOther` | on | New to you, drops, auctions, lots, offers, "At your $" |
-| `useAI` | on | Every AI surface listed under No AI. Keys and models stay stored, so turning it back on needs nothing else |
+| `useAI` | off (opt-in, dabloonery, 2026-10-23) | Every AI surface listed under No AI. Keys and models stay stored, so turning it back on needs nothing else |
 | `markLimit` | 3 | Chips per card: **3** (today) or **1**, the most important one (a scam mark always comes first) |
 | `useSoldComps` | on | Unchanged, moved into the fold |
 
@@ -1041,6 +1041,12 @@ focus read **Custom**; picking a focus sets the switches again. The switches:
    stay in Filters and marks and AI scores, next to what they change, instead of moving into a fold; and with
    price words off the panel's rows drop their free price read and the listing page drops the offer helper, which
    is worked out from the same prices. Store listing copy can name the focuses if dabloonery wants.
+4. **AI opt-in** (dabloonery, 2026-10-23: "the ai features should be opt in not opt out"): `useAI` starts off, so a
+   new install is on **Without the AI** and nothing reaches an AI service until **Use an AI** is turned on (or
+   **Everything, with AI scores** is picked). The storage upgrade to version 5 turns it on for installs that already
+   had an AI set up (a key, a chosen service or model), so nobody who opted in loses their scores. The focus cards now
+   list Without the AI first; the settings banner, Home's Getting started, the panel welcome, README and site say the
+   AI is off until you turn it on.
 
 Small to medium in all. No new permission, nothing new read or sent, so `store/PRIVACY.md` doesn't change.
 

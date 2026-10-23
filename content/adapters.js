@@ -82,6 +82,10 @@
     const paid = t.match(/\+\s?\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:delivery|shipping|postage)/i);
     if (paid) return parseFloat(paid[1].replace(/,/g, ""));
     if (/free\s+(?:[\w-]+\s+){0,2}(?:delivery|shipping)/i.test(t)) return 0; // "Free 2-4 day delivery"
+    // A listing page's "Shipping: Free FedEx Ground / FedEx Home Delivery" or "Shipping: US $12.45 USPS Ground Advantage".
+    if (loose && /shipping:\s*free/i.test(t)) return 0; // spaced text can run "Free" into the carrier: "Shipping:FreeFedEx"
+    const labeled = loose && t.match(/shipping:\s*(?:US\s*)?\$\s?([\d,]+(?:\.\d{1,2})?)/i);
+    if (labeled) return parseFloat(labeled[1].replace(/,/g, ""));
     const bare = loose && t.match(/\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:[A-Za-z]+\s+){0,2}(?:delivery|shipping|postage)/i);
     return bare ? parseFloat(bare[1].replace(/,/g, "")) : null;
   };
@@ -576,12 +580,14 @@
       );
       const shippingText = squash(firstText(document, [".ux-labels-values--shipping", '[data-testid="x-shipping"]']), 300);
       const sellerEl = document.querySelector('.x-sellercard-atf, [data-testid="x-sellercard-atf"]');
-      const seller = squash(TK.spacedText(sellerEl), 300);
+      const sellerText = TK.spacedText(sellerEl);
+      // "name (23718) 99.9% positive", without the links after it ("Seller's other items", "Message").
+      const seller = squash(sellerText.replace(/\s*(?:Seller's other items|Contact seller|Visit store)\b[\s\S]*$/i, ""), 300);
       // Bids, time left and "or Best Offer" live in the buy box; fall back to the top of the page.
       const boxEl = document.querySelector('.x-buybox, [data-testid="x-buybox"], .x-price-section');
       const buyBox = boxEl ? TK.spacedText(boxEl) : TK.spacedText(document.querySelector("main, #mainContent") || document.body).slice(0, 4000);
       return withTotal({
-        ...TK.cardFacts(`${buyBox} ${seller}`, title),
+        ...TK.cardFacts(`${buyBox} ${sellerText}`, title),
         site,
         title,
         priceText,
@@ -633,7 +639,8 @@
         price: /^free$/i.test(priceText) ? 0 : TK.parseAmount(priceText),
         ...(TK.currencyOf(priceText) && { foreign: TK.currencyOf(priceText) }),
         shipping: null,
-        condition: "",
+        // "Condition" then the seller's pick from Marketplace's list, on a line of its own.
+        condition: text.match(/(?:^|\n)\s*Condition\s*\n\s*(New|Used\s*-\s*(?:Like new|Good|Fair))\s*(?:\n|$)/i)?.[1] || "",
         seller: "",
         shippingText: "",
         details: squash(dialog ? text : meta("og:description") || text, 2500),

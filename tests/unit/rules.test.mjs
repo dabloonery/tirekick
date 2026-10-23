@@ -466,6 +466,9 @@ test("offSearch: none of the search's words in the title, so its price isn't com
   for (const t of ["Apple iPod Touch 4th Generation 32GB", "MagSafe Charger I phones I pods", "Apple Ipod Classic 6th Generation Silver (80 Gb)"]) assert.equal(R.offSearch(t, "ipod classic"), false, t);
   assert.equal(R.offSearch("Phone", ""), false, "no search, nothing to miss");
   assert.equal(R.offSearch("Phone", "-case"), false, "only words left out");
+  // A two-letter search, from a real "ds" search on Marketplace: a word of its own, not part of another.
+  for (const t of ["DVDs", "PlayStation 3", "Garage sale", "Zebra DS22 Wired Scanner", "Razer Base Station V2 Chroma"]) assert.ok(R.offSearch(t, "ds"), t);
+  for (const t of ["Pink Nintendo DS Lite", "Nintendo DSi", "3ds", "INSTRUCTION BOOKLETS(GAMEBOY,DS)", "Story of Seasons – Nintendo 3DS"]) assert.equal(R.offSearch(t, "ds"), false, t);
   const f = { title: "Shokz", total: 50 };
   assert.equal(R.compareFacts(f, { median: 100, confidence: "good" }, "ipod classic"), null);
   assert.equal(R.freeRead(f, { median: 100, confidence: "good" }), null, "no Great price for headphones in an iPod search");
@@ -487,8 +490,8 @@ test("broadQuery: a store category is too broad to price, a model isn't", () => 
 });
 
 test("placeholder and far-off prices get no dollar comparison (real-site check, 0.49.1)", () => {
-  for (const p of [1234, 12345, 123456, 1111, 99999]) assert.equal(R.placeholderPrice(p), true, `${p}`);
-  for (const p of [70, 120, 2345, 9999, 5555, 1250]) assert.equal(R.placeholderPrice(p), false, `${p}`);
+  for (const p of [1, 1234, 12345, 123456, 1111, 99999]) assert.equal(R.placeholderPrice(p), true, `${p}`);
+  for (const p of [0.99, 2, 70, 120, 2345, 9999, 5555, 1250]) assert.equal(R.placeholderPrice(p), false, `${p}`);
   assert.equal(R.tooFarToCompare(12345, 82), true);
   assert.equal(R.tooFarToCompare(1700, 82), true, "20 times the typical price is a different item");
   assert.equal(R.tooFarToCompare(150, 82), false);
@@ -729,4 +732,14 @@ test("pickChips: each kind of mark follows its switch, scam marks lead, and only
   assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markScams: false }, { onCard: true })), ["At your $50", "Good price · $20 below typical", "New to you"]);
   assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markScams: false })), ["Code in title: AB12", "At your $50", "Good price · $20 below typical"], "the panel and listing page keep the warning");
   assert.equal(R.pickChips(chips, { markLimit: 0 }).length, 3, "a bad limit is the default");
+});
+
+test("games in a console search, from a real \"ds\" search: plural, and named after the console's maker", () => {
+  for (const t of ["Nintendo DS games", "Various DS games", "DS Games Your Pick"]) assert.equal(R.accessoryOf(t, "ds"), "game", t);
+  for (const t of ["Nintendo DS Lite with games", "Two Hand Held Game Consoles with hundreds of Games!!", "Nintendo DSi"]) assert.equal(R.accessoryOf(t, "ds"), "", t);
+  assert.equal(R.madeFor("Story of Seasons – Nintendo 3DS", "ds"), "story of seasons");
+  assert.equal(R.madeFor("Castlevania: Order of Ecclesia – Nintendo DS", "ds"), "castlevania order of ecclesia");
+  const f = { title: "Nintendo DS and 3DS Games", price: 1, total: 1 };
+  R.compareFacts(f, { median: 60, confidence: "fair" }, "ds");
+  assert.equal(R.freeRead(f, { median: 60, confidence: "fair" })?.word, "Off-topic", "$1 is a stand-in, not too cheap");
 });

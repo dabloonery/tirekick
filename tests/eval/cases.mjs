@@ -31,6 +31,7 @@ export const MARKETS = {
   "airpods pro 2": { median: 120, ship: 6, confidence: "good", n: 60 },
   "canon ae-1": { median: 160, ship: 15, confidence: "fair", n: 19 },
   "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52 },
+  "ds": { median: 60, ship: 6, confidence: "fair", n: 40 }, // assumed, for the real "ds" search below
   "ipod classic": { median: 100, ship: 8, confidence: "good", n: 40 }, // an assumed reference for the real searches below // Lites, V1s and OLEDs together: the cheapest tenth sold under $95
 };
 
@@ -67,6 +68,9 @@ export const CASES = [
   fb("ipod classic", "Shokz", 50, { truth: "honest", word: "none", note: "Marketplace pads a search with what's nearby: not an iPod" }),
   fb("ipod classic", "Portable DVD PLAYER", 30, { truth: "honest", word: "none" }),
   fb("ipod classic", "Apple iPod Classic 4th Generation 40GB Empty Box Only", 30, { truth: "honest", word: "none" }),
+  fb("ds", "DVDs", 3, { truth: "honest", word: "none", note: "a two-letter search: DVDs aren't a DS" }),
+  fb("ds", "Nintendo DS games", 10, { truth: "honest", word: "none", note: "games, not the console" }),
+  fb("ds", "Ds and 3DS games, cartridges only", 1, { truth: "honest", word: "none", note: "$1 means message me" }),
 
   // ---------- eBay: iphone 13 128gb ($290) ----------
   ebay("iphone 13 128gb", "Apple iPhone 13 128GB Midnight Unlocked - Good", 279, 0, seller(99.4, "3.4K"), { truth: "honest", word: "fair", scan: "fair" }),

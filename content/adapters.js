@@ -477,7 +477,7 @@
       }
 
       // innerText gives one line per text block, but only for cards being shown; a card we've hidden
-      // (filtered, not interested) falls back to its text pieces, which split the same way here.
+      // (filtered, or hidden by you) falls back to its text pieces, which split the same way here.
       let lines = TK.ownText(a).split("\n").map((l) => l.trim()).filter(Boolean);
       if (lines.length < 2 && !a.getClientRects().length) {
         const walk = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);

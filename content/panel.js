@@ -703,7 +703,7 @@
           <b>Welcome to Tirekick</b>
           <ul class="w-points">
             <li>Cards are marked for likely scams and odd prices as they load.</li>
-            <li><b>Typical price</b> compares every listing with recent eBay sales, free. Point at a card for its own, and for <i>Save</i> and <i>Not interested</i>.</li>
+            <li><b>Typical price</b> compares every listing with recent eBay sales, free. Point at a card for its own, and for <i>Save</i> and <i>Hide</i>.</li>
             <li>With an AI (optional), <b>Scan</b> scores each listing and says why. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
           </ul>
           <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
@@ -1605,6 +1605,15 @@
     const DK = `${THEME.vars("dark", { prefix: "--tk-", keep: TAG_KEEP, pick: TAG_TOKENS })} --tk-shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 16px -6px rgba(0,0,0,.6);`;
     const LT = `${THEME.vars("light", { prefix: "--tk-", keep: TAG_KEEP, pick: TAG_TOKENS })} --tk-shadow:0 1px 2px rgba(10,20,40,.16), 0 6px 16px -6px rgba(10,20,40,.42);`;
     const UI = THEME.UI.replace(/\s*,\s*/g, ",");
+    // The action buttons' icons, as masks so they take the text color: a star (filled once saved), a price tag, a cross.
+    const icon = (d, fill = "none") => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14"><g fill="${fill}" stroke="#000" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</g></svg>`)}")`;
+    const STAR = '<path d="M7 1.6l1.6 3.4 3.7.5-2.7 2.6.7 3.7L7 10l-3.3 1.8.7-3.7L1.7 5.5l3.7-.5z"/>';
+    const BTN_ICONS = {
+      save: icon(STAR),
+      saved: icon(STAR, "#000"),
+      price: icon('<path d="M1.8 7.3V2.2c0-.2.2-.4.4-.4h5.1l5 5c.2.2.2.4 0 .6l-4.5 4.5c-.2.2-.4.2-.6 0z"/><circle cx="4.6" cy="4.6" r=".9" fill="#000" stroke="none"/>'),
+      hide: icon('<path d="M3 3l8 8M11 3l-8 8"/>'),
+    };
     const DISPLAY = THEME.DISPLAY.replace(/\s*,\s*/g, ",");
     st.textContent = `
       html[data-tk-theme="dark"] :is(.tirekick-sticker, .tirekick-marks) { ${DK} }
@@ -1659,6 +1668,19 @@
       .tirekick-marks { position:absolute; top:10px; left:10px; z-index:50; display:flex; flex-wrap:wrap; gap:4px; max-width:var(--tk-fit, calc(100% - 20px));
         filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); pointer-events:auto; }
       .tirekick-marks button, .tirekick-sticker .tk-under button { cursor:pointer; border:0; }
+      /* The card's actions (Save, Typical price, Sold, Hide) are buttons, and look it: a squared box with a firm
+         edge and an icon, where the facts about the listing are round pills. A fill on hover, a ring on focus. */
+      .tk-btn { --e:color-mix(in srgb, var(--tk-ink) 55%, var(--tk-paper)); display:inline-flex; align-items:center; gap:4px; margin:0; padding:3px 9px; border-radius:6px;
+        background:var(--tk-paper); color:var(--tk-ink); box-shadow:inset 0 0 0 1.5px var(--e), 0 2px 6px -2px rgba(0,0,0,.35);
+        font:700 12.5px/1.3 ${UI}; white-space:nowrap; letter-spacing:normal; text-transform:none; cursor:pointer; }
+      .tk-btn:hover { background:color-mix(in srgb, var(--tk-ink) 12%, var(--tk-paper)); --e:var(--tk-ink); }
+      .tk-btn:active { transform:translateY(1px); }
+      .tk-btn:focus-visible { outline:2px solid var(--tk-ink); outline-offset:2px; }
+      .tk-btn:disabled { cursor:progress; opacity:.75; transform:none; }
+      .tk-btn[data-i]::before { content:""; flex:none; width:12px; height:12px; background:currentColor; -webkit-mask:var(--i) center/contain no-repeat; mask:var(--i) center/contain no-repeat; }
+      .tk-btn[data-i="sold"]::before { display:none; } /* its ↗ is in the word */
+      ${Object.entries(BTN_ICONS).map(([k, d]) => `.tk-btn[data-i="${k}"] { --i:${d}; }`).join(" ")}
+      .tk-btn.k-on { background:var(--tk-good-bg); color:var(--tk-good-fg); --e:color-mix(in srgb, var(--tk-good-fg) 55%, var(--tk-good-bg)); }
       .tk-acts { display:contents; }
       .tirekick-marks .tk-why { display:none; flex:0 0 auto; width:min(248px, calc(var(--tk-popw, 260px) - 12px)); max-width:none; /* wider than the chips above it, never wider than the card */ box-sizing:border-box; padding:10px 12px; border-radius:12px; background:var(--tk-paper); color:var(--tk-ink);
         box-shadow:0 0 0 1px var(--tk-line); font:400 13px/1.5 ${UI}; white-space:normal; text-transform:none; }
@@ -1667,7 +1689,7 @@
       /* Hover-only actions stay in the DOM (clipped, not display:none) so the keyboard can reach them; they show on hover or focus. */
       .tk-x { position:absolute !important; width:1px !important; height:1px !important; margin:-1px !important; padding:0 !important; overflow:hidden !important; clip-path:inset(50%) !important; }
       [data-tirekick-key]:hover .tk-x, .tirekick-marks:focus-within .tk-x, .tirekick-sticker:focus-within .tk-x, .tk-x:focus-visible
-        { position:static !important; width:auto !important; height:auto !important; margin:0 !important; padding:2px 7px !important; overflow:visible !important; clip-path:none !important; }
+        { position:static !important; width:auto !important; height:auto !important; margin:0 !important; padding:3px 9px !important; overflow:visible !important; clip-path:none !important; }
       /* listings you've hidden, filtered out, or (by choice) skipped */
       html:not([data-tk-showhidden]) [data-tk-hide] { display:none !important; }
       html[data-tk-showhidden] [data-tk-hide] { opacity:.45; }
@@ -1718,7 +1740,7 @@
   // ---------- what's known about each listing without asking a model ----------
   // Card facts (auction, lot, offers, seller rating) come from the adapters. On top of those:
   // whether you've seen it before and at what price, duplicates on the page, your filters, and
-  // listings you've marked "Not interested". All of it stays in this browser.
+  // listings you've hidden. All of it stays in this browser.
   const MEMORY_DAYS = 90;
   const MEMORY_MAX = 6000;
   // Prices are the item price without shipping: shipping isn't always readable (and varies), so
@@ -1963,7 +1985,7 @@
   // The chips a card wears: most useful first, three at most.
   const chipsFor = (f = {}) => {
     const c = [];
-    if (showHidden && f.hidden) c.push(["warn", "Not interested"]);
+    if (showHidden && f.hidden) c.push(["warn", "Hidden"]);
     else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`]);
     if (f.deal) c.push(["deal", `At your $${quick.deal}`]);
     if (f.campaign) c.push(["warn", "Scam: reposted", `Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`]);
@@ -2159,6 +2181,12 @@
       // reasons isn't drawn under the next card's tag or photo, on every site.
       node.addEventListener("pointerenter", () => cell.setAttribute("data-tk-lift", ""));
       node.addEventListener("pointerleave", () => cell.removeAttribute("data-tk-lift"));
+      // A click on the tag or one of its buttons leaves focus there, and focus keeps the hover box open: once
+      // the pointer leaves, let go of a focus the mouse gave (a keyboard user's focus stays, and so does the box).
+      node.addEventListener("pointerleave", () => {
+        const a = document.activeElement;
+        if (a && node.contains(a) && !a.matches(":focus-visible")) a.blur();
+      });
       node.addEventListener("focusin", () => cell.setAttribute("data-tk-lift", ""));
       node.addEventListener("focusout", () => cell.removeAttribute("data-tk-lift"));
       return node;
@@ -2174,8 +2202,8 @@
     host.removeAttribute("data-tirekick");
     if (!prefs.autoMarks && !(showHidden && (f.hidden || f.filtered))) return;
     const chips = chipEls(f);
-    if (showHidden && f.hidden) chips.push(h("button", { class: "tk-chip k-plain", onclick: own(() => setInterested(key, true)) }, "Undo"));
-    else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Sold / Not interested appear when you hover the card
+    if (showHidden && f.hidden) chips.push(h("button", { class: "tk-btn", onclick: own(() => setInterested(key, true)) }, "Undo"));
+    else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Typical price or Sold / Hide appear when you hover the card
     // The warnings' reasons, on hover or focus: a "Likely scam?" says why without a scan.
     const whys = chipsFor(f).filter(([kind, , why]) => kind === "warn" && why).map(([, , why]) => why);
     host.append(fit(h("div", { class: `tirekick-marks` }, chips, whys.length ? h("div", { class: "tk-why" }, whys.map((w) => h("p", {}, w))) : null)));
@@ -2213,8 +2241,8 @@
     for (const kid of host.children) if (!kid.matches(".tirekick-sticker, .tirekick-marks")) kid.setAttribute("data-tk-faded", "");
     for (let n = host; n !== cell && n.parentElement; n = n.parentElement) for (const sib of n.parentElement.children) if (sib !== n) sib.setAttribute("data-tk-faded", "");
   };
-  // "✕ Not interested", shown on any card while you hover it.
-  const hideChip = (key) => h("button", { class: "tk-chip k-plain tk-x", title: "Hide this listing everywhere (undo it under Saved)", onclick: own(() => setInterested(key, false)) }, "Not interested");
+  // "✕ Hide", shown on any card while you hover it.
+  const hideChip = (key) => h("button", { class: "tk-btn tk-x", "data-i": "hide", title: "Hide this listing everywhere (undo it under Saved)", onclick: own(() => setInterested(key, false)) }, "Hide");
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
   // A listing can be priced on its own when it has none yet, and it's one thing (not a lot, not a bid).
@@ -2225,7 +2253,8 @@
     const f = facts.get(key);
     if (!f) return;
     let query = TK.titleToQuery(f.title);
-    if (btn) (btn.disabled = true), (btn.textContent = "Checking\u2026");
+    // Its tooltip goes too: the button is swapped for the answer under the pointer, and a tooltip left over could stay up.
+    if (btn) (btn.disabled = true), (btn.textContent = "Checking\u2026"), btn.removeAttribute("title");
     try {
       let m = await soldMarket(query, "used");
       // A whole title often matches too few sales word for word ("… with 3 games and case"): one more try
@@ -2251,12 +2280,12 @@
   // single Tab stop per card (arrow keys move between them), so a page of 60 cards isn't 180 Tab presses.
   const hoverChips = (key, f) => [toolbar([
     saved[key]
-      ? h("button", { class: "tk-chip k-good", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
-      : h("button", { class: "tk-chip k-plain tk-x", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
+      ? h("button", { class: "tk-btn k-on", "data-i": "saved", "aria-pressed": "true", title: "Saved in the panel (click to remove)", onclick: own(() => toggleSave(key)) }, "Saved")
+      : h("button", { class: "tk-btn tk-x", "data-i": "save", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
     // No price for it yet: one free lookup of its own title. Otherwise eBay's sold listings, to look yourself.
     f.title && canPrice(f)
-      ? h("button", { class: "tk-chip k-plain tk-x", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d: free, and your AI isn't used`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
-      : f.title ? h("button", { class: "tk-chip k-plain tk-x", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
+      ? h("button", { class: "tk-btn tk-x", "data-i": "price", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d: free, and your AI isn't used`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
+      : f.title ? h("button", { class: "tk-btn tk-x", "data-i": "sold", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ])];
   const toolbar = (btns) => {
@@ -2466,12 +2495,12 @@
                   }, `Open all ${searches.length} searches`)
                 )
               : null,
-            // Not interested: folded away (they are not things you kept), and every one can come back.
+            // Hidden: folded away (they are not things you kept), and every one can come back.
             hidden.length
               ? h(
                   "details",
                   { class: "hidden-box", open: hiddenOpen ? "" : null, ontoggle: (e) => (hiddenOpen = e.currentTarget.open) },
-                  h("summary", {}, h("b", {}, `Hidden \u00b7 ${hidden.length}`), h("span", {}, "listings you marked Not interested")),
+                  h("summary", {}, h("b", {}, `Hidden \u00b7 ${hidden.length}`), h("span", {}, "listings you hid")),
                   ...hidden.slice(0, 40).map(([k, r]) =>
                     h(
                       "div",
@@ -2695,7 +2724,7 @@
     renderPageInfo();
   };
 
-  // "Not interested": hidden on every page from now on (undo from the panel or settings).
+  // "Hide": hidden on every page from now on (undo from the panel or settings).
   const setInterested = async (key, interested) => {
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     notInterested = await writeStored("notInterested", { set: { [key]: interested ? null : { t: f.title || "", a: Date.now() } }, cap: { max: 3000, by: "a" } });
@@ -2767,7 +2796,7 @@
         h(
           "div",
           { class: "tk-acts" },
-          // Save, Sold and Not interested sit just above as chips; this adds what they don't.
+          // Save, Sold and Hide sit just above as buttons; this adds what they don't.
           item.imageUrl ? h("a", { href: lensSearchUrl(item.imageUrl), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation(), title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null
         )
         )
@@ -2864,7 +2893,7 @@
         .filter(([, t]) => !/^Auction|^Lot of/.test(t) && !TKRules.SOLD_CHIP.test(t))
         .map(([k, t]) => h("span", { class: `fchip k-${k}` }, chipText(t)));
       const saveBtn = h("button", { class: saved[key] ? "on" : null, onclick: () => toggleSave(key) }, saved[key] ? "Saved" : "Save");
-      const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Not interested");
+      const hideBtn = h("button", { onclick: () => setInterested(key, !!notInterested[key]) }, notInterested[key] ? "Undo hide" : "Hide");
       // Not scored (yet): the price is the headline, with what's known for free.
       if (it.score == null) {
         const mk = marketOf(f);
@@ -3487,7 +3516,7 @@
     piLine.innerHTML = bits.join(", "); // numbers and fixed words only
     if (hidN || filN) {
       piLine.append(
-        `, ${[hidN && `${hidN} not interested`, filN && `${filN} filtered`].filter(Boolean).join(", ")} `,
+        `, ${[hidN && `${hidN} hidden`, filN && `${filN} filtered`].filter(Boolean).join(", ")} `,
         h("button", { onclick: () => setShowHidden(!showHidden) }, showHidden ? "Hide them again" : `Show ${hidN + filN === 1 ? "it" : "them"}`)
       );
     }
@@ -4188,9 +4217,9 @@
     const acts = h(
       "div",
       { class: "actions pi-acts" },
-      f.hidden ? h("span", {}, "Marked not interested") : null,
+      f.hidden ? h("span", {}, "Hidden") : null,
       h("button", { class: sv ? "on" : null, onclick: () => toggleSave(f.key) }, sv ? "Saved" : "Save"),
-      h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Not interested"),
+      h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Hide"),
       h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197")
     );
     const slot = itemEl.querySelector(".item-acts");
@@ -4238,7 +4267,7 @@
           h("div", { class: "reason" }, r.summary || ""),
           r.photoAdjust ? h("div", { class: r.photoAdjust < 0 ? "adjust" : "adjust up" }, `Photo check ${signed(r.photoAdjust)} (was ${r.baseScore})`) : null,
           r.flags?.length ? h("div", { class: "flags" }, r.flags.slice(0, 5).map((f) => h("span", { class: "flag" }, f))) : null,
-          h("div", { class: "item-acts" }) // Save / Not interested / Sold, filled by renderItemInfo
+          h("div", { class: "item-acts" }) // Save / Hide / Sold, filled by renderItemInfo
         )
       ),
     ];

@@ -130,7 +130,7 @@ await reset();
   await R(p, `r.querySelector('[data-act=tab]').click()`);
   await sleep(400);
   const chips = async (label: string) => p.ev(`(() => { const b = [...document.querySelectorAll('.tirekick-marks button, .tirekick-sticker button')].find((b) => b.textContent === ${JSON.stringify(label)}); if (b) b.click(); return !!b; })()`);
-  const clicked = [await chips("Save"), await chips("Not interested")];
+  const clicked = [await chips("Save"), await chips("Hide")];
   await R(p, `[...r.querySelectorAll('button')].find(b=>b.textContent==='Save search')?.click()`);
   await R(p, `r.querySelector('[data-act=prices]').click()`); // counted in stats
   await R(p, `r.querySelector('.qf-toggle').click()`);

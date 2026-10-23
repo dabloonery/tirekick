@@ -152,9 +152,9 @@ items = await extract(p);
   ok("real Marketplace page: all 90 listings, each title, price and old price as Facebook labels it", items.length === 90 && !wrong.length, wrong.map((i: any) => [i.title, i.price]));
   ok("…no place, 'Ships to you' or 'Partner listing' taken for a title; clean links", !items.some((i: any) => /, [A-Z]{2}$|^ships to you$|^partner listing$/i.test(i.title)) && items[0].url === "https://www.facebook.com/marketplace/item/900000000000001/", items[0].url);
   ok("…codes at the end of a title, 'Just listed'", eq(items.filter((i: any) => i.titleCode).map((i: any) => i.titleCode), ["T5949", "Y8WV", "M5769"]) && items.filter((i: any) => i.justListed).length === 2);
-  const ours = `<div class="tirekick-marks"><span class="tk-chip">Code in title: X1</span><span class="tk-chip">$5</span><span class="tk-chip">Not interested</span></div>`;
+  const ours = `<div class="tirekick-marks"><span class="tk-chip">Code in title: X1</span><span class="tk-chip">$5</span><button class="tk-btn tk-x">Hide</button></div>`;
   const r = await p.ev(`(() => { document.querySelectorAll('a[href*="/marketplace/item/"]')[2].insertAdjacentHTML("afterbegin", ${JSON.stringify(ours)}); const it = Tirekick.extractFacebook(document)[2]; return [it.title, it.price, it.wasPrice, it.raw]; })()`);
-  ok("Marketplace: Tirekick's own marks inside a card are not read as the listing's", r[0] === "PS1 Japanese edition" && r[1] === 50 && r[2] === 70 && !/Code in title|Not interested/.test(r[3]), r);
+  ok("Marketplace: Tirekick's own marks inside a card are not read as the listing's", r[0] === "PS1 Japanese edition" && r[1] === 50 && r[2] === 70 && !/Code in title|Hide/.test(r[3]), r);
 }
 await p.close();
 

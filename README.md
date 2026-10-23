@@ -116,9 +116,9 @@ scam warning stays readable.
 - **Before any scan, each row has a free read**: Great, Good or Fair price, or Above typical, from the sold
   prices; Check first or Likely scam from the free warnings; Off-topic. "Best first" sorts by it until a scan
   gives real scores, and the cards' sold chip says the same word ("Good price · $53 below typical").
-- **A row's links**: **Open ↗** is always there; Sold, Save and Not interested appear when you point at it or Tab into it,
+- **A row's links**: **Open ↗** is always there; Sold, Save and Hide appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
-- **Not interested**: hover any card and press "✕ Not interested" to hide it everywhere from
+- **Hide**: hover any card and press "✕ Hide" to hide it everywhere from
   now on. Undo is right there; **Saved → Hidden** lists everything you've hidden, each with Unhide.
 - **Analyze this listing** on a listing page gives a verdict, red flags, a suggested offer with a ready-to-send message, and a photo check.
 - **Search ideas** (under Scan) suggests other ways to search for what's on the page: the
@@ -131,7 +131,7 @@ scam warning stays readable.
   the AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
   site, with your saved listings and searches (each marked eBay or Marketplace) and Home.
 - **Start over** clears the page's scores (Undo is right there); the free marks stay.
-- **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Not interested buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
+- **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Hide buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
 - **The footer** has the quality menu and this month's spend. With Claude the menu is **Thrifty** (Haiku for everything), **Balanced** (Haiku scans, Sonnet for single listings, photos and search ideas; the default) or **Thorough** (Sonnet scans, Opus for the rest); settings has each model separately, and another pair shows as Custom. The spend: click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
 - **Esc** tucks the panel away; the sliders icon opens settings.
 
@@ -207,7 +207,8 @@ key, and runs only on pages you're looking at.
   file. The seller's own relists and identical titles don't count. Not on eBay, where sellers reuse their own photos.
 - **On hover**: ☆ **Save**, **Typical price** (free: one eBay sold lookup of that listing's own title,
   for a page with no search or only a category's name; "No price check" and why when it can't be made) or,
-  once it has a price, **Sold ↗** (eBay's sold listings for that title, in a new tab), and ✕ **Not interested**.
+  once it has a price, **Sold ↗** (eBay's sold listings for that title, in a new tab), and ✕ **Hide**. They are square buttons with an icon, so they read as actions
+  beside the round chips that tell you about the listing.
 - **A category isn't a price.** Words like "Electronics" or "Home & Garden" get no page-wide comparison: the
   panel says they're too broad, and each listing can be priced from its own title.
 
@@ -252,7 +253,7 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
 - **Try on Marketplace / Try on eBay** runs your words on the other site.
 
 **On a listing page**: when you saw it before, its price history ("$70 (Sep 30) → $60 (Oct 5) →
-$55 now", with a small line of it), Save, Not interested, and Sold on eBay. How long it's been listed (when the
+$55 now", with a small line of it), Save, Hide, and Sold on eBay. How long it's been listed (when the
 page says), how a saved one moved ("Down $25 (−21%) since you saved it"), and whether the seller may take less
 (price drops, weeks on sale, "moving sale", takes offers). With sold prices known, an **offer**: what to open
 at and when to walk away, worked out from the sales, with a message to the seller you can pick, edit and copy

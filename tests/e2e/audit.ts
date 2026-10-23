@@ -71,7 +71,7 @@ for (const mode of ["dark", "light"]) {
   // saved view: save two, hide one
   await p.ev(`(()=>{})()`);
   await R(p, `[...r.querySelectorAll('.list .row')].slice(0,2).forEach(row=>[...row.querySelectorAll('button')].find(b=>/Save/.test(b.textContent))?.click())`); await sleep(500);
-  await R(p, `[...r.querySelectorAll('.list .row')][2] && [...[...r.querySelectorAll('.list .row')][2].querySelectorAll('button')].find(b=>/Not interested/.test(b.textContent))?.click()`); await sleep(500);
+  await R(p, `[...r.querySelectorAll('.list .row')][2] && [...[...r.querySelectorAll('.list .row')][2].querySelectorAll('button')].find(b=>b.textContent==='Hide')?.click()`); await sleep(500);
   await R(p, `r.querySelector('[data-view=saved]').click()`); await sleep(500);
   await panelShot(p, `${mode}_09_saved`);
   report[mode + "_saved"] = await R(p, `return (${METRICS})(r)`);

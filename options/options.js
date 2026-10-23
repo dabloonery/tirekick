@@ -188,7 +188,7 @@ async function showMemory() {
   const m = Object.keys(listingMemory).length;
   const sv = Object.keys(saved).length + Object.keys(savedSearches).length;
   document.getElementById("memoryInfo").textContent =
-    `${n} listing${n === 1 ? "" : "s"} marked not interested. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops, price history, reposted scams and reused photos (kept 90 days, only in this browser).` +
+    `${n} listing${n === 1 ? "" : "s"} hidden. ${m} listing${m === 1 ? "" : "s"} remembered for "New to you", price drops, price history, reposted scams and reused photos (kept 90 days, only in this browser).` +
     (sv ? ` ${sv} saved (listings and searches), kept until you remove them in the panel.` : "");
 }
 // Shared records change only through the background script, one edit at a time (storeEdit), so an open

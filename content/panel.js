@@ -1285,7 +1285,7 @@
     spendBtn.hidden = !(paidAI || s.month > 0);
     $(".foot").hidden = spendBtn.hidden && $(".model-pick").hidden;
     spendBtn.className = `spend ${level}`;
-    // Kept to a few quiet characters (the maintainer: the tracker is mostly for the owner); the details are in the tooltip and popover.
+    // Kept to a few quiet characters (dabloonery: the tracker is mostly for the owner); the details are in the tooltip and popover.
     spendBtn.replaceChildren("AI: ", usd(s.month));
     spendBtn.title = budget ? `Spent on AI this month: ${usd(s.month)} of your $${budget} budget` : `Spent on AI this month: ${usd(s.month)}`;
     budgetBar.hidden = !budget;

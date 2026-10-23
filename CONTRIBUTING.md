@@ -73,7 +73,7 @@ personal). Please leave out API keys, your address, and other people's names or 
 
 ## How Tirekick is made
 
-The maintainer writes the basis, meaning who it's for, what it does, and the first version of each feature, rule and
+The maintainer, dabloonery, writes the basis, meaning who it's for, what it does, and the first version of each feature, rule and
 piece of wording, then runs it through Claude, Anthropic's AI model, to make it more accurate and efficient. You're
 welcome to use AI tools too. You answer for what you send, so read it, run the tests, and say in the pull request
 if an AI wrote a large part of it. The README has the maintainer's note on AI.

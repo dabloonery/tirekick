@@ -524,6 +524,10 @@ test("the scan prompt's price lines are the cards' (priceWord, TOO_CHEAP)", asyn
   // A listing selling several versions isn't a scam on its own (both prompts).
   for (const base of ["RANK_BASE", "ITEM_BASE"]) assert.match(bg.match(new RegExp(`const ${base} = \`[^\`]+\``))?.[0] || "", /\$\{VERSIONS_RULE\}/, base);
   assert.doesNotMatch(bg, /keyword-stuffed titles/, "no longer a red flag by itself");
+  // Praise for big sellers read as a scam sign for small ones: a new seller's console-only at 47% turned suspicious.
+  const versions = bg.match(/const VERSIONS_RULE = `([^`]+)`/)?.[1] || "";
+  assert.match(versions, /Few ratings alone don't make one likely/);
+  assert.match(versions, /Far lower, or with anything else odd, it's still bait/);
 });
 
 test("forPickup: a pickup listing is compared without the shipping in eBay's totals", () => {

@@ -1747,7 +1747,7 @@
   // comparing totals would invent drops. Auctions aren't tracked for drops: their price only rises.
   let memory = {}; // key -> { p: last price seen, pa: since when, f: first seen, a: last seen, o: first opened, h: earlier [price, since] }
   let notInterested = {}; // key -> { t: title, a: when }
-  let prefs = { filterWords: "", minSellerRatings: 10, minSellerPct: 97, autoMarks: true };
+  let prefs = { filterWords: "", minSellerRatings: 10, minSellerPct: 97, markScams: true, markPrices: true, markOther: true, markLimit: 3 };
   let skipMode = "dim";
   let showHidden = false;
   let facts = new Map(); // key -> facts for this page view
@@ -1768,7 +1768,7 @@
   const loadPrefs = () =>
     send("getSettings")
       .then((s) => {
-        prefs = { filterWords: s.filterWords, minSellerRatings: +s.minSellerRatings || 0, minSellerPct: +s.minSellerPct || 0, autoMarks: s.autoMarks !== false };
+        prefs = { filterWords: s.filterWords, minSellerRatings: +s.minSellerRatings || 0, minSellerPct: +s.minSellerPct || 0, markScams: s.markScams !== false, markPrices: s.markPrices !== false, markOther: s.markOther !== false, markLimit: +s.markLimit || 3 };
       })
       .catch(() => {});
   const prefsReady = loadPrefs();
@@ -1983,16 +1983,19 @@
   };
   const foreignText = (cur) => `Priced in ${cur}, and the typical price is from eBay.com sales in US dollars, so the two aren't compared (no "too cheap" check or price word either).`;
   // The chips a card wears: most useful first, three at most.
-  const chipsFor = (f = {}) => {
+  // Every chip a listing could show, in order, each with its group (TKRules.CHIP_GROUPS). chipsFor keeps the
+  // ones your settings show; onCard for the card on the page, where scam marks can be turned off too.
+  const chipsFor = (f = {}, opts) => TKRules.pickChips(allChips(f), prefs, opts);
+  const allChips = (f = {}) => {
     const c = [];
-    if (showHidden && f.hidden) c.push(["warn", "Hidden"]);
-    else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`]);
-    if (f.deal) c.push(["deal", `At your $${quick.deal}`]);
-    if (f.campaign) c.push(["warn", "Scam: reposted", `Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`]);
-    else if (f.offSite?.sure) c.push(["warn", "Scam: off-site contact", `Asks to talk off the site (${f.offSite.why.join("; ")}). That's how most scams start, and off the site you lose its buyer protection.`]);
-    else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`, `Bulk-posted fakes on Marketplace end the title with a code like ${f.titleCode}, and so do real model numbers: check it's this item's model number.${TKRules.codeBacked(f) ? ` With ${TKRules.codeBacked(f)} as well, it's likely a scam.` : ""}`]);
-    if (f.offSite && !f.offSite.sure && !f.offSiteOk) c.push(["warn", "Contact outside the site?", `Contact details in the listing (${f.offSite.why.join("; ")}). Keep the talk and the payment on the site.`]);
-    if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins)]);
+    if (showHidden && f.hidden) c.push(["warn", "Hidden", null, "state"]);
+    else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`, null, "state"]);
+    if (f.deal) c.push(["deal", `At your $${quick.deal}`, null, "other"]);
+    if (f.campaign) c.push(["warn", "Scam: reposted", `Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`, "scam"]);
+    else if (f.offSite?.sure) c.push(["warn", "Scam: off-site contact", `Asks to talk off the site (${f.offSite.why.join("; ")}). That's how most scams start, and off the site you lose its buyer protection.`, "scam"]);
+    else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`, `Bulk-posted fakes on Marketplace end the title with a code like ${f.titleCode}, and so do real model numbers: check it's this item's model number.${TKRules.codeBacked(f) ? ` With ${TKRules.codeBacked(f)} as well, it's likely a scam.` : ""}`, "scam"]);
+    if (f.offSite && !f.offSite.sure && !f.offSiteOk) c.push(["warn", "Contact outside the site?", `Contact details in the listing (${f.offSite.why.join("; ")}). Keep the talk and the payment on the site.`, "scam"]);
+    if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins), "scam"]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const mk = marketOf(f);
     const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
@@ -2004,37 +2007,37 @@
     // What the scan or Analyze read about why it's cheap (priceVerdict uses it), and what would lift the mark.
     const read = f.url && scored.get(keyOf(f.url))?.cheapWhy;
     const lifts = cheap?.seller || (f.titleCode && !f.codeOk) ? "" : cheap?.level === "far" ? " Analyze can lift this to Fair price if the listing says something is missing or it's a cheaper version." : " A scan that reads a reason in the listing (a flaw, missing parts, a cheaper version) lifts this, no higher than Good price.";
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}${read && read !== "none" ? ` The scan's reading: ${read}.` : ""}${lifts}${safely}`]);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}${read && read !== "none" ? ` The scan's reading: ${read}.` : ""}${lifts}${safely}`, "scam"]);
     // Cheap, and the listing says why (or an established eBay seller): no warning, and no "Great price" either.
     const said = f.vsSold != null && !cheap && !unrelated && TKRules.cheapForReason(f, mk);
-    if (said) c.push(["plain", `Under typical: ${said.why || "established seller"}`, `This is ${said.pct}% of the typical price (${from(mk)}), ${said.why ? `and the listing says why: “${said.why}”. Check the photos show it, and ask about anything else.` : `from a seller with ${f.sellerCount} ratings, ${f.sellerPct}% positive. Read the description for anything missing or wrong.`}${safely}`]);
-    if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`]);
-    else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`]);
+    if (said) c.push(["plain", `Under typical: ${said.why || "established seller"}`, `This is ${said.pct}% of the typical price (${from(mk)}), ${said.why ? `and the listing says why: “${said.why}”. Check the photos show it, and ask about anything else.` : `from a seller with ${f.sellerCount} ratings, ${f.sellerPct}% positive. Read the description for anything missing or wrong.`}${safely}`, "price"]);
+    if (f.drop && f.price != null) c.push(["good", `↓ ${dollars(Math.round((f.drop.from - f.price) * 100) / 100)} since ${shortDate(f.drop.since)}`, null, "other"]);
+    else if (f.wasPrice && f.price != null) c.push(["good", `\u2193 was ${dollars(f.wasPrice)}`, null, "other"]);
     if (f.vsSold != null && !cheap && !said) {
       // Broken ones, likely scams and what a scan called something else: just the number, no "Great price".
       const pw = f.project || unrelated || likelyScam(f) ? null : TKRules.priceWord(f.vsSold);
-      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", working: !!f.project })}`, `Typical price${f.project ? " of a working one" : ""}: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`]);
-    } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`]);
-    else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`]);
-    else if (f.accessory && mk?.median > 0) c.push(["plain", "No price check", `Looks like a game, accessory or part for it (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price. Typical price prices it from its own title.`]);
-    else if (f.foreign && mk?.median > 0) c.push(["plain", "No price check", foreignText(f.foreign)]);
-    else if (f.priceNote) c.push(["plain", "No price check", f.priceNote]);
-    if (f.isNew) c.push(["new", "New to you"]);
+      c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", working: !!f.project })}`, `Typical price${f.project ? " of a working one" : ""}: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`, "price"]);
+    } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`, "price"]);
+    else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`, "price"]);
+    else if (f.accessory && mk?.median > 0) c.push(["plain", "No price check", `Looks like a game, accessory or part for it (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price. Typical price prices it from its own title.`, "price"]);
+    else if (f.foreign && mk?.median > 0) c.push(["plain", "No price check", foreignText(f.foreign), "price"]);
+    else if (f.priceNote) c.push(["plain", "No price check", f.priceNote, "price"]);
+    if (f.isNew) c.push(["new", "New to you", null, "other"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.
-    if (f.project) c.push([lens === "use" ? "plain" : "good", f.project]);
-    if (f.motivated) c.push(["plain", f.motivated]);
-    if (f.sellerWarn) c.push(["warn", f.sellerWarn, `${f.sellerWarn} (your rule: at least ${prefs.minSellerRatings} ratings, ${prefs.minSellerPct}% positive). New and little-rated accounts are where most scams come from.`]);
-    if (f.dup) c.push(["warn", `Same title ×${f.dup}`, `${f.dup} listings on this page share this title or photo: a repost, or one seller with several.`]);
+    if (f.project) c.push([lens === "use" ? "plain" : "good", f.project, null, "other"]);
+    if (f.motivated) c.push(["plain", f.motivated, null, "other"]);
+    if (f.sellerWarn) c.push(["warn", f.sellerWarn, `${f.sellerWarn} (your rule: at least ${prefs.minSellerRatings} ratings, ${prefs.minSellerPct}% positive). New and little-rated accounts are where most scams come from.`, "scam"]);
+    if (f.dup) c.push(["warn", `Same title ×${f.dup}`, `${f.dup} listings on this page share this title or photo: a repost, or one seller with several.`, "scam"]);
     // An auction in its last few hours, especially with no bids, is when bargains happen.
-    if (f.auction && f.hoursLeft != null && f.hoursLeft <= 3) c.push(["new", `Ends in ${f.timeLeft}${f.bids === 0 ? ", no bids" : ""}`]);
-    else if (f.auction) c.push(["plain", `Auction${f.timeLeft ? `, ${f.timeLeft} left` : ""}`]);
-    if (f.lot) c.push(["plain", `Lot of ${f.lot}`]);
-    if (f.bestOffer) c.push(["plain", "Offers"]);
-    return c.slice(0, 3);
+    if (f.auction && f.hoursLeft != null && f.hoursLeft <= 3) c.push(["new", `Ends in ${f.timeLeft}${f.bids === 0 ? ", no bids" : ""}`, null, "other"]);
+    else if (f.auction) c.push(["plain", `Auction${f.timeLeft ? `, ${f.timeLeft} left` : ""}`, null, "other"]);
+    if (f.lot) c.push(["plain", `Lot of ${f.lot}`, null, "other"]);
+    if (f.bestOffer) c.push(["plain", "Offers", null, "other"]);
+    return c;
   };
   // A chip's lead word ("Good price") is set in bold, so it needs no "·" to part it from the number.
   const chipText = (t) => (t.includes(" \u00b7 ") ? [h("b", {}, t.slice(0, t.indexOf(" \u00b7 "))), h("span", { class: "tk-rest" }, ` ${t.slice(t.indexOf(" \u00b7 ") + 3)}`)] : t);
-  const chipEls = (f) => chipsFor(f).map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
+  const chipEls = (f, opts) => chipsFor(f, opts).map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
 
   // Our own buttons sit inside the site's card (on Facebook, inside the link): keep the click ours.
   const own = (fn) => (e) => {
@@ -2111,7 +2114,7 @@
     return { host, cell: cellOf(linkEl), isStatic: getComputedStyle(host).position === "static", imgW: img ? img.getBoundingClientRect().width : 0, hostW: host.getBoundingClientRect().width };
   };
   // What a card's dressing depends on, as a string: when it hasn't changed, the card is left as it is.
-  const sigOf = (key) => JSON.stringify([facts.get(key) || {}, scored.get(key), !!saved[key], showHidden, prefs.autoMarks, lens], (k, v) => (k === "el" ? undefined : v));
+  const sigOf = (key) => JSON.stringify([facts.get(key) || {}, scored.get(key), !!saved[key], showHidden, prefs.markScams, prefs.markPrices, prefs.markOther, prefs.markLimit, lens], (k, v) => (k === "el" ? undefined : v));
   const isDressed = (key, el, base) => {
     const tagged = el.closest("[data-tirekick-key]");
     return !!tagged && tagged.dataset.tirekickKey === key && !!tagged.dataset.tkSig?.startsWith(base) && (tagged.dataset.tkHas !== "1" || !!tagged.querySelector(":scope > .tirekick-sticker, :scope > .tirekick-marks"));
@@ -2152,7 +2155,10 @@
     // A price warning ("Great price, if it's real") is its own value: Skipped's Hide leaves it on the page,
     // as the list does (skipV), so the page and the panel never disagree about what's hidden.
     const sv = it && shownV(it, f);
-    if (it || likelyScam(f)) cell.setAttribute("data-tk-v", it ? (sv.priceWarn ? "pricewarn" : sv.v) : "suspicious");
+    // A likely scam with no score yet is grayed (and follows Skipped) only while its marks show on the card:
+    // never gray with no reason on it.
+    const scamHere = !it && prefs.markScams && likelyScam(f);
+    if (it || scamHere) cell.setAttribute("data-tk-v", it ? (sv.priceWarn ? "pricewarn" : sv.v) : "suspicious");
     else cell.removeAttribute("data-tk-v");
     // Clear the whole cell, not just this host: on Facebook the host can be a different box than
     // last time (layout settles after load), and old marks left on the other one made two layers.
@@ -2191,7 +2197,7 @@
       node.addEventListener("focusout", () => cell.removeAttribute("data-tk-lift"));
       return node;
     };
-    fadeParts(cell, host, it ? skipV(shownV(it, f)) : likelyScam(f));
+    fadeParts(cell, host, it ? skipV(shownV(it, f)) : scamHere);
     if (it) {
       it.el = linkEl;
       host.setAttribute("data-tirekick", shownV(it, f).v);
@@ -2200,12 +2206,11 @@
       return;
     }
     host.removeAttribute("data-tirekick");
-    if (!prefs.autoMarks && !(showHidden && (f.hidden || f.filtered))) return;
-    const chips = chipEls(f);
+    const chips = chipEls(f, { onCard: true });
     if (showHidden && f.hidden) chips.push(h("button", { class: "tk-btn", onclick: own(() => setInterested(key, true)) }, "Undo"));
     else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Typical price or Sold / Hide appear when you hover the card
     // The warnings' reasons, on hover or focus: a "Likely scam?" says why without a scan.
-    const whys = chipsFor(f).filter(([kind, , why]) => kind === "warn" && why).map(([, , why]) => why);
+    const whys = chipsFor(f, { onCard: true }).filter(([kind, , why]) => kind === "warn" && why).map(([, , why]) => why);
     host.append(fit(h("div", { class: `tirekick-marks` }, chips, whys.length ? h("div", { class: "tk-why" }, whys.map((w) => h("p", {}, w))) : null)));
     host.dataset.tkHas = "1";
   };
@@ -2743,8 +2748,8 @@
     const CAMERA = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
     const sub = lensLine(item);
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
-    const under = chipsFor(f)
-      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t) && !(v.priceWarn && /^(Likely scam|Too cheap)\?/.test(t)))
+    const under = TKRules.pickChips(allChips(f)
+      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t) && !(v.priceWarn && /^(Likely scam|Too cheap)\?/.test(t))), prefs, { onCard: true })
       .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
     if (item.photoAdjust) {
       const chip = h("span", { class: "tk-chip", title: "Photo check" }, signed(item.photoAdjust));
@@ -3679,7 +3684,7 @@
   // Settings changed in another tab or the options page: filters and seller rules apply straight away.
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
-    if (["filterWords", "minSellerRatings", "minSellerPct", "autoMarks"].some((k) => changes[k])) loadPrefs().then(redecorateAll);
+    if (["filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit"].some((k) => changes[k])) loadPrefs().then(redecorateAll);
     if (changes.feePct) showFee();
     if (changes.notInterested && !changes.notInterested.newValue) {
       notInterested = {};

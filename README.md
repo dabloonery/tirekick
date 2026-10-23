@@ -268,7 +268,10 @@ turned into this line. Hidden and filtered listings are never sent to a model. *
 (in a tag's hover card or the listing view) runs a reverse image search, to catch photos lifted
 from elsewhere.
 
-Turn off "Mark cards before you scan" in settings to keep cards untouched until you scan.
+**Which marks show** (settings, Filters and marks): scam marks, price words and the other marks (new to you,
+drops, auctions, lots) each have a switch, and **Marks per listing** can be 1 (scam marks always come first).
+With price words and other marks off, cards carry only scam warnings. Scam marks can be turned off on the cards
+too, after a confirm; the panel's list and the listing page still warn, and a likely scam is no longer grayed out.
 
 ## Model and cost
 

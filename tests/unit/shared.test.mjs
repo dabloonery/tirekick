@@ -353,3 +353,15 @@ test("photoIndex finds every photo photoTwins would, from a short list", async (
   assert.ok(found > 100, `the photos include near copies to find (${found})`);
   assert.equal(index.near("").size, 0);
 });
+
+test("upgradeStorage: the old one switch for card marks becomes a switch per kind, scam marks on", () => {
+  const off = S.upgradeStorage({ autoMarks: false });
+  assert.deepEqual([off.set.markPrices, off.set.markOther, off.set.markScams, off.set.marksBack], [false, false, undefined, true], "off: scam marks come back, the rest stay off, and Home says so once");
+  assert.ok(off.remove.includes("autoMarks"));
+  const on = S.upgradeStorage({ autoMarks: true });
+  assert.deepEqual([on.set, on.remove], [{}, ["autoMarks"]], "on: nothing to carry over");
+  assert.deepEqual(S.marksFromOld(undefined), {}, "a backup without it takes nothing");
+  assert.equal(S.cleanSetting("markLimit", 1), 1);
+  assert.equal(S.cleanSetting("markLimit", 9), 3, "clamped");
+  assert.equal(S.cleanSetting("markScams", "no"), undefined);
+});

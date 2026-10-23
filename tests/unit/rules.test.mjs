@@ -718,3 +718,15 @@ test("tooCheap by site: Marketplace sellers pay no eBay fee, established eBay se
   assert.equal(R.priceVerdict("good", coded, m).v, "suspicious");
   assert.equal(R.priceVerdict("good", { ...coded, codeOk: true }, m).v, "good");
 });
+
+test("pickChips: each kind of mark follows its switch, scam marks lead, and only cards can drop them", () => {
+  const chips = [["deal", "At your $50", null, "other"], ["good", "Good price · $20 below typical", "", "price"], ["warn", "Code in title: AB12", "why", "scam"], ["new", "New to you", null, "other"], ["warn", "Filtered: “repro”", null, "state"]];
+  const texts = (list) => list.map((c) => c[1]);
+  assert.deepEqual(texts(R.pickChips(chips)), ["Filtered: “repro”", "Code in title: AB12", "At your $50"], "why it's hidden, then the warning, then the rest in order");
+  assert.deepEqual(texts(R.pickChips(chips, { markLimit: 1 })), ["Filtered: “repro”"]);
+  assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markLimit: 1 })), ["Code in title: AB12"], "one chip: the scam mark, never a price word");
+  assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markPrices: false, markOther: false })), ["Code in title: AB12"], "scam check only");
+  assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markScams: false }, { onCard: true })), ["At your $50", "Good price · $20 below typical", "New to you"]);
+  assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markScams: false })), ["Code in title: AB12", "At your $50", "Good price · $20 below typical"], "the panel and listing page keep the warning");
+  assert.equal(R.pickChips(chips, { markLimit: 0 }).length, 3, "a bad limit is the default");
+});

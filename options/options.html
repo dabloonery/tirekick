@@ -139,7 +139,7 @@
 
   <section id="sec-filters">
     <details>
-    <summary><h2>Filters and marks</h2><span class="hint">Words to filter by, seller warnings, card marks</span></summary>
+    <summary><h2>Filters and marks</h2><span class="hint">Words to filter by, seller warnings, which marks show</span></summary>
     <p class="hint">Plain checks that run on every results page before any AI: nothing here costs anything, and listings they hide are never sent to a model.</p>
     <div class="field">
       <label for="filterWords">Always filter by these words</label>
@@ -151,9 +151,23 @@
       <div class="pair" role="group" aria-labelledby="sellerLabel"><input autocomplete="off" id="minSellerRatings" aria-label="Fewest ratings" type="number" min="0" max="100000"> <span>ratings, or under</span> <input autocomplete="off" id="minSellerPct" aria-label="Lowest percent positive" type="number" min="0" max="100" step="0.1"> <span>% positive</span></div>
       <span class="hint">eBay only (Marketplace cards don't show ratings).</span>
     </div>
+    <p class="hint">Marks are the small chips on each listing, before any scan. Choose which kinds show.</p>
     <div class="field check">
-      <input id="autoMarks" type="checkbox">
-      <label for="autoMarks">Mark cards before you scan<span class="hint">Scam signs, "New to you", price drops since you last saw a listing, seller warnings, duplicates, auctions and lots, as small chips on each card.</span></label>
+      <input id="markScams" type="checkbox">
+      <label for="markScams">Scam marks on cards<span class="hint">Reposted under new codes, codes in titles, contact off the site, the same photo as other listings, "Too cheap?" and "Likely scam?", seller warnings and the same title twice. Off, cards say nothing about scams, but the panel's list and the listing page still warn.</span></label>
+    </div>
+    <div class="field check">
+      <input id="markPrices" type="checkbox">
+      <label for="markPrices">Price words<span class="hint">Great, Good or Fair price, Above typical, and why a listing is under typical. Needs "Compare prices with recent eBay sales".</span></label>
+    </div>
+    <div class="field check">
+      <input id="markOther" type="checkbox">
+      <label for="markOther">Other marks<span class="hint">"New to you", price drops since you last saw a listing, at your price, auctions ending soon, lots, offers, and broken or untested.</span></label>
+    </div>
+    <div class="field">
+      <label for="markLimit">Marks per listing</label>
+      <select id="markLimit"><option value="3">Up to 3</option><option value="1">Just 1, the most important</option></select>
+      <span class="hint">Scam marks always come first, so with just 1 a warning is the one you see.</span>
     </div>
     <div class="field">
       <span class="hint" id="memoryInfo"></span>

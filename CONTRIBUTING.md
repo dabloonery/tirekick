@@ -78,6 +78,10 @@ piece of wording, then runs it through Claude, Anthropic's AI model, to make it 
 welcome to use AI tools too. You answer for what you send, so read it, run the tests, and say in the pull request
 if an AI wrote a large part of it. The README has the maintainer's note on AI.
 
+## Security
+
+Report a vulnerability privately through the Security tab on GitHub: see [SECURITY.md](SECURITY.md).
+
 ## License
 
 Tirekick is under the [Apache License 2.0](LICENSE). By sending a pull request you agree that your contribution is

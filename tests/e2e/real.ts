@@ -66,7 +66,7 @@ ok("bait at 35% of typical is Too cheap? on a reference from 10 sales", /Too che
 ok("a game named after the console gets no price check, so no scam mark", /No price check/.test(card(free, "Mario Kart").chips.join()) && !/Too cheap|Likely scam/.test(card(free, "Mario Kart").chips.join()), card(free, "Mario Kart"));
 ok("a case for it gets no price check", /No price check/.test(card(free, "Nintendo Switch OLED carrying case").chips.join()), card(free, "Nintendo Switch OLED carrying case"));
 ok("a console sold \"+ 3 games + case\" is priced as a console", /above typical/.test(card(free, "Nintendo Switch OLED white + 3").chips.join()), card(free, "Nintendo Switch OLED white + 3"));
-ok("a contact-me-on-WhatsApp post is a scam, with no \"Great price\" beside it", /Scam: off-site contact/.test(card(free, "Nintendo Switch OLED white text me").chips.join()) && !PRAISE.test(card(free, "Nintendo Switch OLED white text me").chips.join()), card(free, "Nintendo Switch OLED white text me"));
+ok("a contact-me-on-WhatsApp post is a scam, with no \"Great price\" beside it", /Scam\? Off-site contact/.test(card(free, "Nintendo Switch OLED white text me").chips.join()) && !PRAISE.test(card(free, "Nintendo Switch OLED white text me").chips.join()), card(free, "Nintendo Switch OLED white text me"));
 ok("a for-parts one isn't too cheap and gets no price word", !/Too cheap|Likely scam|Great price|Good price/.test(card(free, "Nintendo Switch OLED for parts").chips.join()), card(free, "Nintendo Switch OLED for parts"));
 ok("…and is set against working ones, saying so", /\$\d+ below working ones/.test(card(free, "Nintendo Switch OLED for parts").chips.join()) && /typical price of a working one/.test(row(freeRows, "Nintendo Switch OLED for parts").meta), [card(free, "Nintendo Switch OLED for parts").chips, row(freeRows, "Nintendo Switch OLED for parts").meta]);
 // Each warning says why on the card itself (hover or focus), not only in a tooltip.
@@ -104,7 +104,7 @@ const same = (x: any) => afterRows.find((r: any) => r.title === x.title) || {};
 ok("each card and its row say the same", tagged.every((x: any) => same(x).tag?.[0] === x.v && same(x).tag?.[1] === x.score), tagged.map((x: any) => [x.title.slice(0, 30), x.v, x.score, same(x).tag]));
 const bait = card(after, "Nintendo Switch OLED console - fast");
 ok("the model's 91 \"great\" on the bait shows as a warning with a warning's number", bait.v === "suspicious" && bait.score <= 30 && /if it’s real/.test(bait.word), bait);
-ok("…without the too-cheap chip its label already says", !/Likely scam\?|Too cheap\?/.test(bait.chips.join()), bait.chips);
+ok("…without the too-cheap chip its label already says", !/Likely scam: typical|Too cheap\?/.test(bait.chips.join()), bait.chips);
 ok("…and its hover says why, and what the scan said", /usual bait/.test(bait.popText) && /The scan said Great deal \(91\)/.test(bait.popText), bait.popText);
 ok("the bait doesn't head the list", afterRows[0]?.tag?.[0] !== "suspicious", afterRows.map((x: any) => x.tag));
 const dear = card(after, "Nintendo Switch OLED 64GB White - NEW SEALED");

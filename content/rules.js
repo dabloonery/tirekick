@@ -192,7 +192,7 @@
     return kept.slice(0, Math.max(1, Math.min(3, Math.round(markLimit) || 3))).map(([c]) => c);
   };
   // The three focuses at the top of settings, as the switches they set. Scam marks stay on in every one,
-  // and so do the eBay sold lookups the "Too cheap?" and "Likely scam?" marks need. Marks per listing is
+  // and so do the eBay sold lookups the "Too cheap?" and "Likely scam: typical is…" marks need. Marks per listing is
   // its own choice. focusOf names the focus a set of settings matches, or "custom".
   R.FOCUS = {
     everything: { markScams: true, markPrices: true, markOther: true, useAI: true, useSoldComps: true },

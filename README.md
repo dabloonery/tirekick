@@ -7,10 +7,10 @@ Kick the tires before you buy.
 
 A browser extension for buying on secondhand marketplaces, starting with eBay and Facebook Marketplace. It puts a small
 score tag on every listing you're looking at, compares prices with what the same thing actually
-sold for, flags likely scams, and remembers what you've already seen. An AI you choose (any
-service you have a key for, such as Anthropic, Google Gemini, OpenAI or OpenRouter, or a free model on
-your own computer) does the judging; a lot of the useful parts don't
-need a model at all.
+sold for, flags likely scams, and remembers what you've already seen. The price checks and scam marks are
+plain rules and real eBay sales, free and without the AI. An AI you choose (any service you have a key for,
+such as Anthropic, Google Gemini, OpenAI or OpenRouter, or a free model on your own computer) can add a score
+and a write-up for each listing; it's optional and off until you turn it on.
 
 It only works on pages you're looking at, when you ask. Nothing browses or checks prices in the
 background.
@@ -80,7 +80,7 @@ code on the end of the title: "Nintendo Game Boy Advance SP M2465", "Halo Specia
 S1337". Tirekick watches for it:
 
 - **Reposted under new codes**: the same title seen with two different codes, on one page or any
-  page in the last month, is marked "Scam: reposted" and grayed out right away,
+  page in the last month, is marked "Scam? Reposted" and grayed out right away,
   with no model and no key needed. A scan marks these Likely scam without sending them to the model.
 - **Code in title**: a lone code gets a chip and counts as a likely scam right away: grayed out,
   last in every sort, never a deal at your price. A scan spells it out for the model, which marks
@@ -114,7 +114,7 @@ scam warning stays readable.
 - **Click a title** in the panel to jump to that card. If the panel would cover it, it tucks
   away and the card flashes.
 - **Sort** the list by best (what you searched for first), cheapest, furthest under the sold
-  price, auctions ending soonest, biggest margin, or new and cheaper first.
+  price, auctions ending soonest, biggest price gap, or new and cheaper first.
 - **Skipped listings and likely scams are grayed out** on the page; switch to Show, Dim or Hide with
   **Skips and scams** above the list.
 - **Before any scan, each row has a free read**: Great, Good or Fair price, or Above typical, from the sold
@@ -144,15 +144,15 @@ scam warning stays readable.
 | Mode | Scores high | The tag shows |
 |---|---|---|
 | **Buyer** | Working items for yourself at a good price; "for parts" and "as is" are marked down | How the price compares with sold ones |
-| **Reseller** | Projects: an easy, cheap fix, a resale margin after selling fees and parts, or both; broken and untested ones are welcome | "Easy fix · ≈ $16 margin", or "≈ $26 margin" for one that works; the likely fault on hover |
+| **Reseller** | Projects: an easy, cheap fix, a price gap after selling fees and parts, or both; broken and untested ones are welcome | "Easy fix, ≈ $16 gap after fees", or "≈ $26 gap after fees" for one that works; the likely fault on hover |
 
 Reseller adds a **Selling fees (%)** box (the same setting as in settings) and sorts by **biggest
-margin** to start with. Reseller knows the usual faults for electronics and consoles (dirty cartridge
+price gap** to start with. Reseller knows the usual faults for electronics and consoles (dirty cartridge
 connectors, tired capacitors, worn disc drives…); "What you're
 into" in settings steers that, and the rules of thumb live in `FIX_KNOWLEDGE` in
 `background.js`. On a listing page it adds a repair plan: likely faults, parts, tools,
 difficulty. Repair guesses come from the listing text only: use them to decide what to ask the
-seller, not as a diagnosis. Set the selling fees to your category's fee so margins are real.
+seller, not as a diagnosis. Set the selling fees to your category's fee so price gaps are real.
 
 The filter bar's broken-listing switch follows the mode: **Hide broken** in Buyer, **Broken only**
 in Reseller (for when you only want fix-ups).
@@ -167,7 +167,7 @@ in Reseller (for when you only want fix-ups).
   paid), lots, for-parts ones listed as used, titles missing a model number from the search, and
   far-off prices. Each price says how far to trust it: from few sales or a wide spread it's shown as
   "~$58 · a rough guide". See `docs/accuracy-audit.md`.
-- **Margins** (Reseller) are the sold price less eBay's fee, the shipping buyers paid on those
+- **Price gaps** (Reseller) are the sold price less eBay's fee, the shipping buyers paid on those
   sales (what you'd pay to send it on), likely parts and the price; the hover card spells it out.
   Before sales tax and your time.
 - The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
@@ -198,7 +198,7 @@ sent to any AI service. Turn it on to add them; turning it off again keeps your 
   (with shipping) is from the typical price (the middle of recent eBay sales), in dollars: "Good price · $53
   below typical", "$20 above typical", "about typical". Pointing at it says where "typical" comes from. Lots
   and auctions are left out.
-- **Too cheap**: under 40% of a trusted typical price reads "Likely scam? Typical is $300", under 55%
+- **Too cheap**: under 40% of a trusted typical price reads "Likely scam: typical is $300", under 55%
   "Too cheap? Typical is $300" (not for broken ones, lots or auctions, and not when the sold prices are
   only a rough guide).
 - **Price drops**: "↓ $15 since Oct 3" when a listing you've seen got cheaper. On Marketplace, a listing the seller has marked down also says "↓ was $180" right away.
@@ -290,7 +290,7 @@ today, this month, last month and each model's cost per call. Set a monthly budg
 paid AI stops when it's reached.
 
 The **Scan** button says how many listings it would send and about what that costs ("Scan 48
-listings · about $0.26"), from what scoring has actually cost you per listing with that model.
+listings under 1¢" with Haiku 5.5, about $0.13 with Sonnet 5.5), from what scoring has actually cost you per listing with that model.
 **Stop** appears beside the status line while the model works (scans, analyses, photo checks,
 ideas): nothing new is sent, requests under way are canceled, and what already came back stays.
 

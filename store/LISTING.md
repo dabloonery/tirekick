@@ -17,7 +17,7 @@ Everything the store's forms ask for. Upload `dist/tirekick-<version>.zip` from 
 
 Don't list AI services by name here: the store rejected 0.50.0 for keyword spam over that list (2026-10-16). The site and README can name them.
 
-**Beta:** Tirekick is new and still improving. If something looks wrong on a page, or a store changes and Tirekick stops reading it, tell us at support@tirekick.app.
+**Beta:** Tirekick is new and still improving. If something looks wrong on a page, or a store changes and Tirekick stops reading it, write to support@tirekick.app.
 
 **Kick the tires before you buy.** Is it a good price? Is it a scam?
 
@@ -25,7 +25,7 @@ Tirekick looks over listings with you on secondhand marketplaces, where you alre
 
 Tirekick has optional AI features. The checks below are free and work without them; turn on an AI only if you want scores and write-ups.
 
-**Works without AI: free, no account**
+**Works without the AI: free, no account**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
 • How far below or above the typical price each card is ("$53 below typical", from recent eBay sales) once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
@@ -40,7 +40,7 @@ Tirekick has optional AI features. The checks below are free and work without th
 • Search ideas: the misspellings sellers make, other model names, tighter or looser words
 • Optional: scan new listings automatically as a search page you're looking at loads them, up to your monthly budget
 
-**It only looks when you do.** Tirekick works on the page in front of you, when you ask (or, if you turn on automatic scanning, as the search you're looking at loads). Nothing browses or checks prices in the background. Everything it keeps stays in your browser, and the only things sent anywhere go to the AI service you picked, because you pressed a button. Bring your own API key: a scan of 50 listings with a small model usually costs less than a cent.
+**It only looks when you do.** Tirekick works on the page in front of you, when you ask (or, if you turn on automatic scanning, as the search you're looking at loads). Nothing browses or checks prices in the background. Everything it keeps stays in your browser, and the only things sent anywhere go to the AI service you picked and to eBay's own sold-listings search, because you pressed a button. Bring your own API key: a scan of 50 listings with a small model usually costs less than a cent.
 
 Scores, prices, price gaps and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.
 

@@ -954,7 +954,7 @@ choice at the top of settings, without making the scam check easier to lose by a
 
 | Setting (`background.js` `DEFAULTS`) | Where | What it does |
 |---|---|---|
-| `useSoldComps` (on) | Settings, On the page | eBay sold lookups, so every price word and the "Too cheap?" and "Likely scam?" price marks |
+| `useSoldComps` (on) | Settings, On the page | eBay sold lookups, so every price word and the "Too cheap?" and "Likely scam: typical is…" price marks |
 | `autoMarks` (on) | Settings, Filters and marks | All chips on cards before a scan: scam marks, price words, New to you, drops, auctions, lots, seller warnings |
 | `showTab` (on) | Settings, On the page | The slim tab on store pages; off, Tirekick loads only from the toolbar icon |
 | `autoScan` (off) | Settings and the panel | AI scores new listings as they load |
@@ -976,7 +976,7 @@ by side with the current one outlined:
 | Focus | What you see | What stays off |
 |---|---|---|
 | **Everything** (default, today's behavior) | Scam marks, price words, every other mark, AI parts once an AI is set up | Nothing |
-| **Scam check only** | Scam marks on cards (reposted, code in title, off-site contact, same photo, "Too cheap?" and "Likely scam?", seller warnings, same title), the panel's list, Save and Hide on hover | Price words ("Good price", "Above typical"), New to you, drops, auctions, lots, offers, the offer helper, AI parts |
+| **Scam check only** | Scam marks on cards (reposted, code in title, off-site contact, same photo, "Too cheap?" and "Likely scam: typical is…", seller warnings, same title), the panel's list, Save and Hide on hover | Price words ("Good price", "Above typical"), New to you, drops, auctions, lots, offers, the offer helper, AI parts |
 | **No AI** | Everything that works without the AI | Scan, auto-scan, Analyze's AI verdict, Search ideas, the photo check menu, the quality menu and spending in the footer |
 
 Under the cards, a fold **Choose each part** holds the switches the focuses are made of. Changing one makes the
@@ -1002,7 +1002,7 @@ focus read **Custom**; picking a focus sets the switches again. The switches:
 - **The judging doesn't change.** `content/rules.js` and the prompts run the same in every focus: `likelyScam`,
   `tooCheap`, `priceVerdict` and the eval (`tests/eval/`) give the same answers. A focus only changes what's drawn,
   so the eval numbers stay as they are.
-- **Scam check only keeps the eBay sold lookups.** "Too cheap?" and "Likely scam?" from price are among the
+- **Scam check only keeps the eBay sold lookups.** "Too cheap?" and "Likely scam: typical is…" from price are among the
   strongest signs, and they need a typical price. The price itself just isn't shown as a word unless it's a
   warning. Someone who turns `useSoldComps` off in the fold gets a one-line note that price-based scam marks stop too.
 - `markLimit` 1 keeps the order `chipsFor` already uses: scam marks first, so the one chip left is the warning.

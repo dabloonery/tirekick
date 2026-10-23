@@ -60,9 +60,8 @@ wait for 1.0.0.
 - [x] Scrub personal paths from the docs (the home-folder path in REFERENCE's rename notes, removed in 0.37.0).
 - [x] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL;
       the disclaimer and trademark note moved to `NOTICE`, which ships in the store zip). 2026-10-22.
-- [ ] Personal email in the commit history: 25 early commits on `main` (2026-10-11 to 2026-10-13) still carry it in
-      the author field (rechecked 2026-10-23; the 2026-10-22 check missed them). Removing it means rewriting history;
-      see [Brand over personal name](#brand-over-personal-name), step 1. The maintainer's call.
+- [x] Personal email and name in the commit history: settled 2026-10-23, the maintainer chose to leave old commits
+      as they are (no history rewrite). 25 early commits (2026-10-11 to 2026-10-13) carry the email; new commits must not.
 - [x] Check again that no keys, tokens or private details are in the files or the history (2026-10-22: a pattern
       search of every commit found no API keys, tokens or private keys).
 
@@ -89,20 +88,16 @@ Audit of both repos and the accounts around them:
 | Code comments (`rules.js`, `theme.js`, `panel.js`) | a personal name | Done in 0.42.2 |
 | Website repo `tirekick-site` | "© 2026 Tirekick™", support@tirekick.app, no personal details, commits by Claude and GitHub noreply addresses only | Clean (rechecked 2026-10-23) |
 | Store listing, privacy policy, site contact | support@tirekick.app | Clean, once the mailbox forwards |
-| Main repo commit history | a personal email on 25 early commits (author field), and the old first name in some commit messages and diffs | Open: the maintainer, step 1 |
+| Main repo commit history | a personal email on 25 early commits (author field), and the old first name in some commit messages and diffs | Settled 2026-10-23: left as is (the maintainer's choice) |
 | GitHub owner `dabloonery` | in both repo addresses and as the author of every merge | The maintainer, step 2 |
 | Chrome Web Store publisher name and contact email | not set yet | The maintainer, step 3 |
 | Internal notes (`AGENTS.md`, this file, `REFERENCE.md`, `store/SECURITY-REVIEW.md`, code comments) | a first name as the decision maker | Done 2026-10-23: "the maintainer" |
 
 Steps for the maintainer, in order. None of these can be done from the project, and steps 1 and 2 can't be undone:
 
-1. **Commit history (open; rechecked 2026-10-23: 25 commits still carry the personal email).** **(recommended: publish a clean copy, don't rewrite this repo).** At 1.0.0, rather than
-   making this repository public, push a copy whose history has the personal email swapped for GitHub's
-   private address (`118295889+dabloonery@users.noreply.github.com`) to a new public repo, and keep this one
-   private. Rewriting this repo in place also works, but GitHub keeps old pull requests' commits, so the email
-   would still be reachable through them. Either way, first turn on GitHub's Settings, Emails, "Keep my email
-   address private" and "Block command line pushes that expose my email", and set that private address as
-   `git config --global user.email` on your computer. Claude can prepare the clean copy when you say so.
+1. ~~**Commit history**~~ Settled 2026-10-23: old commits stay as they are, no rewrite (the maintainer). For new
+   commits, keep GitHub's Settings, Emails, "Keep my email address private" and "Block command line pushes that
+   expose my email" on, and use the GitHub noreply address as `git config --global user.email`.
 2. **GitHub owner (recommended: a free "tirekick" organization, not a second account).** An organization
    you own keeps one login (no second password or two-factor setup), GitHub redirects the old addresses,
    and your personal account only shows if someone opens the members list (set your membership to

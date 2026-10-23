@@ -329,7 +329,7 @@ async function showStatus() {
   let ready = false, title, text;
   if (s.useAI === false) {
     ready = true;
-    title = "Ready: price checks and scam marks, no AI";
+    title = "Ready: price checks and scam marks (your AI is off)";
     text = "Your AI is turned off, so nothing is sent to any AI service. Turn it back on under AI scores.";
   } else if (!chosen) {
     ready = true; // the price checks, scam marks and filters need no AI

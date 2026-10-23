@@ -23,7 +23,7 @@ ok("nothing reached the AI service", (await calls()).length === 0, JSON.stringif
 
 await o.ev(`location.reload()`); await sleep(1200);
 const title = await o.ev(`document.getElementById('statusTitle').textContent`);
-ok("settings say there's no AI, and fold the AI section to its switch", /no AI/.test(title) && !(await o.ev(`document.getElementById('service').closest('.field').getClientRects().length`)) && !!(await o.ev(`document.getElementById('useAI').getClientRects().length`)), title);
+ok("settings say your AI is off, and fold the AI section to its switch", /your AI is off/.test(title) && !(await o.ev(`document.getElementById('service').closest('.field').getClientRects().length`)) && !!(await o.ev(`document.getElementById('useAI').getClientRects().length`)), title);
 
 await o.ev(`chrome.storage.local.set({useAI:true, autoScan:false})`); await sleep(1200);
 ok("turned back on, Scan is back with the setup kept", (await sh(a, `return ${shown("[data-act=scan]")}`)) === true);

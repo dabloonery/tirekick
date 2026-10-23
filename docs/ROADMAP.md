@@ -60,8 +60,10 @@ wait for 1.0.0.
 - [x] Scrub personal paths from the docs (the home-folder path in REFERENCE's rename notes, removed in 0.37.0).
 - [x] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL;
       the disclaimer and trademark note moved to `NOTICE`, which ships in the store zip). 2026-10-22.
-- [x] Personal email and name in the commit history: settled 2026-10-23, dabloonery chose to leave old commits
-      as they are (no history rewrite). 25 early commits (2026-10-11 to 2026-10-13) carry the email; new commits must not.
+- [x] Personal email and name in the commit history: rewritten 2026-10-23 (dabloonery's call). Every commit is now
+      by dabloonery (GitHub noreply address) or Claude, and messages and old files say dabloonery. A backup bundle of the
+      old history is on dabloonery's computer. GitHub's closed-PR refs still point at the old commits until GitHub
+      Support purges them.
 - [x] Check again that no keys, tokens or private details are in the files or the history (2026-10-22: a pattern
       search of every commit found no API keys, tokens or private keys).
 
@@ -88,16 +90,17 @@ Audit of both repos and the accounts around them:
 | Code comments (`rules.js`, `theme.js`, `panel.js`) | a personal name | Done in 0.42.2 |
 | Website repo `tirekick-site` | "© 2026 Tirekick™", support@tirekick.app, no personal details, commits by Claude and GitHub noreply addresses only | Clean (rechecked 2026-10-23) |
 | Store listing, privacy policy, site contact | support@tirekick.app | Clean, once the mailbox forwards |
-| Main repo commit history | a personal email on 25 early commits (author field), and the old first name in some commit messages and diffs | Settled 2026-10-23: left as is (dabloonery's choice) |
+| Main repo commit history | was a personal email on 25 early commits and a first name in messages and files | Rewritten 2026-10-23; old PR refs remain until GitHub Support purges them |
 | GitHub owner `dabloonery` | in both repo addresses and as the author of every merge | dabloonery, step 2 |
 | Chrome Web Store publisher name and contact email | not set yet | dabloonery, step 3 |
 | Internal notes (`AGENTS.md`, this file, `REFERENCE.md`, `store/SECURITY-REVIEW.md`, code comments) | a first name as the decision maker | Done 2026-10-23: "dabloonery" |
 
 Steps for dabloonery, in order. None of these can be done from the project, and steps 1 and 2 can't be undone:
 
-1. ~~**Commit history**~~ Settled 2026-10-23: old commits stay as they are, no rewrite (dabloonery). For new
-   commits, keep GitHub's Settings, Emails, "Keep my email address private" and "Block command line pushes that
-   expose my email" on, and use the GitHub noreply address as `git config --global user.email`.
+1. ~~**Commit history**~~ Rewritten 2026-10-23 with git filter-repo and force-pushed (backup bundle kept). Left to do,
+   optional: ask GitHub Support to remove cached views and dangling commits for this repo, which clears the old
+   commits still reachable from closed PRs. For new commits, keep GitHub's "Keep my email address private" and
+   "Block command line pushes that expose my email" on, and use the noreply address as `git config --global user.email`.
 2. **GitHub owner (recommended: a free "tirekick" organization, not a second account).** An organization
    you own keeps one login (no second password or two-factor setup), GitHub redirects the old addresses,
    and your personal account only shows if someone opens the members list (set your membership to

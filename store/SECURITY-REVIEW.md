@@ -142,14 +142,14 @@ it. The privacy page says keys stay in the browser profile. **No change needed.*
 ## Housekeeping before submission (not security)
 
 - ~~`homepage_url` points at the old repo~~: it is `https://tirekick.app` since 0.42.1.
-- The privacy policy and listing use support@tirekick.app, which goes live once dabloonery sets up the tirekick.app domain and mailbox.
+- The privacy policy and listing use support@tirekick.app, which goes live once the maintainer sets up the tirekick.app domain and mailbox.
 - The 128 px icon is a full-bleed navy tile. The store's guidelines suggest 96 px of artwork inside
   16 px of transparent padding for the store tile; the current one is acceptable but will look a little
   larger than neighbors in search results.
 
 ## Vivaldi and other Chromium browsers
 
-dabloonery uses Vivaldi day to day. Tirekick should behave the same there, because it only uses the standard
+The maintainer uses Vivaldi day to day. Tirekick should behave the same there, because it only uses the standard
 Chromium extension APIs: `storage`, `scripting`, `contextMenus`, `action`, `permissions`, `tabs`,
 `windows`, `runtime` and `commands`. It doesn't use the Chrome-only or Google-only APIs that other
 browsers leave out: no `sidePanel` (the panel is drawn inside the page), `offscreen`, `identity`, Google
@@ -168,7 +168,7 @@ A few things that are Vivaldi's own UI rather than the extension, worth a look i
 | "Check this photo with Tirekick" | Standard page right-click menu | Right-click a listing photo on eBay |
 | "Look up … on eBay and Marketplace" | Standard right-click menu on selected text | Select a product name on any site and right-click |
 
-This part wasn't tested in Vivaldi here; the automated tests run in Chromium. dabloonery's daily use of the
+This part wasn't tested in Vivaldi here; the automated tests run in Chromium. The maintainer's daily use of the
 unpacked build already covers most of it. The checklist has a step to repeat these checks on the store
 build.
 

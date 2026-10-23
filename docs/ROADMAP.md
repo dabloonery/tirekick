@@ -6,15 +6,15 @@ and briefs for new features. Voice, the rename plan and the security review are 
 
 ## Contents
 
-- [Where things stand](#where-things-stand) (2026-10-22: each plan's state, and what waits on dabloonery)
+- [Where things stand](#where-things-stand) (2026-10-22: each plan's state, and what waits on the maintainer)
 - [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone) (2026-10-15)
 - [Public beta launch](#public-beta-launch) (decided 2026-10-15: launch as a public beta before 1.0.0)
 - [Honest low prices](#honest-low-prices) (2026-10-21: honest cheap listings marked as scams; the order of PRs)
-- [After real use (2026-10-16)](#after-real-use-2026-10-16) (0.50.2 fixes, and design changes for dabloonery to pick)
+- [After real use (2026-10-16)](#after-real-use-2026-10-16) (0.50.2 fixes, and design changes for the maintainer to pick)
 - [Chrome Web Store: each upload](#chrome-web-store-each-upload)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
 - [Tirekick feature briefs](#tirekick-feature-briefs)
-  - [Brief 1: Alerts on saved searches](#brief-1-alerts-on-saved-searches) (dabloonery chose options 1 and 2; not built yet)
+  - [Brief 1: Alerts on saved searches](#brief-1-alerts-on-saved-searches) (the maintainer chose options 1 and 2; not built yet)
   - [Brief 2: Price history on saved items](#brief-2-price-history-on-saved-items)
   - [Brief 3: Offer helper](#brief-3-offer-helper)
   - [Brief 4: Stronger scam checks](#brief-4-stronger-scam-checks)
@@ -30,38 +30,39 @@ and briefs for new features. Voice, the rename plan and the security review are 
 
 ## Where things stand
 
-*2026-10-22. Replaces the 2026-10-14 "Next steps" (the order of work then, and dabloonery's steps for the 0.40.0 live
+*2026-10-22. Replaces the 2026-10-14 "Next steps" (the order of work then, and the maintainer's steps for the 0.40.0 live
 check); those are in git history.*
 
 | Plan | State |
 |---|---|
-| Chrome Web Store | Public beta live; the store has 0.50.0, `main` is 0.57.0. The next upload is dabloonery's call ([checklist](#chrome-web-store-each-upload)) |
+| Chrome Web Store | Public beta live; the store has 0.50.0, `main` is 0.57.0. The next upload is the maintainer's call ([checklist](#chrome-web-store-each-upload)) |
 | Scam checks and prices | [Honest low prices](#honest-low-prices) done (#57 to #82); layout guards, long-feed speed and an eval with the real prompts merged 2026-10-21 and 22 |
 | Real-use fixes | The 2026-10-16 fixes reached `main` on 2026-10-22 (#84, [After real use](#after-real-use-2026-10-16)); recheck them on the real sites |
 | Sturdier no-AI features | All 8 shipped ([summary](#tirekick-making-the-no-ai-features-sturdier)). Real saved eBay and Marketplace searches are fixtures since #90; listing, sold and category pages are still hand-made |
 | Free parts of briefs 2, 3, 4 and 6 | Built in 0.37.0 to 0.40.0 (age and price moves, the offer helper, "Too cheap?" and same-photo marks, CSV export) |
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
-| Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
+| Waiting on the maintainer | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
 | Next to build | Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Version numbers
 
 PRs #13 to #22 all shipped as 0.36.0, and an older pre-rename build (`second-look-0.36.1.zip`) carries a higher
-number. From 0.37.0 to 0.57.0, CI failed a pull request that didn't raise the version. Since 2026-10-21 (dabloonery) the
+number. From 0.37.0 to 0.57.0, CI failed a pull request that didn't raise the version. Since 2026-10-21 (the maintainer) the
 version stays put between Chrome Web Store uploads, and CI only fails one that lowers it (`deno task version-check`).
 
 ### Open source (decided 2026-10-14, done early on 2026-10-22)
 
-dabloonery agreed: license Tirekick under **Apache-2.0** and make the repository public at the 1.0.0 store launch. The
-repository went public with the beta, and on 2026-10-22 dabloonery chose to switch the license then too, rather than
+The maintainer agreed: license Tirekick under **Apache-2.0** and make the repository public at the 1.0.0 store launch. The
+repository went public with the beta, and on 2026-10-22 the maintainer chose to switch the license then too, rather than
 wait for 1.0.0.
 
 - [x] Scrub personal paths from the docs (the home-folder path in REFERENCE's rename notes, removed in 0.37.0).
 - [x] Replace `LICENSE` with Apache-2.0 and update README's "License and disclaimer" (the font stays under the OFL;
       the disclaimer and trademark note moved to `NOTICE`, which ships in the store zip). 2026-10-22.
-- [x] Remove dabloonery's personal email from the commit history: checked 2026-10-22, every commit uses a GitHub
-      noreply address.
+- [ ] Personal email in the commit history: 25 early commits on `main` (2026-10-11 to 2026-10-13) still carry it in
+      the author field (rechecked 2026-10-23; the 2026-10-22 check missed them). Removing it means rewriting history;
+      see [Brand over personal name](#brand-over-personal-name), step 1. The maintainer's call.
 - [x] Check again that no keys, tokens or private details are in the files or the history (2026-10-22: a pattern
       search of every commit found no API keys, tokens or private keys).
 
@@ -71,12 +72,12 @@ The name, alongside it:
       registration).
 - [ ] Before launch, run a clearance search for "Tirekick" and "Tire Kick" in software: USPTO (classes 9 and 42),
       the Chrome Web Store, and app stores.
-- [ ] Around the open-source launch, file a USPTO registration in class 9 (dabloonery).
+- [ ] Around the open-source launch, file a USPTO registration in class 9 (the maintainer).
 
 ### Brand over personal name
 
-*Added 2026-10-15 (dabloonery: "remove my name and info where possible and replace with tirekick.app or Tirekick").
-dabloonery isn't hiding that they made Tirekick; the brand should simply be what people see.*
+*Added 2026-10-15 (the maintainer: "remove my name and info where possible and replace with tirekick.app or Tirekick").
+The maintainer isn't hiding that they made Tirekick; the brand should simply be what people see.*
 
 Audit of both repos and the accounts around them:
 
@@ -85,17 +86,17 @@ Audit of both repos and the accounts around them:
 | `LICENSE`, README "License and disclaimer" | was "dabloonery" | Done in 0.42.2: "The Tirekick authors" |
 | `store/LISTING.md` homepage | was the GitHub repo | Done in 0.42.2: `https://tirekick.app` |
 | `manifest.json` `homepage_url` | was the GitHub repo | Done in PR #30: `https://tirekick.app` |
-| Code comments (`rules.js`, `theme.js`, `panel.js`) | dabloonery's name | Done in 0.42.2 |
-| Website repo `tirekick-site` | "© 2026 Tirekick™", support@tirekick.app, no personal details, one commit by Claude | Clean |
+| Code comments (`rules.js`, `theme.js`, `panel.js`) | a personal name | Done in 0.42.2 |
+| Website repo `tirekick-site` | "© 2026 Tirekick™", support@tirekick.app, no personal details, commits by Claude and GitHub noreply addresses only | Clean (rechecked 2026-10-23) |
 | Store listing, privacy policy, site contact | support@tirekick.app | Clean, once the mailbox forwards |
-| Main repo commit history | was a personal email on 25 commits | Clean (checked 2026-10-22: GitHub noreply addresses only) |
-| GitHub owner `dabloonery` | in both repo addresses and as the author of every merge | dabloonery, step 2 |
-| Chrome Web Store publisher name and contact email | not set yet | dabloonery, step 3 |
-| Internal notes (`AGENTS.md`, this file, `REFERENCE.md`, `store/SECURITY-REVIEW.md`) | "dabloonery" as the decision maker | Claude, step 5 |
+| Main repo commit history | a personal email on 25 early commits (author field), and the old first name in some commit messages and diffs | Open: the maintainer, step 1 |
+| GitHub owner `dabloonery` | in both repo addresses and as the author of every merge | The maintainer, step 2 |
+| Chrome Web Store publisher name and contact email | not set yet | The maintainer, step 3 |
+| Internal notes (`AGENTS.md`, this file, `REFERENCE.md`, `store/SECURITY-REVIEW.md`, code comments) | a first name as the decision maker | Done 2026-10-23: "the maintainer" |
 
-Steps for dabloonery, in order. None of these can be done from the project, and steps 1 and 2 can't be undone:
+Steps for the maintainer, in order. None of these can be done from the project, and steps 1 and 2 can't be undone:
 
-1. ~~**Commit history**~~ (done: the public repository's history carries only noreply addresses, checked 2026-10-22). *Was:* **(recommended: publish a clean copy, don't rewrite this repo).** At 1.0.0, rather than
+1. **Commit history (open; rechecked 2026-10-23: 25 commits still carry the personal email).** **(recommended: publish a clean copy, don't rewrite this repo).** At 1.0.0, rather than
    making this repository public, push a copy whose history has the personal email swapped for GitHub's
    private address (`118295889+dabloonery@users.noreply.github.com`) to a new public repo, and keep this one
    private. Rewriting this repo in place also works, but GitHub keeps old pull requests' commits, so the email
@@ -119,7 +120,7 @@ Steps for dabloonery, in order. None of these can be done from the project, and 
       this project's settings, under repositories, remove the old `dabloonery/...` entries and add
       `tirekick/tirekick` and `tirekick/tirekick-site`, and reconnect GitHub at
       claude.ai/connect-github if asked. Tell Claude when it's done so it can check access.
-   5. Your computer: in `~/Second-Look` run
+   5. Your computer: in your local clone run
       `git remote set-url origin https://github.com/tirekick/tirekick.git` (the old address keeps working
       through the redirect, but this is cleaner).
    6. Claude, in the next PR: update the `dabloonery` links left in the docs and `site/README.md`.
@@ -131,23 +132,22 @@ Steps for dabloonery, in order. None of these can be done from the project, and 
    from your own mailbox show your personal address; to reply as support@tirekick.app, add it as a "send as"
    address in your mail app or use a mailbox on the domain. Cloudflare hides the domain owner's details in
    WHOIS by default; check that it does for tirekick.app.
-5. **Internal notes (Claude, in the 1.0.0 PR).** Before the code goes public, change "dabloonery" to "the owner"
-   in the files listed in the table, so the public repo carries no names.
+5. ~~**Internal notes**~~ Done 2026-10-23: the files say "the maintainer" instead of a name, so the repo carries no names.
 
 ---
 
 ## Built for one person, reassessed for everyone
 
-*2026-10-15, from dabloonery: several features were made for dabloonery's own testing and taste. Each was looked at again for
-everyday buyers (the main audience) and resellers. dabloonery's calls are marked; Claude went ahead on its recommendation
+*2026-10-15, from the maintainer: several features were made for the maintainer's own testing and taste. Each was looked at again for
+everyday buyers (the main audience) and resellers. The maintainer's calls are marked; Claude went ahead on its recommendation
 for each, one PR per change.*
 
 | What | Was | Call | Where |
 |---|---|---|---|
-| "What you use" counters on Home | Made to see which features dabloonery used | **Removed.** Only the scan and typical-price counts stay (they drive the first-run checklist and the mode hint) | 0.44.0 |
-| Copyable questions for the seller | Part of every analysis | **Removed** (dabloonery: redundant). The AI no longer writes them, so an analysis costs a little less | 0.44.0 |
-| AI spending | A Home tile, a 30-day chart, the footer, a settings section near the top | **Kept, quieter** (dabloonery). No Home tile; the chart only once something was spent; the footer amount only with a paid service; settings moved it down and folded it | 0.44.0 |
-| Default "What you're into" | Retro tech, consoles and homebrew (dabloonery's taste) for everyone | **Blank by default.** An install already using the old default keeps it (storage upgrade 2) | 0.44.0 |
+| "What you use" counters on Home | Made to see which features the maintainer used | **Removed.** Only the scan and typical-price counts stay (they drive the first-run checklist and the mode hint) | 0.44.0 |
+| Copyable questions for the seller | Part of every analysis | **Removed** (the maintainer: redundant). The AI no longer writes them, so an analysis costs a little less | 0.44.0 |
+| AI spending | A Home tile, a 30-day chart, the footer, a settings section near the top | **Kept, quieter** (the maintainer). No Home tile; the chart only once something was spent; the footer amount only with a paid service; settings moved it down and folded it | 0.44.0 |
+| Default "What you're into" | Retro tech, consoles and homebrew (the maintainer's taste) for everyone | **Blank by default.** An install already using the old default keeps it (storage upgrade 2) | 0.44.0 |
 | Homebrew line in an analysis | One sentence on a modding scene | **Removed**: it only fits a few consoles | 0.44.0 |
 | Footer model menu | Shown with "No AI yet" before any AI | **Hidden until an AI is set up** | 0.44.0 |
 | Listings per request, storage used | In the main settings and on Home | **Advanced fold** in settings; the storage line moved under Backup | 0.44.0 |
@@ -166,12 +166,12 @@ for each, one PR per change.*
    `background.js`, the same as `TKRules.priceWord` and `TOO_CHEAP`, checked by a unit test) and are told the free scam
    signs, so the AI's word moves away from the card's price word only for what it read. A separate "Fit" field
    would cost a second judgment per listing in every scan and needs real listings to tune, so it isn't planned.
-   *Still open, after dabloonery's live check:* tags that lead with the words and move the number into the reasons.
+   *Still open, after the maintainer's live check:* tags that lead with the words and move the number into the reasons.
 3. ~~**Broad words and category pages**~~ (0.45.0, `TKRules.broadQuery`): no page-wide comparison against a category ("Electronics"): Tirekick says the
    words are too broad, and each listing gets its own typical price from its title. When no lookup can be made
    (eBay blocks it, too few sales, turned off) the card says so and why, with a link to eBay's sold listings.
 4. ~~**Audit and clean-up**~~ (0.46.0): "·" separators dropped where color or weight already parts the words
-   (dabloonery, 2026-10-15): a verdict in color is followed by a space ("Fair price ~$45 below the typical price ($116)"),
+   (the maintainer, 2026-10-15): a verdict in color is followed by a space ("Fair price ~$45 below the typical price ($116)"),
    a chip's lead word is bold ("**Good price** $53 below typical"), lists of numbers use commas, "Filter (2)". Kept
    where nothing else separates the parts (model menu entries, saved-row details). The panel's own copy of the
    spending summary now uses `TKShared.usageSummary`.
@@ -189,8 +189,8 @@ for each, one PR per change.*
 
 ## Public beta launch
 
-*2026-10-15. dabloonery decided to launch on the Chrome Web Store as a **public beta** instead of waiting for 1.0.0.
-Nothing is submitted until dabloonery says so.*
+*2026-10-15. The maintainer decided to launch on the Chrome Web Store as a **public beta** instead of waiting for 1.0.0.
+Nothing is submitted until the maintainer says so.*
 
 **What "beta" means here.** The store has no beta switch, so the label is in the words: the summary (the
 manifest's description) starts with "Beta.", and the description opens with a short beta note asking for
@@ -205,28 +205,28 @@ Distribution is **Public**, all regions.
    listing, panel tidy; 0.44.0 to 0.46.0).
 2. [x] Security item L1 (links through `safeUrl`, 0.37.0) and the review pass's L1 copy fix (0.40.2).
 3. [x] The listing marked Beta (`store/LISTING.md`, manifest description), 0.48.0.
-4. [x] **The holistic review** (dabloonery, 2026-10-15: "don't forget the holistic review"): done in 0.47.0 (PR #37).
+4. [x] **The holistic review** (the maintainer, 2026-10-15: "don't forget the holistic review"): done in 0.47.0 (PR #37).
    Its findings are under [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone).
-5. [x] **dabloonery's real-site check** on eBay and Marketplace in Vivaldi ("For dabloonery, in order", step 3), and
+5. [x] **The maintainer's real-site check** on eBay and Marketplace in Vivaldi ("For the maintainer, in order", step 3), and
    real captures for screenshots 1 to 3 (eBay search, eBay listing, Marketplace), cropped and with personal
    details removed in 0.49.1. The check turned up three fixes, also in 0.49.1: no dollar gap for placeholder or
    far-off prices, the off-site chip cleared when the AI calls the contact harmless, and a shorter, honest pause
    when eBay's sold-price answer just looks odd. Recheck those on the real sites.
-6. [x] **dabloonery's accounts:** non-trader status in the developer dashboard (recommended: it keeps a home
+6. [x] **The maintainer's accounts:** non-trader status in the developer dashboard (recommended: it keeps a home
    address off the listing), support@tirekick.app forwarding, and the contact email verified.
 7. [x] **Site:** tirekick.app on HTTPS (done 2026-10-15) with `/privacy` loading, ready to publish the same day with the store
    link in place of `STORE_LISTING_URL` and a matching "Beta" mention.
-8. [x] The store build is exactly **0.50.0** (dabloonery, 2026-10-15); pre-launch changes stay 0.49.x. `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
-9. [x] **dabloonery's OK to submit.** Done: 0.50.0 is live on the store as a public beta (by 2026-10-21).
+8. [x] The store build is exactly **0.50.0** (the maintainer, 2026-10-15); pre-launch changes stay 0.49.x. `deno task test` green, `deno task pack`, the packed zip loaded unpacked and clicked through.
+9. [x] **The maintainer's OK to submit.** Done: 0.50.0 is live on the store as a public beta (by 2026-10-21).
 
-**During the beta.** Feedback comes from strangers only (dabloonery doesn't want to involve people they know): the
-support address and, if dabloonery wants, one forum post (r/Flipping or r/eBay). Fixes ship as 0.x updates through
+**During the beta.** Feedback comes from strangers only (the maintainer doesn't want to involve people they know): the
+support address and, if the maintainer wants, one forum post (r/Flipping or r/eBay). Fixes ship as 0.x updates through
 the store. The beta ends at 1.0.0, when the label comes off.
 
-### Launch outreach (draft, 2026-10-16: dabloonery picks; nothing is posted without dabloonery)
+### Launch outreach (draft, 2026-10-16: the maintainer picks; nothing is posted without the maintainer)
 
-Decided so far: no promotion plan, strangers only (never people dabloonery knows), no ads. This is a menu, smallest first.
-Each post goes up from dabloonery's own account, after dabloonery reads that community's current rules on self-promotion
+Decided so far: no promotion plan, strangers only (never people the maintainer knows), no ads. This is a menu, smallest first.
+Each post goes up from the maintainer's own account, after the maintainer reads that community's current rules on self-promotion
 (many subreddits allow it only in a weekly thread, or only from accounts that take part otherwise).
 
 1. **One beta post, one community** (recommended first). r/Flipping or r/eBay: whichever allows it under its
@@ -254,9 +254,9 @@ one clear audience (eBay buyers).
 
 ### Promotion plan, first month (2026-10-21: the beta is live and the repo is public)
 
-One step a week, from dabloonery's own accounts, strangers only, no ads, nothing automated. Read each community's
+One step a week, from the maintainer's own accounts, strangers only, no ads, nothing automated. Read each community's
 self-promotion rules first. Lead with buyers ("good price or scam?"); keep reseller wording neutral; never list
-AI brands. Claude drafts each post on request; dabloonery edits and posts.
+AI brands. Claude drafts each post on request; the maintainer edits and posts.
 
 | Week | Where | Angle |
 |---|---|---|
@@ -276,13 +276,13 @@ the support mail. One post per community; never reply to criticism defensively; 
 
 ## Honest low prices
 
-*2026-10-21, after an audit of the whole scam pipeline (dabloonery: "go").* Honest listings priced far under typical were
+*2026-10-21, after an audit of the whole scam pipeline (the maintainer: "go").* Honest listings priced far under typical were
 marked as scams with no way out: before a scan, under 55% of the typical price is a warning whatever the title says, and
 after a scan the price check (`TKRules.priceVerdict`) overruled the model every time, Analyze included. In the eval's
 new group of 28 honest cheap listings (`CHEAP` in `tests/eval/cases.mjs`), 19 of the 20 that say why they're cheap (a
 flaw, missing parts, a lock, a cheaper version) were still a warning after a scan.
 
-**Decided (dabloonery, 2026-10-21):** the model's reason for a low price can beat the price check, for scans and Analyze.
+**Decided (the maintainer, 2026-10-21):** the model's reason for a low price can beat the price check, for scans and Analyze.
 This refines the 0.41.0 rule ("when the score and the price disagree, the price check wins"): it still wins against
 praise, but a flaw, missing parts or a different model, named by the model, counts. "Moving sale" never does: scammers
 write it too.
@@ -310,7 +310,7 @@ The order, one PR each, every one measured by `deno task eval` with the scam num
 
 ## After real use (2026-10-16)
 
-dabloonery's notes from using the beta on eBay and Marketplace.
+The maintainer's notes from using the beta on eBay and Marketplace.
 
 **Fixed in 0.50.2** (PR #42; it reached main only on 2026-10-22, without its version bump. Still to check on the real sites, marked *real site*):
 
@@ -339,7 +339,7 @@ lookup for an hour; on Facebook with no eBay tab open, lookups come from the bac
 eight lookups an hour at most; and a long title often matches fewer than five clean sales. Opening any eBay tab
 helps the second.
 
-**For dabloonery to pick** (not built):
+**For the maintainer to pick** (not built):
 
 1. *Typical price.* Rename it ("eBay sold price", "Sells for"), show it as one line at the top of the panel and in
    each card's tag, and when eBay won't answer, offer: the AI's estimate (when set up), the price of similar
@@ -357,9 +357,9 @@ helps the second.
 
 *The first submission (0.50.0, the public beta) is done; its full checklist (accounts, domain, images, store
 forms) is in git history before 2026-10-22. Store form answers are in `store/LISTING.md`; the security review
-is in `store/SECURITY-REVIEW.md`.* Nothing is uploaded without dabloonery's OK.
+is in `store/SECURITY-REVIEW.md`.* Nothing is uploaded without the maintainer's OK.
 
-- [ ] dabloonery says which build goes up; the version is set then (it stays put between uploads).
+- [ ] The maintainer says which build goes up; the version is set then (it stays put between uploads).
 - [ ] `deno task test`, then `deno task pack`. Unzip `dist/tirekick-<version>.zip` into a fresh folder, load it
       with **Load unpacked**, and click through: an eBay search, the panel, a scan with a key, a Marketplace
       search, settings, a backup and restore.
@@ -410,13 +410,13 @@ The briefs (1 to 7 written 2026-10-14, 8 to 10 on 2026-10-15) are written so ano
 
 | # | Brief | Size | Depends on |
 |---|---|---|---|
-| 1 | [Alerts on saved searches](#brief-1-alerts-on-saved-searches) | Medium | 0.36.0 port (auto-scan, per-search wants). dabloonery chose options 1 and 2 (2026-10-14) |
+| 1 | [Alerts on saved searches](#brief-1-alerts-on-saved-searches) | Medium | 0.36.0 port (auto-scan, per-search wants). The maintainer chose options 1 and 2 (2026-10-14) |
 | 2 | [Price history on saved items](#brief-2-price-history-on-saved-items) | Small to medium | Nothing new; feeds brief 3 |
 | 3 | [Offer helper](#brief-3-offer-helper) | Small to medium | Better with brief 2 |
 | 4 | [Stronger scam checks](#brief-4-stronger-scam-checks) | Medium | Nothing new |
 | 5 | [More stores](#brief-5-more-stores) | Large (one PR per store) | 0.36.0 port (site table) |
 | 6 | [Sync and export](#brief-6-sync-and-export) | Small (export) to medium (sync) | Nothing new |
-| 7 | [Built-in browser AI](#brief-7-built-in-browser-ai) | Medium | Nothing new. First after the 1.0.0 launch (dabloonery, 2026-10-14) |
+| 7 | [Built-in browser AI](#brief-7-built-in-browser-ai) | Medium | Nothing new. First after the 1.0.0 launch (the maintainer, 2026-10-14) |
 | 8 | [Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) | Small to medium | A check on 30 real listings first |
 | 9 | [More browsers](#brief-9-more-browsers) | Small (Edge) to large (Safari) | Nothing new |
 | 10 | [More AI options](#brief-10-more-ai-options) | Small | 0.40.0 service menu |
@@ -430,7 +430,7 @@ Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
 **What already exists (don't rebuild it).** Several of these ideas are partly built. Each brief has a "What's there today" section with file and line references to main at `381f758`. Line numbers will drift; search for the names.
 
-**The ground rules** (README, "Ground rules", from the ux-spec branch). They exist because eBay's and Meta's terms prohibit unattended collection, and breaking them gets dabloonery's accounts flagged:
+**The ground rules** (README, "Ground rules", from the ux-spec branch). They exist because eBay's and Meta's terms prohibit unattended collection, and breaking them gets the maintainer's accounts flagged:
 - Only pages you're looking at. Never open, crawl or refresh a store's page by itself. Auto-scan reads only a search tab that's on screen.
 - Requests to the stores are few, spaced and started by you: eBay sold lookups are at most 8 an hour, 5 seconds apart, cached 6 hours (`lib/sold.js` after the port).
 - Never get past a bot check. Stop and say so.
@@ -439,7 +439,7 @@ Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
 **Permissions.** A new *required* permission with a warning makes Chrome (and Vivaldi) disable the extension on update until the user accepts. New capabilities go under `optional_permissions` / `optional_host_permissions` and are requested when the user turns the feature on.
 
-**dabloonery's browser is Vivaldi** (Chromium). Anything that touches browser APIs beyond what's already used (notifications, `storage.sync`, side panel, alarms) must be checked in Vivaldi, not just Chrome. The automated tests run headless Chrome; the brief's "done" list says what dabloonery should check by hand.
+**The maintainer's browser is Vivaldi** (Chromium). Anything that touches browser APIs beyond what's already used (notifications, `storage.sync`, side panel, alarms) must be checked in Vivaldi, not just Chrome. The automated tests run headless Chrome; the brief's "done" list says what the maintainer should check by hand.
 
 **Copy.** US English only. Follow the Voice and copy part of [`docs/REFERENCE.md`](REFERENCE.md): verdict first then why, "Likely scam" never "Scam", estimates say so, sentence case, no exclamation marks except in the seller message. Copy about what Tirekick *is* stays store-neutral ("the stores where you shop"); name a store only where the feature really is store-specific. More stores are coming.
 
@@ -447,7 +447,7 @@ Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
 **Tests.** `deno task test:unit` (unit), `tests/all.sh` (everything, real extension in headless Chrome against a mock AI). Add a unit test for any new pure rule and an e2e check for any new surface. A known flaky one: "Filter button opens the fields" fails on main too (headless timing).
 
-**Shipping.** Draft PR per brief against `main`, keep the version as it is (it changes only at a store upload), update `docs/ux-spec.md` (states table and components), `README.md`, and `store/PRIVACY.md` / `store/LISTING.md` whenever what's read, stored or requested changes. No Chrome Web Store submission until dabloonery says.
+**Shipping.** Draft PR per brief against `main`, keep the version as it is (it changes only at a store upload), update `docs/ux-spec.md` (states table and components), `README.md`, and `store/PRIVACY.md` / `store/LISTING.md` whenever what's read, stored or requested changes. No Chrome Web Store submission until the maintainer says.
 
 ---
 
@@ -465,15 +465,15 @@ Tell the user, without them watching the panel, when one of their saved searches
 
 As a buyer with a saved search for "pentax k1000", I want a notification when a new Great listing appears, so I can get to it before someone else does, without re-running the search myself.
 
-#### dabloonery's decision (2026-10-14): build options 1 and 2
+#### The maintainer's decision (2026-10-14): build options 1 and 2
 
 The idea as first pitched ("check saved searches in the background") **breaks the ground rules**: Tirekick never opens, crawls or refreshes a store's page by itself, and auto-scan only reads a search tab that's on screen. eBay's and Meta's terms are why. So the agent must not build background polling. Three ways to do this instead, recommended first:
 
 1. **Alert from what you're already looking at (recommended, fully within the rules).** When auto-scan (0.36.0) scores a listing Great on a page that matches a saved search, record it on the saved search and raise an alert: the toolbar badge, Home's "Worth another look", and, if the user turns it on, a browser notification. Useful when a saved search sits open in a tab you glance at, or when you browse a matching search and miss the tag.
 2. **"Check my saved searches" button (within the rules, user-started).** One press on Home opens each saved search in a new tab in the foreground window, one after another and spaced like sold lookups, and auto-scan scores each while it's on screen. The user started it and sees every page. Notifications then come from option 1.
-3. **Scheduled background checks (outside the rules).** `chrome.alarms` opening hidden tabs or fetching search pages. Not recommended; only with dabloonery's explicit decision to change the ground rules and an understanding of the account risk.
+3. **Scheduled background checks (outside the rules).** `chrome.alarms` opening hidden tabs or fetching search pages. Not recommended; only with the maintainer's explicit decision to change the ground rules and an understanding of the account risk.
 
-**Decided by dabloonery on 2026-10-14:** build 1 and 2 (the "Check my saved searches" button). Don't build 3; the ground rules stay as they are.
+**Decided by the maintainer on 2026-10-14:** build 1 and 2 (the "Check my saved searches" button). Don't build 3; the ground rules stay as they are.
 
 #### What's there today
 
@@ -508,7 +508,7 @@ The idea as first pitched ("check saved searches in the background") **breaks th
 - With the switch off, no `notifications` permission is requested or held; turning it off releases nothing extra and stops notifications.
 - Nothing opens, fetches or refreshes a store page without the user's action (for option 2, only after the button press, with visible tabs). Checked by reading the diff and by an e2e test that counts page requests.
 - Unit tests for the new alert kind; e2e test for the record-and-alert path against the mock AI; `tests/all.sh` green.
-- dabloonery has checked a notification in Vivaldi.
+- The maintainer has checked a notification in Vivaldi.
 - Privacy page and listing mention the notification permission and that alerts come only from pages you open.
 - "Check my saved searches" opens each saved search in a visible tab, one at a time and at least 5 seconds apart, lets auto-scan finish on each, and says the estimated cost before starting; it refuses to start with auto-scan off or no budget set.
 
@@ -553,7 +553,7 @@ As a buyer watching a saved camera, I want to see that it's dropped twice in thr
 
 - Should the signal show on every listing (from memory) or only saved ones? Default: saved ones and the listing page, since those are where an offer happens.
 - How confident is "about 6 weeks ago" from Marketplace's relative text? Show "about" always.
-- Does dabloonery want the "likely to take less" signal to feed the offer helper (brief 3)? Default: yes, as an input.
+- Does the maintainer want the "likely to take less" signal to feed the offer helper (brief 3)? Default: yes, as an input.
 
 #### How to know it's done
 
@@ -653,7 +653,7 @@ As a buyer, I want Tirekick to warn me that this $60 iPhone uses the same photo 
 
 #### Open questions
 
-- How strict should "far under sold" be? Defaults above; dabloonery may want it softer for fix-up hunting (Reseller mode should probably skip it for "for parts" listings, which it does by excluding them).
+- How strict should "far under sold" be? Defaults above; the maintainer may want it softer for fix-up hunting (Reseller mode should probably skip it for "for parts" listings, which it does by excluding them).
 - Is a new permission acceptable (`offscreen`)? Prefer no: try the worker first.
 - How many photo hashes to keep? Default: 20,000, pruned after 90 days like listing memory.
 - Should a reused-photo mark make the verdict suspicious before a scan (like reposts), or only add a chip? Default: chip plus the scan prompt is told, so the model decides the verdict.
@@ -711,7 +711,7 @@ Risks: Both sites' terms limit automated collection. Tirekick would read only pa
 1. **Craigslist.** Stable server-rendered markup (gallery, list, and the old "result-row" layouts), per-city hosts (`*.craigslist.org`). Local only, no seller ratings, placeholder prices ($0, $1) mean no price. Phone numbers and "text me" are normal, so the off-site rule must not fire; "I'm away, I'll ship it", pay-first and fake escrow are the Craigslist scam signs. Needs the user's area for the hub's lookup (remember the last one visited).
 2. **OfferUp.** A React app like Marketplace: recycled cards, late-loading prices; read by `/item/detail/` links and visible text, not class names. Seller stars, rating count, "TruYou" verified and join date feed `sellerWarning`. Some "Ships" listings. Needs a long-feed run of `tests/e2e/perf.ts`.
 3. **Mercari.** Ships nationally, so compare on total with shipping. Mercari shows its own sold listings: consider it as a second sold reference (`soldReference`), or keep eBay only (open question). Cards have seller ratings.
-4. **Poshmark.** Mostly clothing and shoes, a different shopper. Prices are often negotiated via offers; sold listings are visible. Brand-and-size matters more than model numbers, so the prompt's "what I want" and the sold comparison need checking for apparel. Lowest priority; dabloonery to confirm it's wanted.
+4. **Poshmark.** Mostly clothing and shoes, a different shopper. Prices are often negotiated via offers; sold listings are visible. Brand-and-size matters more than model numbers, so the prompt's "what I want" and the sold comparison need checking for apparel. Lowest priority; the maintainer to confirm it's wanted.
 
 #### How each store fits (same for all)
 
@@ -728,7 +728,7 @@ Risks: Both sites' terms limit automated collection. Tirekick would read only pa
 #### Open questions
 
 - Which first, OfferUp or Craigslist? The plan suggests Craigslist (simpler markup). Default: Craigslist.
-- Which Craigslist areas does dabloonery use? (For fixtures and the hub's default.)
+- Which Craigslist areas does the maintainer use? (For fixtures and the hub's default.)
 - Mercari as a second sold reference, or eBay only? Default: eBay only at first.
 - Is Poshmark wanted at all, given it's mostly apparel?
 - Distance filter ("within N miles"), since OfferUp and Craigslist both show distance: worth adding?
@@ -742,7 +742,7 @@ Risks: Both sites' terms limit automated collection. Tirekick would read only pa
 - Store-specific scam rules behave as the plan says (Craigslist doesn't flag phone numbers; OfferUp flags pay-by-gift-card).
 - Long-feed performance within budget for app-style stores.
 - README, privacy page and store listing name the store and its permission. `tests/all.sh` green.
-- dabloonery has tried it on the live store in Vivaldi (markup changes without notice; fixtures can't prove the live site).
+- The maintainer has tried it on the live store in Vivaldi (markup changes without notice; fixtures can't prove the live site).
 
 ---
 
@@ -786,7 +786,7 @@ Two things, shippable separately:
 - Writes batched and debounced (a few seconds) to stay under the rate limits.
 - A switch "Sync saved listings and settings through your browser account", off by default, with a line on what is and isn't synced, and the current size used.
 
-**Vivaldi is the risk.** Vivaldi has its own sync (Vivaldi account), and it isn't clear that it carries `chrome.storage.sync` data for extensions. If it doesn't, `storage.sync` silently stays local in Vivaldi. **The agent must check this first** (on dabloonery's Vivaldi, two profiles or two computers signed into the same Vivaldi account) and report before building. If it doesn't work in Vivaldi, the fallback is a **sync file**: export a backup to a folder the user already syncs (Dropbox, Syncthing, a cloud drive) and restore from it, with a one-click "Restore the newest backup from my sync folder" via the File System Access API (`showDirectoryPicker`, permission kept per folder). No server either way.
+**Vivaldi is the risk.** Vivaldi has its own sync (Vivaldi account), and it isn't clear that it carries `chrome.storage.sync` data for extensions. If it doesn't, `storage.sync` silently stays local in Vivaldi. **The agent must check this first** (on the maintainer's Vivaldi, two profiles or two computers signed into the same Vivaldi account) and report before building. If it doesn't work in Vivaldi, the fallback is a **sync file**: export a backup to a folder the user already syncs (Dropbox, Syncthing, a cloud drive) and restore from it, with a one-click "Restore the newest backup from my sync folder" via the File System Access API (`showDirectoryPicker`, permission kept per folder). No server either way.
 
 #### Files likely touched
 
@@ -796,21 +796,21 @@ Two things, shippable separately:
 
 - Does Vivaldi sync `chrome.storage.sync`? (Must be checked first; decides the design.)
 - Sync API keys at all? Default: no, with an opt in.
-- Which columns matter most to dabloonery as a reseller? Default list above.
+- Which columns matter most to the maintainer as a reseller? Default list above.
 - Export to `.xlsx` too? Default: CSV only; every spreadsheet opens it.
 
 #### How to know it's done
 
 - **Export:** the CSV opens cleanly in a spreadsheet (LibreOffice and Google Sheets), titles with commas, quotes, emoji and a leading `=` come through as text, and every saved listing is a row. Unit tests for `toCsv`.
 - **Sync:** with the switch on in two profiles, saving a listing or search on one appears on the other; removing it stays removed; settings follow; keys don't unless opted in; the size shown stays under the limit with 200 saved listings. Off by default, and turning it off stops writes.
-- Vivaldi result reported to dabloonery before Part 2 is built, and the chosen route works in Vivaldi.
+- Vivaldi result reported to the maintainer before Part 2 is built, and the chosen route works in Vivaldi.
 - Privacy page updated. `tests/all.sh` green.
 
 ---
 
 ### Brief 7: Built-in browser AI
 
-Read [the briefs intro](#read-this-before-any-brief) first (ground rules, Vivaldi, copy, tests). Decided with dabloonery
+Read [the briefs intro](#read-this-before-any-brief) first (ground rules, Vivaldi, copy, tests). Decided with the maintainer
 on 2026-10-14: a priority, first in line after the 1.0.0 launch, and it should cover any browser that ships a model.
 
 #### Goal
@@ -826,7 +826,7 @@ model.
 | Chrome | The Prompt API (`LanguageModel`) with Gemini Nano, for extensions since Chrome 138 | Needs about 22 GB of free disk and a decent graphics card or 16 GB of RAM; downloads the model on first use; can take images |
 | Edge | The same API, with Microsoft's own model | One piece of code covers both |
 | Firefox | A different, experimental API | Later, if Tirekick goes to Firefox |
-| Vivaldi | None | dabloonery's browser: Claude or Ollama as now |
+| Vivaldi | None | The maintainer's browser: Claude or Ollama as now |
 
 Sources: [Chrome's Prompt API](https://developer.chrome.com/docs/ai/prompt-api),
 [Edge's Prompt API](https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api).
@@ -854,11 +854,11 @@ Sources: [Chrome's Prompt API](https://developer.chrome.com/docs/ai/prompt-api),
   through it, and spend stays at $0. Without it, the choice doesn't appear and nothing changes.
 - A batch of the mock scans scored by Gemini Nano in Chrome is compared with Haiku's on the same listings, and the
   README says honestly how they differ.
-- dabloonery has tried it in Chrome; in Vivaldi the choice doesn't appear and nothing breaks.
+- The maintainer has tried it in Chrome; in Vivaldi the choice doesn't appear and nothing breaks.
 
 ### Brief 8: Price data beyond eBay sold listings
 
-Added 2026-10-15. dabloonery: worth it "if it also makes the product better". Plan only; nothing built.
+Added 2026-10-15. The maintainer: worth it "if it also makes the product better". Plan only; nothing built.
 
 #### Why
 The "typical price" today comes only from recent eBay sold listings (`lib/sold.js`). That fails in three common cases:
@@ -880,8 +880,8 @@ chip is missing or misleading, and the free read says nothing.
    keys, cost money, cover narrow categories, and would send your searches to another company.
 
 #### How to know it helps
-Before building, take 30 real Marketplace listings dabloonery looked at and compare three things: the eBay sold
-typical price, the asking-price typical from `listingMemory`, and what dabloonery judges each item is worth. Build
+Before building, take 30 real Marketplace listings the maintainer looked at and compare three things: the eBay sold
+typical price, the asking-price typical from `listingMemory`, and what the maintainer judges each item is worth. Build
 option 1 only if it gives a sensible number for clearly more of them without making the eBay cases worse.
 
 #### Size and files
@@ -890,7 +890,7 @@ tooltip wording), `lib/shared.js` (nothing new in storage). One PR, light and da
 
 ### Brief 9: More browsers
 
-Added 2026-10-15 (dabloonery: platform-agnostic plans belong here). Plan only; nothing built.
+Added 2026-10-15 (the maintainer: platform-agnostic plans belong here). Plan only; nothing built.
 
 - **Already covered:** Chrome, Vivaldi, Brave, Opera and Edge are all Chromium and load the same zip. Edge has its
   own free store (Microsoft Partner Center): the same zip, a listing copied from `store/LISTING.md`. Cheapest next step.

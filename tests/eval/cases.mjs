@@ -1,6 +1,6 @@
 // Labeled listings for tests/eval: what turns up in real searches, each marked with what it really is.
 // Written by hand from the shapes real eBay and Marketplace listings take (no store pages were fetched).
-// dabloonery has no labeled scam data, so these stand in for it: when a real listing fools the checks, add it here
+// The maintainer has no labeled scam data, so these stand in for it: when a real listing fools the checks, add it here
 // with its label first, then change the rules.
 //
 // truth: "scam" (bait, a fake, a repost, a scammer's account) or "honest".

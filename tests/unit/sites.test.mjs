@@ -66,3 +66,32 @@ test("photos only from the sites' own hosts; saved searches only to their search
   assert.ok(!Sites.isSearchUrl(new URL("https://www.ebay.com/itm/1")));
   assert.ok(!Sites.isSearchUrl(new URL("https://www.facebook.com/groups/1")));
 });
+
+test("the store's own price filter, read from and written to its address", () => {
+  const ebay = "https://www.ebay.com/sch/i.html?_nkw=pentax%20k1000&_pgn=3";
+  assert.deepEqual(Sites.readFilters(ebay), { min: 0, max: 0 });
+  assert.deepEqual(Sites.readFilters("https://www.ebay.com/sch/i.html?_nkw=x&_udlo=20&_udhi=99.5"), { min: 20, max: 100 });
+  assert.deepEqual(Sites.readFilters("https://www.ebay.com/sch/i.html?_nkw=x&_udlo=junk"), { min: 0, max: 0 });
+  // whole dollars, rounded outward so the store keeps every listing Tirekick would; a new range starts at page 1
+  const set = new URL(Sites.withFilters(ebay, { min: 19.6, max: 80.2 }));
+  assert.equal(set.searchParams.get("_udlo"), "19");
+  assert.equal(set.searchParams.get("_udhi"), "81");
+  assert.equal(set.searchParams.has("_pgn"), false);
+  assert.equal(set.searchParams.get("_nkw"), "pentax k1000");
+  assert.deepEqual(Sites.readFilters(set), { min: 19, max: 81 });
+  // nothing to change: the address comes back exactly as it was, page number and spelling included
+  assert.equal(Sites.withFilters(ebay, { min: 0, max: 0 }), ebay);
+  assert.equal(Sites.hasFilters(set, { min: 19.6, max: 80.2 }), true);
+  assert.equal(Sites.hasFilters(set, { max: 90 }), false);
+  // 0 takes a setting off; a field left out stays
+  const off = new URL(Sites.withFilters(set, { max: 0 }));
+  assert.equal(off.searchParams.has("_udhi"), false);
+  assert.equal(off.searchParams.get("_udlo"), "19");
+  const fb = new URL(Sites.withFilters("https://www.facebook.com/marketplace/albuquerque/search?query=camera", { min: 5, max: 100 }));
+  assert.equal(fb.searchParams.get("minPrice"), "5");
+  assert.equal(fb.searchParams.get("maxPrice"), "100");
+  assert.deepEqual(Sites.readFilters(fb), { min: 5, max: 100 });
+  // not a store page: nothing to read or write
+  assert.deepEqual(Sites.readFilters("https://example.com/?_udlo=5"), {});
+  assert.equal(Sites.withFilters("https://example.com/?a=1", { min: 5 }), "https://example.com/?a=1");
+});

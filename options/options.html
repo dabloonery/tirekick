@@ -89,6 +89,8 @@
   .adv { margin:4px 0 14px; } .adv > summary { color:var(--muted); font-size:14px; justify-content:flex-start; } .adv > summary::after { font-size:16px; }
   summary:hover h2 { text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:4px; }
   [hidden] { display:none !important; }
+  /* The AI turned off: its section keeps only the switch */
+  #sec-model.off > :not(h2, p.hint, .ai-switch) { display:none; }
   :focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
   .legal { margin-top:40px; padding-top:14px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:12px; }
   .legal p { margin:0 0 6px; }
@@ -179,6 +181,10 @@
   <section id="sec-model">
     <h2>AI scores</h2>
     <p class="hint">Optional. Where the scoring runs: any AI service you have a key for, or a model on your own computer (Ollama or LM Studio, private and free). Listing titles and card text go only to the one you choose.</p>
+    <div class="field check ai-switch">
+      <input id="useAI" type="checkbox">
+      <label for="useAI">Use an AI<span class="hint">Off, Tirekick shows no Scan, Analyze, Search ideas or photo checks, and sends nothing to any AI service. Prices, scam marks and filters work the same. What you set up below is kept for when you turn it back on.</span></label>
+    </div>
     <div class="field">
       <label for="service">AI service</label>
       <select id="service">

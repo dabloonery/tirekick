@@ -169,7 +169,7 @@ const fbAgainstLabels = async (q: any, its: any[]) => {
     return it.title !== title?.trim() || it.price !== p || (it.wasPrice ?? null) !== (was ? +was.replace(/,/g, "") : null);
   });
 };
-for (const [q, fx, n, extra] of [["couch", "facebook-couch-real", 50, ""], ["dumbells", "facebook-dumbbells-real", 71, ""], ["", "facebook-feed-real", 33, ""], ["ds", "facebook-ds-real", 105, ""]] as const) {
+for (const [q, fx, n, extra] of [["couch", "facebook-couch-real", 50, ""], ["dumbells", "facebook-dumbbells-real", 71, ""], ["", "facebook-feed-real", 33, ""], ["ds", "facebook-ds-real", 105, ""], ["ipod", "facebook-ipod-real", 247, ""]] as const) {
   p = await page(q ? `https://www.facebook.com/marketplace/search/?query=${q}` : "https://www.facebook.com/marketplace/?ref=app_tab", fx);
   items = await extract(p);
   const wrong = await fbAgainstLabels(p, items);
@@ -178,7 +178,7 @@ for (const [q, fx, n, extra] of [["couch", "facebook-couch-real", 50, ""], ["dum
   if (fx === "facebook-feed-real") ok("…the feed's unlabeled partner listings read too, and a real bulk-scam code", eq(items.filter((i: any) => i.titleCode).map((i: any) => i.titleCode), ["A1059", "S1337"]) && (await p.ev(`Tirekick.pageType()`)) === "results" && /home feed/.test(await p.ev(`Tirekick.browseContext()`)), items.filter((i: any) => i.titleCode).map((i: any) => i.title));
   await p.close();
 }
-for (const [q, fx] of [["bike", "ebay-bike-real"], ["couch", "ebay-couch-real"]]) {
+for (const [q, fx] of [["bike", "ebay-bike-real"], ["couch", "ebay-couch-real"], ["4tb+hard+drive", "ebay-hdd-real"]]) {
   p = await page(`https://www.ebay.com/sch/i.html?_nkw=${q}`, fx);
   items = await extract(p);
   ok(`real eBay ${q}: 60 listings, each with a title and a price`, items.length === 60 && items.every((i: any) => i.title && i.price > 0), items.length);
@@ -186,8 +186,29 @@ for (const [q, fx] of [["bike", "ebay-bike-real"], ["couch", "ebay-couch-real"]]
     // "0% positive (782)": eBay's percentage is the last 12 months, so a seller with no ratings this year shows 0%.
     ok("…'0% positive (N)' with ratings is no percentage, not a 0% seller; '0% positive (0)' is a new seller", items[32].sellerPct === undefined && items[32].sellerCount === 782 && eq([items[7].sellerPct, items[7].sellerCount], [0, 0]), [items[32].sellerPct, items[32].sellerCount]);
     ok("…pickup-only listings have no shipping to add", items[28].shipping === null && /pickup only/i.test(items[28].raw), items[28].raw);
-  } else ok("…8 price ranges marked", items.filter((i: any) => i.priceRange).length === 8);
+  } else if (q === "couch") ok("…8 price ranges marked", items.filter((i: any) => i.priceRange).length === 8);
+  else {
+    const conditions: Record<string, number> = {};
+    for (const i of [...items].sort((a: any, b: any) => a.condition.localeCompare(b.condition))) conditions[i.condition] = (conditions[i.condition] || 0) + 1;
+    ok("…every condition, refurbished grades included", eq(conditions, { "Brand New": 3, "Certified - Refurbished": 2, "Excellent - Refurbished": 5, "Good - Refurbished": 2, "Open Box": 2, "Pre-Owned": 45, "Very Good - Refurbished": 1 }), conditions);
+  }
   await p.close();
 }
+
+// Real listing pages (2026-10-23): an eBay hard drive and a Marketplace DS opened over its search, as Facebook does.
+p = await page("https://www.ebay.com/itm/900000000001", "ebay-item-real");
+{
+  const it = await p.ev(`(({el, ...it}) => it)(Tirekick.extractItem())`);
+  ok("real eBay listing: title, price, condition, and 'Shipping: Free FedEx Ground…' is free", it.title === 'HGST Ultrastar 2TB 3.5" Enterprise SATA 7200RPM Internal HDD HUS724020ALA640' && eq([it.price, it.shipping, it.total, it.condition], [54.99, 0, 54.99, "Excellent - Refurbished"]), [it.title, it.price, it.shipping, it.condition]);
+  ok("…the seller without the links after it, and the seller notes", it.seller === "seller1 (23718) 99.9% positive" && eq([it.sellerPct, it.sellerCount], [99.9, 23718]) && /zero Bad Sectors/.test(it.details), [it.seller, it.sellerPct, it.sellerCount]);
+  ok("…four big photos and the page type", it.imageUrls.length === 4 && it.imageUrls.every((u: string) => /s-l1600/.test(u)) && (await p.ev(`Tirekick.pageType()`)) === "item", it.imageUrls);
+}
+await p.close();
+p = await page("https://www.facebook.com/marketplace/item/900000000000007/", "facebook-item-real");
+{
+  const it = await p.ev(`(({el, ...it}) => it)(Tirekick.extractItem())`);
+  ok("real Marketplace listing over its search: title, price, condition, seller's year, age", eq([it.title, it.price, it.condition, it.sellerJoined, it.listedDays], ["Nintendo DS Original Fat Phat", 100, "Used - Good", 2018, 154]) && /NO GAMES/.test(it.details), [it.title, it.price, it.condition, it.sellerJoined, it.listedDays]);
+}
+await p.close();
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

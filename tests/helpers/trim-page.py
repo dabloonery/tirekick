@@ -1,18 +1,22 @@
 # Turns a saved eBay or Marketplace search page into a small fixture that is safe to commit: only the result
 # cards, with no scripts, tracking, photos, item ids, seller names or places (those are replaced with made-up ones),
-# and nothing Tirekick added to the page while it was open.
+# and nothing Tirekick added to the page while it was open. A listing page works too (ebay-item, facebook-item):
+# eBay's main content, or Marketplace's listing overlay and a few of the cards behind it, sanitized the same way.
 #   python3 tests/helpers/trim-page.py ebay saved.html tests/fixtures/ebay-results-real.html
 #   python3 tests/helpers/trim-page.py facebook saved.html tests/fixtures/facebook-marketplace-real.html
+#   python3 tests/helpers/trim-page.py ebay-item saved.html tests/fixtures/ebay-item-real.html
 # Needs BeautifulSoup and lxml (pip install beautifulsoup4 lxml). Read the result before committing it: the
 # titles stay as the sellers wrote them, so look for a name, phone number or address in one.
 import copy, re, sys
 from bs4 import BeautifulSoup, Comment
 
 site, src, out = sys.argv[1], sys.argv[2], sys.argv[3]
-assert site in ("ebay", "facebook"), "first argument: ebay or facebook"
+assert site in ("ebay", "facebook", "ebay-item", "facebook-item"), "first argument: ebay, facebook, ebay-item or facebook-item"
+item = site.endswith("-item")
+site = site.split("-")[0]
 s = BeautifulSoup(open(src, encoding="utf-8").read(), "lxml")
 for c in s.find_all(string=lambda t: isinstance(t, Comment)): c.extract()
-for t in s(["script", "noscript", "link", "iframe", "svg", "style", "button", "input", "form"]): t.decompose()
+for t in s(["script", "noscript", "link", "iframe", "svg", "style", "input", "form"] + ([] if item else ["button"])): t.decompose()
 for t in s.select('[class*="tirekick"], [id^="tirekick"]'): t.decompose()
 
 ids = {}
@@ -22,7 +26,7 @@ def fake_id(orig, base):
 FAKE_PLACES = ["Springfield, IL", "Shelbyville, IL", "Ogdenville, IL", "North Haverbrook, IL", "Capital City, IL", "Brockway, IL"]
 places = {}
 PLACE = re.compile(r"^[A-Z][A-Za-z .'-]{1,30}, [A-Z]{2}$")
-KEEP = {"class", "href", "role", "aria-label", "aria-hidden", "aria-level", "alt", "src", "dir"}
+KEEP = {"class", "href", "role", "aria-label", "aria-hidden", "aria-level", "alt", "src", "dir", "data-testid", "data-zoom-src"}
 photos = [0]
 
 def clean(root):
@@ -49,6 +53,7 @@ def clean(root):
             else: el["href"] = f"https://www.facebook.com/marketplace/item/{fake_id(m.group(1), 900000000000000)}/?ref=search&referral_code=null"
         if el.name == "img":
             photos[0] += 1
+            if el.get("data-zoom-src"): el["data-zoom-src"] = f"https://i.ebayimg.com/images/g/fixture{photos[0]}/s-l1600.webp"
             el["src"] = f"https://i.ebayimg.com/images/g/fixture{photos[0]}/s-l500.webp" if site == "ebay" else f"https://scontent.test.fbcdn.net/v/fixture/{photos[0]}_n.jpg"
         for k in ("aria-label", "alt"):
             if el.get(k):
@@ -57,7 +62,50 @@ def clean(root):
                 for town in sorted({p.rsplit(",", 1)[0] for p in places}, key=len, reverse=True): v = v.replace(town, "Springfield")
                 el[k] = re.sub(r"listing (\d+)", lambda m: "listing " + fake_id(m.group(1), 900000000000000), v)
 
-if site == "ebay":
+def buyer_zip(root):  # "Delivery … to 87106", "Free pickup: 3 mi from 87106": the buyer's ZIP code
+    for t in root.find_all(string=re.compile(r"\b\d{5}\b")):
+        v = re.sub(r"(from|near|to) \d{5}\b", r"\1 62701", str(t))
+        prev = t.find_previous(string=lambda x: x.strip())
+        if re.fullmatch(r"\s*\d{5}\s*", v) and prev is not None and prev.strip() in ("to", "from", "near"): v = "62701"
+        if v != str(t): t.replace_with(v)
+
+if item and site == "ebay":
+    # The photos, the summary on the right (title, price, seller, shipping) and "About this item", inside <main> as on eBay.
+    main = s.new_tag("main")
+    for sel in ("#PicturePanel", "#mainContent", ".x-about-this-item"):
+        part = s.select_one(sel)
+        if part: main.append(copy.copy(part))
+    clean(main)
+    for t in main.select(".x-sellercard-atf__info__about-seller a, .x-sellercard-atf__info__about-seller span"):
+        if t.string and t.string.strip() and not re.search(r"[\d%]", t.string): t.string = "seller1"
+    for t in main.find_all(string=re.compile(r"Located in:")):
+        t.replace_with(re.sub(r"Located in:.*", "Located in: Springfield, Illinois, United States", str(t)))
+    for t in main.find_all(string=re.compile(r"^\s*[A-Z][a-z]+(?: [A-Z][a-z]+)*, [A-Z][a-z]+(?: [A-Z][a-z]+)*, United States\s*$")):
+        t.replace_with("Springfield, Illinois, United States")
+    buyer_zip(main)
+    body = str(main)
+    title = "eBay listing"
+elif item:
+    dialog = next(d for d in s.select('[role="dialog"]') if d.select_one('a[href*="/marketplace/profile/"]'))  # the listing, not the notifications
+    d = copy.copy(dialog)
+    for a in d.select('a[href*="/marketplace/profile/"]'):  # the seller's name (not the "Seller details" link)
+        for t in a.find_all(string=True):
+            if t.strip() and t.strip() != "Seller details": t.replace_with("Pat Seller")
+    for a in d.select("a[href]"):
+        if "/marketplace/item/" not in a["href"]: a["href"] = "#"
+    cells = []
+    for a in s.select('[role="main"] a[href*="/marketplace/item/"]')[:6]:
+        c = copy.copy(a)
+        clean(c)
+        cells.append(f"<div><div>{c}</div></div>")
+    clean(d)
+    for t in d.find_all(string=True):  # the town alone, in "Listed … in Springfield, IL" or a related search link
+        v = str(t)
+        for real in places: v = v.replace(real.rsplit(",", 1)[0], "Springfield")
+        if v != str(t): t.replace_with(v)
+    body = f'<div role="main"><div>{"".join(cells)}</div></div><div role="dialog" aria-label="Marketplace listing">{d.decode_contents()}</div>'
+    title = "Marketplace"
+elif site == "ebay":
     results = s.select_one("ul.srp-results")
     keep = s.new_tag("ul", attrs={"class": "srp-results srp-list clearfix"})
     carousel = False
@@ -85,8 +133,7 @@ if site == "ebay":
         elif re.match(r"^\d{1,3}(?:\.\d)?% positive", t):
             prev = sp.find_previous_sibling("span")
             if prev is not None and re.fullmatch(r"\S+\s*", prev.get_text()): prev.string = seller(prev.get_text().strip()) + " "
-    for t in keep.find_all(string=re.compile(r"\b\d{5}\b")):  # "Free pickup: 3 mi from 87106": the buyer's ZIP code
-        t.replace_with(re.sub(r"(from|near|to) \d{5}\b", r"\1 62701", str(t)))
+    buyer_zip(keep)
     body = f'<div class="srp-river-main"><div class="s-clipped"><ul>{placeholder or ""}</ul></div><div id="srp-river-results" class="srp-river-results clearfix"><h2>Results</h2>{keep}</div></div>'
     title = "for sale | eBay"
 else:

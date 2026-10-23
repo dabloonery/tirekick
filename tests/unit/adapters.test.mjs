@@ -16,6 +16,10 @@ test("parseShipping: a number, 0 for free, null when the card doesn't say", () =
   assert.equal(TK.parseShipping("+$12.35 delivery"), 12.35);
   assert.equal(TK.parseShipping("+$5 shipping estimate"), 5);
   assert.equal(TK.parseShipping("Free delivery"), 0);
+  // A listing page's shipping row, from a real eBay listing (2026-10): the label, then free or the cost.
+  assert.equal(TK.parseShipping("Shipping:FreeFedEx Ground / FedEx Home Delivery®. See details", true), 0);
+  assert.equal(TK.parseShipping("Shipping: US $12.45 USPS Ground Advantage®. See details", true), 12.45);
+  assert.equal(TK.parseShipping("Shipping: Free FedEx Ground"), null, "a card's text needs the plus sign or 'free shipping'");
   assert.equal(TK.parseShipping("Free International Shipping"), 0);
   assert.equal(TK.parseShipping("Pre-Owned"), null);
   assert.equal(TK.parseShipping("$52.00 Free shipping", true), 0, "free is checked before any amount");

@@ -183,7 +183,9 @@ estimate of what that kind of item usually sells for, always marked **est.**; pr
 ## Without the AI
 
 Tirekick has AI features, and they're optional. Everything here works without them: it's free, needs no API
-key, and runs only on pages you're looking at.
+key, and runs only on pages you're looking at. To keep the AI out of the way altogether, turn off **Use an AI**
+in settings (AI scores): Scan, Analyze, Search ideas, photo checks and the model menu go, nothing is sent to any
+AI service, and your setup is kept for when you turn it back on.
 
 **On the cards**, as soon as a results page loads:
 

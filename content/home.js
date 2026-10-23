@@ -70,6 +70,7 @@
         { done: Object.keys(d.saved).length + Object.keys(d.savedSearches).length > 0, title: "Save a listing or a search", text: "Hover a card and press Save, or use Save search in the panel. Price drops show up here and as a number on the toolbar icon." },
         { done: keyed, title: "Add an AI, if you like", text: "Optional. With any AI service you have a key for, or a free model on your own computer, Scan scores each listing and says why.", acts: [h("button", { class: "hm-btn", onclick: () => send("openOptions", { section: "model" }).catch(() => {}) }, "Open settings")] },
       ];
+      if (d.useAI === false) steps.pop(); // the AI turned off in settings: no step asks for one
       const n = steps.filter((s) => s.done).length;
       const show = !d.startHidden && n < steps.length;
       if (!show) {
@@ -172,7 +173,7 @@
     let refresh = async function () {
       const d = await chrome.storage.local.get({
         provider: "anthropic", oaiModel: "",
-        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {}, marksBack: false,
+        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {}, marksBack: false, useAI: true,
       });
       // The API key stays in the background script; the page only learns whether there is one.
       d.hasKey = await send("getSettings").then((s) => !!s.hasKey).catch(() => false);

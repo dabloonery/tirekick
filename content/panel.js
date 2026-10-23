@@ -1162,6 +1162,8 @@
   const spendDetail = $(".spend-detail");
   const budgetBar = $(".budget");
   let cfg = {};
+  // The AI turned off in settings (useAI): every AI button and menu goes, and the free checks lead.
+  const aiOff = () => cfg.useAI === false;
   const nameOf = (id) => (MODELS.find(([, m]) => m === id)?.[2].split(" \u00b7")[0]) || OLDER[id] || id;
 
   // With Claude the footer offers how careful to be, not a model: each choice sets both the scan model (many
@@ -1201,12 +1203,13 @@
   let modelMissing = null;
   const placeSetup = () => {
     const inWelcome = !!modelMissing && !$(".welcome").hidden;
-    wrap.classList.toggle("no-model", !!modelMissing);
+    const noAI = !!modelMissing || aiOff();
+    wrap.classList.toggle("no-model", noAI);
     setupCard.hidden = !modelMissing || inWelcome;
     $(".step-key").hidden = !inWelcome;
     // With no AI, the free typical price is the page's main button; Scan waits until there's an AI.
-    freeRow.classList.toggle("scan", !!modelMissing);
-    freeRow.classList.toggle("ghost", !modelMissing);
+    freeRow.classList.toggle("scan", noAI);
+    freeRow.classList.toggle("ghost", !noAI);
     if (!modelMissing) return;
     root.querySelectorAll(".setup-title").forEach((el) => (el.textContent = modelMissing[0]));
     root.querySelectorAll(".setup-text").forEach((el) => (el.textContent = modelMissing[1]));
@@ -1282,7 +1285,7 @@
     const share = budget ? s.month / budget : 0;
     const level = share >= 1 ? "over" : share >= 0.8 ? "warn" : "";
     // Spending is a footnote: shown once a paid service is set up (or something was spent), never pushed.
-    spendBtn.hidden = !(paidAI || s.month > 0);
+    spendBtn.hidden = aiOff() || !(paidAI || s.month > 0);
     $(".foot").hidden = spendBtn.hidden && $(".model-pick").hidden;
     spendBtn.className = `spend ${level}`;
     // Kept to a few quiet characters (dabloonery: the tracker is mostly for the owner); the details are in the tooltip and popover.
@@ -1342,9 +1345,9 @@
         : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
-    modelMissing = missing;
-    paidAI = !missing && cfg.provider !== "ollama" && !keyless;
-    $(".model-pick").hidden = !!missing; // nothing to pick until an AI is set up: the setup card says how
+    modelMissing = aiOff() ? null : missing; // turned off: nothing to finish setting up
+    paidAI = !aiOff() && !missing && cfg.provider !== "ollama" && !keyless;
+    $(".model-pick").hidden = aiOff() || !!missing; // nothing to pick until an AI is set up: the setup card says how
     placeSetup();
     renderSpend((await chrome.storage.local.get("usage")).usage);
   };
@@ -1352,7 +1355,7 @@
   chrome.storage.onChanged.addListener((changes) => {
     if (!alive()) return;
     if (changes.usage) renderSpend(changes.usage.newValue);
-    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize", "autoScan"].some((k) => changes[k])) loadFooter().then(refreshPending);
+    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize", "autoScan", "useAI"].some((k) => changes[k])) loadFooter().then(refreshPending);
   });
 
 
@@ -2971,7 +2974,7 @@
             "div",
             { class: "actions row-acts" },
             it.browse && it.query && !it.sold ? h("button", { onclick: (e) => checkSold(it, e.currentTarget), title: `The typical price from recent eBay sales of \u201c${it.query}\u201d` }, "Typical price") : null,
-            it.imageUrl ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Have the AI look at the photo (can change the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
+            it.imageUrl && !aiOff() ? h("button", { onclick: (e) => runPhotoCheck(it, box, e.currentTarget), title: "Have the AI look at the photo (can change the score)" }, it.photos ? "Re-check photo" : "Check photo") : null,
             it.imageUrl ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null,
             saveBtn,
             hideBtn
@@ -3721,7 +3724,7 @@
   let autoHold = ""; // why it stopped on this page; a Scan you press, or a new page, clears it
   let autoSig = null;
   const autoSkip = new Set(); // listings the model passed over: offered again by Scan, not retried automatically
-  const autoOn = () => !!cfg.autoScan;
+  const autoOn = () => !!cfg.autoScan && !aiOff();
   autoIn.addEventListener("change", async () => {
     const on = autoIn.checked;
     cfg.autoScan = on;
@@ -3739,7 +3742,7 @@
   });
   const autoTick = (n, toScore, changed) => {
     setIf(autoIn, "checked", autoOn());
-    autoRow.hidden = scanBtn.hidden || !!modelMissing;
+    autoRow.hidden = scanBtn.hidden || !!modelMissing || aiOff();
     const typing = root.activeElement && $(".inputs").contains(root.activeElement);
     if (autoSkip.size && seen.size) n = [...currentKeys()].filter((k) => !seen.has(k) && !autoSkip.has(k)).length;
     const due = autoOn() && !autoHold && !modelMissing && !changed && !typing && !document.hidden && (seen.size ? n : toScore) > 0;
@@ -4325,7 +4328,7 @@
       const btn = h("button", { onclick: () => checkPhotos(listing, r, market, photoBox, btn), title: `Have the AI look at ${n > 1 ? `the first ${n} photos` : "the photo"} (can change the score)` }, `${r.photos ? "Re-check" : "Check"} photo${n > 1 ? "s" : ""}`);
       const lensLink = h("a", { href: lensSearchUrl(listing.imageUrls[0]), target: "_blank", rel: "noopener", title: "Reverse image search: is the main photo used elsewhere?" }, "Find photo elsewhere \u2197");
       // The photo pair sits right under the verdict, the same two, in the same order, as on the panel's rows.
-      parts.splice(1, 0, h("div", { class: "sect photo-acts" }, h("div", { class: "actions" }, btn, lensLink), photoBox));
+      parts.splice(1, 0, h("div", { class: "sect photo-acts" }, h("div", { class: "actions" }, aiOff() ? null : btn, lensLink), photoBox));
     }
     itemEl.replaceChildren(...parts);
     renderItemInfo();

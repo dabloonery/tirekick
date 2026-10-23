@@ -43,6 +43,7 @@ const DEFAULTS = {
   markPrices: true,
   markOther: true,
   markLimit: 3, // chips per listing, 1 to 3; scam marks come first
+  useAI: true, // off: no AI surface in the panel, and nothing is sent to any AI service (the AI handlers refuse)
   monthlyBudget: 0, // dollars; 0 = no budget. Claude calls stop once this month's estimated spend reaches it
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
   autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)
@@ -1012,7 +1013,14 @@ async function panelTab(_payload, sender) {
   if (sender?.tab?.id >= 0 && sender.frameId === 0) await chrome.action.setPopup({ tabId: sender.tab.id, popup: "" });
 }
 
-const HANDLERS = { storeEdit, soldSlot, rankBatch, analyzeListing, suggestSearches, checkPhoto, photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, abort, panelTab, getSettings: getPageSettings };
+// With the AI turned off in settings, the calls that would reach an AI service refuse, whatever asks: an old
+// tab, a menu, a keyboard path the panel missed. The free checks never come through here.
+const AI_OFF = "Your AI is turned off in settings, so nothing was sent. Prices, scam marks and filters work without it.";
+const needsAI = (fn) => async (payload, sender) => {
+  if ((await getSettings()).useAI === false) throw new Error(AI_OFF);
+  return fn(payload, sender);
+};
+const HANDLERS = { storeEdit, soldSlot, rankBatch: needsAI(rankBatch), analyzeListing: needsAI(analyzeListing), suggestSearches: needsAI(suggestSearches), checkPhoto: needsAI(checkPhoto), photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, abort, panelTab, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -1067,12 +1075,14 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await upgradeStorage().catch((e) => console.warn("[Tirekick] storage upgrade:", e.message));
   await syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
   refreshOpenTabs().catch(() => {});
+  const { useAI } = await getSettings();
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
       title: "Check this photo with Tirekick",
       contexts: ["image"],
       documentUrlPatterns: TKSites.matches(),
+      visible: useAI !== false,
     });
     // The icon's own right-click menu: the browser fills most of it; Tirekick adds only this.
     chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Tirekick in a tab", contexts: ["action"] });
@@ -1116,6 +1126,8 @@ async function doSyncAutoScripts() {
 }
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
+  // The photo check is an AI call: its menu entry goes with the AI.
+  if (changes.useAI) chrome.contextMenus.update(MENU_ID, { visible: changes.useAI.newValue !== false }, () => void chrome.runtime.lastError);
 });
 chrome.runtime.onStartup.addListener(() => {
   upgradeStorage().catch(() => {}); // a restored profile, or an update applied while the browser was closed
@@ -1219,7 +1231,7 @@ chrome.action.onClicked.addListener((tab) => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === HOME_MENU_ID) return openHome();
   if (info.menuItemId === LOOKUP_MENU_ID) return openHome({ q: info.selectionText || "" });
-  if (info.menuItemId !== MENU_ID || !tab?.id) return;
+  if (info.menuItemId !== MENU_ID || !tab?.id || (await getSettings()).useAI === false) return;
   try {
     await ensureInjected(tab.id);
     await chrome.tabs.sendMessage(tab.id, { type: "tirekick-check-photo", imageUrl: info.srcUrl });

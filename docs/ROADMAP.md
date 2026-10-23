@@ -1029,11 +1029,11 @@ focus read **Custom**; picking a focus sets the switches again. The switches:
 
 #### Order of PRs
 
-1. **Mark groups and the safety fix** (built 2026-10-23 with the recommended answers below; dabloonery hasn't
+1. **Mark groups and the safety fix** (merged 2026-10-23, #113, with the recommended answers below; dabloonery hasn't
    answered the questions one by one, so any of them can still change): the chip groups, the three `mark*` switches, `markLimit`, the storage
    upgrade, the fold in settings (no focus cards yet). Fixture tests that each switch removes only its group, and
    that a likely scam keeps its chip with `markPrices` and `markOther` off.
-2. **AI off**: `useAI` and every surface above, with the background refusing AI calls. An e2e check that with it
+2. **AI off** (built 2026-10-23; the switch sits at the top of AI scores in settings until PR 3 moves it into the fold): `useAI` and every surface above, with the background refusing AI calls. An e2e check that with it
    off a store page and a listing page make no call to the fake AI server.
 3. **Focus cards**: the three cards, Custom, `focusOf` / `focusSettings` with unit tests, README "Everyday use",
    `docs/ux-spec.md`, and store listing copy if dabloonery wants the focuses named there.

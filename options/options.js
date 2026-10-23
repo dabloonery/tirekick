@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "monthlyBudget", "showTab", "autoScan", "theme"];
+  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "theme"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicScanModel", "anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "filterWords"];
 
@@ -130,6 +130,7 @@ async function load() {
     else el.value = s[f] ?? "";
   }
   applyTheme(s.theme);
+  showAIOff();
   // Chosen once you picked a service, or already set one up before this menu existed.
   chosen = !!(s.serviceChosen || stored.provider || stored.anthropicKey || stored.oaiKey || stored.oaiModel);
   await showLists();
@@ -303,6 +304,9 @@ for (const f of FIELDS) {
     if ((f === "anthropicKey" && document.getElementById(f).value.trim()) || (f === "oaiKey" && document.getElementById(f).value.trim())) document.getElementById("test").click();
   });
 }
+// With the AI off, its section folds down to the switch.
+const showAIOff = () => document.getElementById("sec-model").classList.toggle("off", !document.getElementById("useAI").checked);
+document.getElementById("useAI").addEventListener("change", showAIOff);
 // Scam marks on the cards are turned off only on purpose: the click asks first, and saying no leaves them on.
 document.getElementById("markScams").addEventListener("click", (e) => {
   if (!e.target.checked && !confirm("Turn off scam marks on cards? Cards won't say when a listing looks like a scam. The panel's list and the listing page still will.")) e.preventDefault();
@@ -318,12 +322,16 @@ for (const b of document.querySelectorAll("[data-reveal]")) {
 
 // The banner at the top: is the model ready to run, and if not, what's the one thing missing?
 async function showStatus() {
-  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel"]);
+  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel", "useAI"]);
   const provider = s.provider || "anthropic";
   const card = document.getElementById("statusCard");
   const keyLink = document.getElementById("keyLink");
   let ready = false, title, text;
-  if (!chosen) {
+  if (s.useAI === false) {
+    ready = true;
+    title = "Ready: price checks and scam marks (your AI is off)";
+    text = "Your AI is turned off, so nothing is sent to any AI service. Turn it back on under AI scores.";
+  } else if (!chosen) {
     ready = true; // the price checks, scam marks and filters need no AI
     title = "Ready: price checks and scam marks";
     text = "Open an eBay or Marketplace search to see them. AI scores are optional: to add them, choose an AI service under AI scores below.";
@@ -347,7 +355,7 @@ async function showStatus() {
   document.getElementById("statusTitle").textContent = title;
   document.getElementById("statusText").textContent = text;
   // A button to the chosen service's key page, until it's set up.
-  const keys = chosen && !ready ? serviceInfo(serviceOf()).keys : "";
+  const keys = chosen && !ready && s.useAI !== false ? serviceInfo(serviceOf()).keys : "";
   keyLink.hidden = !keys;
   if (keys) keyLink.href = keys;
 }

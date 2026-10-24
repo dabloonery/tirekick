@@ -413,6 +413,8 @@
     .welcome .step-key .setup-go { justify-self:start; margin-top:6px; min-height:36px; padding:9px 14px; font:600 13px/1 var(--ui); }
     /* Model-only controls wait until there is a model: Compare prices against and free sold prices still work */
     .no-model .want-field, .no-model .feewrap, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
+    /* "free" beside a button only means something next to the AI's costs */
+    .no-model .freeprices .cost, .no-model [data-act="offer-prices"] .cost { display:none; }
 
     /* first run, list bar */
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:14px; }
@@ -704,7 +706,7 @@
           <b>Welcome to Tirekick</b>
           <ul class="w-points">
             <li>Cards are marked for likely scams and odd prices as they load.</li>
-            <li><b>Typical price</b> compares every listing with recent eBay sales, free. Point at a card for its own, and for <i>Save</i> and <i>Hide</i>.</li>
+            <li><b>Typical price</b> compares every listing with recent eBay sales. Point at a card for its own, and for <i>Save</i> and <i>Hide</i>.</li>
             <li>If you turn on an AI in settings (optional, and off until you do), <b>Scan</b> scores each listing and says why. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
           </ul>
           <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
@@ -727,13 +729,13 @@
         <label class="autoscan" hidden><input type="checkbox" class="auto-in" role="switch"><span>Scan new listings automatically</span></label>
         <div class="alts">
           <button class="ghost" data-act="ideas" hidden>Search ideas</button>
-          <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own: free, and your AI isn't used">Typical price <span class="cost">free</span></button>
+          <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own; your AI isn't used">Typical price <span class="cost">free</span></button>
         </div>
         <div class="market"></div>
         <div class="setup" hidden><b class="setup-title">Scores are optional.</b> <span class="setup-text">Prices, scam marks and filters work without an AI.</span>
           <button class="ghost" data-act="open-settings">Open settings</button></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
-        <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
+        <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the marks on the cards stay)">Start over</button><div class="actions pi-search"></div></div>
         <div class="status err readwarn" role="status" hidden></div>
         <div class="ideas-inline" hidden><div class="status ideas-status" role="status"></div><div class="ideas-list"></div></div>
       </div>
@@ -2281,7 +2283,7 @@
       f.priceNote = e.message;
     }
     f.vsSold = vsSoldOf(f);
-    setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used.` : f.priceNote, !f.ownMarket);
+    setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d.` : f.priceNote, !f.ownMarket);
     redecorateAll();
   };
   // "$55", not "$55–$55", when the two ends meet.
@@ -2294,7 +2296,7 @@
       : h("button", { class: "tk-btn tk-x", "data-i": "save", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
     // No price for it yet: one free lookup of its own title. Otherwise eBay's sold listings, to look yourself.
     f.title && canPrice(f)
-      ? h("button", { class: "tk-btn tk-x", "data-i": "price", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d: free, and your AI isn't used`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
+      ? h("button", { class: "tk-btn tk-x", "data-i": "price", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d; your AI isn't used`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
       : f.title ? h("button", { class: "tk-btn tk-x", "data-i": "sold", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ])];
@@ -2919,7 +2921,7 @@
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
               (() => {
                 const read = prefs.markPrices && !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
-                return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
+                return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the scam checks; your AI isn't used. With the AI on, a scan adds a score." }, h("span", { class: "verdict" }, read.word)) : null;
               })(),
               likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
               (() => {
@@ -4009,9 +4011,9 @@
       const market = await getMarket(settings, query, "use");
       if (!market?.median) return setStatus(market ? "Not enough working ones sold to compare with." : "");
       applyMarket(market);
-      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used.`);
+      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d.`);
       const n = [...facts.values()].filter((f) => f.vsSold != null).length;
-      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. Free: your AI wasn't used. Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
+      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
     } catch (e) {
       setStatus(e.message, true);
     } finally {

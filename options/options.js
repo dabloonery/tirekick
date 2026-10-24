@@ -360,7 +360,7 @@ async function showStatus() {
     const m = s.anthropicModel || "claude-sonnet-5-5";
     const scanM = s.anthropicScanModel === undefined ? "claude-haiku-5-5" : s.anthropicScanModel || m;
     title = ready ? `Ready: ${NAMES[m] || m}${scanM !== m ? `, scans with ${NAMES[scanM] || scanM}` : ""}` : "One step left: add your Anthropic API key";
-    text = ready ? "Open an eBay or Marketplace search and press Scan, or just look at the free marks on the cards." : "Paste it below and it is checked right away. The free marks and price tools work without any model.";
+    text = ready ? "Open an eBay or Marketplace search and press Scan, or just look at the marks on the cards." : "Paste it below and it is checked right away. The marks and price checks work without it.";
   } else if (provider === "openai") {
     const keyless = /localhost|127\.0\.0\.1/.test(s.oaiUrl || "");
     ready = !!s.oaiModel && (!!s.oaiKey || keyless);

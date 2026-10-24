@@ -29,7 +29,7 @@ includes your API keys). Uninstalling Tirekick deletes all of it.
 
 ## What leaves your computer, and only when you ask
 
-Tirekick does nothing on a page until you open its panel, press a button, or (for the free marks on
+Tirekick does nothing on a page until you open its panel, press a button, or (for the marks on
 cards) load an eBay or Marketplace page you're already looking at. With **Scan new listings
 automatically** turned on (it's off until you turn it on), a search page you're looking at is scanned
 as its listings load, as if you'd pressed Scan. It never browses, checks prices or contacts anyone in

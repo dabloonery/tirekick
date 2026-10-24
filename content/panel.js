@@ -2944,6 +2944,8 @@
               "div",
               { class: "actions row-acts" },
               h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
+              // A free scam check of its own: no scan needed, so it's here before one too.
+              /^https:/.test(it.imageUrl || "") ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null,
               saveBtn,
               hideBtn
             )
@@ -4290,15 +4292,17 @@
           h("div", { "data-v": past.verdict }, h("span", { class: "verdict" }, VERDICT[past.verdict]?.label || past.verdict), ` ${past.score} out of 100, ${shortDate(past.at)}${past.p != null && f.price != null && past.p !== priceOf(f) ? ` (the price was ${dollars(past.p)} then)` : ""}`),
           past.reason ? h("p", { class: "past-why" }, past.reason) : null)
       : "";
+    const slot = itemEl.querySelector(".item-acts");
     const acts = h(
       "div",
       { class: "actions pi-acts" },
       f.hidden ? h("span", {}, "Hidden") : null,
       h("button", { class: sv ? "on" : null, onclick: () => toggleSave(f.key) }, sv ? "Saved" : "Save"),
       h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Hide"),
-      h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197")
+      h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
+      // The free reverse image search, before (and without) an analysis; an analysis has it beside its photo check.
+      !slot && /^https:/.test(f.imageUrl || "") ? h("a", { href: lensSearchUrl(f.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is the main photo used elsewhere?" }, "Find photo elsewhere \u2197") : null
     );
-    const slot = itemEl.querySelector(".item-acts");
     slot?.replaceChildren(acts);
     piLine.replaceChildren(
       pastLine,

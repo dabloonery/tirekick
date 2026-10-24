@@ -38,6 +38,10 @@ const cs = await chips();
 const of = (price: string) => (cs.find(([pr]: string[]) => pr === price) || [])[1] || "";
 ok("a card far under a trusted sold median is marked Likely scam: typical is, with the share", /Likely scam: typical is \$300/.test(of("$85.00")), cs);
 ok("…one well under it says Too cheap?", /Too cheap\? Typical is \$300/.test(of("$140.00")), cs);
+// Before any scan (and with the AI off), the panel's rows still offer the free reverse image search.
+await R(p, `r.querySelector('[data-act=tab]').click()`);
+await waitFor(() => R(p, `return !!r.querySelector('.list .row.plain')`));
+ok("an unscored row in the panel has Find photo elsewhere, beside Sold, Save and Hide", await R(p, `return [...r.querySelectorAll('.list .row.plain')].some(x=>[...x.querySelectorAll('.row-acts a')].some(a=>/Find photo elsewhere/.test(a.textContent) && /lens\.google\.com/.test(a.href)))`));
 ok("…a broken one is never marked (the median is for working ones)", !/Too cheap|Likely scam: typical/.test(of("$35.00")), cs);
 ok("…and an auction isn't either (a bid isn't a price)", !/Too cheap|Likely scam: typical/.test(of("$60.00")), cs);
 // An accessory for the search, added the way a feed adds cards as you scroll: no price check, no scam mark.
@@ -99,6 +103,7 @@ ok("…says where they come from, with no word about an AI that's off", /From re
 ok("…with a message to edit and three kinds to pick from", offer?.msg === "Hi! Is this still available? Would you take $270?" && offer?.kinds?.join() === "Friendly,Direct,With a reason", offer);
 await R(it, `r.querySelector('.pi-line .offer .msg-kind [data-kind=direct]').click()`);
 ok("…and picking another kind changes the message", /^Hi, I can offer \$270\. Let me know/.test(await R(it, `return r.querySelector('.pi-line .offer textarea').value`)));
+ok("…and the free reverse image search, with no AI and no analysis", /lens\.google\.com/.test(await R(it, `return [...r.querySelectorAll('.pi-acts a')].find(a=>/Find photo elsewhere/.test(a.textContent))?.href || ''`)));
 // The seller answers: what to do, and the message rewritten to match.
 const said = (n: number) => R(it, `const i=r.querySelector('.pi-line .offer input.said'); i.value='${n}'; i.dispatchEvent(new Event('input')); return { answer: r.querySelector('.pi-line .said-answer').textContent, msg: r.querySelector('.pi-line .offer textarea').value }`);
 const s1 = await said(285);

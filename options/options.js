@@ -354,7 +354,7 @@ async function showStatus() {
     // The AI is opt-in (dabloonery, 2026-10-23): until it's turned on, the free checks are the whole setup.
     ready = true;
     title = "Ready: price checks and scam marks";
-    text = "Open an eBay or Marketplace search to see them. AI scores are optional and off: to add them, turn on Use an AI under AI scores below.";
+    text = "Open an eBay or Marketplace search to see them. For a score and a reason on every listing, add an AI under AI scores below.";
   } else if (!chosen) {
     ready = true; // the price checks, scam marks and filters need no AI
     title = "Ready: price checks and scam marks";

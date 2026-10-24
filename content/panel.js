@@ -454,6 +454,7 @@
     .qt { border:var(--bw) solid var(--line); background:none; color:var(--muted); font:600 13px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
     .qt:hover { color:var(--ink); border-color:var(--muted); }
     .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
+    .qf-apply { border-color:var(--accent); color:var(--ink); }
     .qt { min-height:26px; }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
     .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 13px/1 var(--ui); letter-spacing:normal; text-transform:none; }
@@ -742,6 +743,7 @@
           <div class="qf-row">
             <span class="qf-wordwrap"><input autocomplete="off" class="qf-words" placeholder="Words: working -parts" aria-label="Words to keep or drop (-word drops)" title="Words a listing must have; -word drops listings with it; a/b = either; &quot;quotes&quot; for a phrase"><button class="qf-clear" hidden title="Clear the filter (your deal price stays)" aria-label="Clear the filter">\u00d7</button></span>
             <span class="qf-price"><input autocomplete="off" class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input autocomplete="off" class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
+            <button class="qt qf-apply" hidden></button>
           </div>
           <div class="qf-row qf-toggles">
             <label class="qf-deal" title="Listings at or under it get a star, and a saved search tells you on Home">Your price \u2264 <input autocomplete="off" class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
@@ -3556,6 +3558,24 @@
   const qfMax = $(".qf-max");
   const qfDeal = $(".qf-dealin");
   const quickKey = () => `${TK.currentSite()}|${(pageSearch() || location.pathname).toLowerCase()}`;
+  // The store's own filters: the price range goes to the store too (as its menu would set it), so it looks through
+  // all its results, not only the cards on this page. Only when you change the price and press Enter, fold the box
+  // or press Apply: never on load, so a store that drops the setting can't send the tab round in circles.
+  let storeDirty = false;
+  const storeWants = () => ({ min: quick.min, max: quick.max });
+  const storeBehind = () => TK.pageType() === "results" && !!TK.site()?.storeFilters?.length && !TKSites.hasFilters(location.href, storeWants());
+  const toStore = async () => {
+    readBoxes();
+    applyQuick();
+    storeDirty = false;
+    if (!storeBehind()) return;
+    clearTimeout(quickTimer);
+    const key = quickKey();
+    await writeStored("quickFilters", { set: { [key]: { ...quick, a: Date.now() } }, cap: { max: 200, by: "a" } }).catch(() => {});
+    location.assign(TKSites.withFilters(location.href, storeWants()));
+  };
+  $(".qf-apply").addEventListener("click", toStore);
+  [qfMin, qfMax].forEach((el) => el.addEventListener("input", () => (storeDirty = true)));
   // fill: also write the boxes (on load and Clear). Otherwise they're yours: never overwritten mid-edit.
   const showQuick = (fill = false) => {
     if (fill) {
@@ -3580,6 +3600,10 @@
     bt.dataset.mode = mode;
     qf.classList.toggle("on", quickActive());
     $(".qf-clear").hidden = !quickActive();
+    const apply = $(".qf-apply");
+    apply.hidden = !storeBehind();
+    apply.textContent = `Apply on ${TK.site()?.name || "the site"}`;
+    apply.title = `Set ${TK.site()?.name || "the site"}'s own price filter too, so it looks through all its results, not just this page`;
     syncFilterToggle();
   };
   // The filter fields sit behind a "Filter" button so the sticky bar leaves room for the results; a
@@ -3606,6 +3630,7 @@
     qfOpen = false;
     syncFilterToggle();
     qfToggle.focus();
+    if (storeDirty) toStore();
   });
   onLensShown = () => showQuick();
   const loadQuick = async () => {
@@ -3615,6 +3640,10 @@
     const stored = quickFilters[quickKey()] || (!pageSearch() && TK.pageType() === "results" ? { junk: true } : {});
     quick = { ...NO_QUICK, ...stored, ...(stored.projects && !stored.broken && { broken: "only" }) }; // older "Projects only"
     delete quick.projects;
+    // The store's own filters in the address (set with its menu, or by Tirekick) win over the saved ones.
+    const there = TKSites.readFilters(location.href);
+    if (Object.values(there).some(Boolean)) Object.assign(quick, there);
+    storeDirty = false;
     qfOpen = false;
     showQuick(true);
   };
@@ -3668,6 +3697,7 @@
     quick = { ...NO_QUICK, deal: quick.deal }; // your price isn't a filter; it stays
     showQuick(true);
     applyQuick();
+    toStore(); // and the store's price filter goes too
   });
 
   sortSel.addEventListener("change", () => {

@@ -326,6 +326,40 @@ const strikes = await get("soldStrikes");
 const until = await get("soldCooldownUntil");
 ok("a second browser check within a day pauses lookups for two hours, and says so", /paused 2 h/.test(st) && strikes?.n === 2 && until - Date.now() > 1.9 * 3600e3, { st, strikes, until });
 
+// ---------- the price filter sets the store's own ----------
+await reset();
+const typeIn = (p: any, cls: string, v: string) => R(p, `const i=r.querySelector('${cls}'); i.focus(); i.value='${v}'; i.dispatchEvent(new Event('input',{bubbles:true}))`);
+const pf = await openPanel(SEARCH + "&_pgn=3");
+await R(pf, `r.querySelector('.qf-toggle').click()`); await sleep(100);
+await typeIn(pf, ".qf-min", "20"); await typeIn(pf, ".qf-max", "80.5"); await sleep(300);
+await pf.key("Enter"); await sleep(2500);
+const pfAt = new URL(await pf.ev(`location.href`));
+ok("Enter after a price sends it to eBay's own filter, rounded outward, from the first page", pfAt.searchParams.get("_udlo") === "20" && pfAt.searchParams.get("_udhi") === "81" && !pfAt.searchParams.has("_pgn") && pfAt.searchParams.get("_nkw") === "pentax k1000", pfAt.href);
+await R(pf, `r.querySelector('[data-act=tab]').click()`); await sleep(400);
+const pfBox = await R(pf, `return [r.querySelector('.qf-min').value, r.querySelector('.qf-max').value, r.querySelector('.qf-apply').hidden, r.querySelector('.qf-toggle').textContent].join('|')`);
+ok("after the reload the Filter box shows the store's price, with nothing left to apply", pfBox === "20|81|true|Filter (2)", pfBox);
+await R(pf, `r.querySelector('.qf-toggle').click()`); await sleep(100);
+await R(pf, `r.querySelector('.qf-clear').click()`); await sleep(2500);
+const pfCleared = new URL(await pf.ev(`location.href`));
+ok("clearing the filter clears the store's price too", !pfCleared.searchParams.has("_udlo") && !pfCleared.searchParams.has("_udhi"), pfCleared.href);
+// the store's own menu: a price set there shows in Tirekick's box
+const pfSite = await openPanel(SEARCH + "&_udhi=150");
+ok("a price set with eBay's own menu shows in the Filter box", (await R(pfSite, `return r.querySelector('.qf-max').value`)) === "150");
+// a saved filter whose price isn't in the address: applies on the page, and offers to set the store's
+await reset(`{quickFilters:{"ebay|pentax k1000":{words:"",min:0,max:60,fresh:false,broken:"",junk:false,deal:0,a:Date.now()}}}`);
+const pfSaved = await openPanel(SEARCH);
+await R(pfSaved, `r.querySelector('.qf-toggle').click()`); await sleep(100);
+ok("a saved price not in the address offers Apply on eBay, and doesn't reload by itself", !(await R(pfSaved, `return r.querySelector('.qf-apply').hidden`)) && !new URL(await pfSaved.ev(`location.href`)).searchParams.has("_udhi"));
+await R(pfSaved, `r.querySelector('.qf-apply').click()`); await sleep(2500);
+ok("Apply on eBay sets it", new URL(await pfSaved.ev(`location.href`)).searchParams.get("_udhi") === "60");
+const fbp = await openPanel("https://www.facebook.com/marketplace/albuquerque/search?query=camera");
+await R(fbp, `r.querySelector('.qf-toggle').click()`); await sleep(100);
+await typeIn(fbp, ".qf-max", "100"); await sleep(300);
+await fbp.key("Escape"); await sleep(2500);
+const fbAt = new URL(await fbp.ev(`location.href`));
+ok("on Marketplace, Esc after a price sets its maxPrice", fbAt.searchParams.get("maxPrice") === "100" && fbAt.searchParams.get("query") === "camera", fbAt.href);
+await closeAll(/www\.(ebay|facebook)\.com/);
+
 // ---------- no errors ----------
 const ours = errors.filter((e) => !/favicon|ERR_|net::/.test(e || ""));
 ok("no page and no extension page logged an error", !ours.length, ours.slice(0, 5));

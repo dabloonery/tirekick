@@ -229,7 +229,10 @@ folds them away again, and a search's saved filter applies with the box folded. 
 - **Words**, like an eBay search: `dmg -case -game` keeps listings with "dmg" and drops any with
   "case" or "game"; `1000/2000` is either; `"must go"` is a phrase. They match the title and the
   card's text, so `-china` drops "from China" on eBay.
-- **$ min – max**, shipping included: a minimum clears out the cases and cables.
+- **$ min – max**, shipping included: a minimum clears out the cases and cables. Press Enter (or fold the box)
+  and the range goes to eBay's or Marketplace's own price filter too, so the store looks through all its results,
+  not just the page you're on; a price you set with the store's own menu shows here. A saved price that isn't on
+  the page yet offers **Apply on eBay** rather than reloading by itself.
 - **New only** hides everything you've seen before, for the searches you check every day.
 - **Hide broken** (Buyer) or **Broken only** (Reseller) acts on listings that say broken, untested,
   for parts, no power, disc read error and the like: the "any of these words" search Marketplace

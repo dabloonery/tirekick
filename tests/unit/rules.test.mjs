@@ -424,6 +424,52 @@ test("freeRead: one word before any AI, from sold prices and scam signs", () => 
   assert.equal(R.freeRead({ title: "Room for rent", price: 700 })?.word, "Off-topic");
 });
 
+test("bestPlace: best first without a score is shelves, then the price against typical", () => {
+  const m = { median: 250, n: 20, confidence: "good" };
+  const q = "nintendo switch oled";
+  // The real Switch OLED page's free read (tests/e2e/real.ts), in the store's order.
+  const page = [
+    { title: "Nintendo Switch OLED Model White Console HEG", total: 239, vsSold: 239 / 250 },
+    { title: "Nintendo Switch OLED Neon Joy-Con, barely used", total: 211, vsSold: 211 / 250 },
+    { title: "Mario Kart 8 Deluxe - Nintendo Switch", total: 43, accessory: "nintendo switch" },
+    { title: "Nintendo Switch OLED carrying case", total: 15, accessory: "case" },
+    { title: "Nintendo Switch OLED for parts, no power", total: 105, vsSold: 105 / 250, project: "for parts" },
+    { title: "Nintendo Switch OLED Mario Red Edition", total: 175, auction: true },
+    { title: "Lot of 2 Nintendo Switch OLED consoles", total: 420, lot: 2 },
+    { title: "Nintendo Switch OLED 64GB White - NEW SEALED", total: 329, vsSold: 329 / 250 },
+    { title: "Nintendo Switch OLED white + 3 games + case", total: 265, vsSold: 265 / 250 },
+    { title: "Switch OLED console only (no dock), tested", total: 160, vsSold: 160 / 250 },
+    { title: "Nintendo Switch OLED Splatoon 3 Edition", total: 200, vsSold: 0.8, sellerWarn: "3 ratings" },
+  ].map((f) => ({ price: f.total, ...f }));
+  const order = (opts) => page.map((f) => [f, R.bestPlace(f, m, { query: q, ...opts })]).sort((a, b) => R.bestCompare(a[1], b[1])).map(([f]) => f.title.slice(0, 24));
+  assert.deepEqual(order(), [
+    "Switch OLED console only", // Good price, 64% of typical
+    "Nintendo Switch OLED Neo", // Fair, $211 before the $239 one: further below
+    "Nintendo Switch OLED Mod",
+    "Nintendo Switch OLED Mar", // your search with nothing to compare: the store's order
+    "Lot of 2 Nintendo Switch",
+    "Nintendo Switch OLED whi", // above typical, the closest first
+    "Nintendo Switch OLED 64G",
+    "Nintendo Switch OLED for", // broken
+    "Mario Kart 8 Deluxe - Ni", // not the console
+    "Nintendo Switch OLED car",
+    "Nintendo Switch OLED Spl", // a warning
+  ]);
+  assert.equal(order({ broken: true }).indexOf("Nintendo Switch OLED for"), 3, "a reseller who wants broken ones keeps it with the search");
+  // Price marks off: no shelf by a price the list doesn't show, so the store's order, parts and warnings under it.
+  assert.deepEqual(order({ prices: false }).slice(0, 7), ["Nintendo Switch OLED Mod", "Nintendo Switch OLED Neo", "Nintendo Switch OLED Mar", "Lot of 2 Nintendo Switch", "Nintendo Switch OLED 64G", "Nintendo Switch OLED whi", "Switch OLED console only"]);
+  assert.equal(R.bestPlace({ title: "Adjustable Dumbbells 4-44 lbs", total: 150, price: 150 }, m, { query: "dumbells" }).shelf, 1, "a search word spelled a letter off is still the search");
+  assert.equal(R.spelledNear("Dumbbell Set", "dumbells"), true);
+  assert.equal(R.spelledNear("Barbells", "dumbells"), false);
+  assert.equal(R.spelledNear("Bose SoundLink speaker", "ipod classic"), false);
+  assert.equal(R.bestPlace({ title: "Bose SoundLink speaker", total: 80, price: 80 }, m, { query: "ipod classic" }).why, "not your search");
+  assert.equal(R.bestPlace({ title: "iPod classic 160GB", total: 30, price: 30, vsSold: 0.3 }, m, { query: "ipod classic" }).shelf, 6, "Likely scam");
+  const drop = R.bestPlace({ title: "iPod classic", total: 90, price: 90, drop: 20 }, null, { query: "ipod classic" });
+  const plain = R.bestPlace({ title: "iPod classic", total: 80, price: 80 }, null, { query: "ipod classic" });
+  assert.ok(R.bestCompare(drop, plain) < 0, "a price drop goes first among ones with nothing to compare");
+  assert.equal(R.bestCompare(plain, { ...plain }), 0, "ties keep the store's order");
+});
+
 test("vsText: below or above typical, in dollars", () => {
   assert.equal(R.vsText(97, 150), "$53 below typical");
   assert.equal(R.vsText(170, 150), "$20 above typical");

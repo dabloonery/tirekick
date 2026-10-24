@@ -418,7 +418,8 @@
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:14px; }
     .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 8px;
       border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:13px; color:var(--muted); }
-    .listbar + .list > .row:first-child { border-top:0; }
+    .listbar + .list > .row:first-child, .listbar + .list > .sorthint + .row { border-top:0; }
+    .sorthint { padding:8px 0 6px; font-size:12px; line-height:1.4; color:var(--muted); }
     .sortpick { display:flex; align-items:center; gap:6px; margin:0; font:inherit; letter-spacing:normal; text-transform:none; color:var(--muted); }
     .sort { field-sizing:content; max-width:190px; appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 13px/1 var(--ui); padding:6px 14px 6px 0; cursor:pointer;
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
@@ -2880,16 +2881,30 @@
     const sv = shownMemo?.get(it) ?? shownV(it);
     return sv.priceWarn && sv.level === "low" ? TKRules.BANDS.fair[0] - 0.5 : sv.score;
   };
-  // Before a scan, "best first" goes by the free read: good prices up, warnings and off-topic down.
-  const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, marketOf(facts.get(keyOf(it.url)) || it))?.rank ?? 0.5);
+  // Before a scan (and for listings a scan hasn't reached), "best first" goes by TKRules.bestPlace: good prices
+  // furthest below typical first, the rest of your search, then parts, other things and warnings. Worked out once
+  // per item per render, like shownMemo.
+  let placeMemo = null;
+  const placeOf = (it) => {
+    let p = placeMemo?.get(it);
+    if (!p) {
+      const f = facts.get(keyOf(it.url)) || it;
+      p = TKRules.bestPlace(f, marketOf(f), { query: marketFor, prices: prefs.markPrices !== false, broken: lens === "project" });
+      placeMemo?.set(it, p);
+    }
+    return p;
+  };
   const dealOf = (it) => (facts.get(keyOf(it.url))?.deal ? 1 : 0);
   const perItem = (it) => (it.total == null ? Infinity : it.lot ? it.total / it.lot : it.total);
   const vsSold = (it) => it.vsWorking ?? facts.get(keyOf(it.url))?.vsSold ?? Infinity;
+  const vsTie = (it) => (prefs.markPrices === false ? 0 : Math.min(vsSold(it), 1e6)); // Infinity - Infinity is NaN
   const endsIn = (it) => (it.auction ? (it.hoursLeft ?? 1e6) : Infinity);
   let sortMode = "score";
   // Ties keep the page's own order (sort is stable).
   const SORTS = {
-    score: (a, b) => (a.score == null) - (b.score == null) || (a.related === false) - (b.related === false) || sc(b) - sc(a) || freeRank(b) - freeRank(a) || dealOf(b) - dealOf(a), // your search first
+    // Scored ones first (your search, then the rest), by score; a tie goes to the one further below typical.
+    // Then the unscored ones by TKRules.bestPlace. Your price's star breaks what's left.
+    score: (a, b) => (a.score == null) - (b.score == null) || (a.score != null ? (a.related === false) - (b.related === false) || sc(b) - sc(a) || vsTie(a) - vsTie(b) : TKRules.bestCompare(placeOf(a), placeOf(b))) || dealOf(b) - dealOf(a),
     price: (a, b) => perItem(a) - perItem(b) || sc(b) - sc(a),
     value: (a, b) => vsSold(a) - vsSold(b) || perItem(a) - perItem(b),
     margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || sc(b) - sc(a),
@@ -2901,6 +2916,15 @@
       };
       return rank(b) - rank(a) || sc(b) - sc(a);
     },
+  };
+  // One line over the list saying how "best first" ordered it, so the order never looks random.
+  const bestHint = (shown) => {
+    const scoredN = shown.filter((it) => it.score != null).length;
+    const rest = prefs.markPrices
+      ? "good prices furthest below typical first, then the rest of your search, then parts and other things"
+      : "your search in the store's order, then parts and other things";
+    if (!scoredN) return `Best first: ${rest}; warnings and likely scams last.`;
+    return `Best first: highest score first, your search before other things${scoredN < shown.length ? `, then the ones not scored yet (${rest})` : ""}; skips and likely scams last.`;
   };
   const shownKeys = new Set(); // rows that already animated in; re-sorting shouldn't replay it
   // The list is only drawn while you can see it: tucked away (or on Saved or Home) a redraw just marks it
@@ -2915,8 +2939,10 @@
     const by = SORTS[sortMode] || SORTS.score;
     const shown = pageItems().filter((it) => !isHidden(it) && !(skipMode === "hide" && isSkip(it)));
     shownMemo = new Map(shown.filter((it) => it.score != null).map((it) => [it, shownV(it)]));
+    placeMemo = new Map();
     shown.sort((a, b) => isSkip(a) - isSkip(b) || by(a, b)); // skipped and likely scams go last, whatever the sort
     shownMemo = null;
+    if (sortMode === "score" && shown.length > 1) listEl.append(h("div", { class: "sorthint" }, bestHint(shown)));
     shown.forEach((it, i) => {
       const key = keyOf(it.url);
       const f = facts.get(key) || it;
@@ -2942,6 +2968,8 @@
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
               (() => {
                 const read = prefs.markPrices && !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
+                // Something else in the search says so, so its place under the rest makes sense.
+                if (!read && prefs.markPrices && placeOf(it).shelf === 4) return h("div", { class: "meta free-read", "data-v": "pass", title: "Not the thing you searched for (a game, accessory, part or something else), so it sorts under the rest." }, h("span", { class: "verdict" }, "Not your search"));
                 return read ? h("div", { class: "meta free-read", "data-v": read.v, title: aiOff() ? "From the typical price (recent eBay sales) and the free checks." : "From the typical price (recent eBay sales) and the free checks; your AI isn't used. A scan with your AI gives a real score." }, h("span", { class: "verdict" }, read.word), " free read") : null;
               })(),
               likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,

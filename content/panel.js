@@ -477,6 +477,10 @@
     .pageinfo .pi-acts { margin-top:8px; color:var(--muted); font-weight:400; }
     .pi-acts a, .pi-acts button { color:var(--ink) !important; font-weight:600 !important; }
     .pi-search { margin-top:8px; }
+    .ai-hint { margin:10px 0 0; color:var(--muted); font-size:13px; line-height:1.45; }
+    .ai-hint button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .ai-hint button:hover { text-decoration-color:currentColor; }
+    .ai-hint .ai-hint-x { margin-left:8px; padding:0 4px; color:var(--muted); font-weight:400; text-decoration:none; }
     .pi-search:not(:has(> :not([hidden]))) { display:none; }
     .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:14px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
@@ -707,7 +711,7 @@
           <ul class="w-points">
             <li>Cards are marked for likely scams and odd prices as they load.</li>
             <li><b>Typical price</b> compares every listing with recent eBay sales, free. Point at a card for its own, and for <i>Save</i> and <i>Hide</i>.</li>
-            <li>If you turn on an AI in settings (optional, and off until you do), <b>Scan</b> scores each listing and says why. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
+            <li>Add an AI in settings and <b>Scan</b> scores every listing and says why, and <b>Analyze</b> reads one listing in full. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
           </ul>
           <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
             <button class="ghost setup-go" data-act="open-settings">Open settings</button></div>
@@ -735,7 +739,7 @@
         <div class="setup" hidden><b class="setup-title">Scores are optional.</b> <span class="setup-text">Prices, scam marks and filters work without an AI.</span>
           <button class="ghost" data-act="open-settings">Open settings</button></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
-        <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div></div>
+        <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the free marks stay)">Start over</button><div class="actions pi-search"></div><p class="ai-hint" hidden>An AI can score every listing here and say why. <button data-act="ai-hint-go">Turn it on</button><button class="ai-hint-x" data-act="ai-hint-x" title="Don't show this again" aria-label="Don't show this again">\u2715</button></p></div>
         <div class="status err readwarn" role="status" hidden></div>
         <div class="ideas-inline" hidden><div class="status ideas-status" role="status"></div><div class="ideas-list"></div></div>
       </div>
@@ -820,6 +824,9 @@
   const piHead = $(".pi-head");
   const piBar = $(".pi-bar");
   const piSearch = $(".pi-search");
+  // With the AI off, one quiet line under the page's counts says what it adds; ✕ puts it away for good.
+  const aiHint = $(".ai-hint");
+  let aiHintDone = true;
   const listBar = $(".listbar");
   const sortSel = $(".sort");
   const setupCard = $(".setup");
@@ -1374,6 +1381,12 @@
     placeSetup();
     if (show) setView("page");
   };
+  $('[data-act="ai-hint-go"]').addEventListener("click", openAISettings);
+  $('[data-act="ai-hint-x"]').addEventListener("click", () => {
+    aiHintDone = true;
+    aiHint.hidden = true;
+    if (alive()) chrome.storage.local.set({ aiHintDone: true }).catch(storeFailed);
+  });
   $('[data-act="intro-done"]').addEventListener("click", () => {
     showIntro(false);
     introPending = false;
@@ -1393,8 +1406,9 @@
     if (!touched && !introOpened) showOpen(true);
     introOpened = true;
   };
-  chrome.storage.local.get("introDone").then(({ introDone }) => {
+  chrome.storage.local.get(["introDone", "aiHintDone"]).then(({ introDone, aiHintDone: done }) => {
     introPending = !introDone && alive();
+    aiHintDone = !!done;
     applyIntro();
   }).catch(() => {});
 
@@ -3539,6 +3553,7 @@
       );
     }
     listBar.hidden = !facts.size;
+    setIf(aiHint, "hidden", aiHintDone || !aiOff() || introPending || !welcome.hidden || TK.pageType() !== "results" || !facts.size);
     // Search tools: keep this search, or run it on the other site.
     const q = pageSearch();
     // One row of page actions: keep this search, run it on the other site, start the scores over.

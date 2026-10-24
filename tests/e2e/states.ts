@@ -111,7 +111,8 @@ for (const [name, q, says] of [
   ok(`sold prices, ${name}: the price box says so`, says.test(m), m);
   ok(`sold prices, ${name}: the scan still scores the listings`, /Scored \d+/.test(text) && !err, text);
 }
-await reset(`{useAI:true, anthropicKey:'sk-ant-test', useSoldComps:true}`);
+// Four lookups this hour already: the search doesn't look its price up on its own, so the press below is the first.
+await reset(`{useAI:true, anthropicKey:'sk-ant-test', useSoldComps:true, soldLog:[1,2,3,4].map(i=>Date.now()-i*600e3)}`);
 {
   const p = await openPanel(SEARCH);
   await c.send("Network.enable", {}, p.sessionId);

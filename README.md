@@ -251,7 +251,9 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
 **In the panel**:
 
 - **Typical price** (under the Scan button, marked free): the eBay sold-price lookup on its own, with
-  no model. Prices already looked up for a search in the last day apply by themselves.
+  no model. A search you stay on looks it up by itself, once (at most four an hour that way, leaving the rest
+  for the button, and none for a day after eBay's browser check); the button is there for a search you change.
+  Prices already looked up for a search in the last day apply by themselves.
 - **The list** shows every listing on the page before any scan, priced with shipping, and sorts
   by cheapest (lots per item), furthest under the sold price, auctions ending soonest, or new and
   cheaper first. Click a title to jump to the card.

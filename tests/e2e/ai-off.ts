@@ -28,7 +28,7 @@ ok("…and hide Scan automatically, which is an AI scan", !(await o.ev(`document
 await o.ev(`chrome.storage.local.set({useSoldComps:true})`); await sleep(800);
 await sh(a, `r.querySelector('[data-act=prices]').click()`); await sleep(3000);
 const said = await sh(a, `return r.querySelector('.status')?.textContent || ''`);
-ok("the price check doesn't mention an AI the user has off", /^Compared/.test(said) && !/your AI/.test(said), said);
+ok("the price check doesn't mention an AI the user has off", /eBay sales of/.test(said) && !/your AI/.test(said), said);
 await o.ev(`chrome.storage.local.set({useSoldComps:false})`);
 
 await o.ev(`chrome.storage.local.set({useAI:true, autoScan:false})`); await sleep(1200);

@@ -32,14 +32,16 @@ includes your API keys). Uninstalling Tirekick deletes all of it.
 Tirekick does nothing on a page until you open its panel, press a button, or (for the free marks on
 cards) load an eBay or Marketplace page you're already looking at. With **Scan new listings
 automatically** turned on (it's off until you turn it on), a search page you're looking at is scanned
-as its listings load, as if you'd pressed Scan. It never browses, checks prices or contacts anyone in
+as its listings load, as if you'd pressed Scan. A search you're looking at also gets its typical price
+once, the same eBay sold-listings lookup as the **Typical price** button (turn off **Compare prices with
+recent eBay sales** to stop it). It never browses, checks prices or contacts anyone in
 the background.
 
 | When you… | What is sent | To whom |
 |---|---|---|
 | Press **Scan** (or have it scan automatically), **Analyze this listing** or **Search ideas** | Listing titles and the text on their cards (price, shipping, condition, seller rating, and the seller's name and the item's location where the card shows them); for a listing you analyze, also its description, details and seller name; your search words, and the "what I want" and "what you're into" text you wrote | The AI service you picked in settings: Anthropic (api.anthropic.com), DeepSeek, Google Gemini, Mistral, OpenAI, OpenRouter, xAI, an address you entered, or Ollama / LM Studio on your own computer (which keeps it on your computer) |
 | Press **Check photo** or right-click a photo | The photo and the listing's title | The same AI service |
-| Compare **sold prices** (a button, as part of a scan, or **Look up** on Tirekick's own page, including words you select on any page and choose "Look up … on eBay and Marketplace") | Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most | eBay |
+| Compare **sold prices** (once for a search you're looking at, a button, as part of a scan, or **Look up** on Tirekick's own page, including words you select on any page and choose "Look up … on eBay and Marketplace") | Your search words, in a request to ebay.com from your browser with your own eBay session, a few an hour at most | eBay |
 | Scroll past Marketplace listings | A request for each thumbnail you see (the same picture the page already shows), without your Facebook cookies, so the fingerprint can be worked out on your computer. Nothing about you or the listing goes with it | Facebook's image server (fbcdn.net) |
 | Press **Find photo elsewhere** | The photo's web address, opened in a new tab | Google Lens (lens.google.com) |
 | Press **Test connection** in settings | Your API key, to check it works | The service you picked |

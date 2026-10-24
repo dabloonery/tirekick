@@ -171,6 +171,26 @@ ok("…and is told a bait price as a scam signal", scanCalls.some((x: any) => x.
 await sleep(1500);
 await sp.close();
 
+// The typical price on its own: a search you look at gets its one lookup without a press, once, and not while
+// automatic scanning (which does it in its scan) is on. Searches no one is looking at get none.
+await store(`{useAI:false, useSoldComps:true, autoScan:false, soldCache:{}}`);
+const ap = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");
+const hitsFor = async (q: string, pg: any = ap) => Object.entries(await pg.ev(`fetch('/sold-hits').then(r=>r.json())`)).filter(([k]) => k.startsWith(q + "|")).reduce((n, [, v]) => n + (v as number), 0);
+const priced = await waitFor(async () => /^Compared/.test(await R(ap, `return r.querySelector('.status')?.textContent || ''`)), 12000);
+ok("a search gets its typical price and the cards their price marks without a press", priced && JSON.stringify(await ap.ev(`[...document.querySelectorAll('.s-card .tirekick-sticker')].map(s=>(s.shadowRoot||s).textContent)`)).includes("typical"));
+const autoSaid = await R(ap, `return r.querySelector('.status')?.textContent || ''`);
+ok("…says what it compared, quietly", /^Compared \d+ listings? with/.test(autoSaid) && !(await R(ap, `return r.querySelector('.status').classList.contains('err')`)), autoSaid);
+await sleep(4500); // two more panel ticks
+ok("…with one eBay lookup, not one per tick", (await hitsFor("pentax k1000")) === 1, await hitsFor("pentax k1000"));
+await ap.close();
+// For a day after eBay's browser check, a search waits for the press.
+await store(`{soldStrikes:{n:1, at:Date.now() - 2 * 3600e3}}`);
+const aq = await open("https://www.ebay.com/sch/i.html?_nkw=canon+ae-1");
+await sleep(6000);
+ok("after an eBay check today, nothing is looked up on its own", (await hitsFor("canon ae-1", aq)) === 0 && (await R(aq, `return !r.querySelector('[data-act=prices]').hidden`)) === true);
+await aq.close();
+await store(`{soldStrikes:null, soldLog:[]}`);
+
 ok("no page logged an error", !errors.length, errors.slice(0, 5));
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

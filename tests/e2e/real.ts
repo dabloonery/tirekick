@@ -80,6 +80,15 @@ const count = (w: string) => freeRows.filter((x: any) => x.meta.startsWith(w)).l
 ok("the page line counts scams and warnings the way the cards show them", freeLine.includes(`${count("Likely scam")} likely scam`) && freeLine.includes(`${count("Check first")} to be careful with`), { freeLine, scams: count("Likely scam"), careful: count("Check first") });
 await p.shot("real_free.png");
 ok("a seller with 3 ratings is Check first", /Check first/.test(row(freeRows, "Nintendo Switch OLED Splatoon").meta), row(freeRows, "Nintendo Switch OLED Splatoon"));
+// Best first without a score (the AI is off by default): an order you can read off the rows, not the store's
+// order inside each word (TKRules.bestPlace).
+const at = (t: string) => freeRows.findIndex((x: any) => String(x.title).startsWith(t));
+ok("best first, free: the good price, then the fair ones furthest below typical first", at("Switch OLED console only") === 0 && at("Nintendo Switch OLED Neon") === 1 && at("Nintendo Switch OLED Model White") === 2, freeRows.map((x: any) => x.title));
+ok("…the console a little over typical before the one far over it, and both before a broken one", at("Nintendo Switch OLED white + 3") < at("Nintendo Switch OLED 64GB") && at("Nintendo Switch OLED 64GB") < at("Nintendo Switch OLED for parts"));
+ok("…a game and a case for it under every console, saying they're not your search", at("Mario Kart") > at("Nintendo Switch OLED for parts") && at("Nintendo Switch OLED carrying") > at("Nintendo Switch OLED for parts") && /Not your search/.test(row(freeRows, "Nintendo Switch OLED carrying").meta));
+ok("…warnings under them, the likely scam last", at("Nintendo Switch OLED Splatoon") > at("Nintendo Switch OLED carrying") && at("Nintendo Switch OLED white text") === freeRows.length - 1);
+const hint = await R(p, `return r.querySelector('.list .sorthint')?.textContent || ''`);
+ok("…and a line over the list says how it's ordered", /^Best first: good prices furthest below typical first/.test(hint), hint);
 
 // ---------- a scan, with a model that makes the usual mistakes ----------
 await fetch(`${API}/calls`, { method: "DELETE" });
@@ -90,6 +99,10 @@ await sleep(1500);
 const after = await cards();
 const afterRows = await rows();
 dump("after a scan", after, afterRows);
+{
+  const hint = await R(p, `return r.querySelector('.list .sorthint')?.textContent || ''`);
+  ok("after a scan the line says scores lead", /^Best first: highest score first/.test(hint), hint);
+}
 // The model is told the same scam signs the cards show: a bait share for the bait, none for a broken one, a game or a case.
 const sent = (await (await fetch(`${API}/calls`)).json()).flatMap((x: any) => x.listings || []);
 const baitLine = (t: string) => sent.find((x: any) => x.title.startsWith(t))?.scam || "";

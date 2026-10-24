@@ -170,6 +170,50 @@
     if (f.vsSold == null || f.project || said) return f.drop ? { v: "good", word: "Price dropped", rank: 1 } : null;
     return R.priceWord(f.vsSold);
   };
+
+  // Where "best first" puts a listing that has no score (no AI, or not scanned yet), as a shelf (lower first) and
+  // the price against typical within it (lower first; Infinity when there's none, and then the store's order
+  // stands). Testers found the old order random (dabloonery, 2026-10-24): it went by the free read's word alone,
+  // so two "Fair price" cards kept the store's order whatever their prices, and a game, a case, a broken one and
+  // an auction sat above the console itself whenever it was a little over typical. The shelves:
+  //   0 a price word (Great, Good, Fair), furthest below typical first
+  //   1 the thing searched for with no price to set against typical (auction, lot, no lookup yet); a drop first
+  //   2 above typical, closest first
+  //   3 broken or for parts (unless you want those: opts.broken)
+  //   4 not your search: an accessory, part or game for it, another thing, off-topic
+  //   5 Check first (a warning), and 6 Likely scam (the Skips and scams setting places those anyway)
+  // opts.prices false (price marks turned off): no shelf by price, since the list wouldn't show why.
+  // `why` names the shelf in a few words, for the row's hover.
+  R.BEST_WHY = ["a good price for it", "no price to compare yet", "above the typical price", "broken or for parts", "not your search", "a warning to check", "a likely scam"];
+  R.bestPlace = (f = {}, market, { query = "", prices = true, broken = false } = {}) => {
+    const read = R.freeRead(f, market);
+    const place = (shelf, vs = Infinity) => ({ shelf, vs, drop: f.drop ? 1 : 0, why: R.BEST_WHY[shelf] });
+    if (read?.word === "Likely scam") return place(6);
+    if (read?.word === "Check first") return place(5);
+    const other = R.offSearch(f.title, query) && !R.spelledNear(f.title, query);
+    if (read?.word === "Off-topic" || f.accessory || f.related === false || other || (market?.median > 0 && R.tooFarToCompare(f.price ?? f.total, market.median))) return place(4);
+    if (f.project && !broken) return place(3);
+    const vs = prices && f.vsSold != null && !f.project ? f.vsSold : null;
+    if (vs == null || read?.rank == null || read.word === "Price dropped") return place(1);
+    return place(read.rank > 0 ? 0 : 2, vs);
+  };
+  // A title with a word of the search spelled a letter off ("Dumbbell Set" in a real "dumbells" search, where
+  // Marketplace showed dumbbells all the same): the search's thing for sorting, though offSearch still keeps it out
+  // of the price check. Words of five letters or more, one letter added, dropped or changed.
+  const oneOff = (a, b) => {
+    if (Math.abs(a.length - b.length) > 1 || a === b) return a === b;
+    let i = 0;
+    while (i < a.length && a[i] === b[i]) i++;
+    return a.slice(i + (a.length >= b.length ? 1 : 0)) === b.slice(i + (b.length >= a.length ? 1 : 0));
+  };
+  R.spelledNear = (title, query = "") => {
+    const words = searchWords(query).filter((w) => w.length >= 5 && !isSpec(w));
+    const toks = R.normTitle(title).split(" ").map((t) => t.replace(/s$/, ""));
+    return words.some((w) => toks.some((t) => t.length >= 4 && oneOff(t, w.replace(/s$/, ""))));
+  };
+  // Two unscored listings in "best first" order, from their bestPlace: shelf, then price against typical, then
+  // a price drop. 0 keeps the store's order (the sort is stable).
+  R.bestCompare = (a, b) => a.shelf - b.shelf || (a.vs === b.vs ? 0 : a.vs - b.vs) || b.drop - a.drop;
   // The price against the typical price (the middle of recent eBay sales, or the model's estimate), in dollars:
   // "$53 below typical", "$20 above typical", "about typical" (within 5%). testers found both "65% of sold" and the
   // word "sold" confusing on a card, so the chip says "typical" and its hover says where that comes from.

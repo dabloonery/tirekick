@@ -118,8 +118,11 @@ scam warning stays readable.
 - **Skipped listings and likely scams are grayed out** on the page; switch to Show, Dim or Hide with
   **Skips and scams** above the list.
 - **Before any scan, each row has a free read**: Great, Good or Fair price, or Above typical, from the sold
-  prices; Check first or Likely scam from the free warnings; Off-topic. "Best first" sorts by it until a scan
-  gives real scores, and the cards' sold chip says the same word ("Good price · $53 below typical").
+  prices; Check first or Likely scam from the free warnings; Off-topic. Until a scan gives real scores, "Best
+  first" puts good prices first (furthest below typical at the top), then the rest of your search (auctions,
+  lots, ones with no typical price yet), then above typical (closest first), broken ones, things that aren't your
+  search, and warnings, with a line over the list saying so. The cards' sold chip says the same word ("Good price ·
+  $53 below typical").
 - **A row's links**: **Open ↗** is always there; Sold, Save and Hide appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Hide**: hover any card and press "✕ Hide" to hide it everywhere from

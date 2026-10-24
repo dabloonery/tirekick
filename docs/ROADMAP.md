@@ -26,7 +26,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
   - [Brief 11: Side panel mode](#brief-11-side-panel-mode) (idea from the 2026-10-15 UI audit)
   - [Brief 12: Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) (2026-10-23: Without the AI, Scam check only, Everything; built 2026-10-23)
-  - [Brief 13: Filters that set the store's own](#brief-13-filters-that-set-the-stores-own) (2026-10-23: price, condition and more set the store's filters; building)
+  - [Brief 13: Filters that set the store's own](#brief-13-filters-that-set-the-stores-own) (2026-10-23: price, condition and more set the store's filters; built, dabloonery to check on the real stores)
 
 ---
 
@@ -1142,12 +1142,12 @@ after sign-in.
 
 #### The order of PRs
 
-1. This brief.
-2. **Price to the store**: the `filters` table with min and max, the two functions and their tests, reading the
+1. This brief (#120).
+2. **Price to the store** (merged, #122): the `filters` table with min and max, the two functions and their tests, reading the
    price from the address, Enter applies, the Apply link. An e2e check on the fake eBay and Marketplace pages that
    the address changes and the fields show it after the reload.
-3. **The store row**: condition, Buy It Now or Auction, free shipping, delivery, listed within, US only.
-4. **Hide parts and accessories**, a Tirekick-only quick filter.
+3. **The store row** (merged, #124): condition, Buy It Now or Auction, free shipping, delivery, listed within, US only.
+4. **Hide parts and accessories**, a Tirekick-only quick filter (built as **Hide accessories**, this PR).
 
 Small to medium. No new permission, nothing new read or sent, so `store/PRIVACY.md` doesn't change.
 

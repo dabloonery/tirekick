@@ -380,6 +380,12 @@ ok("Marketplace's row has condition, delivery and listed within", rowFb === "con
 await R(fbr, `const s=r.querySelector('select[data-store=listed]'); s.value='7'; s.dispatchEvent(new Event('change',{bubbles:true}))`); await sleep(300);
 await R(fbr, `r.querySelector('.qf-apply').click()`); await sleep(2500);
 ok("Apply on Marketplace sets listed in the last week", new URL(await fbr.ev(`location.href`)).searchParams.get("daysSinceListed") === "7");
+// Hide accessories: a quick filter of Tirekick's own, there when the page has a search
+await reset();
+const acc = await openPanel(SEARCH);
+ok("Hide accessories shows on a search", !(await R(acc, `return r.querySelector('[data-q=parts]').hidden`)));
+await R(acc, `r.querySelector('[data-q=parts]').click()`); await sleep(700);
+ok("…and stays on for that search", (await R(acc, `return r.querySelector('[data-q=parts]').getAttribute('aria-pressed')`)) === "true" && (await get("quickFilters"))?.["ebay|pentax k1000"]?.parts === true, await get("quickFilters"));
 await closeAll(/www\.(ebay|facebook)\.com/);
 
 // ---------- no errors ----------

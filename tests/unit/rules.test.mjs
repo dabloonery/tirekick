@@ -43,6 +43,17 @@ test("quickReason: words on title and card text, price with shipping, seen befor
   assert.equal(R.quickReason({ title: "x", total: null, price: null }, q({ min: 10, max: 20 })), "", "no price, no price filter");
 });
 
+test("quickReason: Hide accessories drops games, cases and parts for the search, not the thing itself", () => {
+  const q = { words: "", min: 0, max: 0, fresh: false, broken: "", parts: true };
+  const why = (title) => R.quickReason({ title, total: 50 }, q, "nintendo switch oled");
+  assert.match(why("Case for Nintendo Switch OLED"), /^accessory or part: /);
+  assert.match(why("Mario Kart 8 Deluxe - Nintendo Switch"), /^accessory or part: /);
+  assert.equal(why("Nintendo Switch OLED White"), "");
+  assert.equal(why("Nintendo Switch OLED + 3 games + case"), "", "a console that comes with games is the thing");
+  assert.equal(R.quickReason({ title: "Case for Nintendo Switch OLED", total: 5 }, q, ""), "", "no search: nothing to be an accessory of");
+  assert.equal(R.quickReason({ title: "Case for Nintendo Switch OLED", total: 5 }, { ...q, parts: false }, "nintendo switch oled"), "");
+});
+
 test("likelyScam and isDeal", () => {
   assert.equal(R.likelyScam({ campaign: ["K7731"] }), true);
   assert.equal(R.likelyScam({ titleCode: "M2465" }), false, "a code alone may be the model number (T480, QC35)");

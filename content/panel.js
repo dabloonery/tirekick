@@ -755,6 +755,7 @@
         <div class="lb-quick" role="group" aria-label="Quick filters">
           <button class="qt" data-q="fresh" aria-pressed="false" title="Hide every listing you've seen before">New only</button>
           <button class="qt qt-broken" aria-pressed="false"></button>
+          <button class="qt" data-q="parts" aria-pressed="false" title="Hide games, cases, chargers and parts for what you searched, so only the thing itself is left">Hide accessories</button>
           <button class="qt" data-q="junk" aria-pressed="false" title="Hide rentals, services, jobs, pets, “looking for” posts and $1 placeholder prices: things that aren't an item for sale">Hide off-topic</button>
         </div>
         <label class="sortpick">Sort <select class="sort">
@@ -1974,12 +1975,13 @@
   // on the page edge counts them even with the panel closed.
   // broken: "hide" drops listings that say broken/untested/for parts (Use), "only" keeps just those (Fix).
   // store: the store's own filters this search has (condition, Buy It Now…), by the names in TKSites storeFilters.
-  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, deal: 0, store: {} };
+  // parts: hide games, cases and parts for what you searched (TKRules.accessoryOf).
+  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, parts: false, deal: 0, store: {} };
   let quick = { ...NO_QUICK };
   let quickReady = Promise.resolve(); // this search's saved filter, loaded on each page change
-  const quickReason = (f) => TKRules.quickReason(f, quick);
+  const quickReason = (f) => TKRules.quickReason(f, quick, pageSearch());
   const storeSet = () => Object.values(quick.store || {}).filter(Boolean).length; // store filters set (choices)
-  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk || storeSet());
+  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk || quick.parts || storeSet());
   const isDeal = (f) => TKRules.isDeal(f, quick.deal);
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
@@ -3621,6 +3623,7 @@
     qfDeal.placeholder = hint ? `~$${hint}` : "$";
     qfDeal.title = hint ? `Your price for this search. 70% of the typical price (from eBay sales) would be $${hint}.` : "Your price for this search: listings at or under it are marked, and counted on the tab.";
     root.querySelectorAll("[data-q]").forEach((b) => b.setAttribute("aria-pressed", String(!!quick[b.dataset.q])));
+    root.querySelector("[data-q=parts]").hidden = !pageSearch() && !quick.parts; // needs a search to know what's "for it"
     // The broken-listing toggle follows the lens: Use hides them; Fix & flip can show only them.
     // A filter that's already on always shows, so it can be turned off.
     const mode = quick.broken || { use: "hide", project: "only" }[lens] || "";

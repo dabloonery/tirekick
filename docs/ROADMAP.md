@@ -26,6 +26,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
   - [Brief 11: Side panel mode](#brief-11-side-panel-mode) (idea from the 2026-10-15 UI audit)
   - [Brief 12: Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) (2026-10-23: Without the AI, Scam check only, Everything; built 2026-10-23)
+  - [Brief 13: Filters that set the store's own](#brief-13-filters-that-set-the-stores-own) (2026-10-23: price, condition and more set the store's filters; building)
 
 ---
 
@@ -43,7 +44,7 @@ check); those are in git history.*
 | Free parts of briefs 2, 3, 4 and 6 | Built in 0.37.0 to 0.40.0 (age and price moves, the offer helper, "Too cheap?" and same-photo marks, CSV export) |
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
-| Next to build | Brief 12 (choose what Tirekick shows) is built; next is Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
+| Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; next is Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Version numbers
@@ -348,8 +349,8 @@ door eBay has just shut.
    listings on the page (the asking-price middle, labeled as asking), or the "See sold listings" link.
 2. *AI features without an AI.* With no AI set up, hide Scan, Analyze and the Buyer/Reseller switch behind one
    "Add an AI for scores" line, so the free tools lead.
-3. *Filters.* Match the sites' own: condition, Buy It Now or auction, free shipping, distance and date listed on
-   Marketplace, sort by price, and saved per search as now.
+3. ~~*Filters.* Match the sites' own~~ Replaced by [Brief 13](#brief-13-filters-that-set-the-stores-own)
+   (dabloonery, 2026-10-23): Tirekick's filters set the store's own where it has one, instead of copying them.
 4. *Scam check.* One "Check for scams" button that runs the photo check, the reverse image search, the seller and
    wording checks together and gives one answer, in place of the separate photo buttons.
 
@@ -424,6 +425,7 @@ The briefs (1 to 7 written 2026-10-14, 8 to 10 on 2026-10-15) are written so ano
 | 10 | [More AI options](#brief-10-more-ai-options) | Small | 0.40.0 service menu |
 | 11 | [Side panel mode](#brief-11-side-panel-mode) | Medium | Nothing new; must keep the drawer for Vivaldi |
 | 12 | [Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) | Small to medium (3 PRs) | Nothing new; waits on dabloonery's answers |
+| 13 | [Filters that set the store's own](#brief-13-filters-that-set-the-stores-own) | Small to medium (3 PRs) | Nothing new |
 
 Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
@@ -1069,3 +1071,100 @@ Small to medium in all. No new permission, nothing new read or sent, so `store/P
 - With No AI, no request reaches the fake AI server from any page or menu.
 - A likely scam is never gray without its reason on the card unless `markScams` is off, and then the panel says it.
 - `deno task test` green, the eval's numbers unchanged, and dabloonery checks Scam check only in Vivaldi.
+
+### Brief 13: Filters that set the store's own
+
+Added 2026-10-23. dabloonery's direction (2026-10-23): keep Tirekick's filters, and where the store has the same
+filter, have Tirekick's set the store's own; also rethink which filters are useful and which are missing. This
+replaces item 3 ("Filters. Match the sites' own") in [After real use](#after-real-use-2026-10-16). Read
+[the briefs intro](#read-this-before-any-brief) first.
+
+#### Why not copy the stores' filters into Tirekick
+
+A store's filter works on all of its results; Tirekick's can only work on the cards already on the page. A copy of
+"Buy It Now only" in Tirekick would hide auctions from 60 cards and leave the next page full of them, and each copy
+is one more thing the card readers must get right when a store changes its markup. A store's page address is far
+steadier than its markup, and when a store stops honoring a setting, nothing breaks: the results just aren't
+narrowed.
+
+#### What's there today, and what each part becomes
+
+| Tirekick filter | The store has it? | Becomes |
+|---|---|---|
+| Words (`dmg -case`, `a/b`, `"phrase"`) | eBay's search takes `-word`; Marketplace doesn't | Stays Tirekick's own. It also matches the card's text, and putting it into the store's search words would change which saved search the page is |
+| $ min to max, shipping included | Both (`_udlo`/`_udhi`; `minPrice`/`maxPrice`), on the item price | **Sets the store's**, and Tirekick still trims by price with shipping, which the stores don't |
+| New only (not seen before) | No | Stays Tirekick's own |
+| Hide broken / Broken only | eBay's "For parts or not working" condition is close, but sellers file broken things as Used | Stays Tirekick's own (it reads the words) |
+| Hide off-topic | No | Stays Tirekick's own |
+| Your price ≤ $ | No (it marks, it doesn't filter) | Stays |
+| Skips and scams: Show / Dim / Hide | No | Stays; this is what only Tirekick can do |
+| Sort (the panel's list) | Both have a sort, which decides which listings load | Stays the list's sort; see open question 2 |
+| Words in settings (always filter) | No | Stays |
+
+#### Missing filters, to add as store settings
+
+A row **On eBay** or **On Marketplace** in the Filter box, below the price, with the settings that store has. Each
+one changes the page address (the same as using the store's own menu), and the store does the filtering:
+
+| Filter | eBay | Marketplace | Why it helps |
+|---|---|---|---|
+| Condition: New, Used, For parts | `LH_ItemCondition=1000`, `3000`, `7000` (joined with `\|`) | `itemCondition=new`, `used_like_new,used_good,used_fair` | Asked for most; the stores do it across all results |
+| Buy It Now or Auction | `LH_BIN=1` / `LH_Auction=1` | none | An auction's bid isn't a price, so these get no price check and no "Too cheap?" mark |
+| Free shipping | `LH_FS=1` | none | Prices compare better when shipping is known |
+| Shipping or Pickup | none | `deliveryMethod=shipping` / `local_pick_up` | Pickup means you see it working before you pay |
+| Listed in the last day, week, month | none | `daysSinceListed=1`, `7`, `30` | Old listings on Marketplace are often already sold |
+| US only | `LH_PrefLoc=1` | none | Listings from abroad, priced in another currency, get no price check today ("No price check") |
+
+And one Tirekick-only filter that's missing: **Hide parts and accessories** for listings Tirekick reads as a game,
+case or part for what you searched (`f.accessory` from `TKRules.accessoryOf`, the "No price check" chip). A minimum
+price does this crudely now.
+
+Left out on purpose: distance (Marketplace keeps it with the location you set, not in the address in a way we can
+confirm), returns accepted, seller ratings as a filter (Tirekick warns instead), and anything a store offers only
+after sign-in.
+
+#### How it works
+
+- **Store settings live in the page address.** The Filter box reads them from the address when the page loads, so a
+  filter set with the store's own menu shows in Tirekick too, and the other way round. A saved search keeps the
+  address (`savedSearches[].url`), so both come back when it's reopened.
+- **A change applies when you press Enter or fold the box**, not on each key: Tirekick moves the tab to the same
+  search with the new address (`location.assign`), like a click on the store's menu. Never on page load and never by
+  itself, so a store that drops a setting can't cause a loop. That keeps to the ground rules: one page you asked for,
+  nothing fetched in the background.
+- **The price** goes to the store as whole dollars (a minimum rounded down, a maximum rounded up), and Tirekick's own
+  shipping-included check runs on the cards as now. A saved filter whose price isn't in the address (an older one,
+  or a search typed fresh) applies Tirekick-side only, as today, with a small **Apply on eBay** link.
+- **Where the code goes.** Each site in `lib/sites.js` gets a `filters` table: the fields it supports and, for each,
+  how to read it from a `URL` and write it to one. Two pure functions, `TKSites.readFilters(url)` and
+  `TKSites.withFilters(url, filters)`, are unit tested for every field, round trip and unknown values. The panel
+  builds the row from the table, so a new store (Brief 5) only adds its entries.
+
+#### The order of PRs
+
+1. This brief.
+2. **Price to the store**: the `filters` table with min and max, the two functions and their tests, reading the
+   price from the address, Enter applies, the Apply link. An e2e check on the fake eBay and Marketplace pages that
+   the address changes and the fields show it after the reload.
+3. **The store row**: condition, Buy It Now or Auction, free shipping, delivery, listed within, US only.
+4. **Hide parts and accessories**, a Tirekick-only quick filter.
+
+Small to medium. No new permission, nothing new read or sent, so `store/PRIVACY.md` doesn't change.
+
+#### Open questions (for dabloonery)
+
+1. Are the new store filters the right set (condition, Buy It Now or Auction, free shipping, delivery, listed
+   within, US only)? (Recommended; going ahead with these.)
+2. Should the panel's "cheapest first" also set the store's sort (eBay `_sop=15`, Marketplace
+   `sortBy=price_ascend`), so the cheapest listings are the ones that load? (Recommended: not yet. The store's sort
+   menu sits on the page and the saved search keeps it; changing the store's sort from the panel's list sort would
+   reload every search you sort.)
+3. Distance on Marketplace: worth a look on a real page to see whether the radius shows in the address?
+   (Only dabloonery can check; tests never touch the real stores.)
+
+#### How to know it's done
+
+- On the fake eBay and Marketplace pages: each store setting changes the address and nothing else, the Filter box
+  shows settings already in an address, and a saved search reopens with them.
+- Tirekick's own filters behave as before, and filtered listings are still never sent to a model.
+- `deno task test` green, and dabloonery checks on the real stores in Vivaldi that each setting narrows the results.

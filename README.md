@@ -279,9 +279,9 @@ year ("Joined Facebook in 2026").
 
 **In settings**: words to always filter by, in the filter bar's syntax (`-replica -repro -"box only"`
 drops those; a plain word must be in the title). Older "always hide" and "only show" lists were
-turned into this line. Hidden and filtered listings are never sent to a model. **Find photo**
-(in a tag's hover card or the listing view) runs a reverse image search, to catch photos lifted
-from elsewhere.
+turned into this line. Hidden and filtered listings are never sent to a model. **Find photo elsewhere**
+(on the listing page, on each row in the panel, and in a scored tag's hover card) runs a reverse image search,
+to catch photos lifted from elsewhere. It needs no scan.
 
 **Which marks show** (settings, Filters and marks): scam marks, price words and the other marks (new to you,
 drops, auctions, lots) each have a switch, and **Marks per listing** can be 1 (scam marks always come first).

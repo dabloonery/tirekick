@@ -3453,6 +3453,7 @@
     setIf(scanBtn, "className", label === "Scan again" ? "ghost" : "scan");
     setIf(scanBtn, "title", est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "");
     autoTick(n, toScore, changed);
+    autoPriceTick();
     if (autoOn() && autoHold && autoHold !== "stopped") {
       // Automatic scanning hit a problem (a key, the budget, the connection): say so on the closed tab too.
       setIf(countEl, "textContent", "!");
@@ -3820,6 +3821,25 @@
     scan({ auto: true });
   };
 
+  // The typical price on its own, once per search you're looking at: the free marks then show without a press.
+  // Same paced, remembered lookup as the button (lib/sold.js), from a page on your screen; automatic scanning
+  // does it as part of its scan instead. A search has to stay on screen for two ticks (not one you flip past),
+  // and TKShared.soldAutoOk keeps these to half the hour's turns and stops them for a day after eBay's check:
+  // the button still works then.
+  let autoPriced = "";
+  let autoPriceSeen = "";
+  const autoPriceTick = async () => {
+    const query = queryEl.value.trim().toLowerCase();
+    const sig = `${pageEpoch}|${query}`;
+    const typing = root.activeElement && $(".inputs").contains(root.activeElement);
+    if (freeRow.hidden || autoOn() || cfg.useSoldComps === false || document.hidden || !facts.size || typing || autoPriced === sig) return void (autoPriceSeen = "");
+    if (autoPriceSeen !== sig) return void (autoPriceSeen = sig);
+    autoPriced = sig;
+    const { soldLog, soldCooldownUntil, soldStrikes } = await chrome.storage.local.get(["soldLog", "soldCooldownUntil", "soldStrikes"]).catch(() => ({}));
+    if (!TKShared.soldAutoOk({ log: soldLog, cooldownUntil: soldCooldownUntil, lastCheck: soldStrikes?.at })) return;
+    if (sig === `${pageEpoch}|${queryEl.value.trim().toLowerCase()}`) pricesOnly({ auto: true });
+  };
+
   const scan = async (opts) => {
     const auto = opts?.auto === true; // a click passes its event: that's you
     if (!auto) autoHold = "";
@@ -4033,7 +4053,9 @@
   scanBtn.addEventListener("click", scan);
 
   // The sold-price half of a scan on its own: one eBay lookup, every card gets "$53 under sold", without the model.
-  const pricesOnly = async () => {
+  // It runs by itself once per search you're looking at (autoPriceTick); the button is there for a search you change.
+  const pricesOnly = async (opts) => {
+    const auto = opts?.auto === true; // a click passes its event: that's you
     if (TK.pageType() === "item" && !queryEl.value.trim() && itemFacts?.title) queryEl.value = TK.titleToQuery(itemFacts.title);
     const query = queryEl.value.trim();
     if (!query || scanning) return;
@@ -4048,9 +4070,11 @@
       applyMarket(market);
       if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d.${noAINote(" Free: your AI wasn't used.")}`);
       const n = [...facts.values()].filter((f) => f.vsSold != null).length;
+      if (!n) return setStatus(`Typical price $${market.median}, from ${market.n} eBay sales of \u201c${query}\u201d. None of the listings here are close enough to it to compare.`);
       setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d.${noAINote(" Free: your AI wasn't used.")} Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
     } catch (e) {
-      setStatus(e.message, true);
+      // On its own, a lookup that can't run now (eBay resting, the hourly limit) is said quietly: you didn't ask.
+      setStatus(e.message, !auto);
     } finally {
       setBusy(false);
       refreshPending();

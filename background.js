@@ -1085,7 +1085,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       title: "Check this photo with Tirekick",
       contexts: ["image"],
       documentUrlPatterns: TKSites.matches(),
-      visible: useAI !== false,
+      visible: useAI === true,
     });
     // The icon's own right-click menu: the browser fills most of it; Tirekick adds only this.
     chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Tirekick in a tab", contexts: ["action"] });
@@ -1130,7 +1130,8 @@ async function doSyncAutoScripts() {
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
   // The photo check is an AI call: its menu entry goes with the AI.
-  if (changes.useAI) chrome.contextMenus.update(MENU_ID, { visible: changes.useAI.newValue !== false }, () => void chrome.runtime.lastError);
+  // Cleared (Delete everything) is off too: the AI is opt-in.
+  if (changes.useAI) chrome.contextMenus.update(MENU_ID, { visible: changes.useAI.newValue === true }, () => void chrome.runtime.lastError);
 });
 chrome.runtime.onStartup.addListener(() => {
   upgradeStorage().catch(() => {}); // a restored profile, or an update applied while the browser was closed

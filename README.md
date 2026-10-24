@@ -233,6 +233,10 @@ folds them away again, and a search's saved filter applies with the box folded. 
   and the range goes to eBay's or Marketplace's own price filter too, so the store looks through all its results,
   not just the page you're on; a price you set with the store's own menu shows here. A saved price that isn't on
   the page yet offers **Apply on eBay** rather than reloading by itself.
+- **The store's own filters**, in a row under the price: on eBay Condition (New, Used, For parts), Buy It Now or
+  Auction, Free shipping and US only; on Marketplace Condition, Pickup or Shipping, and Listed in the last day, week
+  or month. They set the store's own filters (they apply when you fold the box or press Apply), so they look
+  through all its results, and a saved search keeps them.
 - **New only** hides everything you've seen before, for the searches you check every day.
 - **Hide broken** (Buyer) or **Broken only** (Reseller) acts on listings that say broken, untested,
   for parts, no power, disc read error and the like: the "any of these words" search Marketplace

@@ -69,16 +69,17 @@ test("photos only from the sites' own hosts; saved searches only to their search
 
 test("the store's own price filter, read from and written to its address", () => {
   const ebay = "https://www.ebay.com/sch/i.html?_nkw=pentax%20k1000&_pgn=3";
-  assert.deepEqual(Sites.readFilters(ebay), { min: 0, max: 0 });
-  assert.deepEqual(Sites.readFilters("https://www.ebay.com/sch/i.html?_nkw=x&_udlo=20&_udhi=99.5"), { min: 20, max: 100 });
-  assert.deepEqual(Sites.readFilters("https://www.ebay.com/sch/i.html?_nkw=x&_udlo=junk"), { min: 0, max: 0 });
+  const price = (u) => (({ min, max }) => ({ min, max }))(Sites.readFilters(u));
+  assert.deepEqual(price(ebay), { min: 0, max: 0 });
+  assert.deepEqual(price("https://www.ebay.com/sch/i.html?_nkw=x&_udlo=20&_udhi=99.5"), { min: 20, max: 100 });
+  assert.deepEqual(price("https://www.ebay.com/sch/i.html?_nkw=x&_udlo=junk"), { min: 0, max: 0 });
   // whole dollars, rounded outward so the store keeps every listing Tirekick would; a new range starts at page 1
   const set = new URL(Sites.withFilters(ebay, { min: 19.6, max: 80.2 }));
   assert.equal(set.searchParams.get("_udlo"), "19");
   assert.equal(set.searchParams.get("_udhi"), "81");
   assert.equal(set.searchParams.has("_pgn"), false);
   assert.equal(set.searchParams.get("_nkw"), "pentax k1000");
-  assert.deepEqual(Sites.readFilters(set), { min: 19, max: 81 });
+  assert.deepEqual(price(set), { min: 19, max: 81 });
   // nothing to change: the address comes back exactly as it was, page number and spelling included
   assert.equal(Sites.withFilters(ebay, { min: 0, max: 0 }), ebay);
   assert.equal(Sites.hasFilters(set, { min: 19.6, max: 80.2 }), true);
@@ -90,8 +91,46 @@ test("the store's own price filter, read from and written to its address", () =>
   const fb = new URL(Sites.withFilters("https://www.facebook.com/marketplace/albuquerque/search?query=camera", { min: 5, max: 100 }));
   assert.equal(fb.searchParams.get("minPrice"), "5");
   assert.equal(fb.searchParams.get("maxPrice"), "100");
-  assert.deepEqual(Sites.readFilters(fb), { min: 5, max: 100 });
+  assert.deepEqual(price(fb), { min: 5, max: 100 });
   // not a store page: nothing to read or write
   assert.deepEqual(Sites.readFilters("https://example.com/?_udlo=5"), {});
   assert.equal(Sites.withFilters("https://example.com/?a=1", { min: 5 }), "https://example.com/?a=1");
+});
+
+test("the store's own choices: condition, Buy It Now or Auction, shipping, delivery, listed within", () => {
+  const ebay = "https://www.ebay.com/sch/i.html?_nkw=x&_pgn=2";
+  assert.deepEqual(Sites.readFilters(ebay), { min: 0, max: 0, cond: "", format: "", freeShip: "", usOnly: "" });
+  const set = Sites.withFilters(ebay, { cond: "parts", format: "auction", freeShip: "on", usOnly: "on" });
+  const p = new URL(set).searchParams;
+  assert.deepEqual([p.get("LH_ItemCondition"), p.get("LH_Auction"), p.get("LH_FS"), p.get("LH_PrefLoc"), p.has("LH_BIN"), p.has("_pgn")], ["7000", "1", "1", "1", false, false]);
+  assert.deepEqual(Sites.readFilters(set), { min: 0, max: 0, cond: "parts", format: "auction", freeShip: "on", usOnly: "on" });
+  // switching a choice takes the old one's setting off; "" takes it off altogether
+  const bin = new URL(Sites.withFilters(set, { format: "bin", freeShip: "" })).searchParams;
+  assert.deepEqual([bin.get("LH_BIN"), bin.has("LH_Auction"), bin.has("LH_FS"), bin.get("LH_ItemCondition")], ["1", false, false, "7000"]);
+  // a setting Tirekick doesn't offer (eBay's refurbished, or two conditions) reads "?" and is left alone
+  const refurb = "https://www.ebay.com/sch/i.html?_nkw=x&LH_ItemCondition=2000%7C3000";
+  assert.equal(Sites.readFilters(refurb).cond, "?");
+  assert.equal(Sites.hasFilters(refurb, { cond: "?" }), true);
+  assert.equal(new URL(Sites.withFilters(refurb, { cond: "?", max: 50 })).searchParams.get("LH_ItemCondition"), "2000|3000");
+  const fb = Sites.withFilters("https://www.facebook.com/marketplace/albuquerque/search?query=camera", { cond: "used", delivery: "pickup", listed: "7" });
+  const q = new URL(fb).searchParams;
+  assert.deepEqual([q.get("itemCondition"), q.get("deliveryMethod"), q.get("daysSinceListed")], ["used_like_new,used_good,used_fair", "local_pick_up", "7"]);
+  assert.deepEqual(Sites.readFilters(fb), { min: 0, max: 0, cond: "used", delivery: "pickup", listed: "7" });
+  // a filter one store doesn't have is ignored there
+  assert.equal(Sites.withFilters("https://www.facebook.com/marketplace/search?query=x", { format: "bin" }), "https://www.facebook.com/marketplace/search?query=x");
+});
+
+test("every store filter is a price or a set of choices with distinct values and labels", () => {
+  for (const s of Sites.all) {
+    const names = s.storeFilters.map((f) => f.name);
+    assert.equal(new Set(names).size, names.length, s.id);
+    for (const f of s.storeFilters) {
+      assert.ok(/^[A-Za-z]{1,20}$/.test(f.name), f.name);
+      if (f.money) { assert.ok(f.param && ["down", "up"].includes(f.money), f.name); continue; }
+      assert.ok(f.label && f.choices.length, f.name);
+      const values = f.choices.map((c) => c.value);
+      assert.equal(new Set(values).size, values.length, f.name);
+      for (const c of f.choices) assert.ok(/^[a-z0-9]{1,20}$/.test(c.value) && c.label && Object.keys(c.params).length, `${f.name}.${c.value}`);
+    }
+  }
 });

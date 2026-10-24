@@ -457,6 +457,8 @@
     .qt:hover { color:var(--ink); border-color:var(--muted); }
     .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
     .qf-apply { border-color:var(--accent); color:var(--ink); }
+    .qf-store:empty { display:none; }
+    .qf-store label { display:flex; align-items:center; gap:4px; color:var(--muted); font:600 13px/1 var(--ui); }
     .qt { min-height:26px; }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
     .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 13px/1 var(--ui); letter-spacing:normal; text-transform:none; }
@@ -729,7 +731,7 @@
         <label class="autoscan" hidden><input type="checkbox" class="auto-in" role="switch"><span>Scan new listings automatically</span></label>
         <div class="alts">
           <button class="ghost" data-act="ideas" hidden>Search ideas</button>
-          <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own; your AI isn't used">Typical price <span class="cost">free</span></button>
+          <button class="ghost freeprices" data-act="prices" hidden title="The typical price from recent eBay sales, on its own">Typical price <span class="cost">free</span></button>
         </div>
         <div class="market"></div>
         <div class="setup" hidden><b class="setup-title">Scores are optional.</b> <span class="setup-text">Prices, scam marks and filters work without an AI.</span>
@@ -747,6 +749,7 @@
             <span class="qf-price"><input autocomplete="off" class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input autocomplete="off" class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
             <button class="qt qf-apply" hidden></button>
           </div>
+          <div class="qf-row qf-store" role="group"></div>
           <div class="qf-row qf-toggles">
             <label class="qf-deal" title="Listings at or under it get a star, and a saved search tells you on Home">Your price \u2264 <input autocomplete="off" class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
           </div>
@@ -1168,6 +1171,8 @@
   let cfg = {};
   // The AI turned off in settings (useAI): every AI button and menu goes, and the free checks lead.
   const aiOff = () => cfg.useAI === false;
+  // "Your AI isn't used" only means something to someone who has one turned on: with the AI off it's left out.
+  const noAINote = (text) => (aiOff() ? "" : text);
   const nameOf = (id) => (MODELS.find(([, m]) => m === id)?.[2].split(" \u00b7")[0]) || OLDER[id] || id;
 
   // With Claude the footer offers how careful to be, not a model: each choice sets both the scan model (many
@@ -1970,11 +1975,13 @@
   // deal: your own price for this search. Not a filter: cards at or under it are marked, and the tab
   // on the page edge counts them even with the panel closed.
   // broken: "hide" drops listings that say broken/untested/for parts (Use), "only" keeps just those (Fix).
-  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, deal: 0 };
+  // store: the store's own filters this search has (condition, Buy It Now…), by the names in TKSites storeFilters.
+  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, deal: 0, store: {} };
   let quick = { ...NO_QUICK };
   let quickReady = Promise.resolve(); // this search's saved filter, loaded on each page change
   const quickReason = (f) => TKRules.quickReason(f, quick);
-  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk);
+  const storeSet = () => Object.values(quick.store || {}).filter(Boolean).length; // store filters set (choices)
+  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk || storeSet());
   const isDeal = (f) => TKRules.isDeal(f, quick.deal);
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
@@ -2283,7 +2290,7 @@
       f.priceNote = e.message;
     }
     f.vsSold = vsSoldOf(f);
-    setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d.` : f.priceNote, !f.ownMarket);
+    setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d.${noAINote(" Your AI wasn't used.")}` : f.priceNote, !f.ownMarket);
     redecorateAll();
   };
   // "$55", not "$55–$55", when the two ends meet.
@@ -2296,7 +2303,7 @@
       : h("button", { class: "tk-btn tk-x", "data-i": "save", title: "Save it to look at later", onclick: own(() => toggleSave(key)) }, "Save"),
     // No price for it yet: one free lookup of its own title. Otherwise eBay's sold listings, to look yourself.
     f.title && canPrice(f)
-      ? h("button", { class: "tk-btn tk-x", "data-i": "price", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d; your AI isn't used`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
+      ? h("button", { class: "tk-btn tk-x", "data-i": "price", title: `The typical price from recent eBay sales of \u201c${TK.titleToQuery(f.title)}\u201d${noAINote("; your AI isn't used")}`, onclick: own((e) => priceOne(key, e.currentTarget)) }, "Typical price")
       : f.title ? h("button", { class: "tk-btn tk-x", "data-i": "sold", title: "What this sold for on eBay (new tab)", onclick: own(() => window.open(soldLink(f.title), "_blank", "noopener")) }, "Sold \u2197") : null,
     hideChip(key),
   ])];
@@ -2921,7 +2928,7 @@
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
               (() => {
                 const read = prefs.markPrices && !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
-                return read ? h("div", { class: "meta free-read", "data-v": read.v, title: "From the typical price (recent eBay sales) and the scam checks; your AI isn't used. With the AI on, a scan adds a score." }, h("span", { class: "verdict" }, read.word)) : null;
+                return read ? h("div", { class: "meta free-read", "data-v": read.v, title: aiOff() ? "From the typical price (recent eBay sales) and the scam checks." : "From the typical price (recent eBay sales) and the scam checks; your AI isn't used. A scan adds a score." }, h("span", { class: "verdict" }, read.word)) : null;
               })(),
               likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
               (() => {
@@ -3564,7 +3571,29 @@
   // all its results, not only the cards on this page. Only when you change the price and press Enter, fold the box
   // or press Apply: never on load, so a store that drops the setting can't send the tab round in circles.
   let storeDirty = false;
-  const storeWants = () => ({ min: quick.min, max: quick.max });
+  const storeWants = () => ({ ...quick.store, min: quick.min, max: quick.max });
+  // The row of the store's own filters, built from its table: a choice of several is a menu, a single one a toggle.
+  const storeRow = $(".qf-store");
+  const buildStoreRow = () => {
+    const site = TK.site();
+    storeRow.setAttribute("aria-label", `${site?.name || "The site"}'s own filters`);
+    storeRow.replaceChildren(...(site?.storeFilters || []).filter((f) => f.choices).map((f) => {
+      const set = (v) => {
+        quick.store = { ...quick.store, [f.name]: v };
+        storeDirty = true;
+        applyQuick();
+      };
+      if (f.choices.length === 1) {
+        const b = h("button", { class: "qt", "data-store": f.name, "aria-pressed": "false", title: `${site.name}'s own filter: ${f.label}` }, f.choices[0].label);
+        b.addEventListener("click", () => set(quick.store?.[f.name] ? "" : f.choices[0].value));
+        return b;
+      }
+      const sel = h("select", { "data-store": f.name, "aria-label": f.label },
+        h("option", { value: "" }, "Any"), ...f.choices.map((c) => h("option", { value: c.value }, c.label)), h("option", { value: "?", hidden: true }, `Set on ${site.name}`));
+      sel.addEventListener("change", () => set(sel.value));
+      return h("label", { title: `${site.name}'s own filter: it looks through all its results` }, `${f.label} `, sel);
+    }));
+  };
   const storeBehind = () => TK.pageType() === "results" && !!TK.site()?.storeFilters?.length && !TKSites.hasFilters(location.href, storeWants());
   const toStore = async () => {
     readBoxes();
@@ -3602,6 +3631,11 @@
     bt.dataset.mode = mode;
     qf.classList.toggle("on", quickActive());
     $(".qf-clear").hidden = !quickActive();
+    storeRow.querySelectorAll("[data-store]").forEach((el) => {
+      const v = quick.store?.[el.dataset.store] || "";
+      if (el.tagName === "SELECT") el.value = v;
+      else el.setAttribute("aria-pressed", String(!!v));
+    });
     const apply = $(".qf-apply");
     apply.hidden = !storeBehind();
     apply.textContent = `Apply on ${TK.site()?.name || "the site"}`;
@@ -3615,7 +3649,7 @@
   const syncFilterToggle = () => {
     qf.hidden = !qfOpen;
     qfToggle.setAttribute("aria-expanded", String(qfOpen));
-    const n = [quick.words.trim(), quick.min, quick.max, quick.deal].filter(Boolean).length;
+    const n = [quick.words.trim(), quick.min, quick.max, quick.deal].filter(Boolean).length + storeSet();
     qfToggle.textContent = n ? `Filter (${n})` : "Filter";
     qfToggle.classList.toggle("on", n > 0);
   };
@@ -3623,6 +3657,7 @@
     qfOpen = !qfOpen;
     syncFilterToggle();
     if (qfOpen) qfWords.focus();
+    else if (storeDirty) toStore();
   });
   // Done filtering: Enter in a field, or Esc, folds the box away (the button keeps the count); Esc doesn't close the panel.
   qf.addEventListener("keydown", (e) => {
@@ -3643,8 +3678,10 @@
     quick = { ...NO_QUICK, ...stored, ...(stored.projects && !stored.broken && { broken: "only" }) }; // older "Projects only"
     delete quick.projects;
     // The store's own filters in the address (set with its menu, or by Tirekick) win over the saved ones.
-    const there = TKSites.readFilters(location.href);
-    if (Object.values(there).some(Boolean)) Object.assign(quick, there);
+    const { min = 0, max = 0, ...choices } = TKSites.readFilters(location.href);
+    quick.store = { ...quick.store };
+    if (min || max || Object.values(choices).some(Boolean)) Object.assign(quick, { min, max, store: choices });
+    buildStoreRow();
     storeDirty = false;
     qfOpen = false;
     showQuick(true);
@@ -4011,9 +4048,9 @@
       const market = await getMarket(settings, query, "use");
       if (!market?.median) return setStatus(market ? "Not enough working ones sold to compare with." : "");
       applyMarket(market);
-      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d.`);
+      if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d.${noAINote(" Your AI wasn't used.")}`);
       const n = [...facts.values()].filter((f) => f.vsSold != null).length;
-      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d. Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
+      setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d.${noAINote(" Your AI wasn't used.")} Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
     } catch (e) {
       setStatus(e.message, true);
     } finally {
@@ -4212,7 +4249,7 @@
       "Offer ",
       h("b", {}, dollars(plan.open)),
       plan.walkAway > plan.open ? [", walk away above ", h("b", {}, dollars(plan.walkAway))] : null,
-      h("div", { class: "meta" }, `From recent eBay sales; your AI isn't used: ${plan.reasons.join("; ")}.${rough}`),
+      h("div", { class: "meta" }, `From recent eBay sales${noAINote("; your AI isn't used")}: ${plan.reasons.join("; ")}.${rough}`),
       lowballNote(plan.open, f.total ?? f.price),
       messageArea(messages, plan, f)
     );

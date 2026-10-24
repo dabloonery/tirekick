@@ -26,7 +26,7 @@ const a = await open(`https://www.facebook.com/marketplace/albuquerque/search?qu
 await pick("scams");
 const st = await o.ev(`({sw:['markScams','markPrices','markOther','useAI'].map(id=>document.getElementById(id).checked), title:document.getElementById('statusTitle').textContent})`);
 ok("Scam check only: scam marks on, price words, other marks and the AI off", JSON.stringify(st.sw) === "[true,false,false,false]", JSON.stringify(st));
-ok("Scam check only: the banner says so", /scam checks only/.test(st.title), st.title);
+ok("Scam check only: the banner says so", /scam check only/.test(st.title), st.title);
 const marks = await a.ev(`[...document.querySelectorAll('.tirekick-marks .tk-chip')].map(x=>x.textContent)`);
 ok("Scam check only: the page's cards carry only scam marks", marks.length > 0 && marks.every((t: string) => /Scam|Code in title|Same photo|Same title|Likely scam|Too cheap|Contact/.test(t)), JSON.stringify(marks));
 await sh(a, `r.querySelector('[data-act=tab]').click()`); await sleep(500);

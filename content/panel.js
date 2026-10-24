@@ -768,7 +768,7 @@
       <div class="foot">
         <div class="spend-detail" hidden></div>
         <div class="foot-row">
-          <label class="model-pick" title="Which model judges listings. Changes straight away."><span class="sr">Model</span><select class="model"></select></label>
+          <label class="model-pick" title="Which model judges listings. Changes right away."><span class="sr">Model</span><select class="model"></select></label>
           <button class="spend" aria-expanded="false" title="What Tirekick has spent on paid AI services"></button>
         </div>
         <div class="budget" hidden><i></i></div>
@@ -1191,8 +1191,8 @@
     modelSel.replaceChildren(...opts.map(([prov, m, label, more]) => h("option", { value: `${prov}|${m}`, title: more || label }, label)));
     $(".model-pick").title =
       cfg.provider === "anthropic"
-        ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes straight away; settings has each one.`
-        : "Which model judges listings. Changes straight away.";
+        ? `How carefully listings are judged. Scans use ${nameOf(cfg.scanModel || cfg.anthropicModel)}; a single listing, photos and search ideas use ${nameOf(cfg.anthropicModel)}. Changes right away; settings has each one.`
+        : "Which model judges listings. Changes right away.";
     const q = qualityNow();
     modelSel.value = cfg.provider === "ollama" ? `ollama|${cfg.textModel}` : cfg.provider === "openai" ? `openai|${cfg.oaiModel}` : cfg.hasKey ? `anthropic|${q ? `q:${q[0]}` : "custom"}` : "|";
   };
@@ -1343,7 +1343,7 @@
     const keyless = /LM Studio/.test(cfg.oaiName || "");
     const missing =
       cfg.provider === "anthropic" && !cfg.hasKey
-        ? ["Scores are optional.", "Prices, scam marks and filters work without one. To score listings too, add any AI service you have a key for, or a free model on your own computer, in settings."]
+        ? ["Scores are optional.", "Prices, scam marks and filters work without an AI. To score listings too, add any AI service you have a key for, or a free model on your own computer, in settings."]
         : cfg.provider === "openai" && (!cfg.oaiModel || (!cfg.hasOaiKey && !keyless))
           ? [`Finish setting up ${cfg.oaiName || "your AI service"}.`, `It needs ${!cfg.hasOaiKey && !keyless ? "an API key and " : ""}a model. Test connection in settings lists the models.`]
           : null;
@@ -1996,8 +1996,8 @@
     if (showHidden && f.hidden) c.push(["warn", "Hidden", null, "state"]);
     else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`, null, "state"]);
     if (f.deal) c.push(["deal", `At your $${quick.deal}`, null, "other"]);
-    if (f.campaign) c.push(["warn", "Scam: reposted", `Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`, "scam"]);
-    else if (f.offSite?.sure) c.push(["warn", "Scam: off-site contact", `Asks to talk off the site (${f.offSite.why.join("; ")}). That's how most scams start, and off the site you lose its buyer protection.`, "scam"]);
+    if (f.campaign) c.push(["warn", "Scam? Reposted", `Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`, "scam"]);
+    else if (f.offSite?.sure) c.push(["warn", "Scam? Off-site contact", `Asks to talk off the site (${f.offSite.why.join("; ")}). That's how most scams start, and off the site you lose its buyer protection.`, "scam"]);
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`, `Bulk-posted fakes on Marketplace end the title with a code like ${f.titleCode}, and so do real model numbers: check it's this item's model number.${TKRules.codeBacked(f) ? ` With ${TKRules.codeBacked(f)} as well, it's likely a scam.` : ""}`, "scam"]);
     if (f.offSite && !f.offSite.sure && !f.offSiteOk) c.push(["warn", "Contact outside the site?", `Contact details in the listing (${f.offSite.why.join("; ")}). Keep the talk and the payment on the site.`, "scam"]);
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins), "scam"]);
@@ -2012,7 +2012,7 @@
     // What the scan or Analyze read about why it's cheap (priceVerdict uses it), and what would lift the mark.
     const read = f.url && scored.get(keyOf(f.url))?.cheapWhy;
     const lifts = cheap?.seller || (f.titleCode && !f.codeOk) ? "" : cheap?.level === "far" ? " Analyze can lift this to Fair price if the listing says something is missing or it's a cheaper version." : " A scan that reads a reason in the listing (a flaw, missing parts, a cheaper version) lifts this, no higher than Good price.";
-    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam?" : "Too cheap?"} Typical is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}${read && read !== "none" ? ` The scan's reading: ${read}.` : ""}${lifts}${safely}`, "scam"]);
+    if (cheap) c.push(["warn", `${cheap.level === "far" ? "Likely scam: typical" : "Too cheap? Typical"} is ${dollars(Math.round(mk.median))}`, `This is ${cheap.pct}% of the typical price (${from(mk)}): far below what the same thing sells for is the usual bait.${cheap.why ? ` The listing says “${cheap.why}”, which may be why: check the photos show it.` : ""}${cheap.seller ? ` It's from ${cheap.seller} too: the two together are how most scams look.` : ""}${read && read !== "none" ? ` The scan's reading: ${read}.` : ""}${lifts}${safely}`, "scam"]);
     // Cheap, and the listing says why (or an established eBay seller): no warning, and no "Great price" either.
     const said = f.vsSold != null && !cheap && !unrelated && TKRules.cheapForReason(f, mk);
     if (said) c.push(["plain", `Under typical: ${said.why || "established seller"}`, `This is ${said.pct}% of the typical price (${from(mk)}), ${said.why ? `and the listing says why: “${said.why}”. Check the photos show it, and ask about anything else.` : `from a seller with ${f.sellerCount} ratings, ${f.sellerPct}% positive. Read the description for anything missing or wrong.`}${safely}`, "price"]);
@@ -2214,7 +2214,7 @@
     const chips = chipEls(f, { onCard: true });
     if (showHidden && f.hidden) chips.push(h("button", { class: "tk-btn", onclick: own(() => setInterested(key, true)) }, "Undo"));
     else if (!f.hidden) chips.push(...hoverChips(key, f)); // Save / Typical price or Sold / Hide appear when you hover the card
-    // The warnings' reasons, on hover or focus: a "Likely scam?" says why without a scan.
+    // The warnings' reasons, on hover or focus: a "Likely scam: typical is…" says why without a scan.
     const whys = chipsFor(f, { onCard: true }).filter(([kind, , why]) => kind === "warn" && why).map(([, , why]) => why);
     host.append(fit(h("div", { class: `tirekick-marks` }, chips, whys.length ? h("div", { class: "tk-why" }, whys.map((w) => h("p", {}, w))) : null)));
     host.dataset.tkHas = "1";
@@ -2754,7 +2754,7 @@
     const sub = lensLine(item);
     // The sticker's own line already says "Auction…" / "Lot of…" when it applies; don't repeat it below.
     const under = TKRules.pickChips(allChips(f)
-      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t) && !(v.priceWarn && /^(Likely scam|Too cheap)\?/.test(t))), prefs, { onCard: true })
+      .filter(([, t]) => !(/^Auction/.test(t) && item.auction && item.related !== false) && !(/^Lot of/.test(t) && /^Lot of/.test(sub)) && !TKRules.SOLD_CHIP.test(t) && !(v.priceWarn && /^(Likely scam: typical|Too cheap\?)/.test(t))), prefs, { onCard: true })
       .map(([kind, text, why]) => h("span", { class: `tk-chip k-${kind}`, title: why || null }, chipText(text)));
     if (item.photoAdjust) {
       const chip = h("span", { class: "tk-chip", title: "Photo check" }, signed(item.photoAdjust));
@@ -3140,7 +3140,7 @@
       h("span", { class: "msub" }, `$${m.p25}\u2013$${m.p75}, ${m.n} sales${m.confidence === "rough" ? ", a rough guide" : ""}`)
     );
   const renderMarket = (market) => {
-    if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a market price.");
+    if (!market) return marketEl.replaceChildren("Not enough eBay sales found to set a typical price.");
     const groups = [
       market.median != null && ["Working / used", market.samples],
       market.parts && ["For parts", market.parts.samples],
@@ -3517,7 +3517,7 @@
     piBar.hidden = !done.length;
     const scamN = warns.filter((w) => w === "scam").length;
     const bits = [`<b>${all.length}</b> listings`];
-    if (scamN) bits.push(`<b>${scamN}</b> possible scam${scamN === 1 ? "" : "s"}`);
+    if (scamN) bits.push(`<b>${scamN}</b> likely scam${scamN === 1 ? "" : "s"}`);
     const dealN = dealCount();
     if (dealN) bits.push(`<b>${dealN}</b> at your price`);
     if (newN) bits.push(`<b>${newN}</b> new to you`);

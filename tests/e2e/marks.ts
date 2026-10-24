@@ -11,18 +11,18 @@ const card = (id: string) => a.ev(`(()=>{const cell=document.querySelector('a[hr
 const set = async (s: string) => { await o.ev(`chrome.storage.local.set(${s})`); await sleep(1200); };
 
 let scam = await card("222"), down = await card("555");
-ok("by default a reposted scam is marked and grayed", scam.chips.some((t: string) => /^Scam: reposted/.test(t)) && scam.v === "suspicious", JSON.stringify(scam));
+ok("by default a reposted scam is marked and grayed", scam.chips.some((t: string) => /^Scam\? Reposted/.test(t)) && scam.v === "suspicious", JSON.stringify(scam));
 ok("by default a marked-down card says it was $75", down.chips.some((t: string) => /was \$75/.test(t)), JSON.stringify(down));
 
 await set(`{markPrices:false, markOther:false}`);
 scam = await card("222"); down = await card("555");
-ok("scam check only: the scam mark stays", scam.chips.some((t: string) => /^Scam: reposted/.test(t)) && scam.v === "suspicious", JSON.stringify(scam));
+ok("scam check only: the scam mark stays", scam.chips.some((t: string) => /^Scam\? Reposted/.test(t)) && scam.v === "suspicious", JSON.stringify(scam));
 ok("scam check only: the price drop goes, Save and Hide stay", !down.chips.length && down.btns >= 2, JSON.stringify(down));
 
 await set(`{markPrices:true, markOther:true, markLimit:1}`);
 const counts = await a.ev(`[...document.querySelectorAll('[data-tk-cell]')].map(cell=>cell.querySelectorAll('.tirekick-marks .tk-chip').length)`);
 ok("one mark per listing", counts.every((n: number) => n <= 1), JSON.stringify(counts));
-ok("with one mark, the scam mark is the one", (await card("222")).chips[0]?.startsWith("Scam: reposted"), JSON.stringify(await card("222")));
+ok("with one mark, the scam mark is the one", (await card("222")).chips[0]?.startsWith("Scam? Reposted"), JSON.stringify(await card("222")));
 
 await set(`{markLimit:3, markScams:false}`);
 scam = await card("222");

@@ -17,7 +17,7 @@ Everything the store's forms ask for. Upload `dist/tirekick-<version>.zip` from 
 
 Don't list AI services by name here: the store rejected 0.50.0 for keyword spam over that list (2026-10-16). The site and README can name them.
 
-**Beta:** Tirekick is new and still improving. If something looks wrong on a page, or a store changes and Tirekick stops reading it, tell us at support@tirekick.app.
+**Beta:** Tirekick is new and still improving. If something looks wrong on a page, or a store changes and Tirekick stops reading it, write to support@tirekick.app.
 
 **Kick the tires before you buy.** Is it a good price? Is it a scam?
 
@@ -25,7 +25,7 @@ Tirekick looks over listings with you on secondhand marketplaces, where you alre
 
 Tirekick has optional AI features. The checks below are free and work without them; turn on an AI only if you want scores and write-ups.
 
-**Works without AI: free, no account**
+**Works without the AI: free, no account**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
 • How far below or above the typical price each card is ("$53 below typical", from recent eBay sales) once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones
@@ -40,7 +40,7 @@ Tirekick has optional AI features. The checks below are free and work without th
 • Search ideas: the misspellings sellers make, other model names, tighter or looser words
 • Optional: scan new listings automatically as a search page you're looking at loads them, up to your monthly budget
 
-**It only looks when you do.** Tirekick works on the page in front of you, when you ask (or, if you turn on automatic scanning, as the search you're looking at loads). Nothing browses or checks prices in the background. Everything it keeps stays in your browser, and the only things sent anywhere go to the AI service you picked, because you pressed a button. Bring your own API key: a scan of 50 listings with a small model usually costs less than a cent.
+**It only looks when you do.** Tirekick works on the page in front of you, when you ask (or, if you turn on automatic scanning, as the search you're looking at loads). Nothing browses or checks prices in the background. Everything it keeps stays in your browser, and the only things sent anywhere go to the AI service you picked and to eBay's own sold-listings search, because you pressed a button. Bring your own API key: a scan of 50 listings with a small model usually costs less than a cent.
 
 Scores, prices, price gaps and warnings are estimates to help you decide, not advice or a guarantee: a model can be wrong and sold prices are approximate, so check the listing and the seller yourself.
 
@@ -60,7 +60,7 @@ Help people buying secondhand online judge the listings they are viewing on supp
 | `contextMenus` | Three entries: "Check this photo with Tirekick" on images on eBay and Facebook, "Look up “…” on eBay and Marketplace" on text the user selects (it opens the extension's own page with that text; nothing is read from the page), and "Open Tirekick in a tab" on the toolbar icon (the icon itself opens the same page as a popup off eBay and Marketplace). |
 | Host: `https://www.ebay.com/*`, `https://www.facebook.com/*` | The two sites it works on: reading the listings the user is viewing, and fetching eBay sold-listing pages for price comparison when the user asks (at most eight an hour, paused at the first sign of eBay's browser check). |
 | Host: `https://i.ebayimg.com/*`, `https://*.fbcdn.net/*` | Fetching a listing's photo when the user asks for a photo check, and Marketplace thumbnails already on screen (without cookies) to fingerprint them on the user's computer, for the "same photo as other listings" mark. |
-| Host: `https://api.anthropic.com/*`, `https://openrouter.ai/*`, `https://api.openai.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.deepseek.com/*`, `https://api.mistral.ai/*`, `https://api.x.ai/*` | The AI services the user can choose. Sent only when the user presses Scan, Analyze, Better searches or Check photo, or has turned on automatic scanning. |
+| Host: `https://api.anthropic.com/*`, `https://openrouter.ai/*`, `https://api.openai.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.deepseek.com/*`, `https://api.mistral.ai/*`, `https://api.x.ai/*` | The AI services the user can choose. Sent only when the user presses Scan, Analyze, Search ideas or Check photo, or has turned on automatic scanning. |
 | Host: `http://localhost:11434/*`, `http://127.0.0.1:11434/*`, `http://localhost:1234/*`, `http://127.0.0.1:1234/*` | Ollama and LM Studio, which run on the user's own computer. |
 | Optional hosts: `https://*/*`, `http://*/*` | Only for "another OpenAI-style address". The extension asks the user for permission to one specific address when they press **Test connection** for it; it cannot reach any address the user hasn't approved. |
 

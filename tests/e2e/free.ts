@@ -36,10 +36,10 @@ const chips = () => p.ev(`[...document.querySelectorAll('.s-card')].map(c => [c.
 await waitFor(async () => JSON.stringify(await chips()).includes("typical"));
 const cs = await chips();
 const of = (price: string) => (cs.find(([pr]: string[]) => pr === price) || [])[1] || "";
-ok("a card far under a trusted sold median is marked Likely scam? with the share", /Likely scam\? Typical is \$300/.test(of("$85.00")), cs);
+ok("a card far under a trusted sold median is marked Likely scam: typical is, with the share", /Likely scam: typical is \$300/.test(of("$85.00")), cs);
 ok("…one well under it says Too cheap?", /Too cheap\? Typical is \$300/.test(of("$140.00")), cs);
-ok("…a broken one is never marked (the median is for working ones)", !/Too cheap|Likely scam\?/.test(of("$35.00")), cs);
-ok("…and an auction isn't either (a bid isn't a price)", !/Too cheap|Likely scam\?/.test(of("$60.00")), cs);
+ok("…a broken one is never marked (the median is for working ones)", !/Too cheap|Likely scam: typical/.test(of("$35.00")), cs);
+ok("…and an auction isn't either (a bid isn't a price)", !/Too cheap|Likely scam: typical/.test(of("$60.00")), cs);
 // An accessory for the search, added the way a feed adds cards as you scroll: no price check, no scam mark.
 await p.ev(`document.querySelector('ul').insertAdjacentHTML('beforeend', '<li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 lens cap</div><div class="s-card__price">$8.00</div><a href="https://www.ebay.com/itm/7777777777">item</a></li>')`);
 await waitFor(async () => /No price check/.test(((await chips()).find(([pr]: string[]) => pr === "$8.00") || [])[1] || ""));
@@ -61,7 +61,7 @@ await p.close();
   const n = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000&changed=noprice");
   const warned = await waitFor(() => R(n, `const w=r.querySelector('.readwarn'); return !w.hidden && /found a price on only 0/.test(w.textContent)`));
   const nchips = await n.ev(`[...document.querySelectorAll('.s-card')].map(c => [...(c.querySelector('.tirekick-sticker')?.shadowRoot || c).querySelectorAll('.tk-chip')].map(x => x.textContent).join(' | ')).join(' || ')`);
-  ok("prices gone from the cards: the panel says so, and no card gets a price mark", warned && !/Too cheap|Likely scam\?|typical/.test(nchips), { warned, nchips, note: await R(n, `return r.querySelector('.readwarn').textContent`) });
+  ok("prices gone from the cards: the panel says so, and no card gets a price mark", warned && !/Too cheap|Likely scam: typical|typical/.test(nchips), { warned, nchips, note: await R(n, `return r.querySelector('.readwarn').textContent`) });
   await n.close();
 }
 

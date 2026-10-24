@@ -455,6 +455,8 @@
     .qt:hover { color:var(--ink); border-color:var(--muted); }
     .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
     .qf-apply { border-color:var(--accent); color:var(--ink); }
+    .qf-store:empty { display:none; }
+    .qf-store label { display:flex; align-items:center; gap:4px; color:var(--muted); font:600 13px/1 var(--ui); }
     .qt { min-height:26px; }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
     .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 13px/1 var(--ui); letter-spacing:normal; text-transform:none; }
@@ -745,6 +747,7 @@
             <span class="qf-price"><input autocomplete="off" class="qf-min" inputmode="numeric" placeholder="$ min" aria-label="Lowest price, shipping included"><span aria-hidden="true">\u2013</span><input autocomplete="off" class="qf-max" inputmode="numeric" placeholder="max" aria-label="Highest price, shipping included"></span>
             <button class="qt qf-apply" hidden></button>
           </div>
+          <div class="qf-row qf-store" role="group"></div>
           <div class="qf-row qf-toggles">
             <label class="qf-deal" title="Listings at or under it get a star, and a saved search tells you on Home">Your price \u2264 <input autocomplete="off" class="qf-dealin" inputmode="numeric" placeholder="$" aria-label="Your price for this search"></label>
           </div>
@@ -1970,11 +1973,13 @@
   // deal: your own price for this search. Not a filter: cards at or under it are marked, and the tab
   // on the page edge counts them even with the panel closed.
   // broken: "hide" drops listings that say broken/untested/for parts (Use), "only" keeps just those (Fix).
-  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, deal: 0 };
+  // store: the store's own filters this search has (condition, Buy It Now…), by the names in TKSites storeFilters.
+  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, deal: 0, store: {} };
   let quick = { ...NO_QUICK };
   let quickReady = Promise.resolve(); // this search's saved filter, loaded on each page change
   const quickReason = (f) => TKRules.quickReason(f, quick);
-  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk);
+  const storeSet = () => Object.values(quick.store || {}).filter(Boolean).length; // store filters set (choices)
+  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk || storeSet());
   const isDeal = (f) => TKRules.isDeal(f, quick.deal);
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
@@ -3564,7 +3569,29 @@
   // all its results, not only the cards on this page. Only when you change the price and press Enter, fold the box
   // or press Apply: never on load, so a store that drops the setting can't send the tab round in circles.
   let storeDirty = false;
-  const storeWants = () => ({ min: quick.min, max: quick.max });
+  const storeWants = () => ({ ...quick.store, min: quick.min, max: quick.max });
+  // The row of the store's own filters, built from its table: a choice of several is a menu, a single one a toggle.
+  const storeRow = $(".qf-store");
+  const buildStoreRow = () => {
+    const site = TK.site();
+    storeRow.setAttribute("aria-label", `${site?.name || "The site"}'s own filters`);
+    storeRow.replaceChildren(...(site?.storeFilters || []).filter((f) => f.choices).map((f) => {
+      const set = (v) => {
+        quick.store = { ...quick.store, [f.name]: v };
+        storeDirty = true;
+        applyQuick();
+      };
+      if (f.choices.length === 1) {
+        const b = h("button", { class: "qt", "data-store": f.name, "aria-pressed": "false", title: `${site.name}'s own filter: ${f.label}` }, f.choices[0].label);
+        b.addEventListener("click", () => set(quick.store?.[f.name] ? "" : f.choices[0].value));
+        return b;
+      }
+      const sel = h("select", { "data-store": f.name, "aria-label": f.label },
+        h("option", { value: "" }, "Any"), ...f.choices.map((c) => h("option", { value: c.value }, c.label)), h("option", { value: "?", hidden: true }, `Set on ${site.name}`));
+      sel.addEventListener("change", () => set(sel.value));
+      return h("label", { title: `${site.name}'s own filter: it looks through all its results` }, `${f.label} `, sel);
+    }));
+  };
   const storeBehind = () => TK.pageType() === "results" && !!TK.site()?.storeFilters?.length && !TKSites.hasFilters(location.href, storeWants());
   const toStore = async () => {
     readBoxes();
@@ -3602,6 +3629,11 @@
     bt.dataset.mode = mode;
     qf.classList.toggle("on", quickActive());
     $(".qf-clear").hidden = !quickActive();
+    storeRow.querySelectorAll("[data-store]").forEach((el) => {
+      const v = quick.store?.[el.dataset.store] || "";
+      if (el.tagName === "SELECT") el.value = v;
+      else el.setAttribute("aria-pressed", String(!!v));
+    });
     const apply = $(".qf-apply");
     apply.hidden = !storeBehind();
     apply.textContent = `Apply on ${TK.site()?.name || "the site"}`;
@@ -3615,7 +3647,7 @@
   const syncFilterToggle = () => {
     qf.hidden = !qfOpen;
     qfToggle.setAttribute("aria-expanded", String(qfOpen));
-    const n = [quick.words.trim(), quick.min, quick.max, quick.deal].filter(Boolean).length;
+    const n = [quick.words.trim(), quick.min, quick.max, quick.deal].filter(Boolean).length + storeSet();
     qfToggle.textContent = n ? `Filter (${n})` : "Filter";
     qfToggle.classList.toggle("on", n > 0);
   };
@@ -3623,6 +3655,7 @@
     qfOpen = !qfOpen;
     syncFilterToggle();
     if (qfOpen) qfWords.focus();
+    else if (storeDirty) toStore();
   });
   // Done filtering: Enter in a field, or Esc, folds the box away (the button keeps the count); Esc doesn't close the panel.
   qf.addEventListener("keydown", (e) => {
@@ -3643,8 +3676,10 @@
     quick = { ...NO_QUICK, ...stored, ...(stored.projects && !stored.broken && { broken: "only" }) }; // older "Projects only"
     delete quick.projects;
     // The store's own filters in the address (set with its menu, or by Tirekick) win over the saved ones.
-    const there = TKSites.readFilters(location.href);
-    if (Object.values(there).some(Boolean)) Object.assign(quick, there);
+    const { min = 0, max = 0, ...choices } = TKSites.readFilters(location.href);
+    quick.store = { ...quick.store };
+    if (min || max || Object.values(choices).some(Boolean)) Object.assign(quick, { min, max, store: choices });
+    buildStoreRow();
     storeDirty = false;
     qfOpen = false;
     showQuick(true);

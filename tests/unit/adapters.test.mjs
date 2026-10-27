@@ -226,3 +226,23 @@ test("soldVariants: sizes and generations in other searches", () => {
   assert.equal(R.forVariant(pm, { title: "AirPods Pro 2nd generation" }).median, 151);
   assert.equal(R.forVariant(pm, { title: "AirPods Pro" }), pm, "doesn't say which: the whole market");
 });
+
+test("Craigslist's scam signs: away and shipping, escrow, gift cards, money first; never a phone number, and not after a 'no'", () => {
+  const cl = (t) => TK.offSite(t, "craigslist");
+  assert.equal(cl("Call or text 415-555-0142, cash only, email me with questions"), null, "how people deal on Craigslist");
+  assert.equal(cl("No shipping, no escrow, no cashier's checks, no trades"), null, "a seller warning against them");
+  assert.equal(cl("I don't do shipping only deals"), null);
+  assert.deepEqual(cl("I'm out of town for work so I will ship it via FedEx"), { sure: true, why: ["says they're away and will ship it"], pay: true });
+  assert.ok(cl("Shipping only. Payment through eBay guarantee")?.why.includes("talks of escrow or a payment guarantee"));
+  assert.ok(cl("We use escrow for your protection").sure);
+  assert.ok(cl("I only accept Steam gift cards").sure);
+  assert.ok(cl("I'll send a cashier's check for more than the price, you refund the difference").sure);
+  assert.deepEqual(cl("Send a $50 deposit first to hold it"), { sure: false, why: ["asks for money before you see it"], pay: true }, "a deposit is sometimes honest: check first");
+  assert.ok(cl("Contact me on WhatsApp only").sure);
+  assert.ok(cl("visit w w w . deals . com for more").sure);
+  // elsewhere, nothing changes: a phone number is a hint on Marketplace
+  assert.deepEqual(TK.offSite("Call or text 415-555-0142").why, ["phone number in the listing"]);
+  assert.equal(TK.clPrice("$0"), null);
+  assert.equal(TK.clPrice("$1"), null);
+  assert.equal(TK.clPrice("$1,250"), 1250);
+});

@@ -23,6 +23,8 @@ Add an entry to `SITES`. Every field is documented in the `Site` typedef at the 
 | `cards` | How its result cards behave: which corner the tag sits in, whether a card is a link nested deep in boxes, whether to size the tag to the photo, when to use the compact tag, whether cards overlap or are recycled as you scroll |
 | `titleCodes` | Whether bulk scams on this site end titles with a random code |
 | `soldReference` | `false`: eBay's sold listings stay the price reference |
+| `setting`, `photoOrigins` | A store added after release is opt in: the setting that turns it on (add it to `DEFAULTS` in `background.js`, `FIELDS` and a switch in settings), and its photo hosts as permission patterns. Settings asks for `TKSites.originsOf(site)` in the click; the background registers the page scripts there only while the setting is on and the access is granted (`sitesInUse`) |
+| `isHost` | For a store with a host per city (`sfbay.craigslist.org`): which hosts are its own, for links and backups |
 
 ## 2. Reading its pages: `content/adapters.js`
 
@@ -42,7 +44,7 @@ Add the site's function to each per-site map (they are next to each other and sa
 
 ## 4. Permissions
 
-- Add the site's `matches` and image hosts to `manifest.json`. For a site added after release, put them under `optional_host_permissions` and ask for them when the person turns the site on in settings: new required hosts make Chrome disable the extension on update until each user accepts a new warning.
+- Add the site's `matches` and image hosts to `manifest.json`. Craigslist is the worked example of an opt-in site. For a site added after release, put them under `optional_host_permissions` and ask for them when the person turns the site on in settings: new required hosts make Chrome disable the extension on update until each user accepts a new warning.
 - The page scripts are registered for `TKSites.matches()`, so they follow the table. With an optional site, register only once its permission is granted.
 
 ## 5. Tests and fixtures

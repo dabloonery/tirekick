@@ -27,6 +27,13 @@
     const tm = $("textModelPick");
     check("Ollama ranking model lists the installed models", [...tm.options].some((o) => o.value === "moondream:latest") && tm.value === "qwen3:4b", `value ${tm.value}`);
     check("a theme menu is there", $("theme").tagName === "SELECT", "no theme select");
+
+    const cl2 = $("onCraigslist");
+    check("Craigslist starts off", !cl2.checked, "ticked");
+    cl2.checked = true; cl2.dispatchEvent(new Event("change", { bubbles: true })); await wait(200);
+    check("turning Craigslist on asks for its pages and photos, then saves", __store.onCraigslist === true && JSON.stringify(window.__asked?.origins) === JSON.stringify(["https://*.craigslist.org/*", "https://images.craigslist.org/*"]), JSON.stringify([__store.onCraigslist, window.__asked]));
+    cl2.checked = false; cl2.dispatchEvent(new Event("change", { bubbles: true })); await wait(200);
+    check("turning it off gives the access back", __store.onCraigslist === false && window.__removed?.origins?.length === 2, JSON.stringify([__store.onCraigslist, window.__removed]));
   } catch (e) {
     out.push("FAIL harness: " + e.message);
   }

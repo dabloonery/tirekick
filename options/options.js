@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "theme"];
+  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "theme", "onCraigslist"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicScanModel", "anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "filterWords"];
 
@@ -278,7 +278,7 @@ async function saveField(f) {
   const moved = f === "oaiUrl" ? await keyFollowsAddress() : "";
   const el = document.getElementById(f);
   if (el.type === "number" && String(v) !== el.value) el.value = v; // show what was actually kept
-  note(f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : `Saved.${moved}`);
+  note(f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : optInSite(f) ? `Saved. Reload open ${optInSite(f).name} tabs to see the change.` : `Saved.${moved}`);
 }
 // Each address keeps its own key: a new address puts the key you had away (it stays with its own service)
 // and brings back the one you entered for the new address before, if there is one.
@@ -295,8 +295,22 @@ async function keyFollowsAddress() {
   if (next) return " Using the key you entered for this address before.";
   return oaiKey ? " The key you had stays with its own service; paste the key for this one." : "";
 }
+// An opt-in store (lib/sites.js "setting"): turning it on asks the browser for its pages and photos, right in the
+// click (the browser asks only then); turning it off gives them back.
+const optInSite = (f) => TKSites.all.find((s) => s.setting === f);
+async function siteAccess(f) {
+  const site = optInSite(f);
+  const el = document.getElementById(f);
+  const origins = TKSites.originsOf(site);
+  if (!el.checked) return void chrome.permissions.remove({ origins }).catch(() => {});
+  if (await chrome.permissions.request({ origins }).catch(() => false)) return true;
+  el.checked = false;
+  note(`${site.name} stays off: the browser wasn't given access to it.`);
+  return false;
+}
 for (const f of FIELDS) {
   document.getElementById(f).addEventListener("change", async () => {
+    if (optInSite(f) && (await siteAccess(f)) === false) return;
     const done = saving.then(() => saveField(f));
     saving = done.catch(() => {});
     await done;

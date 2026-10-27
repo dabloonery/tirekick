@@ -22,6 +22,10 @@ Tirekick answers on the page itself (a tag on each card) and in a panel beside i
 | **Toolbar icon** | Chrome toolbar; badge | Open/close the panel (Alt+Shift+L), alerts count; right-click → Home | The standard extension entry point |
 | **Settings** | Tab, 620px column | Model, spending, judging, filters, page options, backup and data | Long-lived configuration belongs in a full page |
 
+On Craigslist the same surfaces appear once it's turned on (settings, **Also work on Craigslist**: the switch asks the
+browser for access in the same click, and says so plainly when the browser says no). The card tag sits top right on
+its gallery cards.
+
 **Alternatives considered** for the main surface (kept for the record):
 
 | | Drawer in the page (chosen) | Chrome side panel | Popup |

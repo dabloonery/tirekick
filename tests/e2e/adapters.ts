@@ -211,5 +211,24 @@ p = await page("https://www.facebook.com/marketplace/item/900000000000007/", "fa
   ok("real Marketplace listing over its search: title, price, condition, seller's year, age", eq([it.title, it.price, it.condition, it.sellerJoined, it.listedDays], ["Nintendo DS Original Fat Phat", 100, "Used - Good", 2018, 154]) && /NO GAMES/.test(it.details), [it.title, it.price, it.condition, it.sellerJoined, it.listedDays]);
 }
 await p.close();
+
+// Craigslist (opt-in): the three card layouts on one page, a placeholder price, and its own scam signs.
+p = await page("https://sfbay.craigslist.org/search/sss?query=nintendo+switch", "craigslist-results");
+items = await extract(p);
+ok("Craigslist results: every layout read, each post once", eq(items.map((i: any) => i.url.match(/(\d+)\.html$/)?.[1]), ["7791000001", "7791000002", "7791000003", "7791000004", "7791000005", "7791000006"]), items.map((i: any) => i.url));
+ok("…titles and prices; $0 and $1 are no price", eq(items.map((i: any) => i.price), [240, null, 180, 90, null, 45]) && items[5].title === "Switch Pro Controller, no shipping, no escrow, no trades", items.map((i: any) => [i.title, i.price]));
+ok("…keys, places, photos and offers", eq([await p.ev(`Tirekick.keyOf(${JSON.stringify(items[0].url)})`), items[0].place, items[5].place, /images\.craigslist\.org/.test(items[2].imageUrl), items[4].bestOffer, items[0].shipping], ["cl:7791000001", "inner sunset / UCSF", "santa rosa", true, true, null]), items.map((i: any) => [i.place, i.imageUrl, i.bestOffer]));
+ok("…a phone number or 'call or text' isn't a sign there; shipping only from out of town is, and 'no shipping' isn't", !items[2].offSite && items[3].offSite?.sure && items[3].offSite.pay && !items[5].offSite, items.map((i: any) => i.offSite));
+ok("…page type, search words, what a page with no search is", eq([await p.ev(`Tirekick.pageType()`), await p.ev(`Tirekick.detectQuery()`), await p.ev(`Tirekick.linkedListings()`)], ["results", "nintendo switch", 6]));
+ok("…a suggested search stays in the city", (await p.ev(`Tirekick.searchUrl({ query: 'switch oled -lite', maxPrice: 199.5, newest: true })`)) === "https://sfbay.craigslist.org/search/sss?query=switch+oled+-lite&max_price=200&sort=date");
+ok("…a card found again from its key", (await p.ev(`Tirekick.cardFor("cl:7791000004")?.dataset.pid`)) === "7791000004");
+await p.close();
+p = await page("https://sfbay.craigslist.org/sfc/vgm/d/san-francisco-nintendo-switch-oled/7791000007.html", "craigslist-item");
+{
+  const it = await p.ev(`(({ el, ...it }) => it)(Tirekick.extractItem())`);
+  ok("Craigslist post: title, price, condition, photos, age", eq([await p.ev(`Tirekick.pageType()`), it.title, it.price, it.condition, it.imageUrls.length, it.listedDays], ["item", "Nintendo Switch OLED w/ dock", 230, "like new", 2, 3]), [it.title, it.price, it.condition, it.imageUrls, it.listedDays]);
+  ok("…its phone number and the seller's own 'no shipping, no escrow' are no scam sign", it.offSite == null && /OLED model with dock/.test(it.details) && !/QR Code/.test(it.details), [it.offSite, it.details]);
+}
+await p.close();
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

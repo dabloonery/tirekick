@@ -343,8 +343,16 @@ Eval: 4 new listings, 3 of them wrong before.
 The AI sees the same numbers: a scan's line for a listing compared with its own version says "for its version (lite:
 $95, 14 sales)", the reference says the sales mix versions, and Analyze gets the version's numbers.
 
-Left: sold pages are still hand-made fixtures, so how often real lookups have 8+ of a kind is unmeasured. Not axes yet:
-model years and chips ("2020", "M1" vs "M2"), colors and carrier locks.
+Thin versions: one lookup has 60 sales at most, and after best offers, lots and parts a version often has 5 to 7. Those
+count now when they sit close together (`TK.VARIANT_TIGHT`: the middle half within 1.5x), as "fair". A listing whose
+tier or generation still has too few is compared as before, and the price hover says so ("every version together (too
+few “lite” sales to go on alone)", `variantMissing`).
+
+Left: sold pages are still hand-made fixtures, so how often real lookups have enough of a kind is unmeasured; the saved
+lookups in a real browser already say (`soldCache` entries keep `variants`), so a count on the settings page would
+measure it with no new lookups. A version with too few sales could also use a narrower lookup already saved ("switch
+lite" for a Lite on a "nintendo switch" page), again with no new lookup. Not axes yet: model years and chips ("2020",
+"M1" vs "M2"), colors and carrier locks.
 
 ## After real use (2026-10-16)
 

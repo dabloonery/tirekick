@@ -955,9 +955,11 @@
   };
   // A search that names no version ("nintendo switch", "iphone 13", "airpods pro") gets them all in its sales: Lites
   // at $95 beside OLEDs at $250, 128GB phones beside 512GB ones. Each kind of sale (TKRules.variantGroups: a tier, a
-  // generation, a size, or a mix) with enough sales to trust (8+, not too spread out) gets its own numbers, so a
+  // generation, a size, or a mix) with enough sales to trust (8+ not too spread out, or 5+ close together) gets its own numbers, so a
   // listing is compared with its own kind (TKRules.forVariant). _same: labels that are the thing itself (the search
   // names them, or most sales do). null when no kind stands apart from the whole.
+  TK.VARIANT_MIN = 5;
+  TK.VARIANT_TIGHT = 1.5; // the middle half within 1.5x, for a kind with fewer than 8 sales
   TK.soldVariants = (sales, query = "") => {
     const R = globalThis.TKRules;
     if (!R?.variantGroups) return null;
@@ -969,11 +971,14 @@
     const kept = new Set();
     const wild = (p) => p.split("*").length;
     for (const [p, list] of Object.entries(groups).sort((a, b) => wild(b[0]) - wild(a[0]))) {
-      if (list.length === sales.length || list.length < 8) continue; // the whole market, or too few
+      if (list.length === sales.length || list.length < TK.VARIANT_MIN) continue; // the whole market, or too few
       const members = list.map((it) => sales.indexOf(it)).join(",");
       if (kept.has(members)) continue;
       kept.add(members);
       const st = TK.soldStats(list);
+      // 5 to 7 of a kind count when they agree: one lookup has 60 sales at most, and after best offers, lots and
+      // parts a version often has only that many. Six Lites at $88 to $102 say more than a mix at $200.
+      if (st.n < 8 && st.p25 > 0 && st.p75 / st.p25 <= TK.VARIANT_TIGHT) st.confidence = "fair";
       if (st.confidence !== "rough") out[p] = pick(st);
     }
     if (!Object.keys(out).length) return null;

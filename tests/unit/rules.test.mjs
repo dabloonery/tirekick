@@ -992,3 +992,14 @@ test("askingRead: version words price it against sales of that version, and say 
   assert.equal(R.kindWord("gen 12"), "12th generation");
   assert.equal(R.kindWord("128gb"), "128GB");
 });
+
+test("asIsMargin: the floor if a repair fails, at what broken ones sell for", () => {
+  const market = { median: 140, ship: 12, parts: { median: 65, ship: 10 } };
+  assert.equal(R.asIsMargin({ total: 30 }, market), 16, "65 less 13.6% and 40 cents, less $10 shipping and the $30 price");
+  assert.equal(R.asIsMargin({ total: 30 }, { ...market, parts: { median: 65 } }), 14, "the working sales' shipping when the broken ones don't say");
+  assert.equal(R.asIsMargin({ total: 60 }, market), -14);
+  assert.equal(R.asIsMargin({ total: 30, lot: 3 }, market), null);
+  assert.equal(R.asIsMargin({ total: 30, auction: true }, market), null);
+  assert.equal(R.asIsMargin({ total: null }, market), null);
+  assert.equal(R.asIsMargin({ total: 30 }, { median: 140 }), null, "no for-parts lookup");
+});

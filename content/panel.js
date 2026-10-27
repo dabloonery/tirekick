@@ -621,6 +621,13 @@
     .srow a { padding:3px 0; color:var(--ink); font-weight:600; text-decoration:none; overflow-wrap:anywhere; }
     .srow a:hover { text-decoration:underline; text-underline-offset:3px; }
     .srow .meta { margin-top:1px; }
+    /* Reseller's workbench on a saved listing: parts paid, a note, and the net they leave */
+    .bench { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:6px; color:var(--muted); font-size:13px; }
+    .bench label { display:inline-flex; align-items:center; gap:4px; }
+    .bench input { padding:4px 7px; font-size:13px; }
+    .bench .b-parts { width:64px; }
+    .bench .b-note { flex:1 1 180px; width:auto; }
+    .bench output { color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
     .srow .down { color:var(--v-great); font-weight:600; }
     .sv-acts { margin:4px 0 10px; }
     .hidden-box { margin-top:12px; border-top:var(--bw) solid var(--rule); padding-top:4px; }
@@ -1517,6 +1524,7 @@
     applyPrefs();
     showMode();
     onModeChanged();
+    renderSaved(); // Reseller's workbench shows on saved listings
     // Scores mean something different in the other mode, so start the page over.
     const had = scored.size || itemEl.childElementCount;
     clearStickers();
@@ -1572,9 +1580,12 @@
     if (it.lens === "project") {
       const margin = it.margin != null ? `\u2248 ${money(it.margin)} gap after fees${it.refIsEstimate || it.refRough ? " (est.)" : ""}` : "";
       const broken = it.fault && !/^none$/i.test(it.fault);
-      if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`)].filter(Boolean).join(", ");
-      if (margin) return margin;
-      if (broken && it.partsCost > 0) return `~$${it.partsCost} parts`;
+      // The floor as-is, when even a failed repair would leave something (TKRules.asIsMargin).
+      const floor = it.asIsMargin >= TKRules.AS_IS_SHOW ? `floor +${money(it.asIsMargin)} as-is` : "";
+      if (broken && it.difficulty > 0) return [DIFFICULTY[it.difficulty], margin || (it.partsCost > 0 && `~$${it.partsCost} parts`), floor].filter(Boolean).join(", ");
+      if (margin) return [margin, floor].filter(Boolean).join(", ");
+      if (broken && it.partsCost > 0) return [`~$${it.partsCost} parts`, floor].filter(Boolean).join(", ");
+      if (floor) return `Floor +${money(it.asIsMargin)} as-is`;
     }
     if (it.vsWorking == null) return "";
     return TKRules.vsText(it.total, it.refPrice ?? it.refWorking, { rough: it.refRough, est: it.refIsEstimate, working: !!facts.get(keyOf(it.url))?.project });
@@ -2436,6 +2447,34 @@
     return line ? h("div", { class: "spark" }, line) : null;
   };
   let hiddenOpen = false; // the folded "Hidden" section stays as you left it while the list redraws
+  // Reseller's workbench under a saved listing: what you paid for parts and a note, kept on the saved record
+  // (storeEdit patch, so another tab's price update doesn't undo them), and the net they leave at the sold median
+  // (TKShared.savedNet), worked out as you type. Saved when you leave the box or press Enter.
+  const bench = (k, r) => {
+    const ref = TKShared.savedSold(k, scansCache || {});
+    const out = h("output", {});
+    const partsEl = h("input", { class: "b-parts", type: "number", min: "0", step: "any", inputmode: "decimal", value: Number.isFinite(r.parts) ? String(r.parts) : null, "aria-label": `Parts cost for ${(r.t || "this listing").slice(0, 60)}` });
+    const noteEl = h("input", { class: "b-note", type: "text", maxlength: String(TKShared.NOTE_MAX), placeholder: "Repair notes, fault…", value: r.note || null, "aria-label": `Notes for ${(r.t || "this listing").slice(0, 60)}` });
+    const partsNow = () => (partsEl.value.trim() === "" ? null : Math.max(0, Number(partsEl.value)) || 0);
+    const showNet = () => {
+      const net = TKShared.savedNet({ ...r, parts: partsNow() ?? undefined }, ref, cfg.feePct ?? 13.6);
+      out.textContent = net == null ? (ref ? "no price" : "no sold price yet: scan it in Reseller") : `\u2248 ${money(net)} net`;
+      out.title = net == null ? "" : `At the sold median ${dollars(Math.round(ref.sold))}, less ${cfg.feePct ?? 13.6}% + $0.40 fees${ref.ship ? ` and ~${dollars(ref.ship)} shipping` : ""}, the ${dollars(r.p)} price${partsNow() ? ` and ${dollars(partsNow())} parts` : ""}. Before sales tax and your time.`;
+    };
+    const keep = () => {
+      const parts = partsNow();
+      const note = noteEl.value.trim().slice(0, TKShared.NOTE_MAX);
+      if (parts === (Number.isFinite(r.parts) ? r.parts : null) && note === (r.note || "")) return;
+      writeStored("saved", { patch: { [k]: { parts: parts ?? null, note } } }).catch(() => {});
+    };
+    partsEl.addEventListener("input", showNet);
+    for (const el of [partsEl, noteEl]) {
+      el.addEventListener("change", keep);
+      el.addEventListener("keydown", (e) => e.key === "Enter" && el.blur());
+    }
+    showNet();
+    return h("div", { class: "bench" }, h("label", {}, "Parts $", partsEl), noteEl, out);
+  };
   const renderSaved = () => {
     const items = Object.entries(saved).sort((a, b) => b[1].a0 - a[1].a0);
     const searches = Object.entries(savedSearches).sort((a, b) => b[1].v - a[1].v);
@@ -2472,7 +2511,7 @@
     // The same list as a spreadsheet, with prices seen and the latest score (TKShared.savedRows).
     const csv = h("button", {
       onclick: () => {
-        const rows = TKShared.savedRows(saved, scansCache || {});
+        const rows = TKShared.savedRows(saved, scansCache || {}, { feePct: cfg.feePct ?? 13.6 });
         const a = h("a", { href: URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" })), download: `tirekick-saved-${TKShared.localDay()}.csv` });
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
@@ -2494,7 +2533,8 @@
                   "div",
                   {},
                   h("a", { href: safeUrl(r.u, itemUrl(k)), target: "_blank", rel: "noopener" }, r.t || safeUrl(r.u, itemUrl(k))),
-                  h("div", { class: "meta" }, priceLine(k, r), h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove"))
+                  h("div", { class: "meta" }, priceLine(k, r), h("button", { class: "srow-act", title: "Remove from Saved", onclick: () => removeStored("saved", k) }, "Remove")),
+                  lens === "project" ? bench(k, r) : null
                 ),
                 priceHistory(k, r),
                 r.p != null ? h("div", { class: "pr" }, dollars(r.p)) : null
@@ -2823,6 +2863,9 @@
         // How the numbers were made, and how far to trust them
         item.margin != null && item.lens === "project"
           ? line(`Price gap: sold at ${item.refIsEstimate ? "the estimated" : "the typical"} price of ${dollars(item.refWorking)}, less ${item.feePct}% + $0.40 fees${item.shipOut ? `, ~${dollars(item.shipOut)} shipping` : " (shipping not known: take it off)"}${item.partsCost ? `, ~${dollars(item.partsCost)} parts` : ""} and the ${dollars(item.total)} price. Before sales tax and your time.`)
+          : null,
+        item.lens === "project" && item.asIsMargin >= TKRules.AS_IS_SHOW
+          ? line(`Floor: ~${money(item.asIsMargin)} if it can't be fixed and goes back on eBay as it is, where broken ones sell for about ${dollars(item.refParts)} (less ${item.feePct}% + $0.40 fees and shipping). Before sales tax and your time.`)
           : null,
         item.refRough && !item.refIsEstimate ? line("The sold price comes from few sales or a wide spread: a rough guide.") : null,
         f.auction ? line(`Auction: ${f.bids || 0} bid${f.bids === 1 ? "" : "s"}${f.timeLeft ? `, ${f.timeLeft} left` : ""}. The price is only the current bid.${item.bidCap > 0 ? ` Worth bidding up to about ${dollars(item.bidCap)}${item.lens === "project" ? " to break even" : ""}.` : ""}`) : null,
@@ -3300,6 +3343,7 @@
     it.vsWorking = it.total != null && it.refPrice > 0 && !it.lot && !it.accessory && !TKRules.offSearch(it.title, marketFor) && !TKRules.tooFarToCompare(it.total, it.refPrice) ? it.total / it.refPrice : null;
     it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
     it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
+    it.asIsMargin = forLens === "project" ? TKRules.asIsMargin(it, market, feePct) : null; // the floor if the repair fails
   };
   // The most an auction is worth bidding, shipping included: the market price (Use); break-even after
   // fees and parts, or what broken ones sell for when there's no working price (Fix & flip).
@@ -3323,7 +3367,7 @@
   // only brought back while the price is the one it was judged at.
   const SCAN_DAYS = 60;
   const SCAN_MAX = 3000;
-  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "refRough", "shipOut", "cheapWhy", "baseScore", "baseVerdict", "photoAdjust", "photos", "scoredRef"];
+  const SNAP = ["lens", "browse", "score", "verdict", "related", "flags", "reason", "fault", "difficulty", "partsCost", "query", "est", "sold", "margin", "asIsMargin", "bidCap", "vsWorking", "refWorking", "refIsEstimate", "refRough", "shipOut", "cheapWhy", "baseScore", "baseVerdict", "photoAdjust", "photos", "scoredRef"];
   const priceOf = (it) => it.total ?? it.price ?? null;
   // Which model made a score: a scan's is the scan model, an analysis's the main one.
   const modelNow = (kind = "scan") => (kind === "scan" ? cfg.scanModel : cfg.provider === "ollama" ? cfg.textModel : cfg.provider === "openai" ? cfg.oaiModel : cfg.anthropicModel) || "";
@@ -4460,6 +4504,9 @@
       parts.push(
         h("div", { class: "offer" }, "Price gap after fees: ", h("b", {}, `\u2248 ${money(margin)}`), ` after eBay fees${rep?.partsCost ? ` and ~$${rep.partsCost} parts` : ""}, at the typical price.`)
       );
+    }
+    if (listing.asIsMargin >= TKRules.AS_IS_SHOW) { // set in Fix & flip only (priceNotes)
+      parts.push(h("div", { class: "meta" }, `Floor: ~${money(listing.asIsMargin)} if it can't be fixed and goes back on eBay as it is (broken ones sell for about ${dollars(listing.refParts)}).`));
     }
     if (rep && (rep.faults?.length || rep.notes)) {
       const kv = (label, list) => (list?.length ? h("div", {}, h("strong", {}, `${label}: `), list.join(", ")) : null);

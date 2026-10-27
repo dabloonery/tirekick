@@ -176,6 +176,12 @@ in Reseller (for when you only want fix-ups).
 - **Price gaps** (Reseller) are the sold price less eBay's fee, the shipping buyers paid on those
   sales (what you'd pay to send it on), likely parts and the price; the hover card spells it out.
   Before sales tax and your time.
+- **The floor** (Reseller, Fix & flip): when a broken one sells for enough that buying this and reselling it as
+  it is would still leave $10 or more after fees and shipping, the tag and hover say "Floor +$N as-is": the
+  worst case if the fix doesn't work out.
+- **Saved, in Reseller** has a parts box and a short note (140 characters) on each listing, and shows what it
+  would net at its sold price after fees, shipping and those parts, as you type. The CSV export has the parts,
+  the net and the note.
 - The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
   "Compare prices against" if the page's search is vague.
 - **Auctions** are recognized ("3 bids · 2d 4h left"). Their price is only a current bid, so the

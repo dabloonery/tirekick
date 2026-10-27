@@ -388,3 +388,23 @@ test("upgradeStorage: the old one switch for card marks becomes a switch per kin
   assert.equal(S.cleanSetting("markLimit", 9), 3, "clamped");
   assert.equal(S.cleanSetting("markScams", "no"), undefined);
 });
+
+test("Saved workbench: parts and a note kept on a saved listing, and the net they leave in the spreadsheet", () => {
+  const saved = { "ebay:1": { t: "Broken Switch", u: "https://www.ebay.com/itm/1", p0: 60, p: 52, a0: 2, a: 3, parts: 15, note: "needs a fan" } };
+  const scans = { "ebay:1": { flip: { score: 70, verdict: "good", refWorking: 140, shipOut: 12, margin: 40 } } };
+  const ref = S.savedSold("ebay:1", scans);
+  assert.deepEqual(ref, { sold: 140, ship: 12 });
+  assert.equal(S.savedNet(saved["ebay:1"], ref), 42, "140 less 13.6% and 40 cents, less $12 shipping, $52 and $15 parts");
+  assert.equal(S.savedNet({ p: 52 }, ref, 10), 62, "no parts yet, another fee");
+  assert.equal(S.savedNet({ p: null }, ref), null);
+  assert.equal(S.savedNet(saved["ebay:1"], null), null);
+  const [row] = S.savedRows(saved, scans);
+  assert.deepEqual([row.parts, row.net, row.note], [15, 42, "needs a fan"]);
+  assert.deepEqual(S.SAVED_COLUMNS.map((c) => c.label).slice(-4), ["Parts cost", "Net after parts (Reseller)", "Notes", "Listing key"]);
+  assert.match(S.toCsv([row], S.SAVED_COLUMNS), /"15","42","needs a fan"/);
+  // A backup keeps them, within bounds.
+  const { sets } = S.cleanBackup({ saved: { ...saved, "ebay:2": { t: "x", parts: -4, note: 7 }, "ebay:3": { t: "y", note: "z".repeat(400) } } });
+  assert.deepEqual([sets.saved["ebay:1"].parts, sets.saved["ebay:1"].note], [15, "needs a fan"]);
+  assert.equal("parts" in sets.saved["ebay:2"] || "note" in sets.saved["ebay:2"], false, "a negative cost or a note that isn't text is left out");
+  assert.equal(sets.saved["ebay:3"].note.length, S.NOTE_MAX);
+});

@@ -226,6 +226,18 @@
     const t = Math.abs(total - ref) <= ref * 0.05 ? `about ${what}` : `$${Math.abs(d)} ${d < 0 ? "below" : "above"} ${what}`;
     return `${rough || est ? "~" : ""}${t}${est ? " (est.)" : ""}`;
   };
+  // The floor under a broken or untested buy: what it leaves if it can't be fixed and goes back on eBay as it is, at
+  // what broken ones sell for (market.parts, Fix & flip's for-parts lookup), less fees, 40 cents and the shipping
+  // buyers paid. A local find priced under that is worth it even if the repair fails. null without a for-parts price,
+  // a price, or for a lot or an auction (a bid isn't the price).
+  R.asIsMargin = (item, market, feePct = 13.6) => {
+    const pm = market?.parts?.median;
+    if (!(pm > 0) || !item || item.total == null || item.lot || item.auction) return null;
+    const ship = market.parts.ship ?? market.ship ?? 0;
+    return Math.round(pm * (1 - feePct / 100) - 0.4 - (ship > 0 ? ship : 0) - item.total);
+  };
+  R.AS_IS_SHOW = 10; // the panel says it from $10 up: less is within the guess
+
   // An asking price against what it sells for, for Tirekick's own page (a thrift shelf, a yard sale, a listing on
   // another site): the buyer's word and the gap, then what reselling it on eBay would leave, the way the panel works
   // out a Fix & flip margin (fees, 40 cents, the shipping buyers paid). No scam word: there's no listing or seller

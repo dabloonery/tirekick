@@ -30,7 +30,12 @@ export const MARKETS = {
   "dewalt dcd771": { median: 75, ship: 13, confidence: "fair", n: 22 },
   "airpods pro 2": { median: 120, ship: 6, confidence: "good", n: 60 },
   "canon ae-1": { median: 160, ship: 15, confidence: "fair", n: 19 },
-  "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52 },
+  // Lites, V1s and OLEDs together, and each version on its own as TK.summarizeSold splits them (TKRules.forVariant).
+  "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52, variants: {
+    lite: { median: 95, p10: 75, p25: 88, p75: 105, n: 14, confidence: "fair" },
+    oled: { median: 250, p10: 205, p25: 235, p75: 265, n: 16, confidence: "good" },
+    _base: { median: 170, p10: 120, p25: 150, p75: 185, n: 22, confidence: "good" },
+  } },
   "ds": { median: 60, ship: 6, confidence: "fair", n: 40 },
   "4tb hard drive": { median: 55, ship: 8, confidence: "good", n: 40 }, // assumed, for the real drive search below
   "ipod": { median: 60, ship: 6, confidence: "fair", n: 40 }, // assumed, for the real "ds" search below
@@ -154,6 +159,16 @@ export const CASES = [
   // ---------- Marketplace: macbook air m1 (pickup $402) ----------
   fb("macbook air m1", "MacBook Air M1 2020 256GB", 350, { truth: "honest", word: "fair" }),
   fb("macbook air m1", "Macbook Air M1 8GB 256GB space gray A2337", 160, { truth: "scam", scan: "great", note: "bait with the real model number" }),
+
+  // ---------- a search that mixes versions: nintendo switch ($200 for the mix; Lites $95, OLEDs $250, plain ones $170) ----------
+  // Each is compared with its own version's sales when the lookup had enough of them (TKRules.forVariant).
+  ebay("nintendo switch", "Nintendo Switch OLED Model White", 235, 0, seller(99.6, 820), { truth: "honest", word: "fair", note: "an OLED a little under OLED sales; Above typical against the mix" }),
+  ebay("nintendo switch", "Nintendo Switch V2 Neon Console", 199, 0, seller(99.2, 310), { truth: "honest", word: "pass", note: "a plain one priced like the mix, over what plain ones sell for" }),
+  ebay("nintendo switch", "Nintendo Switch Lite Yellow", 70, 0, seller(99.8, "2K"), { truth: "honest", word: "good", note: "a Lite under Lite sales; far under the mix" }),
+  fb("nintendo switch", "Nintendo Switch Lite blue", 95, { truth: "honest", word: "pass", note: "a Lite's eBay price with shipping, for pickup: over typical; Great price against the mix" }),
+  fb("nintendo switch", "Nintendo Switch Lite gray, charger included", 75, { truth: "honest", word: "fair" }),
+  ebay("nintendo switch", "Nintendo Switch Lite Coral NEW", 29, 0, seller(100, 0), { truth: "scam", scan: "great", note: "Lite bait, 31% of a Lite" }),
+  fb("nintendo switch", "Nintendo Switch OLED brand new", 90, { truth: "scam", scan: "great", page: "Joined Facebook in 2026. Ship only, pay by Zelle first." }),
 
   // ---------- scams that give the same excuses as honest cheap listings (CHEAP below) ----------
   ebay("nintendo switch oled", "Nintendo Switch OLED - minor scratch, works perfect", 79, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "flaw", note: "bait with a flaw story, 31% from a new seller" }),

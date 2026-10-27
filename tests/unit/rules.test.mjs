@@ -823,3 +823,86 @@ test("real eBay drive and Marketplace iPod searches: specs in the search, parts 
   assert.equal(R.accessoryOf("30‑Pin Apple Composite AV Video Cable w USB Charge/Sync for iPod iPhone iPad", "ipod"), "cable");
   for (const t of ["iPod Classic 160GB with case for sale", "iPod nano 7th gen charger cable works great for kids"]) assert.equal(R.accessoryOf(t, "ipod"), "", t);
 });
+
+test("variantOf: the version a title names that the search doesn't", () => {
+  assert.equal(R.variantOf("Nintendo Switch Lite Turquoise", "nintendo switch"), "lite");
+  assert.equal(R.variantOf("Nintendo Switch Lite Turquoise", "switch lite"), "", "the search names it");
+  assert.equal(R.variantOf("Apple iPhone 13 Pro Max 256GB", "iphone 13"), "pro max", "the longer phrase first");
+  assert.equal(R.variantOf("Apple iPhone 13 Pro Max 256GB", "iphone 13 pro"), "pro max", "a Pro Max isn't the Pro searched for");
+  assert.equal(R.variantOf("Apple iPhone 13 Pro Max 256GB", "iphone 13 pro max"), "");
+  assert.equal(R.variantOf("DeWalt DCD771 20V Max drill (tool only)", "dewalt dcd771"), "tool only");
+  assert.equal(R.variantOf("Nintendo Switch V2 with Pro Controller", "nintendo switch"), "", "what comes with it isn't its version");
+  assert.equal(R.variantOf("Nintendo Switch OLED + Pro Controller", "nintendo switch"), "oled");
+  assert.equal(R.variantOf("Sony PlayStation 5 Digital Edition", "ps5"), "digital edition");
+  assert.equal(R.variantOf("Nintendo Switch Console Gray Joy-Con", "nintendo switch"), "");
+  assert.equal(R.variantOf("Seminole county map", "map"), "", "whole words only");
+  assert.equal(R.variantOf(undefined), "");
+});
+
+// The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.
+const switchSales = () => [
+  ...[150, 155, 158, 160, 160, 162, 165, 168, 170, 155].map((total, i) => ({ title: `Nintendo Switch V2 Console Gray ${i}`, total })),
+  ...[88, 90, 92, 95, 95, 98, 100, 102].map((total, i) => ({ title: `Nintendo Switch Lite Coral ${i}`, total })),
+  ...[230, 235, 238, 240, 240, 245, 248, 250].map((total, i) => ({ title: `Nintendo Switch OLED White ${i}`, total })),
+];
+
+test("variantGroups: sales split by the version they name", () => {
+  const g = R.variantGroups(switchSales(), "nintendo switch");
+  assert.deepEqual([g.base.length, g.groups.lite.length, g.groups.oled.length], [10, 8, 8]);
+  assert.deepEqual(g.same, []);
+  assert.deepEqual(R.variantGroups(switchSales(), "switch oled").same, ["oled"], "a version the search names is the thing itself");
+  assert.equal(R.variantGroups(switchSales(), "switch oled").groups.oled, undefined);
+  // "20V Max" on nearly every DeWalt drill is the drill, not a version of it.
+  const drills = [...Array(9)].map((_, i) => ({ title: `DeWalt DCD771C2 20V MAX Cordless Drill Kit ${i}`, total: 80 + i })).concat({ title: "DeWalt DCD771 drill", total: 75 });
+  const d = R.variantGroups(drills, "dewalt dcd771");
+  assert.deepEqual(d.same, ["max"]);
+  assert.deepEqual(Object.keys(d.groups), []);
+  assert.deepEqual(R.variantGroups([], "x"), { same: [], base: [], groups: {} });
+});
+
+test("forVariant: a listing is compared with sales of its own version", () => {
+  const market = { median: 160, p10: 92, p25: 98, p75: 235, n: 26, confidence: "fair", ship: 14, variants: {
+    lite: { median: 95, p10: 89, p25: 92, p75: 99, n: 8, confidence: "fair" },
+    oled: { median: 240, p10: 234, p25: 237, p75: 245, n: 8, confidence: "fair" },
+    mini: { median: 50, n: 5, confidence: "rough" },
+    _base: { median: 160, p10: 155, p25: 156, p75: 165, n: 10, confidence: "fair" },
+  } };
+  const lite = R.forVariant(market, { title: "Nintendo Switch Lite Turquoise" });
+  assert.deepEqual([lite.median, lite.p10, lite.n, lite.variantUsed, lite.ship], [95, 89, 8, "lite", 14], "the whole market's shipping stays");
+  assert.equal(lite.variants, undefined, "the copy has no versions, so a second pass changes nothing");
+  assert.deepEqual(R.forVariant(lite, { title: "Nintendo Switch Lite" }), lite);
+  assert.equal(R.forVariant(market, { title: "Nintendo Switch OLED" }).median, 240);
+  const base = R.forVariant(market, { title: "Nintendo Switch Console Gray" });
+  assert.deepEqual([base.median, base.variantUsed, base.variantOthers], [160, "base", ["lite", "oled", "mini"]]);
+  assert.equal(R.forVariant(market, { title: "Nintendo Switch Mini" }), market, "too few sales, or too spread out, to trust: the whole market");
+  assert.equal(R.forVariant(market, { title: "Nintendo Switch Pro Max" }), market, "a version with no sales of its own keeps the whole market");
+  const { _base, ...noBase } = market.variants;
+  assert.equal(R.forVariant({ ...market, variants: noBase }, { title: "Nintendo Switch Console" }).median, 160, "no base numbers: the whole market");
+  assert.equal(R.forVariant({ median: 100 }, { title: "Nintendo Switch Lite" }).median, 100, "a market from before versions");
+  assert.equal(R.forVariant(null, { title: "x" }), null);
+  // A pickup Lite: its own version, less the shipping.
+  const pick = R.forPickup(market, { title: "Nintendo Switch Lite gray", shipping: null }, true);
+  assert.deepEqual([pick.median, pick.pickupShip, pick.variantUsed], [81, 14, "lite"]);
+});
+
+test("forVariant: a cheap Lite in a Switch search is priced as a Lite, and 'lite' no longer explains the price", () => {
+  const market = { median: 200, p10: 95, p25: 120, p75: 240, n: 52, confidence: "fair", ship: 14, variants: { lite: { median: 95, p10: 80, p25: 88, p75: 100, n: 14, confidence: "fair" }, _base: { median: 165, p10: 140, p25: 155, p75: 175, n: 22, confidence: "good" } } };
+  // An honest Lite at $85: 43% of the mixed typical price, 89% of a Lite's.
+  const honest = { title: "Nintendo Switch Lite Turquoise", price: 85, total: 85, shipping: 0, sellerCount: 900, sellerPct: 99.7 };
+  const mk = R.forVariant(market, honest);
+  honest.vsSold = R.compareFacts(honest, mk, "nintendo switch");
+  assert.equal(Math.round(honest.vsSold * 100), 89);
+  assert.equal(R.freeRead(honest, mk).word, "Fair price");
+  // Bait at $30: under the Lite's own cheapest tenth, and "lite" isn't a reason any more.
+  const bait = { title: "Nintendo Switch Lite NEW sealed", price: 30, total: 30, shipping: 0, sellerCount: 2, sellerPct: 100 };
+  const bm = R.forVariant(market, bait);
+  bait.vsSold = R.compareFacts(bait, bm, "nintendo switch");
+  assert.equal(bait.saysWhy, "");
+  assert.equal(R.freeRead(bait, bm).word, "Likely scam");
+  // A plain Switch at $195 was Fair price against the mix; against sales of plain ones it's above typical.
+  const v2 = { title: "Nintendo Switch Console Gray Joy-Con", price: 195, total: 195, shipping: 0 };
+  assert.equal(R.freeRead({ ...v2, vsSold: R.compareFacts(v2, market, "nintendo switch") }, market).word, "Fair price");
+  const vm = R.forVariant(market, v2);
+  v2.vsSold = R.compareFacts(v2, vm, "nintendo switch");
+  assert.equal(R.freeRead(v2, vm).word, "Above typical");
+});

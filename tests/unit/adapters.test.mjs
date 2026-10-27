@@ -162,3 +162,42 @@ test("currencyOf and parseAmount: Marketplace prices in the buyer's own currency
   assert.equal(TK.parseAmount("$165"), 165);
   assert.equal(TK.parseAmount("Free"), null);
 });
+
+// The blueprint's mixed "nintendo switch" sales: 10 plain ones around $160, 8 Lites around $95, 8 OLEDs around $240.
+const mixedSwitch = () => [
+  ...[150, 155, 158, 160, 160, 162, 165, 168, 170, 155].map((total, i) => ({ title: `Nintendo Switch V2 Console Gray ${i}`, total, shipping: 12, url: `https://www.ebay.com/itm/10000000000${i}` })),
+  ...[88, 90, 92, 95, 95, 98, 100, 102].map((total, i) => ({ title: `Nintendo Switch Lite Coral ${i}`, total, shipping: 8 })),
+  ...[230, 235, 238, 240, 240, 245, 248, 250].map((total, i) => ({ title: `Nintendo Switch OLED White ${i}`, total, shipping: 14 })),
+];
+
+test("soldStats: median, spread, confidence, shipping and the sales nearest the median", () => {
+  const s = TK.soldStats(mixedSwitch().slice(0, 10));
+  assert.deepEqual([s.n, s.median, s.confidence, s.ship, s.samples.length], [10, 160, "fair", 12, 5]);
+  assert.ok(s.p10 <= s.p25 && s.p25 <= s.median && s.median <= s.p75);
+});
+
+test("soldVariants: each version with 5+ sales gets its own numbers, the plain ones theirs with 8+", () => {
+  const v = TK.soldVariants(mixedSwitch(), "nintendo switch");
+  assert.deepEqual(Object.keys(v).sort(), ["_base", "lite", "oled"]);
+  assert.deepEqual([v.lite.median, v._base.median, v.oled.median], [95, 160, 240]);
+  assert.deepEqual([v.lite.n, v._base.n, v.oled.n], [8, 10, 8]);
+  assert.equal(v.lite.samples, undefined, "no samples or shipping per version: the cache entry stays small");
+  assert.ok(JSON.stringify(v).length < 400, JSON.stringify(v).length);
+  // The acceptance check: a card of each kind gets its own version's typical price, before any scan.
+  const market = { ...TK.soldStats(mixedSwitch()), variants: v };
+  const R = globalThis.TKRules;
+  assert.equal(R.forVariant(market, { title: "Nintendo Switch Lite Turquoise" }).median, 95);
+  assert.equal(R.forVariant(market, { title: "Nintendo Switch Console Neon" }).median, 160);
+  assert.equal(R.forVariant(market, { title: "Nintendo Switch OLED Model" }).median, 240);
+  // Fewer than 8 plain ones: no base numbers, the plain ones use the whole market.
+  const few = TK.soldVariants(mixedSwitch().slice(3), "nintendo switch");
+  assert.equal(few._base, undefined);
+  assert.equal(R.forVariant({ ...market, variants: few }, { title: "Nintendo Switch Console" }).median, market.median);
+  // A version with 4 sales is too few.
+  assert.equal(TK.soldVariants(mixedSwitch().filter((s, i) => !/Lite/.test(s.title) || i < 14), "nintendo switch").lite, undefined);
+  // The search names the version: "oled" is the thing itself, a Lite still another version.
+  const oled = TK.soldVariants(mixedSwitch(), "switch oled");
+  assert.deepEqual(oled._same, ["oled"]);
+  assert.deepEqual(Object.keys(oled).sort(), ["_base", "_same", "lite"]);
+  assert.equal(TK.soldVariants(mixedSwitch().slice(0, 10), "nintendo switch"), null, "no version stands out");
+});

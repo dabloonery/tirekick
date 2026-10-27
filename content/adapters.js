@@ -804,6 +804,13 @@
       sales = kept;
     }
     if (sales.length < 5) return null; // too few sales to trust
+    const out = { ...TK.soldStats(sales), dropped, currency: "$" };
+    const variants = TK.soldVariants(sales, query);
+    return variants ? { ...out, variants } : out;
+  };
+  // The numbers for a set of sales ({ title, total, shipping?, url? }): median, spread, confidence, the typical
+  // shipping and the five sales closest to the median.
+  TK.soldStats = (sales) => {
     const totals = sales.map((it) => it.total).sort((a, b) => a - b);
     const r = (n) => Math.round(n);
     const median = quantile(totals, 0.5);
@@ -817,6 +824,23 @@
       .slice(0, 5)
       .sort((a, b) => a.total - b.total)
       .map((it) => ({ title: it.title, total: it.total, url: it.url }));
-    return { n: totals.length, median: r(median), p10: r(quantile(totals, 0.1)), p25: r(p25), p75: r(p75), confidence, ship: ships.length >= 3 ? r(quantile(ships, 0.5)) : null, dropped, currency: "$", samples };
+    return { n: totals.length, median: r(median), p10: r(quantile(totals, 0.1)), p25: r(p25), p75: r(p75), confidence, ship: ships.length >= 3 ? r(quantile(ships, 0.5)) : null, samples };
+  };
+  // A search that names no version ("nintendo switch", "iphone 13") gets them all in its sales: Lites at $95 beside
+  // OLEDs at $250. Each version with 5 or more sales gets its own numbers, and the sales that name no version get
+  // theirs (_base) with 8 or more, so a listing is compared with its own kind (TKRules.forVariant). _same: versions
+  // that are the thing itself (the search names them, or most sales do). null when no version stands out.
+  TK.VARIANT_MIN = { tier: 5, base: 8 };
+  TK.soldVariants = (sales, query = "") => {
+    const R = globalThis.TKRules;
+    if (!R?.variantGroups) return null;
+    const { same, base, groups } = R.variantGroups(sales, query);
+    const pick = ({ samples, ship, ...st }) => st; // what a card needs; keeps the cache entry small
+    const out = {};
+    for (const [m, list] of Object.entries(groups)) if (list.length >= TK.VARIANT_MIN.tier) out[m] = pick(TK.soldStats(list));
+    if (!Object.keys(out).length) return null;
+    if (base.length >= TK.VARIANT_MIN.base) out._base = pick(TK.soldStats(base));
+    if (same.length) out._same = same;
+    return out;
   };
 })();

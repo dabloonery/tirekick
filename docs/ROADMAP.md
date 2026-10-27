@@ -950,21 +950,78 @@ tooltip wording), `lib/shared.js` (nothing new in storage). One PR, light and da
 
 ### Brief 9: More browsers
 
-Added 2026-10-15 (dabloonery: platform-agnostic plans belong here). Plan only; nothing built.
+Added 2026-10-15 (dabloonery: platform-agnostic plans belong here). Scoped against the code on 2026-10-27; nothing
+built yet. **When:** after the "Prices by version" work merges and Craigslist has been tried on real pages
+(dabloonery, 2026-10-27). Do Edge first (a listing only), then Firefox.
 
-- **Already covered:** Chrome, Vivaldi, Brave, Opera and Edge are all Chromium and load the same zip. Edge has its
-  own free store (Microsoft Partner Center): the same zip, a listing copied from `store/LISTING.md`. Cheapest next step.
-- **Firefox (medium).** Firefox runs Manifest V3 but starts `background.js` as an event page, not a service worker:
-  add `"background": { "scripts": [...] }` beside `service_worker` (Firefox reads one, Chrome the other), and a
-  `browser_specific_settings.gecko.id`. Check `chrome.action.openPopup`, `setPopup` per tab, context menus,
-  `optional_host_permissions` (asked at runtime in Firefox) and the shadow-DOM panel. Run the e2e suite in Firefox
-  through its WebDriver BiDi support, or by hand from a checklist at first. Publish on addons.mozilla.org (free;
-  source review is easy since there's no build step).
+**Edge (small, a listing).** Chrome, Vivaldi, Brave, Opera and Edge are all Chromium and load the same zip, so there
+is no code change. Edge has its own free store (Microsoft Partner Center): upload the same `dist/` zip, copy the
+listing from `store/LISTING.md`, the privacy policy link and the same screenshots. Before the upload, load the zip
+in Edge and run the store-upload click-through (an eBay search, the panel, a scan, Marketplace, settings, backup and
+restore) plus the Vivaldi checks (icon and badge, Alt+Shift+L, right-click entries). About half a day, most of it
+the store forms. Nothing goes up without dabloonery's OK, the same as the Chrome Web Store.
+
+**Firefox (medium, about four small PRs plus testing).** Firefox runs Manifest V3 and answers `chrome.*` with
+promises, so most of the code runs as is. What has to change, found by checking every `chrome.*` call and the
+manifest:
+
+1. **Manifest.** Add `"background": { "scripts": ["lib/sites.js", "lib/shared.js", "background.js"] }` beside
+   `service_worker` (Chrome uses the worker, Firefox the scripts), and `browser_specific_settings.gecko` with an
+   id (`tirekick@tirekick.app`), `strict_min_version: "140.0"` (the current ESR) and `data_collection_permissions`
+   (addons.mozilla.org requires it for new add-ons; the answer comes from `store/PRIVACY.md`: listing text goes
+   only to the AI service the user sets up, and to nothing of ours). Chrome before 121 refuses a manifest with
+   `background.scripts`, so `minimum_chrome_version` goes from 116 to 121 (January 2024) in the same PR. One
+   manifest for both keeps "loads unpacked as is"; `scripts/pack.mjs` learns to check the new keys.
+2. **Background start.** `background.js` begins with `importScripts(...)`, which a Firefox event page doesn't
+   have: guard it (`if (typeof importScripts === "function")`), since the manifest's `scripts` list already loads
+   both files first. The page can now be unloaded and woken like the worker, so nothing else changes there.
+3. **Asking for access in the click.** Firefox only shows the permission prompt if `permissions.request` is
+   called directly in the click, with no `await` before it. `options/options.js` awaits `permissions.contains`
+   first when testing a custom AI address (line ~44), so in Firefox that request is refused without a prompt.
+   Call `request` first (it returns at once when access is already there). The Craigslist switch (`siteAccess`)
+   already asks first and is fine.
+4. **Fixed host access can be off.** Firefox shows the listed sites (eBay, Facebook, the AI services) at install,
+   but the user can take any of them away later in the add-on's settings. `sitesInUse` should check
+   `permissions.contains` for every store, not only opt-in ones, and Home should show the same kind of note as the
+   layout watch: "Firefox isn't letting Tirekick read eBay pages" with a button that asks again.
+5. **Missing or different calls.** `chrome.runtime.getContexts` (used by `openHome` to find an open Tirekick
+   tab) isn't in Firefox: it throws before the `.catch`, so guard it and fall back to opening a new tab (or
+   `chrome.extension.getViews({ type: "tab" })`, which Firefox event pages have). `action.openPopup` may refuse
+   outside a click; the code already falls back to the Home tab. `scripting.registerContentScripts` with
+   `persistAcrossSessions` works; `onStartup` already registers again. Context menus, `setPopup` per tab,
+   badges, `commands`, `unlimitedStorage`, `OffscreenCanvas` and `AbortSignal.any` are all in Firefox 140.
+6. **Check by hand, change only if broken.** The sold-price fetches send eBay cookies (`credentials:
+   "include"`) from the background: confirm Firefox sends them and eBay answers the same page. The shadow-DOM
+   panel, the bundled font and clipboard copy should work; confirm on the fixtures. Firefox's own container tabs
+   and private windows: the panel should run there only if the user allows the add-on in private windows.
+
+**Tests.** The unit tests and `deno task eval` don't touch a browser and stay as they are. The fixture pages and
+e2e drive Chrome through the DevTools protocol and `--host-resolver-rules`; Firefox has neither, so start with:
+
+- `web-ext lint` (run with `deno run npm:web-ext lint`) added to `tests/all.sh`, which catches manifest and API
+  mistakes without a browser.
+- A small Firefox smoke run (`tests/e2e/firefox.ts`) through geckodriver's WebDriver BiDi: install the add-on
+  from the folder, point the fake stores at it with a PAC file (instead of the host mapping), then load an eBay
+  search and a listing and check the free marks, Scan with the fake AI, Saved and a restore. Grow it only if
+  Firefox users show up.
+- A by-hand checklist (the "How to know it's done" list below) in Firefox before each addons.mozilla.org upload.
+
+**Store (addons.mozilla.org).** Free account, no fee. Upload the same zip; the reviewers can read the code as is
+(no build step, so no source upload is needed). Copy the listing from `store/LISTING.md`, link the privacy policy,
+and answer the data questions to match `data_collection_permissions`. Review takes from minutes to a few days.
+Firefox keeps the same `gecko.id` across updates, so saved data stays put. Each upload gets the same steps as
+"Chrome Web Store: each upload" and waits on dabloonery's OK.
+
+**Effort.** Edge: half a day, no code. Firefox: items 1 to 5 are about four small PRs (a day or two together),
+the Firefox smoke test another day, then a by-hand pass and the listing. Android Firefox is possible later (the
+panel already fits narrow screens) but needs its own pass.
+
 - **Safari (large).** Needs Apple's Safari Web Extension converter, an Xcode wrapper app, a Mac to build on and
   the $99 a year Apple developer program, and ships through the App Store. Host permissions are granted per site by
   the user. Worth it only after Firefox, if people ask.
 - **How to know it's done:** per browser, the free marks, Scan, Saved, the popup and a restore from backup work on
-  the eBay and Marketplace fixtures; the README says which browsers are supported.
+  the eBay and Marketplace fixtures (and Craigslist once it's on); the README and `store/LISTING.md` say which
+  browsers are supported.
 
 ### Brief 10: More AI options
 

@@ -19,7 +19,7 @@ test("eval: honest listings are rarely marked, and only the known ones", () => {
 });
 
 test("eval: price words and verdicts after a scan are as labeled", () => {
-  assert.ok(s.priced - s.wrongWord.length >= 76, report(rows));
+  assert.ok(s.priced - s.wrongWord.length >= 80, report(rows));
   assert.equal(s.wrongShown.length, 0, report(rows));
   assert.deepEqual(titles(s.deepCleared), [], report(rows));
 });

@@ -38,6 +38,10 @@ const cs = await chips();
 const of = (price: string) => (cs.find(([pr]: string[]) => pr === price) || [])[1] || "";
 ok("a card far under a trusted sold median is marked Likely scam: typical is, with the share", /Likely scam: typical is \$300/.test(of("$85.00")), cs);
 ok("…one well under it says Too cheap?", /Too cheap\? Typical is \$300/.test(of("$140.00")), cs);
+// Before any scan (and with the AI off), the panel's rows still offer the free reverse image search.
+await R(p, `r.querySelector('[data-act=tab]').click()`);
+await waitFor(() => R(p, `return !!r.querySelector('.list .row.plain')`));
+ok("an unscored row in the panel has Find photo elsewhere, beside Sold, Save and Hide", await R(p, `return [...r.querySelectorAll('.list .row.plain')].some(x=>[...x.querySelectorAll('.row-acts a')].some(a=>/Find photo elsewhere/.test(a.textContent) && /lens\.google\.com/.test(a.href)))`));
 ok("…a broken one is never marked (the median is for working ones)", !/Too cheap|Likely scam: typical/.test(of("$35.00")), cs);
 ok("…and an auction isn't either (a bid isn't a price)", !/Too cheap|Likely scam: typical/.test(of("$60.00")), cs);
 // An accessory for the search, added the way a feed adds cards as you scroll: no price check, no scam mark.
@@ -99,6 +103,7 @@ ok("…says where they come from, with no word about an AI that's off", /From re
 ok("…with a message to edit and three kinds to pick from", offer?.msg === "Hi! Is this still available? Would you take $270?" && offer?.kinds?.join() === "Friendly,Direct,With a reason", offer);
 await R(it, `r.querySelector('.pi-line .offer .msg-kind [data-kind=direct]').click()`);
 ok("…and picking another kind changes the message", /^Hi, I can offer \$270\. Let me know/.test(await R(it, `return r.querySelector('.pi-line .offer textarea').value`)));
+ok("…and the free reverse image search, with no AI and no analysis", /lens\.google\.com/.test(await R(it, `return [...r.querySelectorAll('.pi-acts a')].find(a=>/Find photo elsewhere/.test(a.textContent))?.href || ''`)));
 // The seller answers: what to do, and the message rewritten to match.
 const said = (n: number) => R(it, `const i=r.querySelector('.pi-line .offer input.said'); i.value='${n}'; i.dispatchEvent(new Event('input')); return { answer: r.querySelector('.pi-line .said-answer').textContent, msg: r.querySelector('.pi-line .offer textarea').value }`);
 const s1 = await said(285);
@@ -170,6 +175,26 @@ ok("…is told listing text is data, not instructions, and asked why a low price
 ok("…and is told a bait price as a scam signal", scanCalls.some((x: any) => x.scam.some((s: string) => /the total is 32% of the typical price/.test(s))), scanCalls.map((x: any) => x.scam));
 await sleep(1500);
 await sp.close();
+
+// The typical price on its own: a search you look at gets its one lookup without a press, once, and not while
+// automatic scanning (which does it in its scan) is on. Searches no one is looking at get none.
+await store(`{useAI:false, useSoldComps:true, autoScan:false, soldCache:{}}`);
+const ap = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");
+const hitsFor = async (q: string, pg: any = ap) => Object.entries(await pg.ev(`fetch('/sold-hits').then(r=>r.json())`)).filter(([k]) => k.startsWith(q + "|")).reduce((n, [, v]) => n + (v as number), 0);
+const priced = await waitFor(async () => /^Compared/.test(await R(ap, `return r.querySelector('.status')?.textContent || ''`)), 12000);
+ok("a search gets its typical price and the cards their price marks without a press", priced && JSON.stringify(await ap.ev(`[...document.querySelectorAll('.s-card .tirekick-sticker')].map(s=>(s.shadowRoot||s).textContent)`)).includes("typical"));
+const autoSaid = await R(ap, `return r.querySelector('.status')?.textContent || ''`);
+ok("…says what it compared, quietly", /^Compared \d+ listings? with/.test(autoSaid) && !(await R(ap, `return r.querySelector('.status').classList.contains('err')`)), autoSaid);
+await sleep(4500); // two more panel ticks
+ok("…with one eBay lookup, not one per tick", (await hitsFor("pentax k1000")) === 1, await hitsFor("pentax k1000"));
+await ap.close();
+// For a day after eBay's browser check, a search waits for the press.
+await store(`{soldStrikes:{n:1, at:Date.now() - 2 * 3600e3}}`);
+const aq = await open("https://www.ebay.com/sch/i.html?_nkw=canon+ae-1");
+await sleep(6000);
+ok("after an eBay check today, nothing is looked up on its own", (await hitsFor("canon ae-1", aq)) === 0 && (await R(aq, `return !r.querySelector('[data-act=prices]').hidden`)) === true);
+await aq.close();
+await store(`{soldStrikes:null, soldLog:[]}`);
 
 ok("no page logged an error", !errors.length, errors.slice(0, 5));
 console.log(fails ? `${fails} FAILED` : "all passed");

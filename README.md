@@ -118,8 +118,11 @@ scam warning stays readable.
 - **Skipped listings and likely scams are grayed out** on the page; switch to Show, Dim or Hide with
   **Skips and scams** above the list.
 - **Before any scan, each row has a price read**: Great, Good or Fair price, or Above typical, from the sold
-  prices; Check first or Likely scam from the scam checks; Off-topic. "Best first" sorts by it until a scan
-  gives real scores, and the cards' sold chip says the same word ("Good price · $53 below typical").
+  prices; Check first or Likely scam from the scam checks; Off-topic. Until a scan gives real scores, "Best
+  first" puts good prices first (furthest below typical at the top), then the rest of your search (auctions,
+  lots, ones with no typical price yet), then above typical (closest first), broken ones, things that aren't your
+  search, and warnings, with a line over the list saying so. The cards' sold chip says the same word ("Good price ·
+  $53 below typical").
 - **A row's links**: **Open ↗** is always there; Sold, Save and Hide appear when you point at it or Tab into it,
   so the list reads as titles and prices; a saved listing keeps its "Saved". On a touch screen they always show.
 - **Hide**: hover any card and press "✕ Hide" to hide it everywhere from
@@ -218,10 +221,12 @@ sent to any AI service. Turn it on to add them; turning it off again keeps your 
 - **A category isn't a price.** Words like "Electronics" or "Home & Garden" get no page-wide comparison: the
   panel says they're too broad, and each listing can be priced from its own title.
 
-**Filtering a search.** **New only**, **Hide broken** and **Hide off-topic** sit above the list, one click each.
+**Filtering a search.** **New only**, **Hide broken**, **Hide accessories** and **Hide off-topic** sit above the list, one click each.
 The **Filter** button opens the words, price range and your price, and says how many are set; Enter or Esc
 folds them away again, and a search's saved filter applies with the box folded. Each search remembers its own.
 
+- **Hide accessories** drops games, cases, chargers and parts for what you searched ("Case for Switch OLED" in a
+  Switch OLED search), the same ones that get no price check, so only the thing itself is left.
 - **Hide off-topic** drops what isn't an item for sale: rentals and rooms, services (massage, cleaning, hair),
   jobs, pets, "looking for" posts and $1 placeholder prices. It's on by itself on the Marketplace home page, where
   that clutter lives; turn it off there and Tirekick remembers.
@@ -251,7 +256,9 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
 **In the panel**:
 
 - **Typical price** (under the Scan button): the eBay sold-price lookup on its own, with
-  no model. Prices already looked up for a search in the last day apply by themselves.
+  no model. A search you stay on looks it up by itself, once (at most four an hour that way, leaving the rest
+  for the button, and none for a day after eBay's browser check); the button is there for a search you change.
+  Prices already looked up for a search in the last day apply by themselves.
 - **The list** shows every listing on the page before any scan, priced with shipping, and sorts
   by cheapest (lots per item), furthest under the sold price, auctions ending soonest, or new and
   cheaper first. Click a title to jump to the card.
@@ -277,9 +284,9 @@ year ("Joined Facebook in 2026").
 
 **In settings**: words to always filter by, in the filter bar's syntax (`-replica -repro -"box only"`
 drops those; a plain word must be in the title). Older "always hide" and "only show" lists were
-turned into this line. Hidden and filtered listings are never sent to a model. **Find photo**
-(in a tag's hover card or the listing view) runs a reverse image search, to catch photos lifted
-from elsewhere.
+turned into this line. Hidden and filtered listings are never sent to a model. **Find photo elsewhere**
+(on the listing page, on each row in the panel, and in a scored tag's hover card) runs a reverse image search,
+to catch photos lifted from elsewhere. It needs no scan.
 
 **Which marks show** (settings, Filters and marks): scam marks, price words and the other marks (new to you,
 drops, auctions, lots) each have a switch, and **Marks per listing** can be 1 (scam marks always come first).

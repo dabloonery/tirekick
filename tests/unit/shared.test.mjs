@@ -128,6 +128,17 @@ test("applyEdit: changes to a shared record, described rather than written whole
   assert.deepEqual(S.applyEdit(["junk"], {}, now), {}, "something that isn't a record is replaced");
 });
 
+test("soldAutoOk: lookups on their own take at most half the hour, none while paused or a day after a check", () => {
+  const now = 1e12;
+  assert.equal(S.soldAutoOk({}, now), true);
+  assert.equal(S.soldAutoOk({ log: [now - 1000, now - 2000, now - 3000] }, now), true);
+  assert.equal(S.soldAutoOk({ log: [now - 1000, now - 2000, now - 3000, now - 4000] }, now), false, "four this hour is the limit");
+  assert.equal(S.soldAutoOk({ log: [now - 2 * 3600e3, now - 2 * 3600e3, now - 2 * 3600e3, now - 2 * 3600e3] }, now), true, "older ones don't count");
+  assert.equal(S.soldAutoOk({ cooldownUntil: now + 1 }, now), false, "paused");
+  assert.equal(S.soldAutoOk({ lastCheck: now - 3600e3 }, now), false, "a check an hour ago");
+  assert.equal(S.soldAutoOk({ lastCheck: now - 25 * 3600e3 }, now), true, "a check yesterday");
+});
+
 test("soldSlot: one booking for every tab, spaced, capped and paused", () => {
   const opts = { perHour: 3, gap: 5000 };
   const now = 10_000_000;

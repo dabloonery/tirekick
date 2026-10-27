@@ -8,7 +8,7 @@ await sleep(800);
 // A fresh install: the AI is opt-in, so it starts on Without the AI with the AI switch off and nothing to set up.
 const fresh = await o.ev(`({focus:document.querySelector('input[name=focus]:checked')?.value, ai:document.getElementById('useAI').checked, folded:document.getElementById('sec-model').classList.contains('off'), title:document.getElementById('statusTitle').textContent, text:document.getElementById('statusText').textContent})`);
 console.log((fresh.focus === "noai" && !fresh.ai && fresh.folded ? "PASS " : "FAIL ") + "a fresh install starts on Without the AI, with Use an AI off: " + JSON.stringify(fresh));
-console.log((/^Ready: price checks and scam marks$/.test(fresh.title) && /off: to add them, turn on Use an AI/.test(fresh.text) ? "PASS " : "FAIL ") + "the banner says the free checks are ready and the AI is off until you turn it on: " + fresh.title);
+console.log((/^Ready: price checks and scam marks$/.test(fresh.title) && /For a score and a reason on every listing, add an AI under AI scores below/.test(fresh.text) ? "PASS " : "FAIL ") + "the banner says the free checks are ready and what an AI would add: " + fresh.title);
 if (fresh.focus !== "noai" || fresh.ai || !fresh.folded || !/^Ready: price checks and scam marks$/.test(fresh.title)) Deno.exitCode = 1;
 await o.ev(`chrome.storage.local.set({useAI:true, anthropicKey:'sk-ant-test', anthropicUrl:'${API}', useSoldComps:false, introDone:true})`);
 await o.ev(`location.reload()`); await sleep(1000);

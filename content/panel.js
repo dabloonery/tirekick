@@ -420,7 +420,8 @@
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:14px; }
     .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 8px;
       border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:13px; color:var(--muted); }
-    .listbar + .list > .row:first-child { border-top:0; }
+    .listbar + .list > .row:first-child, .listbar + .list > .sorthint + .row { border-top:0; }
+    .sorthint { padding:8px 0 6px; font-size:12px; line-height:1.4; color:var(--muted); }
     .sortpick { display:flex; align-items:center; gap:6px; margin:0; font:inherit; letter-spacing:normal; text-transform:none; color:var(--muted); }
     .sort { field-sizing:content; max-width:190px; appearance:none; -webkit-appearance:none; border:0; background:none; color:var(--ink); font:600 13px/1 var(--ui); padding:6px 14px 6px 0; cursor:pointer;
       background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
@@ -479,6 +480,10 @@
     .pageinfo .pi-acts { margin-top:8px; color:var(--muted); font-weight:400; }
     .pi-acts a, .pi-acts button { color:var(--ink) !important; font-weight:600 !important; }
     .pi-search { margin-top:8px; }
+    .ai-hint { margin:10px 0 0; color:var(--muted); font-size:13px; line-height:1.45; }
+    .ai-hint button { all:unset; cursor:pointer; color:var(--ink); font-weight:600; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px; }
+    .ai-hint button:hover { text-decoration-color:currentColor; }
+    .ai-hint .ai-hint-x { margin-left:8px; padding:0 4px; color:var(--muted); font-weight:400; text-decoration:none; }
     .pi-search:not(:has(> :not([hidden]))) { display:none; }
     .scamnote { margin-bottom:8px; padding:8px 10px; border-left:3px solid var(--v-suspicious); background:var(--paper-2); color:var(--ink); font-size:14px; line-height:1.45; }
     .scamnote b { color:var(--v-suspicious); }
@@ -709,7 +714,7 @@
           <ul class="w-points">
             <li>Cards are marked for likely scams and odd prices as they load.</li>
             <li><b>Typical price</b> compares every listing with recent eBay sales. Point at a card for its own, and for <i>Save</i> and <i>Hide</i>.</li>
-            <li>If you turn on an AI in settings (optional, and off until you do), <b>Scan</b> scores each listing and says why. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
+            <li>Add an AI in settings and <b>Scan</b> scores every listing and says why, and <b>Analyze</b> reads one listing in full. <b>Buyer or Reseller</b>, top right, changes what scores high.</li>
           </ul>
           <div class="step-key" hidden><b class="setup-title"></b> <span class="setup-text"></span>
             <button class="ghost setup-go" data-act="open-settings">Open settings</button></div>
@@ -737,7 +742,7 @@
         <div class="setup" hidden><b class="setup-title">Scores are optional.</b> <span class="setup-text">Prices, scam marks and filters work without an AI.</span>
           <button class="ghost" data-act="open-settings">Open settings</button></div>
         <div class="statusrow"><div class="status" role="status"></div><button class="stopbtn" hidden title="Stop the model: nothing new is sent, and requests under way are canceled">Stop</button></div>
-        <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the marks on the cards stay)">Start over</button><div class="actions pi-search"></div></div>
+        <div class="pageinfo" hidden><div class="pi-head" hidden></div><div class="pi-bar" role="img" hidden></div><span class="pi-line"></span><button class="pi-reset" data-act="reset" hidden title="Clear the scores on this page (the marks on the cards stay)">Start over</button><div class="actions pi-search"></div><p class="ai-hint" hidden>An AI can score every listing here and say why. <button data-act="ai-hint-go">Turn it on</button><button class="ai-hint-x" data-act="ai-hint-x" title="Don't show this again" aria-label="Don't show this again">\u2715</button></p></div>
         <div class="status err readwarn" role="status" hidden></div>
         <div class="ideas-inline" hidden><div class="status ideas-status" role="status"></div><div class="ideas-list"></div></div>
       </div>
@@ -757,6 +762,7 @@
         <div class="lb-quick" role="group" aria-label="Quick filters">
           <button class="qt" data-q="fresh" aria-pressed="false" title="Hide every listing you've seen before">New only</button>
           <button class="qt qt-broken" aria-pressed="false"></button>
+          <button class="qt" data-q="parts" aria-pressed="false" title="Hide games, cases, chargers and parts for what you searched, so only the thing itself is left">Hide accessories</button>
           <button class="qt" data-q="junk" aria-pressed="false" title="Hide rentals, services, jobs, pets, “looking for” posts and $1 placeholder prices: things that aren't an item for sale">Hide off-topic</button>
         </div>
         <label class="sortpick">Sort <select class="sort">
@@ -822,6 +828,9 @@
   const piHead = $(".pi-head");
   const piBar = $(".pi-bar");
   const piSearch = $(".pi-search");
+  // With the AI off, one quiet line under the page's counts says what it adds; ✕ puts it away for good.
+  const aiHint = $(".ai-hint");
+  let aiHintDone = true;
   const listBar = $(".listbar");
   const sortSel = $(".sort");
   const setupCard = $(".setup");
@@ -1376,6 +1385,12 @@
     placeSetup();
     if (show) setView("page");
   };
+  $('[data-act="ai-hint-go"]').addEventListener("click", openAISettings);
+  $('[data-act="ai-hint-x"]').addEventListener("click", () => {
+    aiHintDone = true;
+    aiHint.hidden = true;
+    if (alive()) chrome.storage.local.set({ aiHintDone: true }).catch(storeFailed);
+  });
   $('[data-act="intro-done"]').addEventListener("click", () => {
     showIntro(false);
     introPending = false;
@@ -1395,8 +1410,9 @@
     if (!touched && !introOpened) showOpen(true);
     introOpened = true;
   };
-  chrome.storage.local.get("introDone").then(({ introDone }) => {
+  chrome.storage.local.get(["introDone", "aiHintDone"]).then(({ introDone, aiHintDone: done }) => {
     introPending = !introDone && alive();
+    aiHintDone = !!done;
     applyIntro();
   }).catch(() => {});
 
@@ -1976,12 +1992,13 @@
   // on the page edge counts them even with the panel closed.
   // broken: "hide" drops listings that say broken/untested/for parts (Use), "only" keeps just those (Fix).
   // store: the store's own filters this search has (condition, Buy It Now…), by the names in TKSites storeFilters.
-  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, deal: 0, store: {} };
+  // parts: hide games, cases and parts for what you searched (TKRules.accessoryOf).
+  const NO_QUICK = { words: "", min: 0, max: 0, fresh: false, broken: "", junk: false, parts: false, deal: 0, store: {} };
   let quick = { ...NO_QUICK };
   let quickReady = Promise.resolve(); // this search's saved filter, loaded on each page change
-  const quickReason = (f) => TKRules.quickReason(f, quick);
+  const quickReason = (f) => TKRules.quickReason(f, quick, pageSearch());
   const storeSet = () => Object.values(quick.store || {}).filter(Boolean).length; // store filters set (choices)
-  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk || storeSet());
+  const quickActive = () => !!(quick.words.trim() || quick.min || quick.max || quick.fresh || quick.broken || quick.junk || quick.parts || storeSet());
   const isDeal = (f) => TKRules.isDeal(f, quick.deal);
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
@@ -2866,16 +2883,30 @@
     const sv = shownMemo?.get(it) ?? shownV(it);
     return sv.priceWarn && sv.level === "low" ? TKRules.BANDS.fair[0] - 0.5 : sv.score;
   };
-  // Before a scan, "best first" goes by the free read: good prices up, warnings and off-topic down.
-  const freeRank = (it) => (it.score != null ? 0 : TKRules.freeRead(facts.get(keyOf(it.url)) || it, marketOf(facts.get(keyOf(it.url)) || it))?.rank ?? 0.5);
+  // Before a scan (and for listings a scan hasn't reached), "best first" goes by TKRules.bestPlace: good prices
+  // furthest below typical first, the rest of your search, then parts, other things and warnings. Worked out once
+  // per item per render, like shownMemo.
+  let placeMemo = null;
+  const placeOf = (it) => {
+    let p = placeMemo?.get(it);
+    if (!p) {
+      const f = facts.get(keyOf(it.url)) || it;
+      p = TKRules.bestPlace(f, marketOf(f), { query: marketFor, prices: prefs.markPrices !== false, broken: lens === "project" });
+      placeMemo?.set(it, p);
+    }
+    return p;
+  };
   const dealOf = (it) => (facts.get(keyOf(it.url))?.deal ? 1 : 0);
   const perItem = (it) => (it.total == null ? Infinity : it.lot ? it.total / it.lot : it.total);
   const vsSold = (it) => it.vsWorking ?? facts.get(keyOf(it.url))?.vsSold ?? Infinity;
+  const vsTie = (it) => (prefs.markPrices === false ? 0 : Math.min(vsSold(it), 1e6)); // Infinity - Infinity is NaN
   const endsIn = (it) => (it.auction ? (it.hoursLeft ?? 1e6) : Infinity);
   let sortMode = "score";
   // Ties keep the page's own order (sort is stable).
   const SORTS = {
-    score: (a, b) => (a.score == null) - (b.score == null) || (a.related === false) - (b.related === false) || sc(b) - sc(a) || freeRank(b) - freeRank(a) || dealOf(b) - dealOf(a), // your search first
+    // Scored ones first (your search, then the rest), by score; a tie goes to the one further below typical.
+    // Then the unscored ones by TKRules.bestPlace. Your price's star breaks what's left.
+    score: (a, b) => (a.score == null) - (b.score == null) || (a.score != null ? (a.related === false) - (b.related === false) || sc(b) - sc(a) || vsTie(a) - vsTie(b) : TKRules.bestCompare(placeOf(a), placeOf(b))) || dealOf(b) - dealOf(a),
     price: (a, b) => perItem(a) - perItem(b) || sc(b) - sc(a),
     value: (a, b) => vsSold(a) - vsSold(b) || perItem(a) - perItem(b),
     margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || sc(b) - sc(a),
@@ -2887,6 +2918,15 @@
       };
       return rank(b) - rank(a) || sc(b) - sc(a);
     },
+  };
+  // One line over the list saying how "best first" ordered it, so the order never looks random.
+  const bestHint = (shown) => {
+    const scoredN = shown.filter((it) => it.score != null).length;
+    const rest = prefs.markPrices
+      ? "good prices furthest below typical first, then the rest of your search, then parts and other things"
+      : "your search in the store's order, then parts and other things";
+    if (!scoredN) return `Best first: ${rest}; warnings and likely scams last.`;
+    return `Best first: highest score first, your search before other things${scoredN < shown.length ? `, then the ones not scored yet (${rest})` : ""}; skips and likely scams last.`;
   };
   const shownKeys = new Set(); // rows that already animated in; re-sorting shouldn't replay it
   // The list is only drawn while you can see it: tucked away (or on Saved or Home) a redraw just marks it
@@ -2901,8 +2941,10 @@
     const by = SORTS[sortMode] || SORTS.score;
     const shown = pageItems().filter((it) => !isHidden(it) && !(skipMode === "hide" && isSkip(it)));
     shownMemo = new Map(shown.filter((it) => it.score != null).map((it) => [it, shownV(it)]));
+    placeMemo = new Map();
     shown.sort((a, b) => isSkip(a) - isSkip(b) || by(a, b)); // skipped and likely scams go last, whatever the sort
     shownMemo = null;
+    if (sortMode === "score" && shown.length > 1) listEl.append(h("div", { class: "sorthint" }, bestHint(shown)));
     shown.forEach((it, i) => {
       const key = keyOf(it.url);
       const f = facts.get(key) || it;
@@ -2928,6 +2970,8 @@
               h("button", { class: "title", onclick: () => focusCard(it), title: "Show it on the page" }, it.title),
               (() => {
                 const read = prefs.markPrices && !likelyScam(f) && TKRules.freeRead(f, marketOf(f));
+                // Something else in the search says so, so its place under the rest makes sense.
+                if (!read && prefs.markPrices && placeOf(it).shelf === 4) return h("div", { class: "meta free-read", "data-v": "pass", title: "Not the thing you searched for (a game, accessory, part or something else), so it sorts under the rest." }, h("span", { class: "verdict" }, "Not your search"));
                 return read ? h("div", { class: "meta free-read", "data-v": read.v, title: aiOff() ? "From the typical price (recent eBay sales) and the scam checks." : "From the typical price (recent eBay sales) and the scam checks; your AI isn't used. A scan adds a score." }, h("span", { class: "verdict" }, read.word)) : null;
               })(),
               likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
@@ -2946,6 +2990,8 @@
               "div",
               { class: "actions row-acts" },
               h("a", { href: soldLink(it.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
+              // A free scam check of its own: no scan needed, so it's here before one too.
+              /^https:/.test(it.imageUrl || "") ? h("a", { href: lensSearchUrl(it.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is this photo used elsewhere?" }, "Find photo elsewhere \u2197") : null,
               saveBtn,
               hideBtn
             )
@@ -3455,6 +3501,7 @@
     setIf(scanBtn, "className", label === "Scan again" ? "ghost" : "scan");
     setIf(scanBtn, "title", est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "");
     autoTick(n, toScore, changed);
+    autoPriceTick();
     if (autoOn() && autoHold && autoHold !== "stopped") {
       // Automatic scanning hit a problem (a key, the budget, the connection): say so on the closed tab too.
       setIf(countEl, "textContent", "!");
@@ -3540,6 +3587,7 @@
       );
     }
     listBar.hidden = !facts.size;
+    setIf(aiHint, "hidden", aiHintDone || !aiOff() || introPending || !welcome.hidden || TK.pageType() !== "results" || !facts.size);
     // Search tools: keep this search, or run it on the other site.
     const q = pageSearch();
     // One row of page actions: keep this search, run it on the other site, start the scores over.
@@ -3620,6 +3668,7 @@
     qfDeal.placeholder = hint ? `~$${hint}` : "$";
     qfDeal.title = hint ? `Your price for this search. 70% of the typical price (from eBay sales) would be $${hint}.` : "Your price for this search: listings at or under it are marked, and counted on the tab.";
     root.querySelectorAll("[data-q]").forEach((b) => b.setAttribute("aria-pressed", String(!!quick[b.dataset.q])));
+    root.querySelector("[data-q=parts]").hidden = !pageSearch() && !quick.parts; // needs a search to know what's "for it"
     // The broken-listing toggle follows the lens: Use hides them; Fix & flip can show only them.
     // A filter that's already on always shows, so it can be turned off.
     const mode = quick.broken || { use: "hide", project: "only" }[lens] || "";
@@ -3820,6 +3869,25 @@
     if (autoSig !== sig) return void (autoSig = sig); // listings may still be loading: look again next time
     autoSig = null;
     scan({ auto: true });
+  };
+
+  // The typical price on its own, once per search you're looking at: the free marks then show without a press.
+  // Same paced, remembered lookup as the button (lib/sold.js), from a page on your screen; automatic scanning
+  // does it as part of its scan instead. A search has to stay on screen for two ticks (not one you flip past),
+  // and TKShared.soldAutoOk keeps these to half the hour's turns and stops them for a day after eBay's check:
+  // the button still works then.
+  let autoPriced = "";
+  let autoPriceSeen = "";
+  const autoPriceTick = async () => {
+    const query = queryEl.value.trim().toLowerCase();
+    const sig = `${pageEpoch}|${query}`;
+    const typing = root.activeElement && $(".inputs").contains(root.activeElement);
+    if (freeRow.hidden || autoOn() || cfg.useSoldComps === false || document.hidden || !facts.size || typing || autoPriced === sig) return void (autoPriceSeen = "");
+    if (autoPriceSeen !== sig) return void (autoPriceSeen = sig);
+    autoPriced = sig;
+    const { soldLog, soldCooldownUntil, soldStrikes } = await chrome.storage.local.get(["soldLog", "soldCooldownUntil", "soldStrikes"]).catch(() => ({}));
+    if (!TKShared.soldAutoOk({ log: soldLog, cooldownUntil: soldCooldownUntil, lastCheck: soldStrikes?.at })) return;
+    if (sig === `${pageEpoch}|${queryEl.value.trim().toLowerCase()}`) pricesOnly({ auto: true });
   };
 
   const scan = async (opts) => {
@@ -4035,7 +4103,9 @@
   scanBtn.addEventListener("click", scan);
 
   // The sold-price half of a scan on its own: one eBay lookup, every card gets "$53 under sold", without the model.
-  const pricesOnly = async () => {
+  // It runs by itself once per search you're looking at (autoPriceTick); the button is there for a search you change.
+  const pricesOnly = async (opts) => {
+    const auto = opts?.auto === true; // a click passes its event: that's you
     if (TK.pageType() === "item" && !queryEl.value.trim() && itemFacts?.title) queryEl.value = TK.titleToQuery(itemFacts.title);
     const query = queryEl.value.trim();
     if (!query || scanning) return;
@@ -4050,9 +4120,11 @@
       applyMarket(market);
       if (TK.pageType() === "item") return setStatus(`From ${market.n} eBay sales of \u201c${query}\u201d.${noAINote(" Your AI wasn't used.")}`);
       const n = [...facts.values()].filter((f) => f.vsSold != null).length;
+      if (!n) return setStatus(`Typical price $${market.median}, from ${market.n} eBay sales of \u201c${query}\u201d. None of the listings here are close enough to it to compare.`);
       setStatus(`Compared ${n} listing${n === 1 ? "" : "s"} with ${market.n} eBay sales of \u201c${query}\u201d.${noAINote(" Your AI wasn't used.")} Sort by \u201cfurthest below typical price\u201d to see the cheapest for what they are.`);
     } catch (e) {
-      setStatus(e.message, true);
+      // On its own, a lookup that can't run now (eBay resting, the hourly limit) is said quietly: you didn't ask.
+      setStatus(e.message, !auto);
     } finally {
       setBusy(false);
       refreshPending();
@@ -4292,15 +4364,17 @@
           h("div", { "data-v": past.verdict }, h("span", { class: "verdict" }, VERDICT[past.verdict]?.label || past.verdict), ` ${past.score} out of 100, ${shortDate(past.at)}${past.p != null && f.price != null && past.p !== priceOf(f) ? ` (the price was ${dollars(past.p)} then)` : ""}`),
           past.reason ? h("p", { class: "past-why" }, past.reason) : null)
       : "";
+    const slot = itemEl.querySelector(".item-acts");
     const acts = h(
       "div",
       { class: "actions pi-acts" },
       f.hidden ? h("span", {}, "Hidden") : null,
       h("button", { class: sv ? "on" : null, onclick: () => toggleSave(f.key) }, sv ? "Saved" : "Save"),
       h("button", { onclick: () => setInterested(f.key, f.hidden).then(() => ((f.hidden = !f.hidden), renderItemInfo())) }, f.hidden ? "Undo" : "Hide"),
-      h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197")
+      h("a", { href: soldLink(f.title), target: "_blank", rel: "noopener", title: "eBay sold listings for this title, in a new tab" }, "Sold \u2197"),
+      // The free reverse image search, before (and without) an analysis; an analysis has it beside its photo check.
+      !slot && /^https:/.test(f.imageUrl || "") ? h("a", { href: lensSearchUrl(f.imageUrl), target: "_blank", rel: "noopener", title: "Reverse image search: is the main photo used elsewhere?" }, "Find photo elsewhere \u2197") : null
     );
-    const slot = itemEl.querySelector(".item-acts");
     slot?.replaceChildren(acts);
     piLine.replaceChildren(
       pastLine,

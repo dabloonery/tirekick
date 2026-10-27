@@ -132,7 +132,7 @@
     <div class="focus" role="radiogroup" aria-label="What Tirekick does">
       <label class="fcard"><input type="radio" name="focus" value="noai"><b>Without the AI</b><span>Every check and mark: prices, scam marks, filters. Nothing is sent to an AI service. This is how Tirekick starts.</span></label>
       <label class="fcard"><input type="radio" name="focus" value="scams"><b>Scam check only</b><span>Only scam warnings on the cards. Prices are still looked up, to spot listings too cheap to be real. Your AI isn't used.</span></label>
-      <label class="fcard"><input type="radio" name="focus" value="everything"><b>Everything, with AI scores</b><span>Every check and mark, plus Scan, Analyze and search ideas from the AI service you set up under AI scores.</span></label>
+      <label class="fcard"><input type="radio" name="focus" value="everything"><b>Everything, with AI scores</b><span>Every check and mark, plus an AI that scores every listing and says why: Scan, Analyze and search ideas, from the service you set up under AI scores.</span></label>
     </div>
     <p class="hint" id="focusCustom" hidden>Custom: you've picked the parts yourself under Filters and marks and AI scores. Choose one above to start from it again.</p>
     <p class="hint">Scam marks stay on in all three. Each part has its own switch further down.</p>
@@ -142,7 +142,7 @@
     <h2>On the page</h2>
     <div class="field check">
       <input id="useSoldComps" type="checkbox">
-      <label for="useSoldComps">Compare prices with recent eBay sales<span class="hint">One or two eBay sold-listings searches per new search (working, and for parts in Reseller mode), remembered for a day.</span></label>
+      <label for="useSoldComps">Compare prices with recent eBay sales<span class="hint">On each search you look at, Tirekick checks what the same thing sold for on eBay and marks every card's price. One or two eBay sold-listings searches (working, and for parts in Reseller mode), spaced out and remembered for a day.</span></label>
     </div>
     <div class="field">
       <label for="theme">Theme</label>
@@ -203,7 +203,7 @@
     <p class="hint">Optional. Where the scoring runs: any AI service you have a key for, or a model on your own computer (Ollama or LM Studio, private and free). Listing titles and card text go only to the one you choose.</p>
     <div class="field check ai-switch">
       <input id="useAI" type="checkbox">
-      <label for="useAI">Use an AI<span class="hint">Off until you turn it on. While it's off, Tirekick shows no Scan, Analyze, Search ideas or photo checks and sends nothing to any AI service; prices, scam marks and filters work the same. Turn it on, then choose a service below. What you set up is kept if you turn it off again.</span></label>
+      <label for="useAI">Use an AI<span class="hint">Adds Scan (a score and a reason for every listing), Analyze (one listing read in full), search ideas and photo checks. Turn it on, then choose a service below; nothing is sent to one before that. Prices, scam marks and filters work the same either way, and what you set up is kept if you turn it off again.</span></label>
     </div>
     <div class="field">
       <label for="service">AI service</label>

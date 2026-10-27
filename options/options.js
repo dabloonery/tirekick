@@ -354,7 +354,7 @@ async function showStatus() {
     // The AI is opt-in (dabloonery, 2026-10-23): until it's turned on, the free checks are the whole setup.
     ready = true;
     title = "Ready: price checks and scam marks";
-    text = "Open an eBay or Marketplace search to see them. AI scores are optional and off: to add them, turn on Use an AI under AI scores below.";
+    text = "Open an eBay or Marketplace search to see them. For a score and a reason on every listing, add an AI under AI scores below.";
   } else if (!chosen) {
     ready = true; // the price checks, scam marks and filters need no AI
     title = "Ready: price checks and scam marks";
@@ -543,9 +543,11 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
     if (clean === undefined) skipped++;
     else settings[f] = clean;
   }
-  // A backup from before the two word lists became one.
   // A backup from before the switches per kind of mark has the one old switch (TKShared.marksFromOld).
   if (settings.markPrices === undefined && settings.markOther === undefined) Object.assign(settings, TKShared.marksFromOld(data.settings?.autoMarks));
+  // A backup from before the AI was opt-in has no "Use an AI": one with an AI set up keeps it on, as an update does.
+  if (settings.useAI === undefined && TKShared.aiSetUp(settings)) settings.useAI = true;
+  // A backup from before the two word lists became one.
   if (settings.filterWords === undefined && (data.settings?.hideWords !== undefined || data.settings?.needWords !== undefined)) {
     settings.filterWords = TKShared.filterFromLists(String(data.settings.hideWords ?? ""), String(data.settings.needWords ?? ""));
   }

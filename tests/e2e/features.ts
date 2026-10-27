@@ -284,6 +284,21 @@ const after2 = await o.ev(`chrome.storage.local.get(['saved','savedSearches','ba
 const msg = await o.ev(`document.getElementById('msg').textContent`);
 ok("a restored backup rebuilds bad links, drops junk and keeps settings within limits", after2.saved?.["ebay:123"]?.u === "https://www.ebay.com/itm/123" && !after2.saved?.["not a key"] && after2.savedSearches?.["ebay|x"]?.url === "https://www.ebay.com/sch/i.html?_nkw=x" && after2.batchSize === 30 && after2.provider === "anthropic" && after2.stats?.scans === 4 && !("bad" in after2.stats), after2);
 ok("…turns old word lists into the one words setting, and says what it did", after2.filterWords === '-repro -"box only" working' && /replaced/.test(msg) && /left out/.test(msg), { fw: after2.filterWords, msg });
+// A backup from before the AI was opt-in: an AI that was set up stays on, one that wasn't stays off.
+const restoreFrom = async (b: unknown) => {
+  const f = (await Deno.makeTempDir()) + "/backup.json";
+  await Deno.writeTextFile(f, JSON.stringify(b));
+  const { root } = await c.send("DOM.getDocument", {}, o.sessionId);
+  const { nodeId } = await c.send("DOM.querySelector", { nodeId: root.nodeId, selector: "#restoreFile" }, o.sessionId);
+  await c.send("DOM.setFileInputFiles", { files: [f], nodeId }, o.sessionId);
+  await sleep(1200);
+  return (await o.ev(`chrome.storage.local.get(['useAI'])`)).useAI;
+};
+await reset(`{useAI:false}`);
+const kept = await restoreFrom({ app: "tirekick", version: "0.57.0", settings: { provider: "ollama", textModel: "qwen3:4b" } });
+await reset(`{useAI:false}`);
+const left = await restoreFrom({ app: "tirekick", version: "0.57.0", settings: { provider: "anthropic", batchSize: 12 } });
+ok("an older backup with an AI set up (Ollama) restores with the AI on; one without leaves it off", kept === true && left === false, { kept, left });
 ok("every saved field has a place on the settings page, with one words box", await o.ev(`FIELDS.every(f=>document.getElementById(f)) && !!document.getElementById('filterWords') && !document.getElementById('hideWords') && !document.getElementById('needWords') && !!document.getElementById('anthropicScanModel')`));
 await reset(`{provider:'ollama', ollamaUrl:'http://10.255.255.1:11434', textModel:'qwen3:4b'}`);
 p = await openPanel(SEARCH);
@@ -380,6 +395,12 @@ ok("Marketplace's row has condition, delivery and listed within", rowFb === "con
 await R(fbr, `const s=r.querySelector('select[data-store=listed]'); s.value='7'; s.dispatchEvent(new Event('change',{bubbles:true}))`); await sleep(300);
 await R(fbr, `r.querySelector('.qf-apply').click()`); await sleep(2500);
 ok("Apply on Marketplace sets listed in the last week", new URL(await fbr.ev(`location.href`)).searchParams.get("daysSinceListed") === "7");
+// Hide accessories: a quick filter of Tirekick's own, there when the page has a search
+await reset();
+const acc = await openPanel(SEARCH);
+ok("Hide accessories shows on a search", !(await R(acc, `return r.querySelector('[data-q=parts]').hidden`)));
+await R(acc, `r.querySelector('[data-q=parts]').click()`); await sleep(700);
+ok("…and stays on for that search", (await R(acc, `return r.querySelector('[data-q=parts]').getAttribute('aria-pressed')`)) === "true" && (await get("quickFilters"))?.["ebay|pentax k1000"]?.parts === true, await get("quickFilters"));
 await closeAll(/www\.(ebay|facebook)\.com/);
 
 // ---------- no errors ----------

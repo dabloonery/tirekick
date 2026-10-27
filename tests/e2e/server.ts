@@ -7,7 +7,7 @@ ul{list-style:none;margin:0;padding:20px 24px;display:grid;grid-template-columns
 <h1 style="padding:0 24px">${title}</h1>
 <ul>
  <li class="s-card"><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><div class="s-card__title">Pentax K1000 35mm SLR body, working</div><div class="s-card__price">$85.00</div><span>+$12.00 delivery</span><a href="https://www.ebay.com/itm/1111111111">item</a></li>
- <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 with 50mm f/2 lens and case</div><div class="s-card__price">$140.00</div><span>Free delivery</span><a href="https://www.ebay.com/itm/2222222222">item</a></li>
+ <li class="s-card"><img alt="" src="https://www.ebay.com/img/k1000-lens.jpg"><div class="s-card__title">Pentax K1000 with 50mm f/2 lens and case</div><div class="s-card__price">$140.00</div><span>Free delivery</span><a href="https://www.ebay.com/itm/2222222222">item</a></li>
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 for parts, shutter stuck</div><div class="s-card__price">$35.00</div><a href="https://www.ebay.com/itm/3333333333">item</a></li>
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 PRISTINE contact me www . cam . com</div><div class="s-card__price">$20.00</div><a href="https://www.ebay.com/itm/4444444444">item</a></li>
  <li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 body only, untested</div><div class="s-card__price">$60.00</div><span>3 bids · 2d 4h left</span><a href="https://www.ebay.com/itm/5555555555">item</a></li>
@@ -172,7 +172,7 @@ Deno.serve({ port: 8443, cert: Deno.readTextFileSync(Deno.env.get("E2E_TMP") + "
   // ?none: a search with no results, as eBay shows it (a heading, no cards).
   if (u.pathname.startsWith("/sch/") && u.searchParams.has("none")) return new Response(page("Pentax results").replace(/<ul>[\s\S]*<\/ul>/, '<div class="srp-results"><h3 class="srp-save-null-search__heading">No exact matches found</h3><p>Try checking your spelling or use more general terms</p></div>'), { headers: { "content-type": "text/html" } });
   if (u.pathname.startsWith("/sch/")) return new Response(u.searchParams.has("empty") ? "<!doctype html><title>x</title><ul></ul>" : page("Pentax results"), { headers: { "content-type": "text/html" } });
-  if (u.pathname.startsWith("/itm/")) return new Response(`<!doctype html><html><head><meta charset="utf-8"><title>Pentax K1000 | eBay</title></head><body><main>
+  if (u.pathname.startsWith("/itm/")) return new Response(`<!doctype html><html><head><meta charset="utf-8"><title>Pentax K1000 | eBay</title><meta property="og:image" content="https://www.ebay.com/img/k1000.jpg"></head><body><main>
 <h1 class="x-item-title__mainTitle"><span class="ux-textspans">Pentax K1000 35mm SLR Film Camera w 50mm PK Mount</span></h1>
 <div class="x-price-primary"><span class="ux-textspans">US $294.90</span></div>
 <div class="x-item-condition-text"><span class="ux-textspans">Used</span></div>

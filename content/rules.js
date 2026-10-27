@@ -335,7 +335,7 @@
     // Not beside a strong seller sign: a new account at half price is the scam's look on any site.
     const cut = market.local && !risky ? R.LOCAL_NET : 1;
     if (pct >= R.TOO_CHEAP.low * cut) return null;
-    const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, market.query || "");
+    const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, `${market.query || ""} ${market.variantUsed && market.variantUsed !== "base" ? market.variantUsed : ""}`.trim());
     const out = (level, extra) => ({ level, pct: Math.round(pct * 100), ...(why && level !== "far" && { why }), ...extra });
     // Real sales went this low (the cheapest tenth of them, market.p10): honest prices land here too, as in a search
     // that mixes models ("nintendo switch": Lites, V1s and OLEDs), so it isn't bait on price alone.
@@ -426,11 +426,68 @@
   R.compareFacts = (f, market, query = "") => {
     f.accessory = (!f.ownMarket && R.accessoryOf(f.title, query)) || "";
     f.offWords = (!f.ownMarket && R.missingWord(f.title, query)) || "";
-    f.saysWhy = R.cheapReason(f.title, f.text, f.ownMarket ? "" : query); // why it's cheap, in its own words (tooCheap)
+    // A version the typical price is already for (R.forVariant: "lite" against Lite sales) isn't why it's cheap.
+    const like = market?.variantUsed && market.variantUsed !== "base" ? market.variantUsed : "";
+    f.saysWhy = R.cheapReason(f.title, f.text, `${f.ownMarket ? "" : query} ${like}`.trim()); // why it's cheap, in its own words (tooCheap)
     const off = !f.ownMarket && R.offSearch(f.title, query);
     const vs = market?.median > 0 && f.total != null && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.accessory && !off && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
     f.cheap = (vs != null && (R.tooCheap(f, market)?.level || (R.cheapForReason(f, market) && "reason"))) || ""; // backs up a title code (codeBacked)
     return vs;
+  };
+
+  // Versions within one model line that sell for 25% or more apart: a search for "nintendo switch" or "iphone 13"
+  // gets Lites, OLEDs and Pro Maxes in its sales too. Longer phrases first, so "Pro Max" isn't read as "Pro" or "Max".
+  R.TIER_MODIFIERS = ["pro max", "digital edition", "disc edition", "body only", "tool only", "bare tool", "console only", "tablet only",
+    "lite", "oled", "mini", "plus", "pro", "ultra", "max", "slim", "se", "fe"];
+  // The version a title names that the search doesn't ("lite" in a "nintendo switch" search), or "". Only what comes
+  // before "with", "+" or "bundle" counts: "Switch with Pro Controller" is a Switch. `query` may hold more words that
+  // don't count as a version (a market's variants._same).
+  const variantSeen = new Map(); // (title, search) -> the answer: every card asks again each time the list redraws
+  R.variantOf = (title, query = "") => {
+    const key = `${title ?? ""}\u0001${query}`;
+    if (variantSeen.has(key)) return variantSeen.get(key);
+    if (variantSeen.size > 5000) variantSeen.clear();
+    const t = ` ${R.normTitle(String(title ?? "").split(/\s(?:with|w\/|includes?|including|plus\s+\d|bundle)\s|\s*[+&]\s*/i)[0])} `;
+    const out = R.TIER_MODIFIERS.find((m) => t.includes(` ${m} `) && !R.hasWord(query, m)) || "";
+    variantSeen.set(key, out);
+    return out;
+  };
+  // Sales split by version, for TK.summarizeSold: { same, base, groups: { lite: [sales], … } }. A version the search
+  // names, or one most of the sales have ("20V Max" on nearly every DeWalt drill), is the thing itself (same); the
+  // rest name another version when they say one, and base holds the sales that name none.
+  R.VARIANT_COMMON = 0.6;
+  R.variantGroups = (sales, query = "") => {
+    const same = R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m));
+    const split = () => {
+      const groups = {};
+      const base = [];
+      for (const s of sales) {
+        const v = R.variantOf(s.title, same.join(" "));
+        if (v) (groups[v] ||= []).push(s);
+        else base.push(s);
+      }
+      return { groups, base };
+    };
+    let { groups, base } = split();
+    const common = Object.keys(groups).filter((m) => groups[m].length > sales.length * R.VARIANT_COMMON);
+    if (common.length) {
+      same.push(...common);
+      ({ groups, base } = split());
+    }
+    return { same, base, groups };
+  };
+  // The typical price for this listing's version, when the sales had enough of it: a Lite against Lite sales, a plain
+  // Switch against sales that name no other version, so OLEDs don't lift its typical price. market.variants is from
+  // TK.summarizeSold; a version with too few sales, or a spread too wide to trust ("rough"), keeps the whole market.
+  // Returns the market as is, or a copy with that version's numbers and variantUsed ("lite", or "base").
+  R.forVariant = (market, f) => {
+    const vs = market?.variants;
+    if (!vs || !f?.title) return market;
+    const tier = R.variantOf(f.title, (vs._same || []).join(" "));
+    const sub = tier ? vs[tier] : vs._base;
+    if (!(sub?.median > 0) || sub.confidence === "rough") return market;
+    const { variants, ...rest } = market;
+    return { ...rest, median: sub.median, p10: sub.p10, p25: sub.p25, p75: sub.p75, n: sub.n, confidence: sub.confidence, variantUsed: tier || "base", ...(!tier && { variantOthers: Object.keys(vs).filter((k) => !k.startsWith("_")) }) };
   };
 
   // Sold totals include the shipping buyers paid; a pickup listing (a local site, no shipping on it) has none
@@ -439,6 +496,7 @@
   // (market.ship) and it's under half the price. Returns the market as is, or a copy with pickupShip set.
   // A pickup listing's market also has local set (cheapLevel's fee allowance), with or without shipping taken off.
   R.forPickup = (market, f, local) => {
+    market = R.forVariant(market, f);
     const ship = market?.ship;
     if (!local || !(market?.median > 0) || f?.shipping != null || f?.auction) return market;
     if (!(ship > 0) || !(market.median > ship * 2)) return { ...market, local: true };

@@ -10,6 +10,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
 - [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone) (2026-10-15)
 - [Public beta launch](#public-beta-launch) (decided 2026-10-15: launch as a public beta before 1.0.0)
 - [Honest low prices](#honest-low-prices) (2026-10-21: honest cheap listings marked as scams; the order of PRs)
+- [Prices by version](#prices-by-version) (2026-10-27: a Lite against Lite sales in a "nintendo switch" search)
 - [After real use (2026-10-16)](#after-real-use-2026-10-16) (0.50.2 fixes, and design changes for dabloonery to pick)
 - [Chrome Web Store: each upload](#chrome-web-store-each-upload)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
@@ -38,7 +39,7 @@ check); those are in git history.*
 | Plan | State |
 |---|---|
 | Chrome Web Store | Public beta live; the store has 0.50.0. `main` is 0.58.0, set for the next upload (2026-10-23). Uploading it is dabloonery's call ([checklist](#chrome-web-store-each-upload)) |
-| Scam checks and prices | [Honest low prices](#honest-low-prices) done (#57 to #82); layout guards, long-feed speed and an eval with the real prompts merged 2026-10-21 and 22 |
+| Scam checks and prices | [Honest low prices](#honest-low-prices) done (#57 to #82); layout guards, long-feed speed and an eval with the real prompts merged 2026-10-21 and 22; [prices by version](#prices-by-version) 2026-10-27 |
 | Real-use fixes | The 2026-10-16 fixes reached `main` on 2026-10-22 (#84, [After real use](#after-real-use-2026-10-16)); recheck them on the real sites |
 | Sturdier no-AI features | All 8 shipped ([summary](#tirekick-making-the-no-ai-features-sturdier)). Real saved eBay and Marketplace searches are fixtures since #90; listing, sold and category pages are still hand-made |
 | Free parts of briefs 2, 3, 4 and 6 | Built in 0.37.0 to 0.40.0 (age and price moves, the offer helper, "Too cheap?" and same-photo marks, CSV export) |
@@ -307,6 +308,24 @@ The order, one PR each, every one measured by `deno task eval` with the scam num
    ignored what the price check had cleared (a pickup seller, an established eBay seller, sales that go that low). The
    rule now applies only beside the price check's own "the total is N% of the typical price" note: 29-31 of 31 over
    five runs, scams 11 of 11.
+
+## Prices by version
+
+*2026-10-27, from an outside architecture review dabloonery brought in (its "Blueprint 1").* A search that names no
+version ("nintendo switch", "iphone 13") gets every version in its sales: Lites at $95 beside OLEDs at $250. One median
+for all of them made an OLED at $235 "Above typical", a plain Switch at $199 "Fair price" and an honest Lite "Check
+first" (saved by `cheapReason`'s "cheaper version" only after the warning).
+
+Built: `TK.summarizeSold` splits the sales by the version words in `TKRules.TIER_MODIFIERS` (lite, oled, mini, pro max,
+tool only, digital edition…) and keeps numbers for each version with 5 or more sales, and for the sales naming none
+(`_base`) with 8 or more. `TKRules.forVariant` (run by `forPickup`, so everywhere a card is priced) compares a listing
+with its own version, unless that version's numbers are "rough" (then the whole market, as before, so no scam mark is
+lost to a thin version). A version the search names, or one most sales have ("20V Max" on DeWalt drills), is the thing
+itself. The chip's hover says which sales it used. Eval: 7 new labeled listings on a mixed search, all as labeled;
+against the one median all 5 honest ones got the wrong word, and the Marketplace OLED bait was only Check first.
+
+Left: sold pages are still hand-made fixtures, so how often real lookups have 5+ of a version is unmeasured; and
+"1st gen", "v1" and storage sizes aren't versions yet (`cheapReason` still reads them as reasons).
 
 ## After real use (2026-10-16)
 

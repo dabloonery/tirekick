@@ -2029,7 +2029,7 @@
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins), "scam"]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const mk = marketOf(f);
-    const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
+    const from = (m) => `the middle of ${m.n} recent eBay sales${m.query ? ` of \u201c${m.query}\u201d` : ""}${variantNote(m)}${m.pickupShip ? `, less ${dollars(Math.round(m.pickupShip))} typical shipping (this one is pickup)` : ""}`;
     const unrelated = f.url && scored.get(keyOf(f.url))?.related === false; // a scan said it's something else
     const cheap = f.vsSold != null && !unrelated && TKRules.tooCheap(f, mk);
     // What to do about it differs by site: on eBay its guarantee covers you if you pay through eBay; a pickup
@@ -2703,6 +2703,13 @@
   // Pickup listings on a local site are compared without the shipping in eBay's totals (TKRules.forPickup).
   const pickupOf = (m, f) => TKRules.forPickup(m, f, !!(f?.site ? TKSites.get(f.site) : TK.site())?.local); // facts don't keep the site: this page's
   const marketOf = (f) => pickupOf(f?.ownMarket || lastMarket, f);
+  // Which sales a listing's typical price came from, when it's one version's (TKRules.forVariant).
+  const variantNote = (m) =>
+    m?.variantUsed === "base"
+      ? ` that name no other version (sales that say ${m.variantOthers.map((v) => `\u201c${v}\u201d`).join(" or ")} left out)`
+      : m?.variantUsed
+        ? ` that say \u201c${m.variantUsed}\u201d, like this one`
+        : "";
   // An accessory or part for the search ("Case for Nintendo Switch") isn't compared with the thing's typical price.
   // A scan's "not your search" counts too, and a title that leaves out a word of the search is never "Likely
   // scam" on price alone (TKRules.tooCheap).
@@ -3278,6 +3285,7 @@
   const resaleNet = (it) => it.refWorking * (1 - (it.feePct || 0) / 100) - 0.4 - (it.shipOut || 0);
   const priceNotes = (it, market, forLens, feePct) => {
     if (it.foreign) market = null; // another currency: nothing to compare with US sales (foreignText)
+    market = TKRules.forVariant(market, it); // a Lite resells for what Lites sell for, not the search's mix
     const w = market?.median;
     it.shipOut = market?.ship ?? null;
     it.refRough = market?.confidence === "rough";

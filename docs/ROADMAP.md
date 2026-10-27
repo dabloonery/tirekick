@@ -340,6 +340,9 @@ before reads as it did. A V number is a revision, kept apart ("v 2": a Switch V2
 a number ("iphone 13") has that generation as the thing itself, so iPhone 14 sales that eBay mixes in stand apart.
 Eval: 4 new listings, 3 of them wrong before.
 
+The AI sees the same numbers: a scan's line for a listing compared with its own version says "for its version (lite:
+$95, 14 sales)", the reference says the sales mix versions, and Analyze gets the version's numbers.
+
 Left: sold pages are still hand-made fixtures, so how often real lookups have 8+ of a kind is unmeasured. Not axes yet:
 model years and chips ("2020", "M1" vs "M2"), colors and carrier locks.
 

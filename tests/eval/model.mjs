@@ -54,7 +54,11 @@ for (const [query, list] of byQuery) {
   const market = { p25: Math.round(m.median * 0.85), p75: Math.round(m.median * 1.15), ...m };
   const items = list.map((r, i) => {
     const mk = R.forPickup(market, r.f, r.c.site === "facebook");
+    const own = R.forVariant(market, r.f); // the version's own sales, as the panel's priceNotes sends them
     return {
+      refKind: own.variantUsed ? own.variantWords.join(" ") || "plain" : "",
+      refN: own.n,
+      refWorking: own.median,
       ...r.f,
       id: i + 1,
       site: r.c.site,

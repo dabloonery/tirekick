@@ -3332,6 +3332,10 @@
   const priceNotes = (it, market, forLens, feePct) => {
     if (it.foreign) market = null; // another currency: nothing to compare with US sales (foreignText)
     market = TKRules.forVariant(market, it); // a Lite resells for what Lites sell for, not the search's mix
+    // Which sales its typical price is from, for the model's line (rankBatch): "lite", "gen 2 256gb", or "plain" for
+    // sales that name no other version. "" for the whole search.
+    it.refKind = market?.variantUsed ? (market.variantWords || []).join(" ") || "plain" : "";
+    it.refN = it.refKind ? market.n : null;
     const w = market?.median;
     it.shipOut = market?.ship ?? null;
     it.refRough = market?.confidence === "rough";
@@ -4609,7 +4613,8 @@
       const plan = !listing.auction ? planFor(listing, market, itemFacts ? softFor(itemFacts).level : "none") : null;
       listing.offerPlan = plan && !plan.cheap ? { open: plan.open, walkAway: plan.walkAway, confidence: plan.confidence } : null;
       setStatus(`Analyzing this listing as ${MODES[forLens].as}…`);
-      const r = await sendAI("analyzeListing", { listing, query, market, lens: forLens, want: wantEl.value.trim() });
+      // The model sees the numbers the card uses: a Lite's own sales, not the search's mix.
+      const r = await sendAI("analyzeListing", { listing, query, market: TKRules.forVariant(market, listing), lens: forLens, want: wantEl.value.trim() });
       if (!VERDICT[r.verdict]) r.verdict = "fair";
       r.score = fitScore(r.verdict, r.score); // the number agrees with the word
       if (!listing.auction) [r.offerLow, r.offerHigh] = TKRules.fitOffer(r.offerLow, r.offerHigh, listing.offerPlan);

@@ -487,8 +487,8 @@ document.getElementById("backup").addEventListener("click", async () => {
 });
 // Saved listings as a spreadsheet: prices you've seen, and the latest score for each (TKShared.savedRows).
 document.getElementById("exportCsv").addEventListener("click", async () => {
-  const { saved = {}, scans = {} } = await chrome.storage.local.get(["saved", "scans"]);
-  const rows = TKShared.savedRows(saved, scans);
+  const { saved = {}, scans = {}, feePct = 13.6 } = await chrome.storage.local.get(["saved", "scans", "feePct"]);
+  const rows = TKShared.savedRows(saved, scans, { feePct });
   if (!rows.length) return note("No saved listings yet. Save one from a card or the panel first.");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([TKShared.toCsv(rows, TKShared.SAVED_COLUMNS)], { type: "text/csv;charset=utf-8" }));

@@ -470,20 +470,36 @@
   // $250, "iphone 13" has 128GB phones beside 512GB Pro Maxes, "airpods pro" has both generations, "dyson" V8s beside
   // V11s. A listing is compared with sales of its own kind, read on three axes:
   //  - tier: a version word ("lite", "oled", "pro max", "tool only"); none means the plain one.
-  //  - generation: "2nd gen", "gen 3", "v2" (all "gen 2"); none means it doesn't say, so any generation.
+  //  - generation: "2nd gen", "gen 2", "AirPods Pro 2" (all "gen 2"), or a revision, "v2" ("v 2"); none means it
+  //    doesn't say, so any generation.
   //  - storage: the largest size of 16GB or more ("256gb"); none means it doesn't say, so any size.
   // Tier words, longer phrases first, so "Pro Max" isn't read as "Pro" or "Max".
   R.TIER_MODIFIERS = ["pro max", "digital edition", "disc edition", "body only", "tool only", "bare tool", "console only", "tablet only",
     "lite", "oled", "mini", "plus", "pro", "ultra", "max", "slim", "se", "fe"];
   // Only what comes before "with", "+" or "bundle" names the thing: "Switch with Pro Controller" is a Switch, and
   // "iPhone 13 with 64GB card" isn't a 64GB phone.
-  const head = (title) => R.normTitle(String(title ?? "").split(/\s(?:with|w\/|includes?|including|plus\s+\d|bundle)\s|\s*[+&]\s*/i)[0]);
+  // "Galaxy S21+" is a Plus, not an S21 with something added.
+  const head = (title) => R.normTitle(String(title ?? "").replace(/([a-z0-9])\+(?=\s|$)/gi, "$1 plus").split(/\s(?:with|w\/|includes?|including|plus\s+\d+(?=\s)|bundle)\s|\s*[+&]\s*/i)[0]);
+  // A tier word that names something else: "Pro Seller", "Pro Controller Bundle", "(Max Battery 100%)", "Plus
+  // Carrying Case". "Plus" is a version only after a model number ("8 Plus", "S10 Plus", "Note 20 Plus").
+  const NOT_TIER = /^(?:controllers?|sellers?|battery|batteries|cases?|covers?|chargers?|charging|grips?|docks?|adapters?|cables?|stands?|skins?|protectors?|carrying|bags?|pouch|tips|shipping|membership|subscription|games?|bundle)$/;
+  const tierAt = (words, m) => {
+    const n = m.split(" ").length;
+    for (let i = 0; i + n <= words.length; i++) {
+      if (words.slice(i, i + n).join(" ") !== m) continue;
+      if (NOT_TIER.test(words[i + n] || "")) continue;
+      if (m === "plus" && !/\d/.test(words[i - 1] || "")) continue;
+      return true;
+    }
+    return false;
+  };
   // The tier word a title names that `query` doesn't ("lite" in a "nintendo switch" search), or "".
   R.variantOf = (title, query = "") => {
-    const t = ` ${head(title)} `;
-    return R.TIER_MODIFIERS.find((m) => t.includes(` ${m} `) && !R.hasWord(query, m)) || "";
+    const words = head(title).split(" ");
+    return R.TIER_MODIFIERS.find((m) => tierAt(words, m) && !R.hasWord(query, m)) || "";
   };
-  // "gen 2" for "2nd gen", "2nd generation", "gen 2", "generation 2" or "v2"; "" when the text names none, or names
+  // "gen 2" for "2nd gen", "2nd generation", "gen 2" or "generation 2", and "v 2" for "v2": a revision ("Switch V2", the
+  // longer battery) isn't the second model ("Switch 2"), and "Dyson V8" is a model name. "" when the text names none, or names
   // several ("iPod Classic 5th 6th 7th Generation": one listing for any of them). Not "20v" (a voltage), "v220", or
   // "Generation (30 GB)".
   const GEN = /(?:^|\s)(?:(\d{1,2})(?:st|nd|rd|th)\s?gen(?:eration)?|gen(?:eration)?\s?(\d{1,2})(?!\s?(?:gb|tb|mb)(?:\s|$))|v(\d{1,2}))(?=\s|$)/;
@@ -492,7 +508,7 @@
     const m = t.match(GEN);
     if (!m) return "";
     if (m[1] && new Set([...t.matchAll(/(?:^|\s)(\d{1,2})(?:st|nd|rd|th)(?=\s|$)/g)].map((x) => +x[1])).size > 1) return "";
-    return `gen ${+(m[1] || m[2] || m[3])}`;
+    return m[3] ? `v ${+m[3]}` : `gen ${+(m[1] || m[2])}`;
   };
   // The storage size a title names ("256gb", "1tb"), of 16GB or more, or "". Two sizes far apart are memory and
   // storage ("16GB 512GB": 512GB); sizes close together are a choice of several ("30GB 60GB 80GB"), so none.
@@ -501,6 +517,30 @@
     if (!sizes.length || (sizes.length > 1 && sizes[0] < sizes[1] * 4) || sizes.length > 2) return "";
     const n = sizes[0];
     return n >= 1024 && n % 1024 === 0 ? `${n / 1024}tb` : `${n}gb`;
+  };
+  // A bare number right after the thing's name is its generation too: "Nintendo Switch 2" in a "nintendo switch"
+  // search, "Meta Quest 3", "AirPods Pro 2", "iPad mini 6", "Apple Watch Series 7". The name is the search's last word
+  // (kept in `same` as "@switch"), a tier word or "series". Up to 20, and not "Switch 2 Games", "Quest 2 128 GB" or a
+  // screen size before the chip ("MacBook Pro 14 M1 Pro").
+  const NOT_MODEL = /^(?:gb|tb|mb|games?|controllers?|joy|pack|pcs|pieces?|pairs?|lots?|ft|feet|in|inch|inches|x|units?|sets?|players?|batteries|months?|years?|hours?|day|days|m\d|i\d|intel|core|ryzen|retina)$/;
+  const modelNumberOf = (h, same) => {
+    const names = new Set([...same.filter((x) => x.startsWith("@")).map((x) => x.slice(1)), ...R.TIER_MODIFIERS.filter((m) => m !== "plus" && !m.includes(" ")), "series"]);
+    if (!same.some((x) => x.startsWith("@"))) return ""; // a typical price saved before this read numbers: as it was
+    const w = h.split(" ");
+    for (let i = 0; i + 1 < w.length; i++) {
+      if (!names.has(w[i]) || !/^\d{1,2}$/.test(w[i + 1]) || +w[i + 1] > 20 || NOT_MODEL.test(w[i + 2] || "")) continue;
+      return `gen ${+w[i + 1]}`;
+    }
+    return "";
+  };
+  // What a search adds to `same` for modelNumberOf: its name word ("@switch"), and the number it ends in as a
+  // generation that's the thing itself ("iphone 13": "gen 13", "@iphone"). Words to leave out ("-case") don't count.
+  const searchName = (query) => {
+    const w = R.normTitle(String(query ?? "").replace(/(?:^|\s)-\S+/g, " ")).split(" ").filter(Boolean);
+    if (!w.length) return [];
+    const last = w[w.length - 1];
+    if (/^\d{1,2}$/.test(last)) return w.length > 1 ? [`gen ${+last}`, `@${w[w.length - 2]}`] : [];
+    return [`@${last}`];
   };
   // A title's version as [tier, generation, storage], each "" when it names none. `same`: labels that are the thing
   // itself, not a version (the search names them, or most sales have them); "size" there turns storage off.
@@ -511,7 +551,7 @@
     if (versionSeen.size > 5000) versionSeen.clear();
     const h = head(title);
     const tier = R.variantOf(h, same.join(" "));
-    const gen = R.genOf(h);
+    const gen = R.genOf(h) || modelNumberOf(h, same);
     const size = same.includes("size") ? "" : R.sizeOf(h);
     const out = [tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
     versionSeen.set(key, out);
@@ -529,6 +569,7 @@
   R.VARIANT_COMMON = 0.6;
   R.variantGroups = (sales, query = "") => {
     const same = [...R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m)), ...[R.genOf(query)].filter(Boolean), ...(R.sizeOf(query) ? ["size"] : [])];
+    for (const x of searchName(query)) if (!same.includes(x)) same.push(x);
     const counts = new Map();
     for (const s of sales) {
       const t = R.versionOf(s.title, same)[0];
@@ -562,6 +603,7 @@
   R.kindWord = (w) => {
     const g = w.match(/^gen (\d+)$/)?.[1];
     if (g) return `${g}${["th", "st", "nd", "rd"][+g % 100 > 10 && +g % 100 < 14 ? 0 : +g % 10] || "th"} generation`;
+    if (/^v \d+$/.test(w)) return `\u201c${w.replace(" ", "").toUpperCase()}\u201d`; // a revision: "V2"
     return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
   };
   R.variantLike = (market) => (market?.variantWords || []).join(" ");

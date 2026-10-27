@@ -841,9 +841,11 @@ test("variantOf: the version a title names that the search doesn't", () => {
 
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.
 test("genOf and sizeOf: a generation and a storage size, however they're written", () => {
-  for (const t of ["AirPods Pro 2nd Generation", "AirPods Pro (2nd Gen) USB-C", "AirPods Pro Gen 2", "iPad generation 2", "Dyson V2"]) assert.equal(R.genOf(t), "gen 2", t);
+  for (const t of ["AirPods Pro 2nd Generation", "AirPods Pro (2nd Gen) USB-C", "AirPods Pro Gen 2", "iPad generation 2"]) assert.equal(R.genOf(t), "gen 2", t);
+  assert.equal(R.genOf("Dyson V2"), "v 2", "a V number is a revision or a model name, kept apart from a generation");
   assert.equal(R.genOf("iPad Mini 6th Gen 64GB"), "gen 6");
-  assert.equal(R.genOf("Nintendo Switch V1 unpatched"), "gen 1");
+  assert.equal(R.genOf("Nintendo Switch V1 unpatched"), "v 1");
+  assert.notEqual(R.versionOf("Nintendo Switch V2 Neon", ["@switch"])[1], R.versionOf("Nintendo Switch 2 Console", ["@switch"])[1], "a V2 isn't a Switch 2");
   for (const t of ["DeWalt 20V Max drill", "Bosch 18v", "Dyson V220 cable", "Nintendo Switch"]) assert.equal(R.genOf(t), "", t);
   assert.equal(R.sizeOf("iPhone 13 Pro 256GB Graphite"), "256gb");
   assert.equal(R.sizeOf("iPhone 13 1 TB"), "1tb");
@@ -859,6 +861,34 @@ test("versionOf: tier, generation and size, leaving out what's the thing itself"
   assert.deepEqual(R.versionOf("iPhone 13 with 64GB card"), ["", "", ""], "what comes with it isn't its size");
 });
 
+// 2026-10-27 review: titles the first reading got wrong.
+test("versionOf: tier words that name something else, and Plus written as +", () => {
+  assert.deepEqual(R.versionOf("Nintendo Switch Console Pro Controller Bundle", ["@switch"]), ["", "", ""], "a Pro Controller isn't a Pro");
+  assert.deepEqual(R.versionOf("Apple iPhone 13 128GB Blue Unlocked - Battery 89% - Pro Seller", ["gen 13", "@iphone"]), ["", "", "128gb"], "nor is a Pro seller");
+  assert.deepEqual(R.versionOf("Nintendo Switch Plus Carrying Case", ["@switch"]), ["", "", ""], "plus as in also");
+  assert.deepEqual(R.versionOf("Samsung Galaxy S21+ 5G 128GB Unlocked", ["@s21"]), ["plus", "", "128gb"], "S21+ is the Plus");
+  assert.deepEqual(R.versionOf("Apple iPhone 8 Plus 64GB", ["@iphone"]), ["plus", "gen 8", "64gb"]);
+  assert.deepEqual(R.versionOf("Nintendo Switch Lite Coral (Plus 2 Games)", ["@switch"]), ["lite", "", ""]);
+  assert.deepEqual(R.versionOf("Apple iPhone 13 Pro 128GB Sierra Blue (Max Battery 100%)", ["gen 13", "@iphone"]), ["pro", "", "128gb"]);
+});
+
+test("versionOf: a number after the thing's name is its generation", () => {
+  const sw = ["@switch"];
+  assert.deepEqual(R.versionOf("Nintendo Switch 2 Console Mario Kart World Bundle", sw), ["", "gen 2", ""], "a Switch 2 isn't a plain Switch");
+  assert.deepEqual(R.versionOf("Nintendo Switch Console Neon", sw), ["", "", ""]);
+  assert.deepEqual(R.versionOf("Nintendo Switch 2 Games Bundle", sw), ["", "", ""], "a count of games isn't a model");
+  assert.deepEqual(R.versionOf("Apple AirPods Pro 2 USB-C", ["pro", "@pro"]), ["", "gen 2", ""], "the same group as “AirPods Pro 2nd Generation”");
+  assert.deepEqual(R.versionOf("Meta Quest 3 512GB", ["@quest"]), ["", "gen 3", "512gb"]);
+  assert.deepEqual(R.versionOf("Apple iPad mini 6 64GB", ["@ipad"]), ["mini", "gen 6", "64gb"], "after a tier word too");
+  assert.deepEqual(R.versionOf("Apple Watch Series 7 45mm GPS", ["@watch"]), ["", "gen 7", ""]);
+  assert.deepEqual(R.versionOf("MacBook Pro 14 M1 Pro 16GB 512GB", ["pro", "@pro"]), ["", "", "512gb"], "a screen size before the chip isn't a model");
+  assert.deepEqual(R.versionOf("Bose QuietComfort 45", ["@quietcomfort"]), ["", "", ""], "over 20 is a model name, not a generation");
+  assert.deepEqual(R.versionOf("Nintendo Switch 2 Console", []), ["", "", ""], "a typical price saved before this reads as it did");
+  // The search names a number: that's the thing itself, and an iPhone 14 in an "iphone 13" search's sales stands apart.
+  assert.deepEqual(R.versionOf("Apple iPhone 13 Pro 256GB", ["gen 13", "@iphone"]), ["pro", "", "256gb"]);
+  assert.deepEqual(R.versionOf("Apple iPhone 14 128GB", ["gen 13", "@iphone"]), ["", "gen 14", "128gb"]);
+});
+
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.
 const switchSales = () => [
   ...[150, 155, 158, 160, 160, 162, 165, 168, 170, 155].map((total, i) => ({ title: `Nintendo Switch Console Gray ${i}`, total })),
@@ -869,19 +899,21 @@ const switchSales = () => [
 test("variantGroups: sales grouped by tier, generation and size", () => {
   const g = R.variantGroups(switchSales(), "nintendo switch");
   assert.deepEqual([g.groups["/*/*"].length, g.groups["lite/*/*"].length, g.groups["oled/*/*"].length], [10, 8, 8]);
-  assert.deepEqual(g.same, []);
-  assert.deepEqual(R.variantGroups(switchSales(), "switch oled").same, ["oled"], "a version the search names is the thing itself");
+  assert.deepEqual(g.same, ["@switch"], "the search's name word, for a number after it (modelNumberOf)");
+  assert.deepEqual(R.variantGroups(switchSales(), "switch oled").same, ["oled", "@oled"], "a version the search names is the thing itself");
   assert.equal(R.variantGroups(switchSales(), "switch oled").groups["oled/*/*"], undefined);
   // "20V Max" on nearly every DeWalt drill is the drill, not a version of it.
   const drills = [...Array(9)].map((_, i) => ({ title: `DeWalt DCD771C2 20V MAX Cordless Drill Kit ${i}`, total: 80 + i })).concat({ title: "DeWalt DCD771 drill", total: 75 });
   const d = R.variantGroups(drills, "dewalt dcd771");
-  assert.deepEqual(d.same, ["max"]);
+  assert.deepEqual(d.same, ["@dcd771", "max"]);
   assert.deepEqual(Object.keys(d.groups), ["/*/*"]);
   // Sizes and generations: a 256GB iPhone 13 Pro counts in "pro/*/256gb", "pro/*/*" and so on.
   const phones = R.variantGroups([{ title: "iPhone 13 Pro 256GB", total: 500 }, { title: "iPhone 13 128GB", total: 300 }, { title: "iPhone 13", total: 290 }], "iphone 13");
   assert.deepEqual(Object.keys(phones.groups).sort(), ["/*/*", "/*/128gb", "pro/*/*", "pro/*/256gb"]);
-  assert.deepEqual(R.variantGroups([{ title: "iPhone 13 128GB", total: 300 }], "iphone 13 128gb").same, ["size"]);
-  assert.deepEqual(R.variantGroups([], "x"), { same: [], groups: {} });
+  assert.deepEqual(R.variantGroups([{ title: "iPhone 13 128GB", total: 300 }], "iphone 13 128gb").same, ["size", "@128gb"]);
+  assert.deepEqual(R.variantGroups([{ title: "iPhone 13", total: 300 }], "iphone 13").same, ["gen 13", "@iphone"], "the number the search ends in is the thing itself");
+  assert.deepEqual(R.variantGroups([], "x"), { same: ["@x"], groups: {} });
+  assert.deepEqual(R.variantGroups([], ""), { same: [], groups: {} });
 });
 
 const mixed = { median: 160, p10: 92, p25: 98, p75: 235, n: 26, confidence: "fair", ship: 14, variants: {
@@ -991,6 +1023,7 @@ test("askingRead: version words price it against sales of that version, and say 
   assert.equal(R.kindWord("gen 2"), "2nd generation");
   assert.equal(R.kindWord("gen 12"), "12th generation");
   assert.equal(R.kindWord("128gb"), "128GB");
+  assert.equal(R.kindWord("v 2"), "\u201cV2\u201d", "a revision");
 });
 
 test("asIsMargin: the floor if a repair fails, at what broken ones sell for", () => {

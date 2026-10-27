@@ -158,3 +158,15 @@ test("Craigslist: opt in, a host per city, keys from the post number", () => {
   const f = new URL(Sites.withFilters("https://sfbay.craigslist.org/search/sss?query=switch", { min: 20, max: 99.5 }));
   assert.deepEqual([f.searchParams.get("min_price"), f.searchParams.get("max_price")], ["20", "100"]);
 });
+
+test("Craigslist as addressed today: www.craigslist.org/view/… posts keyed by their code, /search/area/… searches", () => {
+  const cl = Sites.get("craigslist");
+  const at = (u) => new URL(u);
+  const post = "https://www.craigslist.org/view/d/albuquerque-nintendo-switch-wireless/wVo8Fw1YFEXCw2vSs6CZ92";
+  assert.equal(Sites.keyOf(post), "cl:wVo8Fw1YFEXCw2vSs6CZ92");
+  assert.equal(Sites.keyOf("https://www.craigslist.org/view/5UAWWjKyUjM75ZEmeiujnW"), "cl:5UAWWjKyUjM75ZEmeiujnW", "Craigslist's own prev and next links");
+  assert.equal(Sites.itemUrl("cl:wVo8Fw1YFEXCw2vSs6CZ92"), "https://www.craigslist.org/view/wVo8Fw1YFEXCw2vSs6CZ92");
+  assert.equal(Sites.here(at(post)).id, "craigslist");
+  assert.deepEqual([post, "https://www.craigslist.org/search/area/albuquerque?cat=ela", "https://www.craigslist.org/view/d/x"].map((u) => cl.pageType(at(u))), ["item", "results", "other"]);
+  assert.equal(Sites.keyOf("https://www.craigslist.org/about/help/safety/scams"), "https://www.craigslist.org/about/help/safety/scams");
+});

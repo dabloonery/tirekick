@@ -769,16 +769,18 @@ Risks: Both sites' terms limit automated collection. Tirekick would read only pa
 From the outside review's "Blueprint 4", built to this brief. Off by default: settings' **Also work on Craigslist** asks
 the browser for `https://*.craigslist.org/*` and `https://images.craigslist.org/*` (optional hosts) in the click and
 gives them back when turned off; the background registers the page scripts there only while both hold
-(`sitesInUse`). The site entry has `setting`, `isHost` (a host per city) and `photoOrigins`; keys are `cl:<post
-number>`, and since a post's address needs its city, saved ones keep their own (`itemUrl` gives ""). Readers for the
+(`sitesInUse`). The site entry has `setting`, `isHost` (a host per city) and `photoOrigins`. Craigslist now serves
+searches at www.craigslist.org/search/area/<city> and posts at www.craigslist.org/view/d/<slug>/<code> (found on
+dabloonery's first live try, which read nothing): keys are `cl:<code>` (`idPattern`), and `itemUrl` gives
+/view/<code>; older city-host posts key by their number, and saved ones keep their own address. Readers for the
 gallery, list, plain and old "result-row" cards, and the post page; $0 and $1 are no price. Scam signs per site
 (`TK.offSite(text, "craigslist")`): phone numbers, "text me" and email don't count; away-and-ship, shipping only,
 escrow or a payment guarantee, gift cards and overpaid checks are Likely scam ("Scam? Payment trick"), a deposit
 first is a "Money first?" chip, and a sign right after "no"/"not" doesn't count. The AI's scam rule says the same.
 The hub's Search buttons include it once on (www.craigslist.org, which sends you to your nearest city).
 
-Left: the fixtures are hand-made from Craigslist's markup, not saved real pages (dabloonery: save a real search and
-post over `tests/fixtures/craigslist-*.html`); no page test of the panel on Craigslist, since e2e can't grant an
+Real saved pages (an Albuquerque electronics search and a post, trimmed by `tests/helpers/trim-page.py craigslist`)
+are `tests/fixtures/craigslist-*-real.html`; the hand-made ones stay for the older layouts and the scam signs. Left: no page test of the panel on Craigslist, since e2e can't grant an
 optional host; remembering the last city for the hub's search; trying it live in Vivaldi (the permission prompt too).
 
 #### How each store fits (same for all)

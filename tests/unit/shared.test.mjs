@@ -435,3 +435,9 @@ test("usageReport: counts only, never a search, a listing or a seller", () => {
   for (const secret of ["switch", "pentax", "ebay.com/itm", "sk-ant"]) assert.ok(!r.toLowerCase().includes(secret), secret);
   assert.match(S.usageReport({}), /^Tirekick\nAI: off.*\nScans: 0; sold-price lookups: 0\n.*\nPage reading: no results pages yet$/s);
 });
+
+test("a backup keeps saved Craigslist posts under either kind of key, and nothing that only looks like one", () => {
+  const { sets } = S.cleanBackup({ saved: { "cl:wVo8Fw1YFEXCw2vSs6CZ92": { t: "Switch controller", u: "https://www.craigslist.org/view/d/x/wVo8Fw1YFEXCw2vSs6CZ92", p: 20 }, "cl:7791000001": { t: "Old post", p: 5 }, "cl:../../x": { t: "bad" }, "ebay:abc": { t: "bad" } } });
+  assert.deepEqual(Object.keys(sets.saved).sort(), ["cl:7791000001", "cl:wVo8Fw1YFEXCw2vSs6CZ92"]);
+  assert.equal(sets.saved["cl:wVo8Fw1YFEXCw2vSs6CZ92"].u, "https://www.craigslist.org/view/d/x/wVo8Fw1YFEXCw2vSs6CZ92");
+});

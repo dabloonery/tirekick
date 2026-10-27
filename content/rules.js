@@ -335,7 +335,7 @@
     // Not beside a strong seller sign: a new account at half price is the scam's look on any site.
     const cut = market.local && !risky ? R.LOCAL_NET : 1;
     if (pct >= R.TOO_CHEAP.low * cut) return null;
-    const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, `${market.query || ""} ${market.variantUsed && market.variantUsed !== "base" ? market.variantUsed : ""}`.trim());
+    const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, `${market.query || ""} ${R.variantLike(market)}`.trim());
     const out = (level, extra) => ({ level, pct: Math.round(pct * 100), ...(why && level !== "far" && { why }), ...extra });
     // Real sales went this low (the cheapest tenth of them, market.p10): honest prices land here too, as in a search
     // that mixes models ("nintendo switch": Lites, V1s and OLEDs), so it isn't bait on price alone.
@@ -397,7 +397,8 @@
     const missing = t.match(MISSING)?.[1];
     if (missing && !/^missing (?:nothing|anything|out)\b/.test(missing.toLowerCase()) && !/\bnot (?:be )?$/.test(t.slice(0, t.indexOf(missing.toLowerCase())))) return missing.toLowerCase();
     const cheaper = t.match(CHEAPER)?.[1];
-    if (cheaper && !R.hasWord(query, cheaper)) return cheaper.toLowerCase();
+    // Not when the typical price is already for that generation ("gen 1" from R.variantLike).
+    if (cheaper && !R.hasWord(query, cheaper) && !(R.genOf(cheaper) && R.genOf(cheaper) === R.genOf(query))) return cheaper.toLowerCase();
     return R.smallerStorage(t, query);
   };
   // A smaller size than the search names: "64GB" in an "iphone 13 128gb" search. "" when there's none.
@@ -427,7 +428,7 @@
     f.accessory = (!f.ownMarket && R.accessoryOf(f.title, query)) || "";
     f.offWords = (!f.ownMarket && R.missingWord(f.title, query)) || "";
     // A version the typical price is already for (R.forVariant: "lite" against Lite sales) isn't why it's cheap.
-    const like = market?.variantUsed && market.variantUsed !== "base" ? market.variantUsed : "";
+    const like = R.variantLike(market);
     f.saysWhy = R.cheapReason(f.title, f.text, `${f.ownMarket ? "" : query} ${like}`.trim()); // why it's cheap, in its own words (tooCheap)
     const off = !f.ownMarket && R.offSearch(f.title, query);
     const vs = market?.median > 0 && f.total != null && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.accessory && !off && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
@@ -435,60 +436,99 @@
     return vs;
   };
 
-  // Versions within one model line that sell for 25% or more apart: a search for "nintendo switch" or "iphone 13"
-  // gets Lites, OLEDs and Pro Maxes in its sales too. Longer phrases first, so "Pro Max" isn't read as "Pro" or "Max".
+  // A search that names no version gets every version in its sales: "nintendo switch" has Lites at $95 beside OLEDs at
+  // $250, "iphone 13" has 128GB phones beside 512GB Pro Maxes, "airpods pro" has both generations, "dyson" V8s beside
+  // V11s. A listing is compared with sales of its own kind, read on three axes:
+  //  - tier: a version word ("lite", "oled", "pro max", "tool only"); none means the plain one.
+  //  - generation: "2nd gen", "gen 3", "v2" (all "gen 2"); none means it doesn't say, so any generation.
+  //  - storage: the largest size of 16GB or more ("256gb"); none means it doesn't say, so any size.
+  // Tier words, longer phrases first, so "Pro Max" isn't read as "Pro" or "Max".
   R.TIER_MODIFIERS = ["pro max", "digital edition", "disc edition", "body only", "tool only", "bare tool", "console only", "tablet only",
     "lite", "oled", "mini", "plus", "pro", "ultra", "max", "slim", "se", "fe"];
-  // The version a title names that the search doesn't ("lite" in a "nintendo switch" search), or "". Only what comes
-  // before "with", "+" or "bundle" counts: "Switch with Pro Controller" is a Switch. `query` may hold more words that
-  // don't count as a version (a market's variants._same).
-  const variantSeen = new Map(); // (title, search) -> the answer: every card asks again each time the list redraws
+  // Only what comes before "with", "+" or "bundle" names the thing: "Switch with Pro Controller" is a Switch, and
+  // "iPhone 13 with 64GB card" isn't a 64GB phone.
+  const head = (title) => R.normTitle(String(title ?? "").split(/\s(?:with|w\/|includes?|including|plus\s+\d|bundle)\s|\s*[+&]\s*/i)[0]);
+  // The tier word a title names that `query` doesn't ("lite" in a "nintendo switch" search), or "".
   R.variantOf = (title, query = "") => {
-    const key = `${title ?? ""}\u0001${query}`;
-    if (variantSeen.has(key)) return variantSeen.get(key);
-    if (variantSeen.size > 5000) variantSeen.clear();
-    const t = ` ${R.normTitle(String(title ?? "").split(/\s(?:with|w\/|includes?|including|plus\s+\d|bundle)\s|\s*[+&]\s*/i)[0])} `;
-    const out = R.TIER_MODIFIERS.find((m) => t.includes(` ${m} `) && !R.hasWord(query, m)) || "";
-    variantSeen.set(key, out);
+    const t = ` ${head(title)} `;
+    return R.TIER_MODIFIERS.find((m) => t.includes(` ${m} `) && !R.hasWord(query, m)) || "";
+  };
+  // "gen 2" for "2nd gen", "2nd generation", "gen 2", "generation 2" or "v2"; "" when the text names none, or names
+  // several ("iPod Classic 5th 6th 7th Generation": one listing for any of them). Not "20v" (a voltage), "v220", or
+  // "Generation (30 GB)".
+  const GEN = /(?:^|\s)(?:(\d{1,2})(?:st|nd|rd|th)\s?gen(?:eration)?|gen(?:eration)?\s?(\d{1,2})(?!\s?(?:gb|tb|mb)(?:\s|$))|v(\d{1,2}))(?=\s|$)/;
+  R.genOf = (text) => {
+    const t = R.normTitle(text);
+    const m = t.match(GEN);
+    if (!m) return "";
+    if (m[1] && new Set([...t.matchAll(/(?:^|\s)(\d{1,2})(?:st|nd|rd|th)(?=\s|$)/g)].map((x) => +x[1])).size > 1) return "";
+    return `gen ${+(m[1] || m[2] || m[3])}`;
+  };
+  // The storage size a title names ("256gb", "1tb"), of 16GB or more, or "". Two sizes far apart are memory and
+  // storage ("16GB 512GB": 512GB); sizes close together are a choice of several ("30GB 60GB 80GB"), so none.
+  R.sizeOf = (text) => {
+    const sizes = [...new Set([...R.normTitle(text).matchAll(/(?:^|\s)(\d+)\s?(gb|tb)(?=\s|$)/g)].map((m) => +m[1] * (m[2] === "tb" ? 1024 : 1)).filter((n) => n >= 16))].sort((a, b) => b - a);
+    if (!sizes.length || (sizes.length > 1 && sizes[0] < sizes[1] * 4) || sizes.length > 2) return "";
+    const n = sizes[0];
+    return n >= 1024 && n % 1024 === 0 ? `${n / 1024}tb` : `${n}gb`;
+  };
+  // A title's version as [tier, generation, storage], each "" when it names none. `same`: labels that are the thing
+  // itself, not a version (the search names them, or most sales have them); "size" there turns storage off.
+  const versionSeen = new Map(); // (title, same) -> the answer: every card asks again each time the list redraws
+  R.versionOf = (title, same = []) => {
+    const key = `${title ?? ""}\u0001${same.join("|")}`;
+    if (versionSeen.has(key)) return versionSeen.get(key);
+    if (versionSeen.size > 5000) versionSeen.clear();
+    const h = head(title);
+    const tier = R.variantOf(h, same.join(" "));
+    const gen = R.genOf(h);
+    const size = same.includes("size") ? "" : R.sizeOf(h);
+    const out = [tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
+    versionSeen.set(key, out);
     return out;
   };
-  // Sales split by version, for TK.summarizeSold: { same, base, groups: { lite: [sales], … } }. A version the search
-  // names, or one most of the sales have ("20V Max" on nearly every DeWalt drill), is the thing itself (same); the
-  // rest name another version when they say one, and base holds the sales that name none.
+  // The groups a sale counts in: its tier always, its generation and size or any ("*"). "lite/*/*" is every Lite,
+  // "/gen 2/*" every plain second generation, "/*/256gb" every plain 256GB one.
+  const patternsOf = ([t, g, s]) => [`${t}/${g || "*"}/${s || "*"}`, `${t}/${g || "*"}/*`, `${t}/*/${s || "*"}`, `${t}/*/*`];
+  // The patterns a listing tries, most like it first: its whole version, then any size, then any generation.
+  const lookupsOf = ([t, g, s]) => [...new Set([`${t}/${g || "*"}/${s || "*"}`, `${t}/${g || "*"}/*`, `${t}/*/*`])];
+  // Sales split by version, for TK.summarizeSold: { same, groups: { "lite/*/*": [sales], "/gen 2/*": […], … } }. A
+  // label the search names, or a tier word over 60% of the sales have ("20V Max" on nearly every DeWalt drill), is the
+  // thing itself (same); a search that names a size turns storage off. A size or generation most sales have still
+  // sets them apart from the rest, so those stay.
   R.VARIANT_COMMON = 0.6;
   R.variantGroups = (sales, query = "") => {
-    const same = R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m));
-    const split = () => {
-      const groups = {};
-      const base = [];
-      for (const s of sales) {
-        const v = R.variantOf(s.title, same.join(" "));
-        if (v) (groups[v] ||= []).push(s);
-        else base.push(s);
-      }
-      return { groups, base };
-    };
-    let { groups, base } = split();
-    const common = Object.keys(groups).filter((m) => groups[m].length > sales.length * R.VARIANT_COMMON);
-    if (common.length) {
-      same.push(...common);
-      ({ groups, base } = split());
+    const same = [...R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m)), ...[R.genOf(query)].filter(Boolean), ...(R.sizeOf(query) ? ["size"] : [])];
+    const counts = new Map();
+    for (const s of sales) {
+      const t = R.versionOf(s.title, same)[0];
+      if (t) counts.set(t, (counts.get(t) || 0) + 1);
     }
-    return { same, base, groups };
+    for (const [t, n] of counts) if (n > sales.length * R.VARIANT_COMMON) same.push(t);
+    const groups = {};
+    for (const s of sales) for (const p of new Set(patternsOf(R.versionOf(s.title, same)))) (groups[p] ||= []).push(s);
+    return { same, groups };
   };
-  // The typical price for this listing's version, when the sales had enough of it: a Lite against Lite sales, a plain
-  // Switch against sales that name no other version, so OLEDs don't lift its typical price. market.variants is from
-  // TK.summarizeSold; a version with too few sales, or a spread too wide to trust ("rough"), keeps the whole market.
-  // Returns the market as is, or a copy with that version's numbers and variantUsed ("lite", or "base").
+  // The typical price for this listing's kind, when the sales had enough of it: a Lite against Lites, a 256GB iPhone 13
+  // against 256GB ones, a plain Switch against sales that name no tier, so OLEDs don't lift its typical price.
+  // market.variants is from TK.summarizeSold (only groups worth trusting are kept). With no group for its kind, the
+  // whole market, as before. Returns the market as is, or a copy with that group's numbers, variantUsed (the pattern)
+  // and variantWords (what the listing was matched on: ["lite"], ["gen 2", "256gb"], [] for a plain one).
   R.forVariant = (market, f) => {
     const vs = market?.variants;
     if (!vs || !f?.title) return market;
-    const tier = R.variantOf(f.title, (vs._same || []).join(" "));
-    const sub = tier ? vs[tier] : vs._base;
-    if (!(sub?.median > 0) || sub.confidence === "rough") return market;
+    const v = R.versionOf(f.title, vs._same || []);
+    const p = lookupsOf(v).find((k) => vs[k]?.median > 0 && vs[k].confidence !== "rough");
+    if (!p) return market;
+    const sub = vs[p];
     const { variants, ...rest } = market;
-    return { ...rest, median: sub.median, p10: sub.p10, p25: sub.p25, p75: sub.p75, n: sub.n, confidence: sub.confidence, variantUsed: tier || "base", ...(!tier && { variantOthers: Object.keys(vs).filter((k) => !k.startsWith("_")) }) };
+    const [t, g, s] = p.split("/");
+    const words = [t, g, s].filter((x) => x && x !== "*");
+    const tiers = [...new Set(Object.keys(vs).map((k) => k.split("/")[0]).filter((x) => x && !x.startsWith("_")))];
+    return { ...rest, median: sub.median, p10: sub.p10, p25: sub.p25, p75: sub.p75, n: sub.n, confidence: sub.confidence, variantUsed: p, variantWords: words, ...(!t && tiers.length && { variantOthers: tiers }) };
   };
+  // The words a version adds to the search, for cheapReason: "lite gen 2 256gb". "" for none.
+  R.variantLike = (market) => (market?.variantWords || []).join(" ");
 
   // Sold totals include the shipping buyers paid; a pickup listing (a local site, no shipping on it) has none
   // to pay, so it's compared with the typical price less the typical shipping. Otherwise a $40 pickup price

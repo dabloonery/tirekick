@@ -10,7 +10,7 @@ const titles = (list) => list.map((r) => r.c.title).sort();
 
 test("eval: every scam gets a warning before any scan, and none is missed", () => {
   assert.equal(s.missed.length, 0, report(rows));
-  assert.ok(s.red >= 27, `Likely scam on ${s.red} of ${s.scams}\n${report(rows)}`);
+  assert.ok(s.red >= 28, `Likely scam on ${s.red} of ${s.scams}\n${report(rows)}`);
 });
 
 test("eval: honest listings are rarely marked, and only the known ones", () => {
@@ -19,7 +19,7 @@ test("eval: honest listings are rarely marked, and only the known ones", () => {
 });
 
 test("eval: price words and verdicts after a scan are as labeled", () => {
-  assert.ok(s.priced - s.wrongWord.length >= 69, report(rows));
+  assert.ok(s.priced - s.wrongWord.length >= 76, report(rows));
   assert.equal(s.wrongShown.length, 0, report(rows));
   assert.deepEqual(titles(s.deepCleared), [], report(rows));
 });

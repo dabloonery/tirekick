@@ -32,9 +32,23 @@ export const MARKETS = {
   "canon ae-1": { median: 160, ship: 15, confidence: "fair", n: 19 },
   // Lites, V1s and OLEDs together, and each version on its own as TK.summarizeSold splits them (TKRules.forVariant).
   "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52, variants: {
-    lite: { median: 95, p10: 75, p25: 88, p75: 105, n: 14, confidence: "fair" },
-    oled: { median: 250, p10: 205, p25: 235, p75: 265, n: 16, confidence: "good" },
-    _base: { median: 170, p10: 120, p25: 150, p75: 185, n: 22, confidence: "good" },
+    "lite/*/*": { median: 95, p10: 75, p25: 88, p75: 105, n: 14, confidence: "fair" },
+    "oled/*/*": { median: 250, p10: 205, p25: 235, p75: 265, n: 16, confidence: "good" },
+    "/*/*": { median: 170, p10: 120, p25: 150, p75: 185, n: 22, confidence: "good" },
+  } },
+  // Searches that name no size or generation: each kind on its own as TK.summarizeSold splits them (assumed numbers).
+  "iphone 13": { median: 320, ship: 10, confidence: "good", n: 60, variants: {
+    "/*/128gb": { median: 290, p10: 250, p25: 275, p75: 305, n: 20, confidence: "good" },
+    "/*/256gb": { median: 345, p10: 300, p25: 330, p75: 360, n: 12, confidence: "fair" },
+    "/*/*": { median: 310, p10: 255, p25: 285, p75: 340, n: 35, confidence: "good" },
+    "pro/*/*": { median: 450, p10: 380, p25: 420, p75: 480, n: 15, confidence: "good" },
+    "pro max/*/*": { median: 520, p10: 440, p25: 490, p75: 560, n: 10, confidence: "fair" },
+    "mini/*/*": { median: 230, p10: 190, p25: 215, p75: 250, n: 10, confidence: "fair" },
+  } },
+  "airpods pro": { median: 110, ship: 6, confidence: "good", n: 50, variants: {
+    _same: ["pro"],
+    "/gen 1/*": { median: 75, p10: 55, p25: 68, p75: 82, n: 16, confidence: "good" },
+    "/gen 2/*": { median: 150, p10: 120, p25: 140, p75: 160, n: 24, confidence: "good" },
   } },
   "ds": { median: 60, ship: 6, confidence: "fair", n: 40 },
   "4tb hard drive": { median: 55, ship: 8, confidence: "good", n: 40 }, // assumed, for the real drive search below
@@ -169,6 +183,16 @@ export const CASES = [
   fb("nintendo switch", "Nintendo Switch Lite gray, charger included", 75, { truth: "honest", word: "fair" }),
   ebay("nintendo switch", "Nintendo Switch Lite Coral NEW", 29, 0, seller(100, 0), { truth: "scam", scan: "great", note: "Lite bait, 31% of a Lite" }),
   fb("nintendo switch", "Nintendo Switch OLED brand new", 90, { truth: "scam", scan: "great", page: "Joined Facebook in 2026. Ship only, pay by Zelle first." }),
+
+  // ---------- iphone 13, no size named ($320 for the mix; plain 128GB $290, Pro $450, Pro Max $520, mini $230) ----------
+  ebay("iphone 13", "Apple iPhone 13 128GB Blue Unlocked", 310, 0, seller(99.5, 640), { truth: "honest", word: "pass", note: "over what 128GB ones sell for; Fair price against the mix" }),
+  ebay("iphone 13", "Apple iPhone 13 Pro 128GB Sierra Blue", 355, 0, seller(99.7, "1.1K"), { truth: "honest", word: "good", note: "a Pro well under Pro sales; Above typical against the mix" }),
+  ebay("iphone 13", "Apple iPhone 13 Mini 128GB Pink Unlocked", 179, 0, seller(99.4, 380), { truth: "honest", word: "good" }),
+  fb("iphone 13", "iPhone 13 Pro Max 256gb unlocked", 420, { truth: "honest", word: "fair" }),
+  ebay("iphone 13", "Apple iPhone 13 Pro Max 256GB NEW SEALED", 199, 0, seller(100, 0), { truth: "scam", scan: "great", note: "38% of a Pro Max, but 62% of the mix: no mark at all before" }),
+  // ---------- airpods pro, no generation named ($110 for the mix; 1st gen $75, 2nd gen $150) ----------
+  ebay("airpods pro", "Apple AirPods Pro 2nd Generation USB-C", 129, 0, seller(99.8, "4K"), { truth: "honest", word: "fair" }),
+  ebay("airpods pro", "Apple AirPods Pro 1st Generation with MagSafe Case", 85, 0, seller(99.2, 210), { truth: "honest", word: "pass", note: "over what first-generation ones sell for; Good price against the mix" }),
 
   // ---------- scams that give the same excuses as honest cheap listings (CHEAP below) ----------
   ebay("nintendo switch oled", "Nintendo Switch OLED - minor scratch, works perfect", 79, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "flaw", note: "bait with a flaw story, 31% from a new seller" }),

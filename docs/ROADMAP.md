@@ -10,7 +10,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
 - [Built for one person, reassessed for everyone](#built-for-one-person-reassessed-for-everyone) (2026-10-15)
 - [Public beta launch](#public-beta-launch) (decided 2026-10-15: launch as a public beta before 1.0.0)
 - [Honest low prices](#honest-low-prices) (2026-10-21: honest cheap listings marked as scams; the order of PRs)
-- [Prices by version](#prices-by-version) (2026-10-27: a Lite against Lite sales in a "nintendo switch" search)
+- [Prices by version](#prices-by-version) (2026-10-27: a listing against sales of its own tier, generation and size)
 - [After real use (2026-10-16)](#after-real-use-2026-10-16) (0.50.2 fixes, and design changes for dabloonery to pick)
 - [Chrome Web Store: each upload](#chrome-web-store-each-upload)
 - [Tirekick: making the no-AI features sturdier](#tirekick-making-the-no-ai-features-sturdier)
@@ -316,16 +316,23 @@ version ("nintendo switch", "iphone 13") gets every version in its sales: Lites 
 for all of them made an OLED at $235 "Above typical", a plain Switch at $199 "Fair price" and an honest Lite "Check
 first" (saved by `cheapReason`'s "cheaper version" only after the warning).
 
-Built: `TK.summarizeSold` splits the sales by the version words in `TKRules.TIER_MODIFIERS` (lite, oled, mini, pro max,
-tool only, digital edition…) and keeps numbers for each version with 5 or more sales, and for the sales naming none
-(`_base`) with 8 or more. `TKRules.forVariant` (run by `forPickup`, so everywhere a card is priced) compares a listing
-with its own version, unless that version's numbers are "rough" (then the whole market, as before, so no scam mark is
-lost to a thin version). A version the search names, or one most sales have ("20V Max" on DeWalt drills), is the thing
-itself. The chip's hover says which sales it used. Eval: 7 new labeled listings on a mixed search, all as labeled;
-against the one median all 5 honest ones got the wrong word, and the Marketplace OLED bait was only Check first.
+Built (#132, widened the same day at dabloonery's ask "more than just a switch"): `TK.summarizeSold` groups the sales
+on three axes (`TKRules.versionOf`): a tier word (`TKRules.TIER_MODIFIERS`: lite, oled, mini, pro max, tool only,
+digital edition…), a generation ("2nd gen", "gen 2", "v2"), and a storage size (16GB or more; a title naming several
+sizes or generations, "5th 6th 7th Generation", counts as none). Each group with 8+ sales and a spread worth trusting
+keeps its numbers (`market.variants`, keyed "tier/generation/size" with "*" for any). `TKRules.forVariant` (run by
+`forPickup`, so everywhere a card is priced) tries the listing's whole kind, then any size, then any generation, then
+falls back to the whole market as before; a listing that doesn't say its generation or size is compared with any.
+A tier the search names, or one over 60% of sales have ("20V Max" on DeWalt drills), is the thing itself; a search that
+names a size turns sizes off. The chip's hover says which sales it used, and the version stops counting as the reason a
+listing is cheap once it's compared with its own kind.
 
-Left: sold pages are still hand-made fixtures, so how often real lookups have 5+ of a version is unmeasured; and
-"1st gen", "v1" and storage sizes aren't versions yet (`cheapReason` still reads them as reasons).
+Eval: 14 labeled listings on "nintendo switch", "iphone 13" and "airpods pro" searches, all as labeled; against the one
+median 13 of them came out wrong (an OLED at $235 "Above typical", a Pro Max at 38% unmarked). On the real saved "ipod
+classic" page (asking prices, not sales), 5th generation 30GB ones sit at $100 against $140 for the whole page.
+
+Left: sold pages are still hand-made fixtures, so how often real lookups have 8+ of a kind is unmeasured. Not axes yet:
+model years and chips ("2020", "M1" vs "M2"), colors and carrier locks.
 
 ## After real use (2026-10-16)
 

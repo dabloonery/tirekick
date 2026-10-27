@@ -826,20 +826,30 @@
       .map((it) => ({ title: it.title, total: it.total, url: it.url }));
     return { n: totals.length, median: r(median), p10: r(quantile(totals, 0.1)), p25: r(p25), p75: r(p75), confidence, ship: ships.length >= 3 ? r(quantile(ships, 0.5)) : null, samples };
   };
-  // A search that names no version ("nintendo switch", "iphone 13") gets them all in its sales: Lites at $95 beside
-  // OLEDs at $250. Each version with 5 or more sales gets its own numbers, and the sales that name no version get
-  // theirs (_base) with 8 or more, so a listing is compared with its own kind (TKRules.forVariant). _same: versions
-  // that are the thing itself (the search names them, or most sales do). null when no version stands out.
-  TK.VARIANT_MIN = { tier: 5, base: 8 };
+  // A search that names no version ("nintendo switch", "iphone 13", "airpods pro") gets them all in its sales: Lites
+  // at $95 beside OLEDs at $250, 128GB phones beside 512GB ones. Each kind of sale (TKRules.variantGroups: a tier, a
+  // generation, a size, or a mix) with enough sales to trust (8+, not too spread out) gets its own numbers, so a
+  // listing is compared with its own kind (TKRules.forVariant). _same: labels that are the thing itself (the search
+  // names them, or most sales do). null when no kind stands apart from the whole.
   TK.soldVariants = (sales, query = "") => {
     const R = globalThis.TKRules;
     if (!R?.variantGroups) return null;
-    const { same, base, groups } = R.variantGroups(sales, query);
+    const { same, groups } = R.variantGroups(sales, query);
     const pick = ({ samples, ship, ...st }) => st; // what a card needs; keeps the cache entry small
     const out = {};
-    for (const [m, list] of Object.entries(groups)) if (list.length >= TK.VARIANT_MIN.tier) out[m] = pick(TK.soldStats(list));
+    // The more general groups first: one with the same sales as a group already kept ("/gen 2/*" when every plain
+    // one is a V2) adds nothing.
+    const kept = new Set();
+    const wild = (p) => p.split("*").length;
+    for (const [p, list] of Object.entries(groups).sort((a, b) => wild(b[0]) - wild(a[0]))) {
+      if (list.length === sales.length || list.length < 8) continue; // the whole market, or too few
+      const members = list.map((it) => sales.indexOf(it)).join(",");
+      if (kept.has(members)) continue;
+      kept.add(members);
+      const st = TK.soldStats(list);
+      if (st.confidence !== "rough") out[p] = pick(st);
+    }
     if (!Object.keys(out).length) return null;
-    if (base.length >= TK.VARIANT_MIN.base) out._base = pick(TK.soldStats(base));
     if (same.length) out._same = same;
     return out;
   };

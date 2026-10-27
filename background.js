@@ -402,10 +402,23 @@ const lensSystem = (base, lens, interests) =>
 
 const money = (n) => `$${Math.round(n)}`;
 
+// A version's words for the model: ["lite"] -> "lite", ["gen 2", "256gb"] -> "2nd generation, 256GB", ["v 2"] -> "V2".
+const kindText = (words = []) =>
+  words.map((w) => {
+    const g = w.match(/^gen (\d+)$/)?.[1];
+    if (g) return `generation ${g}`;
+    if (/^v \d+$/.test(w)) return w.replace(" ", "").toUpperCase();
+    return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : w;
+  }).join(", ") || "sales that name no other version";
+
 function marketText(query, market) {
   if (!market) return `No sold-price reference for "${query || "this search"}". Judge price only from obvious cues.`;
-  let t = `Sold-price reference for "${query}" (what buyers paid, incl. shipping): working/used median ${money(market.median)} (middle half ${money(market.p25)}-${money(market.p75)}, ${market.n} sales${market.confidence === "rough" ? "; few sales or a wide spread, so treat it as rough and don't lean on small differences" : ""}).`;
+  // A market for one version (TKRules.forVariant: Analyze on a Lite) says which sales it's from.
+  const kind = market.variantUsed ? ` that are the same version as this listing (${kindText(market.variantWords)})` : "";
+  let t = `Sold-price reference for "${query}"${kind} (what buyers paid, incl. shipping): working/used median ${money(market.median)} (middle half ${money(market.p25)}-${money(market.p75)}, ${market.n} sales${market.confidence === "rough" ? "; few sales or a wide spread, so treat it as rough and don't lean on small differences" : ""}).`;
   if (market.parts) t += ` For parts / not working: median ${money(market.parts.median)} (${market.parts.n} sales).`;
+  // A search's sales split by version (TK.soldVariants): each listing's percentage may be against its own version's.
+  if (market.variants) t += ` These sales mix versions (a Lite beside an OLED, 128GB beside 512GB). A listing whose line says "for its version" is compared with sales of that version alone, so judge its price by that percentage, not by the median above.`;
   return t;
 }
 
@@ -558,14 +571,22 @@ const scamNotes = (it) =>
     it.sellerWarn && `seller warning: ${it.sellerWarn}`,
   ].filter(Boolean);
 
+// A listing's price against the sold prices, for its line in the scan prompt. A listing compared with its own version's
+// sales (the panel's priceNotes: refKind) says so, with that version's median, so it doesn't read as off the search's.
+function priceNotesText(it) {
+  const notes = [];
+  const version = it.refKind && it.refWorking > 0 ? ` for its version (${it.refKind === "plain" ? "sales that name no other version" : kindText(it.refKind.split(" "))}: ${money(it.refWorking)}, ${it.refN} sales)` : "";
+  if (it.vsWorking != null) notes.push(`${Math.round(it.vsWorking * 100)}% of working median${version}${it.pickupShip > 0 ? ` less $${Math.round(it.pickupShip)} typical shipping (local pickup)` : ""}`);
+  if (it.vsParts != null) notes.push(`${Math.round(it.vsParts * 100)}% of for-parts median`);
+  if (it.marginBeforeRepair != null) notes.push(`margin before repairs ${it.marginBeforeRepair < 0 ? "-" : ""}$${Math.abs(it.marginBeforeRepair)}`);
+  return notes;
+}
+
 async function rankBatch({ items, query, market, lens = "use", want = "", browse = "", signal }) {
   const { interests } = await getSettings();
   const listingText = items
     .map((it) => {
-      const notes = [];
-      if (it.vsWorking != null) notes.push(`${Math.round(it.vsWorking * 100)}% of working median${it.pickupShip > 0 ? ` less $${Math.round(it.pickupShip)} typical shipping (local pickup)` : ""}`);
-      if (it.vsParts != null) notes.push(`${Math.round(it.vsParts * 100)}% of for-parts median`);
-      if (it.marginBeforeRepair != null) notes.push(`margin before repairs ${it.marginBeforeRepair < 0 ? "-" : ""}$${Math.abs(it.marginBeforeRepair)}`);
+      const notes = priceNotesText(it);
       const extra = (it.raw || "").replace(it.title, "").trim(); // the title is already on the line
       const scam = scamNotes(it);
       return `id ${it.id} | ${it.site} | ${it.title} | ${priceLine(it)}${notes.length ? ` | ${notes.join(", ")}` : ""}${scam.length ? ` | SCAM SIGNAL: ${scam.join("; ")}` : ""}\n  card text: ${extra}`;

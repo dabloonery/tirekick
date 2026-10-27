@@ -2704,14 +2704,9 @@
   const pickupOf = (m, f) => TKRules.forPickup(m, f, !!(f?.site ? TKSites.get(f.site) : TK.site())?.local); // facts don't keep the site: this page's
   const marketOf = (f) => pickupOf(f?.ownMarket || lastMarket, f);
   // Which sales a listing's typical price came from, when it's one version's (TKRules.forVariant).
-  const kindWord = (w) => {
-    const g = w.match(/^gen (\d+)$/)?.[1];
-    if (g) return `${g}${["th", "st", "nd", "rd"][+g % 100 > 10 && +g % 100 < 14 ? 0 : +g % 10] || "th"} generation`;
-    return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
-  };
   const variantNote = (m) => {
     if (!m?.variantUsed) return "";
-    const words = (m.variantWords || []).map(kindWord);
+    const words = (m.variantWords || []).map(TKRules.kindWord);
     const others = m.variantOthers?.length ? `${m.variantOthers.map((v) => `\u201c${v}\u201d`).join(" and ")} left out` : "";
     return words.length ? ` like this one (${[words.join(", "), others].filter(Boolean).join("; ")})` : ` that name no other version${others ? ` (${others})` : ""}`;
   };

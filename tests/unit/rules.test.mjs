@@ -964,3 +964,31 @@ test("genOf and sizeOf, from real iPod and drive titles: a choice of several is 
   assert.equal(R.sizeOf("MacBook Pro 16GB 512GB"), "512gb", "memory and storage");
   assert.deepEqual(R.versionOf("Apple iPod Classic 7th Gen 160GB Space Gray"), ["", "gen 7", "160gb"]);
 });
+
+test("askingRead: an asking price against what it sells for, and what reselling would leave", () => {
+  const m = { median: 58, n: 10, ship: 9, confidence: "fair" };
+  const r = R.askingRead(40, m);
+  assert.deepEqual([r.v, r.word], ["good", "Good price"]);
+  assert.equal(r.buyer, "$18 below the typical price ($58, from 10 eBay sales).");
+  assert.equal(r.resell, "Resell on eBay: ~$1 margin after 13.6% fees and $9 shipping (est.)", "58 less 13.6%, 40 cents and $9, less 40");
+  assert.equal(R.askingRead(70, m).word, "Above typical");
+  assert.equal(R.askingRead(70, m).resell, "Resell on eBay: ~$29 loss after 13.6% fees and $9 shipping (est.)");
+  assert.match(R.askingRead(15, m).buyer, /Far under it: check it's the same thing/);
+  assert.equal(R.askingRead(15, m).word, "Great price", "no scam word: there's no listing or seller to judge");
+  assert.equal(R.askingRead(40, { ...m, ship: null }, { feePct: 10 }).resell, "Resell on eBay: ~$12 margin after 10% fees (est.)");
+  assert.match(R.askingRead(40, { ...m, confidence: "rough" }).buyer, /^~\$18 below/);
+  assert.equal(R.askingRead(0, m).word, "Great price");
+  assert.equal(R.askingRead(-1, m), null);
+  assert.equal(R.askingRead(40, null), null);
+});
+
+test("askingRead: version words price it against sales of that version, and say so", () => {
+  const market = { median: 200, n: 52, confidence: "fair", ship: 14, variants: { "lite/*/*": { median: 95, p10: 80, p25: 88, p75: 100, n: 14, confidence: "fair" }, "/*/*": { median: 165, p10: 140, p25: 155, p75: 175, n: 22, confidence: "good" } } };
+  const lite = R.askingRead(85, market, { title: "nintendo switch lite" });
+  assert.equal(lite.buyer, "$10 below the typical price ($95, from 14 eBay sales of the “lite” kind).");
+  assert.equal(lite.word, "Fair price");
+  assert.match(R.askingRead(150, market, { title: "nintendo switch" }).buyer, /\(\$165, from 22 eBay sales naming no other version\)/);
+  assert.equal(R.kindWord("gen 2"), "2nd generation");
+  assert.equal(R.kindWord("gen 12"), "12th generation");
+  assert.equal(R.kindWord("128gb"), "128GB");
+});

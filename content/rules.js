@@ -226,6 +226,24 @@
     const t = Math.abs(total - ref) <= ref * 0.05 ? `about ${what}` : `$${Math.abs(d)} ${d < 0 ? "below" : "above"} ${what}`;
     return `${rough || est ? "~" : ""}${t}${est ? " (est.)" : ""}`;
   };
+  // An asking price against what it sells for, for Tirekick's own page (a thrift shelf, a yard sale, a listing on
+  // another site): the buyer's word and the gap, then what reselling it on eBay would leave, the way the panel works
+  // out a Fix & flip margin (fees, 40 cents, the shipping buyers paid). No scam word: there's no listing or seller
+  // to judge, so a price far under says to check it's the same thing. `title`: what was looked up, for its version
+  // (R.forVariant). Returns { v, word, buyer, resell } or null.
+  R.askingRead = (asking, market, { title = "", feePct = 13.6 } = {}) => {
+    if (!(asking >= 0) || !(market?.median > 0)) return null;
+    const m = R.forVariant(market, { title });
+    const rough = m.confidence === "rough";
+    const pw = R.priceWord(asking / m.median);
+    const far = asking < m.median * R.TOO_CHEAP.far ? " Far under it: check it's the same thing, complete and working." : "";
+    const kind = m.variantWords?.length ? ` of the ${m.variantWords.map(R.kindWord).join(", ")} kind` : m.variantUsed ? " naming no other version" : "";
+    const buyer = `${R.vsText(asking, m.median, { rough, long: true })} (${R.dollars(Math.round(m.median))}, from ${m.n} eBay sales${kind}).${far}`;
+    const ship = m.ship > 0 ? m.ship : 0;
+    const net = Math.round(m.median * (1 - feePct / 100) - 0.4 - ship - asking);
+    const resell = `Resell on eBay: ~${R.dollars(Math.abs(net))} ${net >= 0 ? "margin" : "loss"} after ${feePct}% fees${ship ? ` and ${R.dollars(ship)} shipping` : ""} (est.)`;
+    return { v: pw.v, word: pw.word, buyer: buyer.charAt(0).toUpperCase() + buyer.slice(1), resell };
+  };
   // The kinds of chip on a listing, each with its own switch in settings: scam marks (and the warnings that go
   // with them: a new or low-rated seller, the same title twice), price words, and everything else (new to you,
   // price drops, auctions, lots, offers). A chip is [kind, text, why, group]; "state" ones (why a listing is
@@ -528,6 +546,12 @@
     return { ...rest, median: sub.median, p10: sub.p10, p25: sub.p25, p75: sub.p75, n: sub.n, confidence: sub.confidence, variantUsed: p, variantWords: words, ...(!t && tiers.length && { variantOthers: tiers }) };
   };
   // The words a version adds to the search, for cheapReason: "lite gen 2 256gb". "" for none.
+  // A version word as people say it: "2nd generation", "128GB", "“lite”".
+  R.kindWord = (w) => {
+    const g = w.match(/^gen (\d+)$/)?.[1];
+    if (g) return `${g}${["th", "st", "nd", "rd"][+g % 100 > 10 && +g % 100 < 14 ? 0 : +g % 10] || "th"} generation`;
+    return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
+  };
   R.variantLike = (market) => (market?.variantWords || []).join(" ");
 
   // Sold totals include the shipping buyers paid; a pickup listing (a local site, no shipping on it) has none

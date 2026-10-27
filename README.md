@@ -136,7 +136,10 @@ scam warning stays readable.
 - **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
   "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (from sold
   listings, without the AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
-  site, with your saved listings and searches (each marked eBay or Marketplace) and Home.
+  site, with your saved listings and searches (each marked eBay or Marketplace) and Home. Type an asking price
+  beside the words (a thrift shelf, a yard sale) and it says, as you type, whether that's a good price and roughly
+  what reselling it on eBay would leave after fees and shipping. Add a version word after the lookup ("lite",
+  "2nd gen", "128gb") and it compares with sales of that version, without looking up again.
 - **Start over** clears the page's scores (Undo is right there); the marks on the cards stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Hide buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
 - **The footer** has the quality menu and this month's spend. With Claude the menu is **Thrifty** (Haiku for everything), **Balanced** (Haiku scans, Sonnet for single listings, photos and search ideas; the default) or **Thorough** (Sonnet scans, Opus for the rest); settings has each model separately, and another pair shows as Custom. The spend: click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.

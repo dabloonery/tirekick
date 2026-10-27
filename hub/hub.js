@@ -76,6 +76,8 @@
     const q = qEl.value.trim();
     if (!q) return qEl.focus();
     syncLinks();
+    lastLook = null;
+    showRead();
     goBtn.disabled = true;
     say(`Looking up eBay sales of “${q}”…`);
     try {
@@ -87,6 +89,8 @@
         any = true;
       }
       send("storeEdit", { name: "stats", edit: { inc: { soldLookups: 1 }, add: { since: Date.now() } } }).catch(() => {});
+      lastLook = market ? { q, market } : null;
+      showRead();
       if (!market) return say(`Not enough eBay sales of “${q}” to give a price. Try fewer or more general words.`);
       answer.replaceChildren(
         h("div", { class: "mgrid" }, cell(any ? "Typical price, any condition" : "Typical price, used", market)),
@@ -105,6 +109,33 @@
       goBtn.disabled = false;
     }
   };
+  // ---------- an asking price against it (a thrift shelf, a yard sale, a listing elsewhere) ----------
+  // Worked out from the last lookup as you type: no new lookup. The buyer's word, as on a card, then what it would
+  // leave after reselling on eBay (the panel's Fix & flip margin: fees, 40 cents, the shipping buyers paid).
+  const priceEl = $("#look-price");
+  const readEl = $("#price-read");
+  let lastLook = null; // { q, market } from the last lookup that found one
+  let lastFee = 13.6; // background.js DEFAULTS, until settings say otherwise
+  chrome.storage.local.get("feePct").then(({ feePct }) => Number.isFinite(feePct) && (lastFee = feePct));
+  const showRead = () => {
+    const asking = parseFloat(priceEl.value);
+    // Version words added after a lookup ("lite", "2nd gen", "128gb") read against those sales, still with no new
+    // lookup; any other change of words is for a lookup of its own, so the read goes.
+    const words = qEl.value.trim();
+    const same = lastLook && (words === lastLook.q || (lastLook.q.toLowerCase().split(/\s+/).every((w) => words.toLowerCase().includes(w)) &&
+      TKRules.forVariant(lastLook.market, { title: words }).variantWords?.length));
+    if (!same || !(asking >= 0) || priceEl.value.trim() === "") {
+      delete readEl.dataset.v;
+      return readEl.replaceChildren();
+    }
+    const r = TKRules.askingRead(asking, lastLook.market, { title: words, feePct: lastFee });
+    if (!r) return readEl.replaceChildren();
+    readEl.dataset.v = r.v;
+    readEl.replaceChildren(h("b", {}, r.word), h("span", {}, r.buyer), h("span", {}, r.resell));
+  };
+  priceEl.addEventListener("input", showRead);
+  qEl.addEventListener("input", showRead);
+
   $("#look-form").addEventListener("submit", (e) => {
     e.preventDefault();
     lookUp();
@@ -153,7 +184,7 @@
   chrome.storage.onChanged.addListener((c) => (c.saved || c.savedSearches) && drawSaved());
 
   // ---------- Home, as in the panel ----------
-  $("#home-css").textContent = TKHome.CSS;
+  $("#home-css").textContent = TKHome.CSS + TKTheme.glyphCss(".read b");
   let mode = "buyer";
   chrome.storage.local.get("lens").then(({ lens }) => (mode = lens === "project" ? "reseller" : "buyer"));
   const home = TKHome.mount($("#home"), {

@@ -19,7 +19,7 @@ it) and a fake Claude API that keeps every request, so tests can check the model
 | `unit/shared.test.mjs` | the link check, settings limits, spend totals, the toolbar-number rules, the old word lists → one line |
 | `unit/eval.test.mjs`, `eval/` | the accuracy eval: labeled listings (`eval/cases.mjs`) through the free checks, with floors on scams caught, honest ones marked, price words, and honest listings far under typical (`CHEAP`, scored on their own). `deno task eval` prints the scorecard and what came out wrong (`EVAL_ALL=1` for every listing). Add a listing that fooled the checks here first, labeled, then change the rules. `eval/model.mjs` (`ANTHROPIC_API_KEY=... deno task eval:model`) sends the cheap listings and their look-alike scams through the real scan prompt and the price check, and says where the model's verdict or `cheapWhy` differs from the label: by hand after a prompt change, never in CI (it costs money and the answers vary) |
 | `unit/adapters.test.mjs`, `offsite.test.mjs` | prices, shipping, lots, auctions, seller ratings, the scam code and off-site contact patterns (and ordinary sentences that must not match) |
-| `e2e/adapters.ts` | the site adapters against the saved pages in `fixtures/`: eBay (two layouts and categories, and real saved searches), sold prices, listing pages (hand-made and real), Marketplace (synthetic and real saved searches) |
+| `e2e/adapters.ts` | the site adapters against the saved pages in `fixtures/`: eBay (two layouts and categories, and real saved searches), sold prices, listing pages (hand-made and real), Marketplace (synthetic and real saved searches), Craigslist (hand-made: three card layouts on one search, and a post) |
 | `e2e/features.ts` | Buyer and Reseller, Home and the toolbar number, which model does what, budget and billing, safe links and restores, settings, the sold-price route from Facebook, no errors logged |
 | `e2e/ux.ts` | row links on hover, Filter and the spend popover, the Sort menu, docking and widths |
 | `e2e/scores-persist.ts` | scores kept with each listing across tabs, searches and reloads |
@@ -58,6 +58,8 @@ own parts), no scripts or tracking, and made-up item ids, seller names, places, 
 open keeps only its listing pop-up, never the others (notifications, chats). Run a fresh save through it the same way, then read the
 text before committing (titles and descriptions stay as sellers wrote them: look for names, streets and landmarks). The other eBay fixtures are small hand-made reductions of older layouts, and
 `facebook-marketplace.html` is synthetic: Facebook's markup is generated, so the adapter reads link text, not class names.
+`craigslist-results.html` and `craigslist-item.html` are hand-made from Craigslist's layouts (no trim script for Craigslist
+yet): replace them with saved real pages, trimmed by hand the same way, when one is to hand.
 
 ## Adding a test
 

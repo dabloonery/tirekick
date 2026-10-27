@@ -49,21 +49,29 @@
   const qEl = $("#q");
   const answer = $("#answer");
   const goBtn = $("#go");
-  // A search button per site (lib/sites.js), then one for all of them ("Both" while there are two).
+  // A search button per site in use (lib/sites.js: an opt-in store once it's turned on), then one for all of them
+  // ("Both" while there are two).
   const sitesBox = $(".sites");
-  sitesBox.replaceChildren(
-    ...TKSites.all.map((s) => h("a", { class: "btn", id: `on-${s.key}`, target: "_blank", rel: "noopener", href: s.home }, `Search ${s.name} \u2197`)),
-    h("button", { type: "button", id: "on-both" }, TKSites.all.length === 2 ? "Both" : "All")
-  );
+  let sites = TKSites.inUse();
+  const drawSites = () => {
+    sitesBox.replaceChildren(
+      ...sites.map((s) => h("a", { class: "btn", id: `on-${s.key}`, target: "_blank", rel: "noopener", href: s.home }, `Search ${s.name} \u2197`)),
+      h("button", { type: "button", id: "on-both" }, sites.length === 2 ? "Both" : "All")
+    );
+    syncLinks();
+  };
   const syncLinks = () => {
     const q = qEl.value.trim();
-    for (const s of TKSites.all) $(`#on-${s.key}`).href = q ? s.searchUrl(q) : s.home;
+    for (const s of sites) $(`#on-${s.key}`).href = q ? s.searchUrl(q) : s.home;
   };
+  drawSites();
+  chrome.storage.local.get(TKSites.all.map((s) => s.setting).filter(Boolean)).then((on) => (sites = TKSites.inUse(on)).length > 2 && drawSites());
   qEl.addEventListener("input", syncLinks);
-  $("#on-both").addEventListener("click", () => {
+  sitesBox.addEventListener("click", (e) => {
+    if (!e.target.closest("#on-both")) return;
     const q = qEl.value.trim();
     if (!q) return qEl.focus();
-    TKSites.all.forEach((s, i) => chrome.tabs.create({ url: s.searchUrl(q), active: i === 0 }));
+    sites.forEach((s, i) => chrome.tabs.create({ url: s.searchUrl(q), active: i === 0 }));
   });
 
   // The same lookups as the panel's, with the same pace and cache: through an eBay tab you have open if
@@ -148,7 +156,7 @@
     const searches = Object.entries(savedSearches).sort((a, b) => (b[1].v || 0) - (a[1].v || 0));
     const body = $("#saved-body");
     if (!items.length && !searches.length) {
-      return body.replaceChildren(h("p", { class: "empty" }, `Nothing saved yet. On ${TKSites.all.map((s) => s.name).join(" or ")}, hover a card and press Save, or use Save search in the panel.`));
+      return body.replaceChildren(h("p", { class: "empty" }, `Nothing saved yet. On ${sites.map((s) => s.name).join(" or ")}, hover a card and press Save, or use Save search in the panel.`));
     }
     const listRows = items.map(([k, r]) => {
       const cheaper = S.dropped(r);

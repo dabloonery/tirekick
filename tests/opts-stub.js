@@ -11,6 +11,7 @@
   window.chrome = {
     runtime: { id: "test", lastError: null, getManifest: () => ({ version: "test" }), sendMessage: async () => ({ ok: true, data: { ...store } }) },
     storage: { local: { get: async (k) => pick(k), set: async (o) => Object.assign(store, o), remove: async (k) => [].concat(k).forEach((x) => delete store[x]) }, onChanged: { addListener() {} } },
-    permissions: { contains: async () => true, request: async () => true },
+    // ?deny in the address: the browser says no to a permission request
+    permissions: { contains: async () => true, request: async (p) => (window.__asked = p) && !location.search.includes("deny"), remove: async (p) => (window.__removed = p) && true },
   };
 })();

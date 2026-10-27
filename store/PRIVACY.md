@@ -3,7 +3,8 @@
 *Last updated: October 2026*
 
 Tirekick is a browser extension for people buying secondhand online. It currently works on eBay and
-Facebook Marketplace. This page says what it keeps, what it sends, and to whom.
+Facebook Marketplace, and on Craigslist if you turn that on in settings. This page says what it keeps, what it
+sends, and to whom.
 
 **The short version:** Tirekick has no server and no analytics. The developer receives nothing.
 Anything that leaves your computer goes to a service you chose, because you asked it to.
@@ -30,7 +31,7 @@ includes your API keys). Uninstalling Tirekick deletes all of it.
 ## What leaves your computer, and only when you ask
 
 Tirekick does nothing on a page until you open its panel, press a button, or (for the marks on
-cards) load an eBay or Marketplace page you're already looking at. With **Scan new listings
+cards) load an eBay, Marketplace or (turned on) Craigslist page you're already looking at. With **Scan new listings
 automatically** turned on (it's off until you turn it on), a search page you're looking at is scanned
 as its listings load, as if you'd pressed Scan. A search you're looking at also gets its typical price
 once, the same eBay sold-listings lookup as the **Typical price** button (turn off **Compare prices with
@@ -55,7 +56,7 @@ so read the one for the service you pick. Ollama and LM Studio keep everything o
 
 - Send anything to the developer. There's no account, server, advertising or analytics.
 - Sell or share your data, or use it for anything not described here.
-- Read pages other than eBay and Facebook Marketplace (and, only when you press **Test connection** for an address you entered, that address). Its page script is present across facebook.com so it can follow you into Marketplace, but it only reads Marketplace pages. On other pages, the only thing it receives is text you select and choose to look up from the right-click menu.
+- Read pages other than eBay and Facebook Marketplace, and Craigslist if you turn it on in settings (and, only when you press **Test connection** for an address you entered, that address). Its page script is present across facebook.com so it can follow you into Marketplace, but it only reads Marketplace pages. On other pages, the only thing it receives is text you select and choose to look up from the right-click menu.
 - Collect payment details or messages.
 
 ## Permissions

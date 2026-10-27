@@ -240,7 +240,7 @@
     new RegExp(String.raw`\b[a-zA-Z0-9-]{3,}\.\s+${REAL}\b`), // name. com (lower case ending)
   ];
   const PLAIN_SITE = new RegExp(String.raw`\b(?:www\.)?${LABEL}\.${TLD}\b`, "i");
-  TK.offSite = (text) => {
+  const offSiteAnywhere = (text) => {
     const t = (text || "").replace(/\u00a0/g, " ");
     const why = [];
     let sure = false;
@@ -276,6 +276,8 @@
     }
     return why.length ? { sure, why } : null;
   };
+  // Signs a listing takes the deal off the site: per site, since what's normal differs (Craigslist's below).
+  TK.offSite = (text, site) => (site === "craigslist" ? clScam(text) : offSiteAnywhere(text));
 
   // ---------- eBay ----------
   // 2025+ layout: li.s-card. Older layout: li.s-item. Both still appear in guides. Category pages
@@ -284,6 +286,8 @@
   // strict: stop at eBay's "Results matching fewer words" divider (used for the sold-price median,
   // where those looser matches would skew the numbers).
   TK.EBAY_CARDS = "li.s-card, li.s-item, li.brwrvr__item-card";
+  // Craigslist's card layouts (read below)
+  TK.CL_CARDS = "li.cl-search-result, li.cl-static-search-result, li.result-row";
   // When eBay renames its price class, the first dollar amount on the card can be the title's ("$1 no
   // reserve"), the shipping or a struck-through old price, and a price read that low is a "Likely scam" mark.
   // So the fallback is the first piece of the card whose whole text is one price ("$52.00", "C $40.00",
@@ -373,6 +377,7 @@
   TK.LISTING_LINKS = {
     ebay: TK.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", "),
     facebook: 'a[href*="/marketplace/item/"]',
+    craigslist: TK.CL_CARDS.split(", ").map((c) => `${c} a[href$=".html"]`).join(", "),
   };
   TK.listingLinks = () => TK.LISTING_LINKS[TK.currentSite()] || TK.LISTING_LINKS.ebay;
   // Every listing linked from the results, whatever card it sits in, counted once: what a page reader that
@@ -381,8 +386,8 @@
   TK.linkedListings = (root = document) => {
     const area = ["#srp-river-results", ".srp-results", '[role="main"]'].map((s) => root.querySelector(s)).find(Boolean) || root;
     const keys = new Set();
-    for (const a of area.querySelectorAll('a[href*="/itm/"], a[href*="/marketplace/item/"]')) {
-      const key = Sites.keyOf(a.getAttribute("href") || "");
+    for (const a of area.querySelectorAll('a[href*="/itm/"], a[href*="/marketplace/item/"], a[href$=".html"]')) {
+      const key = Sites.keyOf(new URL(a.getAttribute("href") || "", location.href).href);
       if (/^\w+:\d+$/.test(key)) keys.add(key);
     }
     return keys.size;
@@ -407,6 +412,7 @@
       const links = [...document.querySelectorAll(`a[href*="/marketplace/item/${id}"]`)];
       return links.find((a) => a.closest("[data-tirekick-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
     },
+    craigslist: (key, id) => [...document.querySelectorAll(`a[href*="/${id}.html"]`)].map((a) => a.closest(TK.CL_CARDS)).find(Boolean) || null,
   };
   TK.cardFor = (key) => TK.CARD_FINDERS[Sites.ofKey(key).id](key, key.split(":")[1]);
 
@@ -542,6 +548,79 @@
 
   TK.facebookQuery = () => Sites.get("facebook").queryOf(location);
 
+  // ---------- Craigslist ----------
+  // Server-built pages, one host per city. Three card layouts still appear: the script-built gallery and list
+  // (li.cl-search-result), the plain one the page carries before its script runs (li.cl-static-search-result), and
+  // the old one (li.result-row). Each card links to its post, …/d/<slug>/<number>.html: found by that link, and the
+  // title, price and place read from the card's parts, by class where it has one and by text where it doesn't.
+  const CL_POST = /\/\d{8,12}\.html(?:[?#]|$)/;
+  // "$0" and "$1" are how Craigslist sellers leave the price out (Craigslist asks for one): no price.
+  TK.clPrice = (text) => {
+    const n = TK.parseAmount(text || "");
+    return n == null || n <= 1 ? null : n;
+  };
+  TK.extractCraigslist = (root = document) => {
+    const out = [];
+    const seen = new Set();
+    for (const card of root.querySelectorAll(TK.CL_CARDS)) {
+      const a = [...card.querySelectorAll("a[href]")].find((x) => CL_POST.test(x.getAttribute("href")));
+      if (!a) continue;
+      const url = new URL(a.getAttribute("href"), location.origin).href.split(/[?#]/)[0];
+      const id = Sites.get("craigslist").itemId(url);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      const title = squash(card.getAttribute("title") || firstText(card, [".posting-title .label", ".posting-title", ".title", ".result-title", ".titlestring"]) || a.textContent, 160);
+      if (!title) continue;
+      const priceText = squash(firstText(card, [".priceinfo", ".price", ".result-price"]), 40);
+      const place = squash(firstText(card, [".location", ".result-hood", ".supertitle"]), 80).replace(/^\((.*)\)$/, "$1");
+      const text = TK.spacedText(card);
+      out.push(withTotal({
+        site: "craigslist",
+        title,
+        priceText,
+        price: TK.clPrice(priceText),
+        shipping: null, // local pickup
+        url,
+        imageUrl: firstImage(card),
+        raw: squash([title, priceText, place].filter(Boolean).join(" | ")),
+        el: card,
+        ...(place && { place }),
+        ...TK.cardFacts(text, title),
+        ...(TK.offSite(title, "craigslist") && { offSite: TK.offSite(title, "craigslist") }),
+      }));
+    }
+    return out;
+  };
+  // Craigslist's own scam signs (ROADMAP Brief 5). A phone number, "text me" or an email relay is how people deal
+  // there, so none of those count. What does: a seller who is away and will ship it, escrow or a "payment
+  // guarantee", gift cards as payment, and money before you see it. Sellers often warn against the same things
+  // ("no shipping, no escrow, no cashier's checks"), so a sign right after a "no" or "not" doesn't count.
+  const CL_SIGNS = [
+    [/(?:out of (?:town|state|the country)|away (?:for|on|at)|deployed|overseas|on (?:a )?(?:work|business) trip|relocated)\b[^.\n!]{0,80}\bship|\bship\w*\b[^.\n!]{0,80}(?:out of (?:town|state|the country)|deployed|overseas)/i, "says they're away and will ship it", true],
+    [/\b(?:shipping|ship) only\b|\bno local pick ?-?up\b|\bcan(?:no|')t meet\b/i, "won't meet, only ships", true],
+    [/\bescrow\b|\b(?:ebay|amazon|paypal|google|facebook) (?:payments? )?(?:protection|guarantee|escrow|agent)\b/i, "talks of escrow or a payment guarantee", true],
+    [/(?:pay|payment|accept|take|only|buy)[^.\n]{0,30}gift ?cards?|gift ?cards? (?:only|as payment|payment)/i, "asks to be paid in gift cards", true],
+    [/\b(?:cashier'?s check|money order)\b[^.\n]{0,60}\b(?:more than|extra|difference|refund|change)\b|\boverpa(?:y|id|yment)\b/i, "an overpayment with a check", true],
+    [/\b(?:deposit|pay(?:ment)?)\b[^.\n!]{0,30}\b(?:first|before (?:you |we )?(?:see|meet|pick)|in advance|up ?front|to hold)\b/i, "asks for money before you see it", false],
+  ];
+  const NOT_BEFORE = /\b(?:no|not|never|nor|don'?t|do not|won'?t|will not|without)\b[^.\n!]{0,25}$/i;
+  const saysSign = (t, re) => {
+    const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+    for (const m of t.matchAll(g)) if (!NOT_BEFORE.test(t.slice(Math.max(0, m.index - 40), m.index))) return true;
+    return false;
+  };
+  const clScam = (text) => {
+    const t = (text || "").replace(/ /g, " ").replace(/[‘’]/g, "'");
+    const why = [];
+    let sure = false;
+    // A web address written to dodge filters, and WhatsApp or Telegram, mean the same as anywhere
+    const base = offSiteAnywhere(t);
+    for (const w of base?.why || []) if (/^disguised web address|^says to remove/.test(w)) (why.push(w), (sure = true));
+    if (/\b(?:whats\s?app|telegram)\b/i.test(t)) (why.push("asks for WhatsApp or Telegram"), (sure = true));
+    for (const [re, w, certain] of CL_SIGNS) if (saysSign(t, re)) (why.push(w), (sure ||= certain));
+    return why.length ? { sure, why, pay: true } : null;
+  };
+
   // With no search, what is this page? Marketplace addresses look like /marketplace/ (home feed),
   // /marketplace/<city>/ or /marketplace/<city>/<category> (a category such as "videogames").
   const NOT_CATEGORY = /^(search|item|you|inbox|notifications|create|selling|buying|saved|category)$/i;
@@ -552,6 +631,11 @@
       return cat ? `eBay category "${decodeURIComponent(cat[1]).replace(/-/g, " ")}" (no search)` : "eBay page with no search";
     },
     facebook: () => facebookContext(),
+    // /search/sss is everything for sale; /search/vga, /search/ela… a category
+    craigslist: () => {
+      const cat = location.pathname.match(/^\/search\/(?:[a-z]{3,4}\/)?([a-z]{3})\b/)?.[1];
+      return `Craigslist ${location.hostname.split(".")[0]} ${cat && cat !== "sss" ? `category "${cat}"` : "for sale"} (no search)`;
+    },
   };
   TK.browseContext = () => (TK.BROWSE_CONTEXT[TK.currentSite()] || TK.BROWSE_CONTEXT.ebay)();
   const facebookContext = () => {
@@ -655,6 +739,41 @@
       });
     },
   };
+  // Craigslist's post page: the title bar (#titletextonly, .price, the place in brackets), the body, and the
+  // attribute boxes ("condition: like new", "make / manufacturer: Nintendo"). No seller ratings.
+  // "posted: 3 days ago", with the moment in its datetime
+  const clPosted = (el) => {
+    if (!el) return null;
+    const said = TK.listedDaysAgo(`listed ${el.textContent.trim()}`);
+    const at = Date.parse(el.getAttribute("datetime"));
+    return said ?? (at <= Date.now() ? Math.floor((Date.now() - at) / 864e5) : null);
+  };
+  TK.ITEM_READERS.craigslist = () => {
+    const title = squash(firstText(document, ["#titletextonly", ".postingtitletext"]) || meta("og:title"), 200);
+    const priceText = squash(firstText(document, [".postingtitletext .price", ".price"]), 40);
+    const bodyEl = document.querySelector("#postingbody");
+    const body = squash((bodyEl ? TK.spacedText(bodyEl) : meta("og:description")).replace(/^\s*QR Code Link to This Post\s*/i, ""), 2500);
+    const attrs = [...document.querySelectorAll(".attrgroup .attr, .attrgroup span")].map((el) => squash(el.textContent, 120)).filter(Boolean);
+    const condition = attrs.map((a) => a.match(/^condition:?\s*(.+)$/i)?.[1]).find(Boolean) || "";
+    const imgs = [...document.querySelectorAll("#thumbs a[href], .gallery img, .swipe img, .slide img")].map((el) => el.getAttribute("href") || el.getAttribute("src") || "");
+    const text = `${title}\n${body}\n${attrs.join("\n")}`;
+    return withTotal({
+      ...TK.cardFacts(text, title),
+      site: "craigslist",
+      title,
+      priceText,
+      price: TK.clPrice(priceText),
+      shipping: null,
+      condition,
+      seller: "",
+      shippingText: "",
+      details: squash([body, ...uniq(attrs)].join(" \u00b7 "), 2500),
+      imageUrls: uniq([...imgs, meta("og:image")]).filter((u) => /^https:\/\/images\.craigslist\.org\//.test(u)).slice(0, 4),
+      url: location.href.split(/[?#]/)[0],
+      offSite: TK.offSite(text, "craigslist"),
+      listedDays: clPosted(document.querySelector(".postinginfos time[datetime]")),
+    });
+  };
   TK.extractItem = () => (TK.ITEM_READERS[TK.currentSite()] || TK.ITEM_READERS.facebook)();
 
   // A short search phrase for the sold-price comparison, taken from a listing title. Condition and
@@ -685,7 +804,7 @@
   TK.pageType = () => TK.site()?.pageType(location) ?? null;
 
   // Each site's card reader, by site id: a new site adds its own here.
-  TK.READERS = { ebay: (root) => TK.extractEbay(root), facebook: (root) => TK.extractFacebook(root) };
+  TK.READERS = { ebay: (root) => TK.extractEbay(root), facebook: (root) => TK.extractFacebook(root), craigslist: (root) => TK.extractCraigslist(root) };
   TK.extract = () => {
     const read = TK.READERS[TK.currentSite()];
     const items = read ? read() : [];
@@ -718,6 +837,14 @@
       if (newest) u.searchParams.set("sortBy", "creation_time_descend");
       return u.href;
     },
+  };
+  // Craigslist: the city you're on, everything for sale; its search reads words and "-word" only.
+  TK.SEARCH_BUILDERS.craigslist = ({ query, maxPrice, newest }) => {
+    const u = new URL("/search/sss", location.origin);
+    u.searchParams.set("query", query.replace(/["()]/g, "").replace(/\s+/g, " ").trim());
+    if (maxPrice > 0) u.searchParams.set("max_price", String(Math.ceil(maxPrice)));
+    if (newest) u.searchParams.set("sort", "date");
+    return u.href;
   };
   TK.searchUrl = (opts) => (TK.SEARCH_BUILDERS[TK.currentSite()] || TK.SEARCH_BUILDERS.facebook)(opts);
 

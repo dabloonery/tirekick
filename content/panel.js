@@ -2014,6 +2014,7 @@
   const dealCount = () => [...facts.values()].filter((f) => f.deal && !f.hidden && !f.filtered).length;
 
   const sellerWarning = (f) => TKRules.sellerWarning(f, prefs);
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const CARD_FACTS = ["auction", "bids", "timeLeft", "hoursLeft", "bestOffer", "lot", "sellerPct", "sellerCount", "sellerJoined", "titleCode", "offSite", "justListed", "wasPrice", "foreign", "priceRange", "condition"];
   const lensSearchUrl = (img) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(TK.bigImage(img))}`;
 
@@ -2034,9 +2035,11 @@
     else if (showHidden && f.filtered) c.push(["warn", `Filtered: ${f.filtered}`, null, "state"]);
     if (f.deal) c.push(["deal", `At your $${quick.deal}`, null, "other"]);
     if (f.campaign) c.push(["warn", "Scam? Reposted", `Posted again with other codes (${f.campaign.join(", ")}): one fake listing copied many times. Don't message or pay.`, "scam"]);
+    else if (f.offSite?.sure && f.offSite.pay) c.push(["warn", "Scam? Payment trick", `${cap(f.offSite.why.join("; "))}: how scams there take the money. Meet, see it working, then pay.`, "scam"]);
     else if (f.offSite?.sure) c.push(["warn", "Scam? Off-site contact", `Asks to talk off the site (${f.offSite.why.join("; ")}). That's how most scams start, and off the site you lose its buyer protection.`, "scam"]);
     else if (f.titleCode && !f.codeOk) c.push(["warn", `Code in title: ${f.titleCode}`, `Bulk-posted fakes on Marketplace end the title with a code like ${f.titleCode}, and so do real model numbers: check it's this item's model number.${TKRules.codeBacked(f) ? ` With ${TKRules.codeBacked(f)} as well, it's likely a scam.` : ""}`, "scam"]);
-    if (f.offSite && !f.offSite.sure && !f.offSiteOk) c.push(["warn", "Contact outside the site?", `Contact details in the listing (${f.offSite.why.join("; ")}). Keep the talk and the payment on the site.`, "scam"]);
+    if (f.offSite && !f.offSite.sure && !f.offSiteOk && f.offSite.pay) c.push(["warn", "Money first?", `${cap(f.offSite.why.join("; "))}. Pay when you meet and see it, not before.`, "scam"]);
+    else if (f.offSite && !f.offSite.sure && !f.offSiteOk) c.push(["warn", "Contact outside the site?", `Contact details in the listing (${f.offSite.why.join("; ")}). Keep the talk and the payment on the site.`, "scam"]);
     if (f.photoTwins) c.push(["warn", `Same photo as ${f.photoTwins} other listing${f.photoTwins > 1 ? "s" : ""}`, photoTwinsText(f.photoTwins), "scam"]);
     // Far under what the same thing sold for: the usual bait. Said in place of the plain "$53 under sold".
     const mk = marketOf(f);
@@ -2581,7 +2584,7 @@
                     h(
                       "div",
                       { class: "srow hid" },
-                      h("div", {}, h("a", { href: itemUrl(k), target: "_blank", rel: "noopener" }, r.t || itemUrl(k)), h("div", { class: "meta" }, `${siteName(k)} \u00b7 hidden ${shortDate(r.a)}`)),
+                      h("div", {}, itemUrl(k) ? h("a", { href: itemUrl(k), target: "_blank", rel: "noopener" }, r.t || itemUrl(k)) : h("span", {}, r.t || k), h("div", { class: "meta" }, `${siteName(k)} \u00b7 hidden ${shortDate(r.a)}`)),
                       h("button", { class: "srow-act", title: "Show this listing again", onclick: () => setInterested(k, true) }, "Unhide")
                     )
                   ),
@@ -3024,7 +3027,7 @@
                 if (!read && prefs.markPrices && placeOf(it).shelf === 4) return h("div", { class: "meta free-read", "data-v": "pass", title: "Not the thing you searched for (a game, accessory, part or something else), so it sorts under the rest." }, h("span", { class: "verdict" }, "Not your search"));
                 return read ? h("div", { class: "meta free-read", "data-v": read.v, title: aiOff() ? "From the typical price (recent eBay sales) and the scam checks." : "From the typical price (recent eBay sales) and the scam checks; your AI isn't used. A scan adds a score." }, h("span", { class: "verdict" }, read.word)) : null;
               })(),
-              likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? "Likely scam: asks to get in touch off the site" : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
+              likelyScam(f) ? h("div", { class: "meta scamline" }, f.campaign ? "Likely scam: reposted under new codes" : f.offSite?.sure ? (f.offSite.pay ? "Likely scam: asks for the money the way scams do" : "Likely scam: asks to get in touch off the site") : `Likely scam: code ${f.titleCode} tacked on the title, and ${TKRules.codeBacked(f)}. A scan clears it if that's the model number.`) : null,
               (() => {
                 // The tag already shows the price; the line adds only what it doesn't say.
                 const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]
@@ -4288,6 +4291,8 @@
   const scamWarning = (f) =>
     f.campaign
       ? `This title has been posted under other codes too (${f.campaign.join(", ")}): one fake listing copied many times.`
+      : f.offSite?.sure && f.offSite.pay
+        ? `${cap(f.offSite.why.join("; "))}: that's how scams on ${(TKSites.get(f.site) || TKSites.get("craigslist")).name} take the money. Meet, see it working, then pay.`
       : f.offSite?.sure
         ? `It asks you to get in touch outside ${(TKSites.get(f.site) || TKSites.get("facebook")).owner} (${f.offSite.why.join("; ")}). That's how these scams take payment.`
         : "";

@@ -45,7 +45,7 @@ check); those are in git history.*
 | Free parts of briefs 2, 3, 4 and 6 | Built in 0.37.0 to 0.40.0 (age and price moves, the offer helper, "Too cheap?" and same-photo marks, CSV export) |
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
-| Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; next is Brief 1 (alerts, options 1 and 2), then Brief 5 (Craigslist first). Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
+| Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; next is Brief 1 (alerts, options 1 and 2). Brief 5's Craigslist is built, opt in (2026-10-27, [status](#craigslist-built-2026-10-27)); OfferUp is next there. Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Version numbers
@@ -752,6 +752,23 @@ Risks: Both sites' terms limit automated collection. Tirekick would read only pa
 2. **OfferUp.** A React app like Marketplace: recycled cards, late-loading prices; read by `/item/detail/` links and visible text, not class names. Seller stars, rating count, "TruYou" verified and join date feed `sellerWarning`. Some "Ships" listings. Needs a long-feed run of `tests/e2e/perf.ts`.
 3. **Mercari.** Ships nationally, so compare on total with shipping. Mercari shows its own sold listings: consider it as a second sold reference (`soldReference`), or keep eBay only (open question). Cards have seller ratings.
 4. **Poshmark.** Mostly clothing and shoes, a different shopper. Prices are often negotiated via offers; sold listings are visible. Brand-and-size matters more than model numbers, so the prompt's "what I want" and the sold comparison need checking for apparel. Lowest priority; dabloonery to confirm it's wanted.
+
+#### Craigslist: built (2026-10-27)
+
+From the outside review's "Blueprint 4", built to this brief. Off by default: settings' **Also work on Craigslist** asks
+the browser for `https://*.craigslist.org/*` and `https://images.craigslist.org/*` (optional hosts) in the click and
+gives them back when turned off; the background registers the page scripts there only while both hold
+(`sitesInUse`). The site entry has `setting`, `isHost` (a host per city) and `photoOrigins`; keys are `cl:<post
+number>`, and since a post's address needs its city, saved ones keep their own (`itemUrl` gives ""). Readers for the
+gallery, list, plain and old "result-row" cards, and the post page; $0 and $1 are no price. Scam signs per site
+(`TK.offSite(text, "craigslist")`): phone numbers, "text me" and email don't count; away-and-ship, shipping only,
+escrow or a payment guarantee, gift cards and overpaid checks are Likely scam ("Scam? Payment trick"), a deposit
+first is a "Money first?" chip, and a sign right after "no"/"not" doesn't count. The AI's scam rule says the same.
+The hub's Search buttons include it once on (www.craigslist.org, which sends you to your nearest city).
+
+Left: the fixtures are hand-made from Craigslist's markup, not saved real pages (dabloonery: save a real search and
+post over `tests/fixtures/craigslist-*.html`); no page test of the panel on Craigslist, since e2e can't grant an
+optional host; remembering the last city for the hub's search; trying it live in Vivaldi (the permission prompt too).
 
 #### How each store fits (same for all)
 

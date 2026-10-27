@@ -90,9 +90,23 @@ S1337". Tirekick watches for it:
   spaces"), an oddly written phone number ("505_507__6507"), "text me a screenshot", WhatsApp or
   Telegram shows a "Likely scam" note, and the analysis is Likely scam whatever the model thought.
   A plain phone number ("call or text") is only a hint.
+- **On Craigslist** (turned on in settings) a phone number, "text me" or an email address is how people deal, so none
+  of them count. What does: a seller who is away and will ship it, shipping only, escrow or a "payment guarantee",
+  gift cards as payment, or a check for more than the price ("Scam? Payment trick", Likely scam), and a deposit before
+  you see it (a "Money first?" chip: it's sometimes honest). A seller warning against them ("no shipping, no
+  escrow") doesn't count.
 
 Likely scams are grayed out along with skipped ones (Skips and scams: Show / Dim / Hide, above the list). Dimming fades the card but not its tag or chips, so a
 scam warning stays readable.
+
+## Craigslist
+
+Off until you turn on **Also work on Craigslist** in settings; the browser then asks once to let Tirekick read
+craigslist.org pages and their photos (turning it off gives that back). After that the Craigslist searches and posts
+you open get the same tags, typical prices from eBay sales, scam marks and panel as Marketplace. Prices of $0 and $1
+are how sellers leave the price out, so they count as no price. Craigslist's own price filter (min and max) follows
+Tirekick's. Saved Craigslist listings open at the address you saved them from. Tirekick's own page gets a **Search
+Craigslist** button (your nearest city, as Craigslist picks it).
 
 ## Everyday use
 

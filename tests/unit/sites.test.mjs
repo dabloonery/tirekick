@@ -134,3 +134,27 @@ test("every store filter is a price or a set of choices with distinct values and
     }
   }
 });
+
+test("Craigslist: opt in, a host per city, keys from the post number", () => {
+  const cl = Sites.get("craigslist");
+  assert.deepEqual(Sites.inUse().map((s) => s.id), ["ebay", "facebook"], "off until turned on");
+  assert.deepEqual(Sites.inUse({ onCraigslist: true }).map((s) => s.id), ["ebay", "facebook", "craigslist"]);
+  assert.deepEqual(Sites.matches(Sites.inUse()), ["https://www.ebay.com/*", "https://www.facebook.com/*"]);
+  assert.deepEqual(Sites.originsOf(cl), ["https://*.craigslist.org/*", "https://images.craigslist.org/*"]);
+  for (const o of Sites.originsOf(cl)) assert.ok(manifest.optional_host_permissions.includes(o), o);
+  for (const o of Sites.originsOf(cl)) assert.ok(!manifest.host_permissions.includes(o), "never a required host: Chrome would turn Tirekick off on update");
+  assert.equal(Sites.keyOf("https://sfbay.craigslist.org/sfc/vgm/d/san-francisco-switch/7791000001.html"), "cl:7791000001");
+  assert.equal(Sites.keyOf("https://sfbay.craigslist.org.evil.example/sfc/vgm/d/x/7791000001.html"), "https://sfbay.craigslist.org.evil.example/sfc/vgm/d/x/7791000001.html");
+  assert.equal(Sites.nameOf("cl:7791000001"), "Craigslist");
+  assert.equal(Sites.itemUrl("cl:7791000001"), "", "a post's address needs its city: saved listings keep their own");
+  assert.ok(Sites.isSiteHost("sfbay.craigslist.org") && Sites.isSiteHost("www.craigslist.org"));
+  assert.ok(!Sites.isSiteHost("craigslist.org.evil.example") && !Sites.isSiteHost("evilcraigslist.org"));
+  assert.ok(Sites.isImageHost("images.craigslist.org") && !Sites.isImageHost("sfbay.craigslist.org"));
+  assert.ok(Sites.isSearchUrl(new URL("https://sfbay.craigslist.org/search/sss?query=x")) && !Sites.isSearchUrl(new URL("https://sfbay.craigslist.org/about/help")));
+  const at = (u) => new URL(u);
+  assert.deepEqual(["/", "/search/sss?query=x", "/sfc/vgm/d/x/7791000001.html", "/about/help"].map((p) => cl.pageType(at(`https://sfbay.craigslist.org${p}`))), ["home", "results", "item", "other"]);
+  assert.equal(cl.queryOf(at("https://sfbay.craigslist.org/search/sss?query=game+boy")), "game boy");
+  assert.equal(cl.searchUrl("game boy"), "https://www.craigslist.org/search/sss?query=game%20boy");
+  const f = new URL(Sites.withFilters("https://sfbay.craigslist.org/search/sss?query=switch", { min: 20, max: 99.5 }));
+  assert.deepEqual([f.searchParams.get("min_price"), f.searchParams.get("max_price")], ["20", "100"]);
+});

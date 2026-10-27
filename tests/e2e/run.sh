@@ -12,7 +12,7 @@ deno run -A server.ts >/dev/null 2>&1 &
 SRV=$!
 PROFILE="$(mktemp -d)" # a fresh browser profile each run, removed at the end (they add up in /tmp)
 "$CHROME" $CHROME_FLAGS --headless=new --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --remote-debugging-port=9222 \
-  --enable-unsafe-extension-debugging --load-extension="${EXT_DIR:-$(cd ../.. && pwd)}" --ignore-certificate-errors --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --host-resolver-rules="MAP www.ebay.com 127.0.0.1:8443, MAP www.facebook.com 127.0.0.1:8443, MAP scontent.test.fbcdn.net 127.0.0.1:8443" about:blank >/dev/null 2>&1 &
+  --enable-unsafe-extension-debugging --load-extension="${EXT_DIR:-$(cd ../.. && pwd)}" --ignore-certificate-errors --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --host-resolver-rules="MAP www.ebay.com 127.0.0.1:8443, MAP www.facebook.com 127.0.0.1:8443, MAP sfbay.craigslist.org 127.0.0.1:8443, MAP scontent.test.fbcdn.net 127.0.0.1:8443" about:blank >/dev/null 2>&1 &
 CH=$!
 sleep 3
 deno run -A load.ts >/dev/null 2>&1; sleep 2

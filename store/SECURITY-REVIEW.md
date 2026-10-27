@@ -97,6 +97,7 @@ Every permission is used, and none can be dropped without losing a feature:
 | eBay, Facebook, image CDNs | the two sites it works on, and photo checks |
 | AI service hosts | the services a user can pick in settings |
 | localhost `:11434`, `:1234` | Ollama and LM Studio |
+| optional `https://*.craigslist.org/*`, `https://images.craigslist.org/*` | Craigslist, only once turned on in settings (asked for then, given back when turned off; the page script is registered there only while both hold) |
 | optional `https://*/*`, `http://*/*` | "another OpenAI-style address" only |
 
 `tabs` is not requested and not needed: `chrome.tabs.query({ url })` works on eBay because the host

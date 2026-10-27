@@ -49,6 +49,7 @@ const DEFAULTS = {
   useAI: false,
   monthlyBudget: 0, // dollars; 0 = no budget. Claude calls stop once this month's estimated spend reaches it
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
+  onCraigslist: false, // opt in (lib/sites.js "setting"): Tirekick works on Craigslist once this is on and its hosts are allowed
   autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)
 };
 
@@ -449,7 +450,10 @@ const SCAM_RULE = `Facebook scam pattern: bulk-posted fake listings end the titl
 ("Nintendo Game Boy Advance SP M2465", "Halo Special Edition Xbox S1337", "... U2X503"); there are many of them. When the listing
 says "title ends with the code", mark it suspicious with a score under 15 and the flag "scam code in title", unless the code is
 plausibly that exact item's real model or part number (Nikon D3100, Pentax K1000, PS Vita PCH1001). A price that looks too good
-makes it more certain, not less.`;
+makes it more certain, not less.
+Craigslist is different: a phone number, "text me" or an email address is how people deal there, not a scam sign. The Craigslist
+scams are a seller who is away and will ship it, escrow or a "payment guarantee", gift cards as payment, a check for more than
+the price, and money before you see the item. A seller warning against those ("no shipping, no escrow") is not one.`;
 
 // This prompt is the part most worth tuning yourself. Small local models
 // follow short, concrete rules better than long abstract ones.
@@ -1111,11 +1115,20 @@ function syncAutoScripts() {
   return syncing;
 }
 
+// The sites the page scripts go on: eBay and Marketplace, and an opt-in store once it's turned on in settings and
+// the browser has given Tirekick its pages (turning it off, or taking the access away, takes it off again).
+async function sitesInUse() {
+  const settings = await getSettings();
+  const out = [];
+  for (const s of TKSites.inUse(settings)) if (!s.setting || (await chrome.permissions.contains({ origins: s.matches }).catch(() => false))) out.push(s);
+  return out;
+}
+
 async function doSyncAutoScripts() {
   const { showTab } = await getSettings();
   const def = {
     id: AUTO_ID,
-    matches: TKSites.matches(), // every site in lib/sites.js (each also needs its host permission in manifest.json)
+    matches: TKSites.matches(await sitesInUse()), // lib/sites.js (each also needs its host permission in manifest.json)
     js: CONTENT_FILES,
     runAt: "document_end", // the tab shows as soon as the page is parsed, not after every image loads
     persistAcrossSessions: true,
@@ -1128,11 +1141,13 @@ async function doSyncAutoScripts() {
   else if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: [AUTO_ID] });
 }
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.showTab) syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
+  if (changes.showTab || TKSites.all.some((s) => s.setting && changes[s.setting])) syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
   // The photo check is an AI call: its menu entry goes with the AI.
   // Cleared (Delete everything) is off too: the AI is opt-in.
   if (changes.useAI) chrome.contextMenus.update(MENU_ID, { visible: changes.useAI.newValue === true }, () => void chrome.runtime.lastError);
 });
+chrome.permissions.onRemoved.addListener(() => syncAutoScripts().catch(() => {}));
+chrome.permissions.onAdded.addListener(() => syncAutoScripts().catch(() => {}));
 chrome.runtime.onStartup.addListener(() => {
   upgradeStorage().catch(() => {}); // a restored profile, or an update applied while the browser was closed
   syncAutoScripts().catch(() => {});
@@ -1144,7 +1159,7 @@ chrome.runtime.onStartup.addListener(() => {
 async function refreshOpenTabs() {
   const { showTab } = await getSettings();
   if (!showTab) return;
-  const tabs = await chrome.tabs.query({ url: TKSites.matches() });
+  const tabs = await chrome.tabs.query({ url: TKSites.matches(await sitesInUse()) });
   await sleep(1500);
   for (const t of tabs) if (t.id >= 0 && !t.discarded) await ensureInjected(t.id).catch(() => {});
 }

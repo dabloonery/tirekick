@@ -39,6 +39,8 @@ globalThis.chrome = {
   action: { onClicked: events },
   tabs: { query: async () => [], onRemoved: events, onUpdated: events },
   alarms: { create: noop, clear: noop, onAlarm: events },
+  permissions: { onAdded: events, onRemoved: events, contains: async () => false },
+  scripting: { getRegisteredContentScripts: async () => [], registerContentScripts: async () => {}, unregisterContentScripts: async () => {} },
 };
 Object.assign(store, { anthropicKey: key || "stand-in", ...(base && { anthropicUrl: base }), ...(Deno.env.get("EVAL_MODEL") && { anthropicScanModel: Deno.env.get("EVAL_MODEL") }) });
 (0, eval)(Deno.readTextFileSync(path.join(ROOT, "background.js")));

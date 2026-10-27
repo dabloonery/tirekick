@@ -17,6 +17,8 @@ globalThis.chrome = {
   action: { onClicked: events },
   tabs: { query: async () => [], onRemoved: events, onUpdated: events },
   alarms: { create: noop, clear: noop, onAlarm: events },
+  permissions: { onAdded: events, onRemoved: events, contains: async () => false },
+  scripting: { getRegisteredContentScripts: async () => [], registerContentScripts: async () => {}, unregisterContentScripts: async () => {} },
 };
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 (0, eval)(fs.readFileSync(path.join(ROOT, "background.js"), "utf8"));

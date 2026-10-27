@@ -408,3 +408,30 @@ test("Saved workbench: parts and a note kept on a saved listing, and the net the
   assert.equal("parts" in sets.saved["ebay:2"] || "note" in sets.saved["ebay:2"], false, "a negative cost or a note that isn't text is left out");
   assert.equal(sets.saved["ebay:3"].note.length, S.NOTE_MAX);
 });
+
+test("usageReport: counts only, never a search, a listing or a seller", () => {
+  const all = {
+    useAI: true, provider: "anthropic", lens: "project",
+    stats: { scans: 12, soldLookups: 30, since: Date.parse("2026-10-20T12:00:00") },
+    saved: { a: { title: "Nintendo Switch Lite", url: "https://www.ebay.com/itm/1" } },
+    savedSearches: { b: { query: "pentax k1000" } },
+    soldCache: {
+      "v2::nintendo switch": { at: 1, market: { median: 200, variants: { _same: ["@switch"], "lite/*/*": { n: 6 }, "/*/*": { n: 22 } } } },
+      "v2::pentax k1000": { at: 1, market: { median: 125 } },
+      "v2::nosales": { at: 1, market: null },
+    },
+    siteHealth: { ebay: { ok: 1 }, facebook: { bad: 1, note: "x", level: "warn" } },
+    anthropicKey: "sk-ant-secret",
+  };
+  const r = S.usageReport(all, "0.58.0");
+  assert.equal(r, [
+    "Tirekick 0.58.0",
+    "AI: on (anthropic); auto-scan: off; Craigslist: off; mode: fix & flip",
+    "Scans: 12; sold-price lookups: 30 (counting since 2026-10-20)",
+    "Saved listings: 1; saved searches: 1",
+    "Sold lookups kept now: 3; with a typical price: 2; split by version: 1 (2 versions, 1 of them from 5 to 7 sales)",
+    "Page reading: ebay fine, facebook looked off (warn)",
+  ].join("\n"));
+  for (const secret of ["switch", "pentax", "ebay.com/itm", "sk-ant"]) assert.ok(!r.toLowerCase().includes(secret), secret);
+  assert.match(S.usageReport({}), /^Tirekick\nAI: off.*\nScans: 0; sold-price lookups: 0\n.*\nPage reading: no results pages yet$/s);
+});

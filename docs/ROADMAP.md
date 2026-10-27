@@ -348,9 +348,9 @@ count now when they sit close together (`TK.VARIANT_TIGHT`: the middle half with
 tier or generation still has too few is compared as before, and the price hover says so ("every version together (too
 few “lite” sales to go on alone)", `variantMissing`).
 
-Left: sold pages are still hand-made fixtures, so how often real lookups have enough of a kind is unmeasured; the saved
-lookups in a real browser already say (`soldCache` entries keep `variants`), so a count on the settings page would
-measure it with no new lookups. A version with too few sales could also use a narrower lookup already saved ("switch
+Left: sold pages are still hand-made fixtures, so how often real lookups have enough of a kind is unmeasured. Settings'
+"Copy a usage summary" (`TKShared.usageReport`, counts only, never sent) now says how many saved lookups split by
+version and how many versions came from 5 to 7 sales, for anyone who wants to share it. A version with too few sales could also use a narrower lookup already saved ("switch
 lite" for a Lite on a "nintendo switch" page), again with no new lookup. Not axes yet: model years and chips ("2020",
 "M1" vs "M2"), colors and carrier locks.
 

@@ -230,5 +230,20 @@ p = await page("https://sfbay.craigslist.org/sfc/vgm/d/san-francisco-nintendo-sw
   ok("…its phone number and the seller's own 'no shipping, no escrow' are no scam sign", it.offSite == null && /OLED model with dock/.test(it.details) && !/QR Code/.test(it.details), [it.offSite, it.details]);
 }
 await p.close();
+// Craigslist as it is today (real saved pages, 2026-10): www.craigslist.org/search/area/<city>, div cards, /view/ links.
+p = await page("https://www.craigslist.org/search/area/springfield?cat=ela", "craigslist-results-real");
+items = await extract(p);
+ok("real Craigslist search: all 24 cards, keyed by the post's code", items.length === 24 && items.every((i: any) => /^https:\/\/www\.craigslist\.org\/view\/d\//.test(i.url)) && (await p.ev(`Tirekick.keyOf(${JSON.stringify(items[0].url)})`)) === "cl:Fixture001xxxxxxxxxxxx", [items.length, items[0]?.url]);
+ok("…titles, prices, places and photos", eq([items[0].title, items[0].price, items[0].place, /images\.craigslist\.org/.test(items[0].imageUrl), items[17].price], ["Marantz Receiver Model SR5002 Surround Sound", 175, "Springfield", true, 400]), items.slice(0, 2));
+ok("…'AS IS / FOR PARTS' read as broken, and no scam sign on any of them (a PayPal card reader isn't one)", items.find((i: any) => /FOR PARTS/.test(i.title)) && items.every((i: any) => !i.offSite), items.filter((i: any) => i.offSite).map((i: any) => [i.title, i.offSite]));
+ok("…page type, what it is with no search, a search that stays in the city, a card found again", eq([await p.ev(`Tirekick.pageType()`), await p.ev(`Tirekick.browseContext()`), await p.ev(`Tirekick.searchUrl({ query: 'switch', maxPrice: 0, newest: false })`), await p.ev(`Tirekick.linkedListings()`), !!(await p.ev(`!!Tirekick.cardFor("cl:Fixture002xxxxxxxxxxxx")`))], ["results", 'Craigslist springfield category "ela" (no search)', "https://www.craigslist.org/search/area/springfield?cat=sss&query=switch", 24, true]));
+await p.close();
+p = await page("https://www.craigslist.org/view/d/springfield-item/Fixture001xxxxxxxxxxxx", "craigslist-item-real");
+{
+  const it = await p.ev(`(({ el, ...it }) => it)(Tirekick.extractItem())`);
+  ok("real Craigslist post: title, price, condition, photo, age, offers", eq([await p.ev(`Tirekick.pageType()`), it.title, it.price, it.condition, it.imageUrls.length, it.listedDays, it.bestOffer], ["item", "Nintendo Switch Wireless Controller", 20, "new", 1, 60, true]), [it.title, it.price, it.condition, it.imageUrls, it.listedDays, it.bestOffer]);
+  ok("…'Call or Text' is no scam sign, and Craigslist's own scam notice isn't read as the seller's words", it.offSite == null && !/Western Union/.test(it.details) && !/QR Code/.test(it.details), [it.offSite, it.details]);
+}
+await p.close();
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

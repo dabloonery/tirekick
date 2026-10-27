@@ -53,13 +53,14 @@ The adapters (`content/adapters.js`) are the part most likely to break, and `e2e
 
 The `*-real.html` fixtures are real searches (October 2026: eBay iPods, bikes, couches and 4TB hard drives; Marketplace iPods (two),
 couches, dumbbells, "ds" and the home feed) and two real listing pages (`ebay-item-real`, `facebook-item-real`), trimmed and sanitized with
-`python3 tests/helpers/trim-page.py ebay|facebook|ebay-item|facebook-item saved.html out.html`: only the result cards (or the listing's
+`python3 tests/helpers/trim-page.py ebay|facebook|craigslist|ebay-item|facebook-item|craigslist-item saved.html out.html`: only the result cards (or the listing's
 own parts), no scripts or tracking, and made-up item ids, seller names, places, ZIP codes and photos. A Marketplace listing saved while
 open keeps only its listing pop-up, never the others (notifications, chats). Run a fresh save through it the same way, then read the
 text before committing (titles and descriptions stay as sellers wrote them: look for names, streets and landmarks). The other eBay fixtures are small hand-made reductions of older layouts, and
 `facebook-marketplace.html` is synthetic: Facebook's markup is generated, so the adapter reads link text, not class names.
-`craigslist-results.html` and `craigslist-item.html` are hand-made from Craigslist's layouts (no trim script for Craigslist
-yet): replace them with saved real pages, trimmed by hand the same way, when one is to hand.
+`craigslist-results-real.html` and `craigslist-item-real.html` are real (modes `craigslist` and `craigslist-item`: post codes,
+towns and photos made up, the post's structured data and map dropped); `craigslist-results.html` and `craigslist-item.html`
+are hand-made, for Craigslist's older layouts and its scam signs.
 
 ## Adding a test
 

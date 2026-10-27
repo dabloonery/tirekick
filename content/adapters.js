@@ -287,7 +287,7 @@
   // where those looser matches would skew the numbers).
   TK.EBAY_CARDS = "li.s-card, li.s-item, li.brwrvr__item-card";
   // Craigslist's card layouts (read below)
-  TK.CL_CARDS = "li.cl-search-result, li.cl-static-search-result, li.result-row";
+  TK.CL_CARDS = ".cl-search-result, li.cl-static-search-result, li.result-row";
   // When eBay renames its price class, the first dollar amount on the card can be the title's ("$1 no
   // reserve"), the shipping or a struck-through old price, and a price read that low is a "Likely scam" mark.
   // So the fallback is the first piece of the card whose whole text is one price ("$52.00", "C $40.00",
@@ -377,7 +377,7 @@
   TK.LISTING_LINKS = {
     ebay: TK.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", "),
     facebook: 'a[href*="/marketplace/item/"]',
-    craigslist: TK.CL_CARDS.split(", ").map((c) => `${c} a[href$=".html"]`).join(", "),
+    craigslist: TK.CL_CARDS.split(", ").map((c) => `${c} a[href*="/view/"], ${c} a[href$=".html"]`).join(", "),
   };
   TK.listingLinks = () => TK.LISTING_LINKS[TK.currentSite()] || TK.LISTING_LINKS.ebay;
   // Every listing linked from the results, whatever card it sits in, counted once: what a page reader that
@@ -386,9 +386,9 @@
   TK.linkedListings = (root = document) => {
     const area = ["#srp-river-results", ".srp-results", '[role="main"]'].map((s) => root.querySelector(s)).find(Boolean) || root;
     const keys = new Set();
-    for (const a of area.querySelectorAll('a[href*="/itm/"], a[href*="/marketplace/item/"], a[href$=".html"]')) {
+    for (const a of area.querySelectorAll('a[href*="/itm/"], a[href*="/marketplace/item/"], a[href*="/view/"], a[href$=".html"]')) {
       const key = Sites.keyOf(new URL(a.getAttribute("href") || "", location.href).href);
-      if (/^\w+:\d+$/.test(key)) keys.add(key);
+      if (/^\w+:\w+$/.test(key)) keys.add(key);
     }
     return keys.size;
   };
@@ -412,7 +412,7 @@
       const links = [...document.querySelectorAll(`a[href*="/marketplace/item/${id}"]`)];
       return links.find((a) => a.closest("[data-tirekick-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
     },
-    craigslist: (key, id) => [...document.querySelectorAll(`a[href*="/${id}.html"]`)].map((a) => a.closest(TK.CL_CARDS)).find(Boolean) || null,
+    craigslist: (key, id) => [...document.querySelectorAll(`a[href*="${id}"]`)].filter((a) => TK.keyOf(a.href) === key).map((a) => a.closest(TK.CL_CARDS)).find(Boolean) || null,
   };
   TK.cardFor = (key) => TK.CARD_FINDERS[Sites.ofKey(key).id](key, key.split(":")[1]);
 
@@ -549,11 +549,12 @@
   TK.facebookQuery = () => Sites.get("facebook").queryOf(location);
 
   // ---------- Craigslist ----------
-  // Server-built pages, one host per city. Three card layouts still appear: the script-built gallery and list
-  // (li.cl-search-result), the plain one the page carries before its script runs (li.cl-static-search-result), and
-  // the old one (li.result-row). Each card links to its post, …/d/<slug>/<number>.html: found by that link, and the
-  // title, price and place read from the card's parts, by class where it has one and by text where it doesn't.
-  const CL_POST = /\/\d{8,12}\.html(?:[?#]|$)/;
+  // Today's pages are www.craigslist.org/search/area/<city>?cat=… with div.cl-search-result cards (gallery, list…) that
+  // link to www.craigslist.org/view/d/<slug>/<code> (real saved pages, 2026-10). Older layouts still turn up: the
+  // plain one a page carries before its script runs (li.cl-static-search-result), and li.result-row on a city host,
+  // linking to …/<post number>.html. A card is found by its link to a post, and the title, price and place read from
+  // its parts, by class where it has one and by text where it doesn't.
+  const CL_POST = /\/view\/(?:d\/[^/]+\/)?[A-Za-z0-9]{16,40}\/?(?:[?#]|$)|\/\d{8,12}\.html(?:[?#]|$)/;
   // "$0" and "$1" are how Craigslist sellers leave the price out (Craigslist asks for one): no price.
   TK.clPrice = (text) => {
     const n = TK.parseAmount(text || "");
@@ -572,7 +573,7 @@
       const title = squash(card.getAttribute("title") || firstText(card, [".posting-title .label", ".posting-title", ".title", ".result-title", ".titlestring"]) || a.textContent, 160);
       if (!title) continue;
       const priceText = squash(firstText(card, [".priceinfo", ".price", ".result-price"]), 40);
-      const place = squash(firstText(card, [".location", ".result-hood", ".supertitle"]), 80).replace(/^\((.*)\)$/, "$1");
+      const place = squash(firstText(card, [".result-location", ".location", ".result-hood", ".supertitle"]), 80).replace(/^\((.*)\)$/, "$1");
       const text = TK.spacedText(card);
       out.push(withTotal({
         site: "craigslist",
@@ -631,10 +632,11 @@
       return cat ? `eBay category "${decodeURIComponent(cat[1]).replace(/-/g, " ")}" (no search)` : "eBay page with no search";
     },
     facebook: () => facebookContext(),
-    // /search/sss is everything for sale; /search/vga, /search/ela… a category
+    // www.craigslist.org/search/area/albuquerque?cat=ela, or on a city's host /search/ela; sss is everything for sale
     craigslist: () => {
-      const cat = location.pathname.match(/^\/search\/(?:[a-z]{3,4}\/)?([a-z]{3})\b/)?.[1];
-      return `Craigslist ${location.hostname.split(".")[0]} ${cat && cat !== "sss" ? `category "${cat}"` : "for sale"} (no search)`;
+      const city = location.pathname.match(/^\/search\/area\/([^/]+)/)?.[1] || location.hostname.split(".")[0];
+      const cat = new URLSearchParams(location.search).get("cat") || location.pathname.match(/^\/search\/(?!area\/)(?:[a-z]{3,4}\/)?([a-z]{3})\b/)?.[1];
+      return `Craigslist ${decodeURIComponent(city).replace(/-/g, " ")} ${cat && cat !== "sss" ? `category "${cat}"` : "for sale"} (no search)`;
     },
   };
   TK.browseContext = () => (TK.BROWSE_CONTEXT[TK.currentSite()] || TK.BROWSE_CONTEXT.ebay)();
@@ -838,9 +840,12 @@
       return u.href;
     },
   };
-  // Craigslist: the city you're on, everything for sale; its search reads words and "-word" only.
+  // Craigslist: the city you're on (www.craigslist.org/search/area/<city>, or a city's own host), everything for sale;
+  // its search reads words and "-word" only.
   TK.SEARCH_BUILDERS.craigslist = ({ query, maxPrice, newest }) => {
-    const u = new URL("/search/sss", location.origin);
+    const area = location.pathname.match(/^\/search\/area\/[^/]+/)?.[0];
+    const u = new URL(area || "/search/sss", location.origin);
+    if (area) u.searchParams.set("cat", "sss");
     u.searchParams.set("query", query.replace(/["()]/g, "").replace(/\s+/g, " ").trim());
     if (maxPrice > 0) u.searchParams.set("max_price", String(Math.ceil(maxPrice)));
     if (newest) u.searchParams.set("sort", "date");

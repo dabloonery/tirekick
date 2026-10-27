@@ -5,13 +5,15 @@
 #   python3 tests/helpers/trim-page.py ebay saved.html tests/fixtures/ebay-results-real.html
 #   python3 tests/helpers/trim-page.py facebook saved.html tests/fixtures/facebook-marketplace-real.html
 #   python3 tests/helpers/trim-page.py ebay-item saved.html tests/fixtures/ebay-item-real.html
+#   python3 tests/helpers/trim-page.py craigslist saved.html tests/fixtures/craigslist-results-real.html
+#   python3 tests/helpers/trim-page.py craigslist-item saved.html tests/fixtures/craigslist-item-real.html
 # Needs BeautifulSoup and lxml (pip install beautifulsoup4 lxml). Read the result before committing it: the
 # titles stay as the sellers wrote them, so look for a name, phone number or address in one.
 import copy, re, sys
 from bs4 import BeautifulSoup, Comment
 
 site, src, out = sys.argv[1], sys.argv[2], sys.argv[3]
-assert site in ("ebay", "facebook", "ebay-item", "facebook-item"), "first argument: ebay, facebook, ebay-item or facebook-item"
+assert site in ("ebay", "facebook", "ebay-item", "facebook-item", "craigslist", "craigslist-item"), "first argument: ebay, facebook, craigslist, or one of them with -item"
 item = site.endswith("-item")
 site = site.split("-")[0]
 s = BeautifulSoup(open(src, encoding="utf-8").read(), "lxml")
@@ -69,7 +71,62 @@ def buyer_zip(root):  # "Delivery … to 87106", "Free pickup: 3 mi from 87106":
         if re.fullmatch(r"\s*\d{5}\s*", v) and prev is not None and prev.strip() in ("to", "from", "near"): v = "62701"
         if v != str(t): t.replace_with(v)
 
-if item and site == "ebay":
+# Craigslist: posts are www.craigslist.org/view/d/<slug>/<code>. The slug starts with the seller's town, so it goes;
+# the code, post numbers, places and photos become made-up ones; the post's structured data (which carries the
+# phone number) and the map are dropped, and the town in the title bar is replaced.
+codes = {}
+def fake_code(orig):
+    codes.setdefault(orig, f"Fixture{len(codes) + 1:03d}" + "x" * 12)
+    return codes[orig]
+def clean_cl(root):
+    for el in [root] + root.find_all(True):
+        for k in list(el.attrs):
+            if k not in KEEP | {"title", "datetime", "id"} or (k == "id" and el[k] not in ("postingbody", "titletextonly")): del el[k]
+        h = el.get("href")
+        if h is not None:
+            m = re.search(r"/view/(?:d/[^/]+/)?([A-Za-z0-9]{16,40})", h)
+            el["href"] = f"https://www.craigslist.org/view/d/springfield-item/{fake_code(m.group(1))}" if m else "#"
+        if el.name == "img":
+            photos[0] += 1
+            el["src"] = f"https://images.craigslist.org/00000_fixture{photos[0]}_0CI0t2_600x450.jpg"
+            if el.get("alt"): el["alt"] = re.sub(r"\s*\d+$", "", el["alt"]) + " 1"
+
+if site == "craigslist" and not item:
+    cards = s.select("div.cl-search-result")[:24]
+    keep = []
+    for c in cards:
+        c = copy.copy(c)
+        for t in c.select(".dots, button"): t.decompose()
+        for sw in c.select(".swipe-wrap > div"):  # one photo per card, as it first loads
+            if not sw.find("img"): sw.decompose()
+        clean_cl(c)
+        for t in c.select(".result-location"):
+            p = t.get_text().strip()
+            places.setdefault(p, FAKE_PLACES[len(places) % len(FAKE_PLACES)].split(",")[0])
+            t.string = places[p]
+        keep.append(str(c))
+    body = f'<div class="cl-search-results"><div class="results cl-results-page">{"".join(keep)}</div></div>'
+    title = "springfield electronics for sale - craigslist"
+elif site == "craigslist":
+    page = s.new_tag("section", attrs={"class": "body"})
+    for sel in ("h1.postingtitle", "section.userbody figure", ".attrgroup", "#postingbody", ".postinginfos", ".avoid-scams"):
+        part = s.select_one(sel)
+        if part:
+            part = copy.copy(part)
+            if sel == ".attrgroup":
+                w = s.new_tag("div", attrs={"class": "mapAndAttrs"}); w.append(part); part = w
+            page.append(part)
+    for t in page.select(".print-qrcode"): t.decompose()
+    clean_cl(page)
+    for t in page.select(".postingtitletext > span"):  # " (Albuquerque, New Mexico)"
+        if re.fullmatch(r"\s*\(.*\)\s*", t.get_text()): t.string = " (Springfield, Illinois)"
+    for t in page.find_all(string=re.compile(r"post id: \d+")): t.replace_with("post id: 7900000001")
+    for t in page.find_all(string=re.compile(r"\b\d{3}[\s.-]\d{3}[\s.-]\d{4}\b")): t.replace_with(re.sub(r"\b\d{3}([\s.-])\d{3}([\s.-])\d{4}\b", r"555\g<1>555\g<2>0100", str(t)))
+    og = s.select_one('meta[property="og:image"]')
+    head = f'<meta property="og:title" content="{s.select_one("#titletextonly").get_text().strip()}"><meta property="og:image" content="https://images.craigslist.org/00000_fixture1_0CI0t2_600x450.jpg">' if og else ""
+    body = str(page)
+    title = s.title.get_text().strip()
+elif item and site == "ebay":
     # The photos, the summary on the right (title, price, seller, shipping) and "About this item", inside <main> as on eBay.
     main = s.new_tag("main")
     for sel in ("#PicturePanel", "#mainContent", ".x-about-this-item"):
@@ -144,6 +201,6 @@ else:
         cells.append(f"<div><div>{c}</div></div>")
     body = f'<div role="main"><div>{"".join(cells)}</div></div>'
     title = "Marketplace - Search results"
-html = f'<!doctype html>\n<!-- A real saved page, trimmed and sanitized by tests/helpers/trim-page.py. -->\n<html lang="en"><head><meta charset="utf-8"><title>{title}</title></head><body>{body}</body></html>\n'
+html = f'<!doctype html>\n<!-- A real saved page, trimmed and sanitized by tests/helpers/trim-page.py. -->\n<html lang="en"><head><meta charset="utf-8"><title>{title}</title>{head if site == "craigslist" and item else ""}</head><body>{body}</body></html>\n'
 open(out, "w", encoding="utf-8").write(re.sub(r">\s+<", "><", html))
-print(f"{out}: {len(html) // 1024} KB, {len(ids)} listings, {photos[0]} photos")
+print(f"{out}: {len(html) // 1024} KB, {len(ids) + len(codes)} listings, {photos[0]} photos")

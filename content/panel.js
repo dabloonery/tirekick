@@ -2707,6 +2707,7 @@
   const kindWord = (w) => {
     const g = w.match(/^gen (\d+)$/)?.[1];
     if (g) return `${g}${["th", "st", "nd", "rd"][+g % 100 > 10 && +g % 100 < 14 ? 0 : +g % 10] || "th"} generation`;
+    if (/^v \d+$/.test(w)) return `\u201c${w.replace(" ", "").toUpperCase()}\u201d`;
     return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
   };
   const variantNote = (m) => {

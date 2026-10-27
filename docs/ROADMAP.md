@@ -331,6 +331,15 @@ Eval: 14 labeled listings on "nintendo switch", "iphone 13" and "airpods pro" se
 median 13 of them came out wrong (an OLED at $235 "Above typical", a Pro Max at 38% unmarked). On the real saved "ipod
 classic" page (asking prices, not sales), 5th generation 30GB ones sit at $100 against $140 for the whole page.
 
+Read better (2026-10-27 review): tier words that name something else don't count ("Pro Seller", "Pro Controller
+Bundle", "Max Battery", "Plus Carrying Case"; "plus" is a version only after a model number, and "S21+" is a Plus). A bare
+number right after the search's name, a tier word or "series" is the generation ("Nintendo Switch 2", "Meta Quest 3",
+"AirPods Pro 2", "iPad mini 6"; up to 20, not a count of games or a screen size before the chip), so Switch 2 sales no
+longer lift the plain Switch's typical price; the name word is kept in `_same` as "@switch", and a typical price saved
+before reads as it did. A V number is a revision, kept apart ("v 2": a Switch V2 isn't a Switch 2). A search ending in
+a number ("iphone 13") has that generation as the thing itself, so iPhone 14 sales that eBay mixes in stand apart.
+Eval: 4 new listings, 3 of them wrong before.
+
 Left: sold pages are still hand-made fixtures, so how often real lookups have 8+ of a kind is unmeasured. Not axes yet:
 model years and chips ("2020", "M1" vs "M2"), colors and carrier locks.
 

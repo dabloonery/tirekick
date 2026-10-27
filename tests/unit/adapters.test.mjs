@@ -178,7 +178,8 @@ test("soldStats: median, spread, confidence, shipping and the sales nearest the 
 
 test("soldVariants: each kind with enough sales to trust gets its own numbers", () => {
   const v = TK.soldVariants(mixedSwitch(), "nintendo switch");
-  assert.deepEqual(Object.keys(v).sort(), ["/*/*", "lite/*/*", "oled/*/*"]);
+  assert.deepEqual(Object.keys(v).sort(), ["/*/*", "_same", "lite/*/*", "oled/*/*"]);
+  assert.deepEqual(v._same, ["@switch"]);
   assert.deepEqual([v["lite/*/*"].median, v["/*/*"].median, v["oled/*/*"].median], [95, 160, 240]);
   assert.equal(v["lite/*/*"].samples, undefined, "no samples or shipping per kind: the cache entry stays small");
   assert.ok(JSON.stringify(v).length < 400, JSON.stringify(v).length);
@@ -194,8 +195,8 @@ test("soldVariants: each kind with enough sales to trust gets its own numbers", 
   assert.equal(R.forVariant({ ...market, variants: few }, { title: "Nintendo Switch Console" }).median, market.median);
   // The search names the version: "oled" is the thing itself, a Lite still another kind.
   const oled = TK.soldVariants(mixedSwitch(), "switch oled");
-  assert.deepEqual(oled._same, ["oled"]);
-  assert.deepEqual(Object.keys(oled).sort(), ["/*/*", "/gen 2/*", "_same", "lite/*/*"], "the plain V2s (gen 2) apart from the OLEDs");
+  assert.deepEqual(oled._same, ["oled", "@oled"]);
+  assert.deepEqual(Object.keys(oled).sort(), ["/*/*", "/v 2/*", "_same", "lite/*/*"], "the plain V2s (v 2, a revision) apart from the OLEDs");
   assert.equal(TK.soldVariants(mixedSwitch().slice(0, 10), "nintendo switch"), null, "no kind stands apart");
 });
 

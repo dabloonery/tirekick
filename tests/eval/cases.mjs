@@ -32,12 +32,15 @@ export const MARKETS = {
   "canon ae-1": { median: 160, ship: 15, confidence: "fair", n: 19 },
   // Lites, V1s and OLEDs together, and each version on its own as TK.summarizeSold splits them (TKRules.forVariant).
   "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52, variants: {
+    _same: ["@switch"],
+    "/gen 2/*": { median: 440, p10: 380, p25: 420, p75: 460, n: 9, confidence: "fair" }, // Switch 2s
     "lite/*/*": { median: 95, p10: 75, p25: 88, p75: 105, n: 14, confidence: "fair" },
     "oled/*/*": { median: 250, p10: 205, p25: 235, p75: 265, n: 16, confidence: "good" },
     "/*/*": { median: 170, p10: 120, p25: 150, p75: 185, n: 22, confidence: "good" },
   } },
   // Searches that name no size or generation: each kind on its own as TK.summarizeSold splits them (assumed numbers).
   "iphone 13": { median: 320, ship: 10, confidence: "good", n: 60, variants: {
+    _same: ["gen 13", "@iphone"],
     "/*/128gb": { median: 290, p10: 250, p25: 275, p75: 305, n: 20, confidence: "good" },
     "/*/256gb": { median: 345, p10: 300, p25: 330, p75: 360, n: 12, confidence: "fair" },
     "/*/*": { median: 310, p10: 255, p25: 285, p75: 340, n: 35, confidence: "good" },
@@ -46,7 +49,7 @@ export const MARKETS = {
     "mini/*/*": { median: 230, p10: 190, p25: 215, p75: 250, n: 10, confidence: "fair" },
   } },
   "airpods pro": { median: 110, ship: 6, confidence: "good", n: 50, variants: {
-    _same: ["pro"],
+    _same: ["pro", "@pro"],
     "/gen 1/*": { median: 75, p10: 55, p25: 68, p75: 82, n: 16, confidence: "good" },
     "/gen 2/*": { median: 150, p10: 120, p25: 140, p75: 160, n: 24, confidence: "good" },
   } },
@@ -192,6 +195,11 @@ export const CASES = [
   ebay("iphone 13", "Apple iPhone 13 Pro Max 256GB NEW SEALED", 199, 0, seller(100, 0), { truth: "scam", scan: "great", note: "38% of a Pro Max, but 62% of the mix: no mark at all before" }),
   // ---------- airpods pro, no generation named ($110 for the mix; 1st gen $75, 2nd gen $150) ----------
   ebay("airpods pro", "Apple AirPods Pro 2nd Generation USB-C", 129, 0, seller(99.8, "4K"), { truth: "honest", word: "fair" }),
+  // 2026-10-27 review: titles the first reading of versions got wrong.
+  ebay("nintendo switch", "Nintendo Switch 2 Console Mario Kart World Bundle", 425, 0, seller(99.7, "1.2K"), { truth: "honest", word: "fair", note: "a Switch 2 against Switch 2 sales; read as a plain Switch before" }),
+  ebay("nintendo switch", "Nintendo Switch Console Pro Controller Bundle", 165, 0, seller(99.5, 450), { truth: "honest", word: "fair", note: "a plain Switch; its Pro Controller read as a Pro before" }),
+  ebay("iphone 13", "Apple iPhone 13 128GB Blue Unlocked - Battery 89% - Pro Seller", 285, 0, seller(99.6, "2.2K"), { truth: "honest", word: "fair", note: "a plain 128GB; \"Pro Seller\" read as a Pro before" }),
+  ebay("airpods pro", "Apple AirPods Pro 2 Wireless Earbuds USB-C", 139, 0, seller(99.7, "3K"), { truth: "honest", word: "fair", note: "\"Pro 2\" is the second generation" }),
   ebay("airpods pro", "Apple AirPods Pro 1st Generation with MagSafe Case", 85, 0, seller(99.2, 210), { truth: "honest", word: "pass", note: "over what first-generation ones sell for; Good price against the mix" }),
 
   // ---------- scams that give the same excuses as honest cheap listings (CHEAP below) ----------

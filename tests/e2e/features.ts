@@ -247,6 +247,19 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   ok("sold prices leave out best-offer sales, lots, parts, other things and far-off prices", sm.n === 10 && sm.median === 58 && JSON.stringify(sm.dropped) === JSON.stringify({ offers: 1, lots: 1, parts: 1, unrelated: 1, outliers: 1, foreign: 0, ranges: 0 }), sm);
   ok("…say what buyers paid to ship, and how much to trust them", sm.ship === 9 && sm.confidence === "fair", sm);
   ok("…with Home below, as in the panel", view.home);
+  // An asking price: the buyer's word and the resale margin, worked out as you type, with no new lookup.
+  const hits = async () => Object.values(await p.ev(`fetch('/sold-hits').then(r=>r.json())`) as Record<string, number>).reduce((a, b) => a + b, 0);
+  const before = await hits();
+  const typed = async (v: string) => {
+    await hub.ev(`(() => { const el = document.querySelector('#look-price'); el.value = ${JSON.stringify(v)}; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await sleep(100);
+    return hub.ev(`({ text: document.querySelector('#price-read').textContent, v: document.querySelector('#price-read').dataset.v || '' })`);
+  };
+  const r40 = await typed("40");
+  ok("an asking price gets the buyer's word and what reselling would leave", r40.v === "good" && /^Good price\$18 below the typical price \(\$58, from 10 eBay sales\)/.test(r40.text) && /Resell on eBay: ~\$1 margin after 13\.6% fees and \$9 shipping \(est\.\)/.test(r40.text), r40);
+  const r70 = await typed("70");
+  ok("…changes as you type, with no new lookup", r70.v === "pass" && /^Above typical/.test(r70.text) && /~\$29 loss/.test(r70.text) && (await hits()) === before, [r70, before, await hits()]);
+  ok("…and goes when the box is empty", (await typed("")).text === "");
   // One saved search: no "Open all" button, and nothing in its place (it used to print "null")
   await store(`{savedSearches:{'ebay|pentax':{site:'ebay',q:'pentax',v:1}}}`);
   await sleep(500);

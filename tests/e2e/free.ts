@@ -49,6 +49,15 @@ await p.ev(`document.querySelector('ul').insertAdjacentHTML('beforeend', '<li cl
 await waitFor(async () => /No price check/.test(((await chips()).find(([pr]: string[]) => pr === "$8.00") || [])[1] || ""));
 const capChips = ((await chips()).find(([pr]: string[]) => pr === "$8.00") || [])[1] || "";
 ok("an accessory for the search isn't compared with the thing's typical price, so it's no scam", /No price check/.test(capChips) && !/Too cheap|Likely scam|typical/.test(capChips), capChips);
+// A page that rewrites the part after "#" as you scroll (Craigslist's "#search=2~gallery~80") is still the same
+// page: the marks and the panel's list stay, instead of clearing and coming back a second later.
+const rows = () => R(p, `return r.querySelectorAll('.list .row').length`);
+const rowsBefore = await rows();
+const marksBefore = JSON.stringify(await chips());
+await p.ev(`history.replaceState(null, "", location.pathname + location.search + "#search=2~gallery~80")`);
+await sleep(2500);
+const marksAfter = JSON.stringify(await chips());
+ok("a new #… on the same page keeps the marks and the panel's list", marksAfter === marksBefore && marksAfter.includes("Likely scam: typical") && (await rows()) === rowsBefore && rowsBefore > 0, { rowsBefore, rows: await rows(), marksAfter });
 await p.close();
 
 // ---------- eBay changed its cards ----------

@@ -176,28 +176,53 @@ test("soldStats: median, spread, confidence, shipping and the sales nearest the 
   assert.ok(s.p10 <= s.p25 && s.p25 <= s.median && s.median <= s.p75);
 });
 
-test("soldVariants: each version with 5+ sales gets its own numbers, the plain ones theirs with 8+", () => {
+test("soldVariants: each kind with enough sales to trust gets its own numbers", () => {
   const v = TK.soldVariants(mixedSwitch(), "nintendo switch");
-  assert.deepEqual(Object.keys(v).sort(), ["_base", "lite", "oled"]);
-  assert.deepEqual([v.lite.median, v._base.median, v.oled.median], [95, 160, 240]);
-  assert.deepEqual([v.lite.n, v._base.n, v.oled.n], [8, 10, 8]);
-  assert.equal(v.lite.samples, undefined, "no samples or shipping per version: the cache entry stays small");
+  assert.deepEqual(Object.keys(v).sort(), ["/*/*", "lite/*/*", "oled/*/*"]);
+  assert.deepEqual([v["lite/*/*"].median, v["/*/*"].median, v["oled/*/*"].median], [95, 160, 240]);
+  assert.equal(v["lite/*/*"].samples, undefined, "no samples or shipping per kind: the cache entry stays small");
   assert.ok(JSON.stringify(v).length < 400, JSON.stringify(v).length);
-  // The acceptance check: a card of each kind gets its own version's typical price, before any scan.
+  // The acceptance check: a card of each kind gets its own typical price, before any scan.
   const market = { ...TK.soldStats(mixedSwitch()), variants: v };
   const R = globalThis.TKRules;
   assert.equal(R.forVariant(market, { title: "Nintendo Switch Lite Turquoise" }).median, 95);
   assert.equal(R.forVariant(market, { title: "Nintendo Switch Console Neon" }).median, 160);
   assert.equal(R.forVariant(market, { title: "Nintendo Switch OLED Model" }).median, 240);
-  // Fewer than 8 plain ones: no base numbers, the plain ones use the whole market.
+  // Fewer than 8 plain ones: no group for them, so they use the whole market.
   const few = TK.soldVariants(mixedSwitch().slice(3), "nintendo switch");
-  assert.equal(few._base, undefined);
+  assert.equal(few["/*/*"], undefined);
   assert.equal(R.forVariant({ ...market, variants: few }, { title: "Nintendo Switch Console" }).median, market.median);
-  // A version with 4 sales is too few.
-  assert.equal(TK.soldVariants(mixedSwitch().filter((s, i) => !/Lite/.test(s.title) || i < 14), "nintendo switch").lite, undefined);
-  // The search names the version: "oled" is the thing itself, a Lite still another version.
+  // The search names the version: "oled" is the thing itself, a Lite still another kind.
   const oled = TK.soldVariants(mixedSwitch(), "switch oled");
   assert.deepEqual(oled._same, ["oled"]);
-  assert.deepEqual(Object.keys(oled).sort(), ["_base", "_same", "lite"]);
-  assert.equal(TK.soldVariants(mixedSwitch().slice(0, 10), "nintendo switch"), null, "no version stands out");
+  assert.deepEqual(Object.keys(oled).sort(), ["/*/*", "/gen 2/*", "_same", "lite/*/*"], "the plain V2s (gen 2) apart from the OLEDs");
+  assert.equal(TK.soldVariants(mixedSwitch().slice(0, 10), "nintendo switch"), null, "no kind stands apart");
+});
+
+test("soldVariants: sizes and generations in other searches", () => {
+  const R = globalThis.TKRules;
+  // An "iphone 13" search: 128GB and 256GB plain phones, and Pros.
+  const phones = [
+    ...[280, 285, 290, 290, 295, 300, 300, 305, 310].map((total, i) => ({ title: `Apple iPhone 13 128GB Unlocked ${i}`, total })),
+    ...[340, 345, 350, 350, 355, 360, 365, 370].map((total, i) => ({ title: `Apple iPhone 13 256GB Midnight ${i}`, total })),
+    ...[420, 430, 440, 450, 450, 460, 470, 480].map((total, i) => ({ title: `Apple iPhone 13 Pro 256GB Graphite ${i}`, total })),
+  ];
+  const v = TK.soldVariants(phones, "iphone 13");
+  const market = { ...TK.soldStats(phones), variants: v };
+  assert.equal(R.forVariant(market, { title: "iPhone 13 128GB Blue" }).median, 295);
+  assert.equal(R.forVariant(market, { title: "iPhone 13 256GB Pink" }).median, 353);
+  assert.equal(R.forVariant(market, { title: "iPhone 13 Pro 256GB" }).median, 450);
+  assert.equal(R.forVariant(market, { title: "iPhone 13 Blue" }).median, 310, "no size given: any plain one");
+  // A search that names a size compares on tier alone.
+  const sized = TK.soldVariants(phones, "iphone 13 256gb");
+  assert.ok(sized._same.includes("size") && !Object.keys(sized).some((k) => /gb$/.test(k)), Object.keys(sized).join());
+  // An "airpods pro" search: both generations.
+  const pods = [
+    ...[70, 72, 75, 75, 78, 80, 80, 82].map((total, i) => ({ title: `Apple AirPods Pro 1st Generation ${i}`, total })),
+    ...[140, 145, 150, 150, 152, 155, 158, 160].map((total, i) => ({ title: `Apple AirPods Pro (2nd Gen) USB-C ${i}`, total })),
+  ];
+  const pm = { ...TK.soldStats(pods), variants: TK.soldVariants(pods, "airpods pro") };
+  assert.equal(R.forVariant(pm, { title: "AirPods Pro 1st gen" }).median, 77);
+  assert.equal(R.forVariant(pm, { title: "AirPods Pro 2nd generation" }).median, 151);
+  assert.equal(R.forVariant(pm, { title: "AirPods Pro" }), pm, "doesn't say which: the whole market");
 });

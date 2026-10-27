@@ -2704,12 +2704,17 @@
   const pickupOf = (m, f) => TKRules.forPickup(m, f, !!(f?.site ? TKSites.get(f.site) : TK.site())?.local); // facts don't keep the site: this page's
   const marketOf = (f) => pickupOf(f?.ownMarket || lastMarket, f);
   // Which sales a listing's typical price came from, when it's one version's (TKRules.forVariant).
-  const variantNote = (m) =>
-    m?.variantUsed === "base"
-      ? ` that name no other version (sales that say ${m.variantOthers.map((v) => `\u201c${v}\u201d`).join(" or ")} left out)`
-      : m?.variantUsed
-        ? ` that say \u201c${m.variantUsed}\u201d, like this one`
-        : "";
+  const kindWord = (w) => {
+    const g = w.match(/^gen (\d+)$/)?.[1];
+    if (g) return `${g}${["th", "st", "nd", "rd"][+g % 100 > 10 && +g % 100 < 14 ? 0 : +g % 10] || "th"} generation`;
+    return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
+  };
+  const variantNote = (m) => {
+    if (!m?.variantUsed) return "";
+    const words = (m.variantWords || []).map(kindWord);
+    const others = m.variantOthers?.length ? `${m.variantOthers.map((v) => `\u201c${v}\u201d`).join(" and ")} left out` : "";
+    return words.length ? ` like this one (${[words.join(", "), others].filter(Boolean).join("; ")})` : ` that name no other version${others ? ` (${others})` : ""}`;
+  };
   // An accessory or part for the search ("Case for Nintendo Switch") isn't compared with the thing's typical price.
   // A scan's "not your search" counts too, and a title that leaves out a word of the search is never "Likely
   // scam" on price alone (TKRules.tooCheap).

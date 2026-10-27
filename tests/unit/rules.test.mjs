@@ -840,53 +840,95 @@ test("variantOf: the version a title names that the search doesn't", () => {
 });
 
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.
+test("genOf and sizeOf: a generation and a storage size, however they're written", () => {
+  for (const t of ["AirPods Pro 2nd Generation", "AirPods Pro (2nd Gen) USB-C", "AirPods Pro Gen 2", "iPad generation 2", "Dyson V2"]) assert.equal(R.genOf(t), "gen 2", t);
+  assert.equal(R.genOf("iPad Mini 6th Gen 64GB"), "gen 6");
+  assert.equal(R.genOf("Nintendo Switch V1 unpatched"), "gen 1");
+  for (const t of ["DeWalt 20V Max drill", "Bosch 18v", "Dyson V220 cable", "Nintendo Switch"]) assert.equal(R.genOf(t), "", t);
+  assert.equal(R.sizeOf("iPhone 13 Pro 256GB Graphite"), "256gb");
+  assert.equal(R.sizeOf("iPhone 13 1 TB"), "1tb");
+  assert.equal(R.sizeOf("MacBook Air M1 8GB 256GB"), "256gb", "the largest, not the memory");
+  assert.equal(R.sizeOf("Kingston 8GB DDR4"), "", "under 16GB is memory, not storage");
+});
+
+test("versionOf: tier, generation and size, leaving out what's the thing itself", () => {
+  assert.deepEqual(R.versionOf("Apple iPhone 13 Pro Max 256GB Unlocked"), ["pro max", "", "256gb"]);
+  assert.deepEqual(R.versionOf("AirPods Pro 2nd Generation with MagSafe case"), ["pro", "gen 2", ""]);
+  assert.deepEqual(R.versionOf("AirPods Pro 2nd Generation", ["pro"]), ["", "gen 2", ""]);
+  assert.deepEqual(R.versionOf("iPhone 13 256GB", ["size"]), ["", "", ""], "the search names a size: storage is off");
+  assert.deepEqual(R.versionOf("iPhone 13 with 64GB card"), ["", "", ""], "what comes with it isn't its size");
+});
+
+// The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.
 const switchSales = () => [
-  ...[150, 155, 158, 160, 160, 162, 165, 168, 170, 155].map((total, i) => ({ title: `Nintendo Switch V2 Console Gray ${i}`, total })),
+  ...[150, 155, 158, 160, 160, 162, 165, 168, 170, 155].map((total, i) => ({ title: `Nintendo Switch Console Gray ${i}`, total })),
   ...[88, 90, 92, 95, 95, 98, 100, 102].map((total, i) => ({ title: `Nintendo Switch Lite Coral ${i}`, total })),
   ...[230, 235, 238, 240, 240, 245, 248, 250].map((total, i) => ({ title: `Nintendo Switch OLED White ${i}`, total })),
 ];
 
-test("variantGroups: sales split by the version they name", () => {
+test("variantGroups: sales grouped by tier, generation and size", () => {
   const g = R.variantGroups(switchSales(), "nintendo switch");
-  assert.deepEqual([g.base.length, g.groups.lite.length, g.groups.oled.length], [10, 8, 8]);
+  assert.deepEqual([g.groups["/*/*"].length, g.groups["lite/*/*"].length, g.groups["oled/*/*"].length], [10, 8, 8]);
   assert.deepEqual(g.same, []);
   assert.deepEqual(R.variantGroups(switchSales(), "switch oled").same, ["oled"], "a version the search names is the thing itself");
-  assert.equal(R.variantGroups(switchSales(), "switch oled").groups.oled, undefined);
+  assert.equal(R.variantGroups(switchSales(), "switch oled").groups["oled/*/*"], undefined);
   // "20V Max" on nearly every DeWalt drill is the drill, not a version of it.
   const drills = [...Array(9)].map((_, i) => ({ title: `DeWalt DCD771C2 20V MAX Cordless Drill Kit ${i}`, total: 80 + i })).concat({ title: "DeWalt DCD771 drill", total: 75 });
   const d = R.variantGroups(drills, "dewalt dcd771");
   assert.deepEqual(d.same, ["max"]);
-  assert.deepEqual(Object.keys(d.groups), []);
-  assert.deepEqual(R.variantGroups([], "x"), { same: [], base: [], groups: {} });
+  assert.deepEqual(Object.keys(d.groups), ["/*/*"]);
+  // Sizes and generations: a 256GB iPhone 13 Pro counts in "pro/*/256gb", "pro/*/*" and so on.
+  const phones = R.variantGroups([{ title: "iPhone 13 Pro 256GB", total: 500 }, { title: "iPhone 13 128GB", total: 300 }, { title: "iPhone 13", total: 290 }], "iphone 13");
+  assert.deepEqual(Object.keys(phones.groups).sort(), ["/*/*", "/*/128gb", "pro/*/*", "pro/*/256gb"]);
+  assert.deepEqual(R.variantGroups([{ title: "iPhone 13 128GB", total: 300 }], "iphone 13 128gb").same, ["size"]);
+  assert.deepEqual(R.variantGroups([], "x"), { same: [], groups: {} });
 });
 
-test("forVariant: a listing is compared with sales of its own version", () => {
-  const market = { median: 160, p10: 92, p25: 98, p75: 235, n: 26, confidence: "fair", ship: 14, variants: {
-    lite: { median: 95, p10: 89, p25: 92, p75: 99, n: 8, confidence: "fair" },
-    oled: { median: 240, p10: 234, p25: 237, p75: 245, n: 8, confidence: "fair" },
-    mini: { median: 50, n: 5, confidence: "rough" },
-    _base: { median: 160, p10: 155, p25: 156, p75: 165, n: 10, confidence: "fair" },
-  } };
-  const lite = R.forVariant(market, { title: "Nintendo Switch Lite Turquoise" });
-  assert.deepEqual([lite.median, lite.p10, lite.n, lite.variantUsed, lite.ship], [95, 89, 8, "lite", 14], "the whole market's shipping stays");
-  assert.equal(lite.variants, undefined, "the copy has no versions, so a second pass changes nothing");
+const mixed = { median: 160, p10: 92, p25: 98, p75: 235, n: 26, confidence: "fair", ship: 14, variants: {
+  "lite/*/*": { median: 95, p10: 89, p25: 92, p75: 99, n: 8, confidence: "fair" },
+  "oled/*/*": { median: 240, p10: 234, p25: 237, p75: 245, n: 8, confidence: "fair" },
+  "mini/*/*": { median: 50, n: 8, confidence: "rough" },
+  "/*/*": { median: 160, p10: 155, p25: 156, p75: 165, n: 10, confidence: "fair" },
+} };
+
+test("forVariant: a listing is compared with sales of its own kind", () => {
+  const lite = R.forVariant(mixed, { title: "Nintendo Switch Lite Turquoise" });
+  assert.deepEqual([lite.median, lite.p10, lite.n, lite.variantUsed, lite.variantWords, lite.ship], [95, 89, 8, "lite/*/*", ["lite"], 14], "the whole market's shipping stays");
+  assert.equal(lite.variants, undefined, "the copy has no groups, so a second pass changes nothing");
   assert.deepEqual(R.forVariant(lite, { title: "Nintendo Switch Lite" }), lite);
-  assert.equal(R.forVariant(market, { title: "Nintendo Switch OLED" }).median, 240);
-  const base = R.forVariant(market, { title: "Nintendo Switch Console Gray" });
-  assert.deepEqual([base.median, base.variantUsed, base.variantOthers], [160, "base", ["lite", "oled", "mini"]]);
-  assert.equal(R.forVariant(market, { title: "Nintendo Switch Mini" }), market, "too few sales, or too spread out, to trust: the whole market");
-  assert.equal(R.forVariant(market, { title: "Nintendo Switch Pro Max" }), market, "a version with no sales of its own keeps the whole market");
-  const { _base, ...noBase } = market.variants;
-  assert.equal(R.forVariant({ ...market, variants: noBase }, { title: "Nintendo Switch Console" }).median, 160, "no base numbers: the whole market");
+  assert.equal(R.forVariant(mixed, { title: "Nintendo Switch OLED" }).median, 240);
+  const base = R.forVariant(mixed, { title: "Nintendo Switch Console Gray" });
+  assert.deepEqual([base.median, base.variantUsed, base.variantWords, base.variantOthers], [160, "/*/*", [], ["lite", "oled", "mini"]]);
+  assert.equal(R.forVariant(mixed, { title: "Nintendo Switch Mini" }), mixed, "a group too spread out to trust: the whole market");
+  assert.equal(R.forVariant(mixed, { title: "Nintendo Switch Pro Max" }), mixed, "a kind with no group of its own keeps the whole market");
   assert.equal(R.forVariant({ median: 100 }, { title: "Nintendo Switch Lite" }).median, 100, "a market from before versions");
+  assert.equal(R.forVariant({ median: 100, variants: { lite: { median: 50, confidence: "good" } } }, { title: "Switch Lite" }).median, 100, "a cached market from the first version of this (keys by tier alone) is left alone");
   assert.equal(R.forVariant(null, { title: "x" }), null);
-  // A pickup Lite: its own version, less the shipping.
-  const pick = R.forPickup(market, { title: "Nintendo Switch Lite gray", shipping: null }, true);
-  assert.deepEqual([pick.median, pick.pickupShip, pick.variantUsed], [81, 14, "lite"]);
+  // A pickup Lite: its own kind, less the shipping.
+  const pick = R.forPickup(mixed, { title: "Nintendo Switch Lite gray", shipping: null }, true);
+  assert.deepEqual([pick.median, pick.pickupShip, pick.variantUsed], [81, 14, "lite/*/*"]);
+});
+
+test("forVariant: most like it first, then any size, then any generation", () => {
+  const m = { median: 400, n: 60, confidence: "good", variants: {
+    "pro/*/256gb": { median: 520, n: 9, confidence: "fair" },
+    "pro/*/*": { median: 480, n: 20, confidence: "good" },
+    "/*/512gb": { median: 380, n: 8, confidence: "fair" },
+    "/*/*": { median: 320, n: 30, confidence: "good" },
+    "/gen 2/*": { median: 200, n: 10, confidence: "fair" },
+  } };
+  assert.equal(R.forVariant(m, { title: "iPhone 13 Pro 256GB" }).median, 520);
+  assert.equal(R.forVariant(m, { title: "iPhone 13 Pro 1TB" }).median, 480, "no 1TB Pro sales: any Pro");
+  assert.equal(R.forVariant(m, { title: "iPhone 13 Pro" }).median, 480, "no size given: any Pro");
+  assert.equal(R.forVariant(m, { title: "iPhone 13 512GB" }).median, 380);
+  assert.deepEqual(R.forVariant(m, { title: "iPhone 13 512GB" }).variantWords, ["512gb"]);
+  assert.equal(R.forVariant(m, { title: "iPhone 13 64GB" }).median, 320, "no 64GB sales: any plain one");
+  assert.equal(R.forVariant(m, { title: "Thing 2nd gen" }).median, 200);
+  assert.equal(R.forVariant(m, { title: "Thing 3rd gen" }).median, 320, "no sales of that generation: any plain one");
 });
 
 test("forVariant: a cheap Lite in a Switch search is priced as a Lite, and 'lite' no longer explains the price", () => {
-  const market = { median: 200, p10: 95, p25: 120, p75: 240, n: 52, confidence: "fair", ship: 14, variants: { lite: { median: 95, p10: 80, p25: 88, p75: 100, n: 14, confidence: "fair" }, _base: { median: 165, p10: 140, p25: 155, p75: 175, n: 22, confidence: "good" } } };
+  const market = { median: 200, p10: 95, p25: 120, p75: 240, n: 52, confidence: "fair", ship: 14, variants: { "lite/*/*": { median: 95, p10: 80, p25: 88, p75: 100, n: 14, confidence: "fair" }, "/*/*": { median: 165, p10: 140, p25: 155, p75: 175, n: 22, confidence: "good" } } };
   // An honest Lite at $85: 43% of the mixed typical price, 89% of a Lite's.
   const honest = { title: "Nintendo Switch Lite Turquoise", price: 85, total: 85, shipping: 0, sellerCount: 900, sellerPct: 99.7 };
   const mk = R.forVariant(market, honest);
@@ -905,4 +947,20 @@ test("forVariant: a cheap Lite in a Switch search is priced as a Lite, and 'lite
   const vm = R.forVariant(market, v2);
   v2.vsSold = R.compareFacts(v2, vm, "nintendo switch");
   assert.equal(R.freeRead(v2, vm).word, "Above typical");
+});
+
+test("a generation or size the typical price is already for isn't why it's cheap", () => {
+  assert.equal(R.cheapReason("AirPods Pro 1st Generation", "", "airpods pro"), "1st generation");
+  assert.equal(R.cheapReason("AirPods Pro 1st Generation", "", "airpods pro gen 1"), "", "compared with first-generation sales");
+  assert.equal(R.cheapReason("iPhone 13 64GB", "", "iphone 13 128gb"), "64GB");
+  assert.equal(R.cheapReason("iPhone 13 64GB", "", "iphone 13 64gb"), "");
+});
+
+test("genOf and sizeOf, from real iPod and drive titles: a choice of several is none", () => {
+  assert.equal(R.genOf("Apple iPod Classic 5th 6th 7th Generation (128GB ,256GB, 512GB,1TB,2TB) Modded"), "");
+  assert.equal(R.sizeOf("Apple iPod Classic 5th 6th 7th Generation (128GB ,256GB, 512GB,1TB,2TB) Modded"), "");
+  assert.equal(R.sizeOf("iPod Classic 5th 6th 7th Generation 30GB 60GB 80GB 120GB 160GB All Colors"), "");
+  assert.equal(R.genOf("Apple iPod Classic Video 5th 5.5 Enhanced Generation (30 GB) Black"), "", "not \"generation 30\"");
+  assert.equal(R.sizeOf("MacBook Pro 16GB 512GB"), "512gb", "memory and storage");
+  assert.deepEqual(R.versionOf("Apple iPod Classic 7th Gen 160GB Space Gray"), ["", "gen 7", "160gb"]);
 });

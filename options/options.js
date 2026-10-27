@@ -511,6 +511,16 @@ document.getElementById("exportCsv").addEventListener("click", async () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   note(`Downloaded ${rows.length} saved listing${rows.length === 1 ? "" : "s"} as a spreadsheet (CSV).`);
 });
+// Counts only, to paste somewhere if you want to (TKShared.usageReport): copied, never sent.
+document.getElementById("copyUsage").addEventListener("click", async () => {
+  const text = TKShared.usageReport(await chrome.storage.local.get(null), chrome.runtime.getManifest().version);
+  try {
+    await navigator.clipboard.writeText(text);
+    note("Usage summary copied. It has counts only, no listings or searches.");
+  } catch {
+    note(text);
+  }
+});
 document.getElementById("restore").addEventListener("click", () => document.getElementById("restoreFile").click());
 document.getElementById("restoreFile").addEventListener("change", async (e) => {
   const file = e.target.files?.[0];

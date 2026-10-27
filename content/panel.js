@@ -4812,13 +4812,16 @@
     return true;
   };
 
+  // The page you're on, without the part after "#": Craigslist rewrites that as you scroll its results
+  // ("#search=2~gallery~80"), and that's still the same page, not a new one to clear and read again.
+  const pageHref = () => location.href.split("#")[0];
   let lastHref = "";
   let lastType = null;
   window.addEventListener("tirekick-toggle", toggleOpen, until); // toolbar icon, if you use it
   const sync = () => {
-    if (location.href === lastHref) return;
+    if (pageHref() === lastHref) return;
     if (lastType === "results") saveScan(lastHref);
-    lastHref = location.href;
+    lastHref = pageHref();
     pageEpoch++; // work still running for the page you left finishes quietly (see scan)
     applyWant();
     autoHold = "";
@@ -4879,7 +4882,7 @@
     if (!alive()) return retire();
     sync();
     if (document.hidden) return;
-    if (ranAt.href !== location.href) (ranAt.href = location.href), pageVersion++; // a new page: everything runs again
+    if (ranAt.href !== pageHref()) (ranAt.href = pageHref()), pageVersion++; // a new page: everything runs again
     syncPageTheme(); // the page's own light or dark (cheap: it only writes when that changes)
     if (ranAt.fb !== pageVersion) (ranAt.fb = pageVersion), reapplyFacebook();
     if (!scanning && !passing && ranAt.pass !== pageVersion) (ranAt.pass = pageVersion), pagePass(); // cheap when nothing changed: compares the listing links only

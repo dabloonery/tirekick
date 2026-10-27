@@ -931,8 +931,13 @@ test("forVariant: a listing is compared with sales of its own kind", () => {
   assert.equal(R.forVariant(mixed, { title: "Nintendo Switch OLED" }).median, 240);
   const base = R.forVariant(mixed, { title: "Nintendo Switch Console Gray" });
   assert.deepEqual([base.median, base.variantUsed, base.variantWords, base.variantOthers], [160, "/*/*", [], ["lite", "oled", "mini"]]);
-  assert.equal(R.forVariant(mixed, { title: "Nintendo Switch Mini" }), mixed, "a group too spread out to trust: the whole market");
-  assert.equal(R.forVariant(mixed, { title: "Nintendo Switch Pro Max" }), mixed, "a kind with no group of its own keeps the whole market");
+  const mini = R.forVariant(mixed, { title: "Nintendo Switch Mini" });
+  assert.deepEqual([mini.median, mini.variantUsed, mini.variantMissing], [mixed.median, undefined, ["mini"]], "a group too spread out to trust: the whole market, saying why");
+  assert.deepEqual(R.forVariant(mixed, { title: "Nintendo Switch Pro Max" }).variantMissing, ["pro max"], "a kind with no group of its own keeps the whole market");
+  assert.equal(R.forVariant(mixed, { title: "Nintendo Switch Pro Max" }).median, mixed.median);
+  // A Switch 2 with no group of its own: sales of any generation, and the hover says too few were Switch 2s.
+  const sw2 = R.forVariant({ ...mixed, variants: { ...mixed.variants, _same: ["@switch"] } }, { title: "Nintendo Switch 2 Console" });
+  assert.deepEqual([sw2.variantUsed, sw2.variantMissing], ["/*/*", ["gen 2"]]);
   assert.equal(R.forVariant({ median: 100 }, { title: "Nintendo Switch Lite" }).median, 100, "a market from before versions");
   assert.equal(R.forVariant({ median: 100, variants: { lite: { median: 50, confidence: "good" } } }, { title: "Switch Lite" }).median, 100, "a cached market from the first version of this (keys by tier alone) is left alone");
   assert.equal(R.forVariant(null, { title: "x" }), null);

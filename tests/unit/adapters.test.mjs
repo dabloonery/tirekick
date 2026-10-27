@@ -189,10 +189,14 @@ test("soldVariants: each kind with enough sales to trust gets its own numbers", 
   assert.equal(R.forVariant(market, { title: "Nintendo Switch Lite Turquoise" }).median, 95);
   assert.equal(R.forVariant(market, { title: "Nintendo Switch Console Neon" }).median, 160);
   assert.equal(R.forVariant(market, { title: "Nintendo Switch OLED Model" }).median, 240);
-  // Fewer than 8 plain ones: no group for them, so they use the whole market.
+  // Fewer than 8 plain ones: a group only when they sit close together (the middle half within 1.5x).
   const few = TK.soldVariants(mixedSwitch().slice(3), "nintendo switch");
-  assert.equal(few["/*/*"], undefined);
-  assert.equal(R.forVariant({ ...market, variants: few }, { title: "Nintendo Switch Console" }).median, market.median);
+  assert.deepEqual([few["/*/*"].n, few["/*/*"].median, few["/*/*"].confidence], [7, 162, "fair"], "7 at $158 to $170");
+  const spread = mixedSwitch().slice(3).map((s, i) => (i < 7 ? { ...s, total: [90, 110, 150, 160, 200, 240, 260][i] } : s));
+  assert.equal(TK.soldVariants(spread, "nintendo switch")["/*/*"], undefined, "7 from $90 to $260: too few to trust");
+  assert.equal(R.forVariant({ ...market, variants: TK.soldVariants(spread, "nintendo switch") }, { title: "Nintendo Switch Console" }).median, market.median);
+  const four = TK.soldVariants([...mixedSwitch().slice(0, 14), ...mixedSwitch().slice(18)], "nintendo switch");
+  assert.equal(four["lite/*/*"], undefined, "4 Lites, however close: too few");
   // The search names the version: "oled" is the thing itself, a Lite still another kind.
   const oled = TK.soldVariants(mixedSwitch(), "switch oled");
   assert.deepEqual(oled._same, ["oled", "@oled"]);

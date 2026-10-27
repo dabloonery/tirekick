@@ -2748,10 +2748,12 @@
   const marketOf = (f) => pickupOf(f?.ownMarket || lastMarket, f);
   // Which sales a listing's typical price came from, when it's one version's (TKRules.forVariant).
   const variantNote = (m) => {
-    if (!m?.variantUsed) return "";
+    // Too few sales of its own version to price it by: say so, so the number isn't taken for that version's.
+    const few = m?.variantMissing?.length ? `too few ${m.variantMissing.map(TKRules.kindWord).join(" or ")} sales to go on alone` : "";
+    if (!m?.variantUsed) return few ? `, every version together (${few})` : "";
     const words = (m.variantWords || []).map(TKRules.kindWord);
     const others = m.variantOthers?.length ? `${m.variantOthers.map((v) => `\u201c${v}\u201d`).join(" and ")} left out` : "";
-    return words.length ? ` like this one (${[words.join(", "), others].filter(Boolean).join("; ")})` : ` that name no other version${others ? ` (${others})` : ""}`;
+    return words.length ? ` like this one (${[words.join(", "), others, few].filter(Boolean).join("; ")})` : ` that name no other version${others || few ? ` (${[others, few].filter(Boolean).join("; ")})` : ""}`;
   };
   // An accessory or part for the search ("Case for Nintendo Switch") isn't compared with the thing's typical price.
   // A scan's "not your search" counts too, and a title that leaves out a word of the search is never "Likely

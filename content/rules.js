@@ -584,19 +584,24 @@
   // against 256GB ones, a plain Switch against sales that name no tier, so OLEDs don't lift its typical price.
   // market.variants is from TK.summarizeSold (only groups worth trusting are kept). With no group for its kind, the
   // whole market, as before. Returns the market as is, or a copy with that group's numbers, variantUsed (the pattern)
-  // and variantWords (what the listing was matched on: ["lite"], ["gen 2", "256gb"], [] for a plain one).
+  // and variantWords (what the listing was matched on: ["lite"], ["gen 2", "256gb"], [] for a plain one), and
+  // variantMissing: its tier or generation when there were too few sales of it.
   R.forVariant = (market, f) => {
     const vs = market?.variants;
     if (!vs || !f?.title) return market;
     const v = R.versionOf(f.title, vs._same || []);
     const p = lookupsOf(v).find((k) => vs[k]?.median > 0 && vs[k].confidence !== "rough");
-    if (!p) return market;
+    // Its tier or generation without enough sales of its own (variantMissing, for the hover): "lite" compared with
+    // the whole market, a Switch 2 with sales of any generation.
+    const want = [v[0], v[1]].filter(Boolean);
+    if (!p) return want.length ? { ...market, variantMissing: want } : market;
     const sub = vs[p];
     const { variants, ...rest } = market;
     const [t, g, s] = p.split("/");
     const words = [t, g, s].filter((x) => x && x !== "*");
+    const missing = want.filter((w) => !words.includes(w));
     const tiers = [...new Set(Object.keys(vs).map((k) => k.split("/")[0]).filter((x) => x && !x.startsWith("_")))];
-    return { ...rest, median: sub.median, p10: sub.p10, p25: sub.p25, p75: sub.p75, n: sub.n, confidence: sub.confidence, variantUsed: p, variantWords: words, ...(!t && tiers.length && { variantOthers: tiers }) };
+    return { ...rest, median: sub.median, p10: sub.p10, p25: sub.p25, p75: sub.p75, n: sub.n, confidence: sub.confidence, variantUsed: p, variantWords: words, ...(!t && tiers.length && { variantOthers: tiers }), ...(missing.length && { variantMissing: missing }) };
   };
   // The words a version adds to the search, for cheapReason: "lite gen 2 256gb". "" for none.
   // A version word as people say it: "2nd generation", "128GB", "“lite”".

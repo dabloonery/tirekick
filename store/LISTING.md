@@ -23,9 +23,9 @@ Don't list AI services by name here: the store rejected 0.50.0 for keyword spam 
 
 Tirekick looks over listings with you on secondhand marketplaces, where you already shop. It works on eBay and Facebook Marketplace today, with more stores to come. Every listing gets a small score dot, prices are checked against what similar items recently sold for, common scam patterns are pointed out, and it remembers what you've already seen.
 
-Tirekick has optional AI features. The checks below are free and work without them; turn on an AI only if you want scores and write-ups.
+Tirekick has optional AI features. The checks below work without them; turn on an AI only if you want scores and write-ups.
 
-**Works without the AI: free, no account**
+**Works without the AI, no account needed**
 • Scam marks: the same listing reposted under new codes, a code tacked onto the title, and "message me off the site" tricks
 • How far below or above the typical price each card is ("$53 below typical", from recent eBay sales) once sold prices are in, plus price drops, "new to you" and auctions ending soon
 • Filter a search the way eBay does (dmg -case -game), by price, or to just the broken ones

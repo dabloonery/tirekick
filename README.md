@@ -8,7 +8,7 @@ Kick the tires before you buy.
 A browser extension for buying on secondhand marketplaces, starting with eBay and Facebook Marketplace. It puts a small
 score tag on every listing you're looking at, compares prices with what the same thing actually
 sold for, flags likely scams, and remembers what you've already seen. The price checks and scam marks are
-plain rules and real eBay sales, free and without the AI. An AI you choose (any service you have a key for,
+plain rules and real eBay sales, and work without the AI. An AI you choose (any service you have a key for,
 such as Anthropic, Google Gemini, OpenAI or OpenRouter, or a free model on your own computer) can add a score
 and a write-up for each listing; it's optional and off until you turn it on.
 
@@ -19,13 +19,13 @@ background.
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens.
-2. The free checks and marks work right away. AI scores are optional and off until you turn them on: to
+2. The checks and marks work right away. AI scores are optional and off until you turn them on: to
    add them, turn on **Use an AI** under **AI scores**, choose the AI service you have a key for (or Ollama
    or LM Studio on your own computer), and paste its key. Settings save as you go, the key is checked
    the moment you paste it, and a banner at the top says whether you're ready (or the one thing missing),
    with links to try it on eBay or Marketplace. **Show** reveals a key to check for typos.
 3. Search eBay or Facebook Marketplace. A slim **Tirekick** tab sits on the right edge of every
-   eBay and Marketplace page; the free marks on the cards work with the panel closed. Click the tab
+   eBay and Marketplace page; the marks on the cards work with the panel closed. Click the tab
    (or press **Alt+Shift+L**) to open the panel, and press **Scan**.
 
 The first time, the panel opens by itself with a short welcome: what Scan does, what Buyer and
@@ -96,7 +96,7 @@ scam warning stays readable.
 
 ## Everyday use
 
-- **What should Tirekick do?**, at the top of settings: **Without the AI** (the default: every free check and mark),
+- **What should Tirekick do?**, at the top of settings: **Without the AI** (the default: every check and mark),
   **Scam check only** (cards show only scam warnings; prices are still looked up to spot listings too cheap to be
   real, and your AI isn't used) or **Everything, with AI scores** (turns on the AI as well). Scam marks stay on in all three; changing a part by hand reads as Custom.
 - **Buyer / Reseller**, the switch at the top right of the panel, says what you want listings for (see below). Each
@@ -117,8 +117,8 @@ scam warning stays readable.
   price, auctions ending soonest, biggest price gap, or new and cheaper first.
 - **Skipped listings and likely scams are grayed out** on the page; switch to Show, Dim or Hide with
   **Skips and scams** above the list.
-- **Before any scan, each row has a free read**: Great, Good or Fair price, or Above typical, from the sold
-  prices; Check first or Likely scam from the free warnings; Off-topic. Until a scan gives real scores, "Best
+- **Before any scan, each row has a price read**: Great, Good or Fair price, or Above typical, from the sold
+  prices; Check first or Likely scam from the scam checks; Off-topic. Until a scan gives real scores, "Best
   first" puts good prices first (furthest below typical at the top), then the rest of your search (auctions,
   lots, ones with no typical price yet), then above typical (closest first), broken ones, things that aren't your
   search, and warnings, with a line over the list saying so. The cards' sold chip says the same word ("Good price ·
@@ -134,10 +134,10 @@ scam warning stays readable.
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Tirekick".
 - **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
-  "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (free, without
-  the AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
+  "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (from sold
+  listings, without the AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
   site, with your saved listings and searches (each marked eBay or Marketplace) and Home.
-- **Start over** clears the page's scores (Undo is right there); the free marks stay.
+- **Start over** clears the page's scores (Undo is right there); the marks on the cards stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Hide buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
 - **The footer** has the quality menu and this month's spend. With Claude the menu is **Thrifty** (Haiku for everything), **Balanced** (Haiku scans, Sonnet for single listings, photos and search ideas; the default) or **Thorough** (Sonnet scans, Opus for the rest); settings has each model separately, and another pair shows as Custom. The spend: click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.
 - **Esc** tucks the panel away; the sliders icon opens settings.
@@ -189,8 +189,8 @@ estimate of what that kind of item usually sells for, always marked **est.**; pr
 
 ## Without the AI
 
-Tirekick has AI features, and they're optional. Everything here works without them: it's free, needs no API
-key, and runs only on pages you're looking at. The AI is opt-in: **Use an AI** in settings (AI scores) starts
+Tirekick has AI features, and they're optional. Everything here works without them: it needs no API
+key and runs only on pages you're looking at. The AI is opt-in: **Use an AI** in settings (AI scores) starts
 off, and while it's off Scan, Analyze, Search ideas, photo checks and the model menu stay hidden and nothing is
 sent to any AI service. Turn it on to add them; turning it off again keeps your setup for later.
 
@@ -214,7 +214,7 @@ sent to any AI service. Turn it on to add them; turning it off again keeps your 
   any page in the last 90 days: a stolen or stock photo. Tirekick works out a small fingerprint from each thumbnail
   you scroll past (on your computer; only the code is kept), so it catches a photo uploaded again, not just the same
   file. The seller's own relists and identical titles don't count. Not on eBay, where sellers reuse their own photos.
-- **On hover**: ☆ **Save**, **Typical price** (free: one eBay sold lookup of that listing's own title,
+- **On hover**: ☆ **Save**, **Typical price** (one eBay sold lookup of that listing's own title,
   for a page with no search or only a category's name; "No price check" and why when it can't be made) or,
   once it has a price, **Sold ↗** (eBay's sold listings for that title, in a new tab), and ✕ **Hide**. They are square buttons with an icon, so they read as actions
   beside the round chips that tell you about the listing.
@@ -255,7 +255,7 @@ Filtered listings are never sent to a model, so filtering before a scan also mak
 
 **In the panel**:
 
-- **Typical price** (under the Scan button, marked free): the eBay sold-price lookup on its own, with
+- **Typical price** (under the Scan button): the eBay sold-price lookup on its own, with
   no model. A search you stay on looks it up by itself, once (at most four an hour that way, leaving the rest
   for the button, and none for a day after eBay's browser check); the button is there for a search you change.
   Prices already looked up for a search in the last day apply by themselves.

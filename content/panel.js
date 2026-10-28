@@ -412,7 +412,7 @@
     .welcome .step-key .setup-text { color:var(--muted); }
     .welcome .step-key .setup-go { justify-self:start; margin-top:6px; min-height:36px; padding:9px 14px; font:600 13px/1 var(--ui); }
     /* Model-only controls wait until there is a model: Compare prices against and free sold prices still work */
-    .no-model .want-field, .no-model .feewrap, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
+    .no-model .want-field, .no-model [data-act="scan"], .no-model [data-act="analyze"], .no-model [data-act="ideas"] { display:none !important; }
     /* "free" beside a button only means something next to the AI's costs */
     .no-model .freeprices .cost, .no-model [data-act="offer-prices"] .cost { display:none; }
 
@@ -2955,6 +2955,12 @@
   const perItem = (it) => (it.total == null ? Infinity : it.lot ? it.total / it.lot : it.total);
   const vsSold = (it) => it.vsWorking ?? facts.get(keyOf(it.url))?.vsSold ?? Infinity;
   const vsTie = (it) => (prefs.markPrices === false ? 0 : Math.min(vsSold(it), 1e6)); // Infinity - Infinity is NaN
+  // The price gap (or bid limit) a row sorts by: a scan's, or before one the free one (freeMoney).
+  const gapOf = (it) => {
+    if (it.score != null) return it.margin ?? it.bidCap ?? -Infinity;
+    const free = freeMoney(facts.get(keyOf(it.url)) || it);
+    return free?.margin ?? free?.bidCap ?? -Infinity;
+  };
   const endsIn = (it) => (it.auction ? (it.hoursLeft ?? 1e6) : Infinity);
   let sortMode = "score";
   // Ties keep the page's own order (sort is stable).
@@ -2964,7 +2970,7 @@
     score: (a, b) => (a.score == null) - (b.score == null) || (a.score != null ? (a.related === false) - (b.related === false) || sc(b) - sc(a) || vsTie(a) - vsTie(b) : TKRules.bestCompare(placeOf(a), placeOf(b))) || dealOf(b) - dealOf(a),
     price: (a, b) => perItem(a) - perItem(b) || sc(b) - sc(a),
     value: (a, b) => vsSold(a) - vsSold(b) || perItem(a) - perItem(b),
-    margin: (a, b) => (b.margin ?? b.bidCap ?? -Infinity) - (a.margin ?? a.bidCap ?? -Infinity) || sc(b) - sc(a),
+    margin: (a, b) => gapOf(b) - gapOf(a) || sc(b) - sc(a),
     ending: (a, b) => endsIn(a) - endsIn(b) || perItem(a) - perItem(b),
     new: (a, b) => {
       const rank = (it) => {
@@ -3015,6 +3021,11 @@
         const mk = marketOf(f);
         const vs = prefs.markPrices && f.vsSold != null ? `, ${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", long: true, working: !!f.project })} (${dollars(Math.round(mk.median))})` : "";
         const each = it.lot && it.total != null ? `, lot of ${it.lot}, ${dollars(Math.round((it.total / it.lot) * 100) / 100)} each` : "";
+        const free = prefs.markPrices ? freeMoney(f) : null;
+        const gap = [
+          free?.margin != null && `price gap ~${money(free.margin)} after ${free.feePct}% fees${free.shipOut ? ` and ~${dollars(free.shipOut)} shipping` : ""}, before any repair (est.)`,
+          free?.bidCap > 0 && `worth bidding up to about ${dollars(free.bidCap)}`,
+        ].filter(Boolean).join(", ");
         listEl.append(
           h(
             "div",
@@ -3035,7 +3046,7 @@
                 const bits = [it.shipping > 0 && `${dollars(it.total)} incl. ${dollars(it.shipping)} shipping`, it.auction && `current bid${it.timeLeft ? `, ${it.timeLeft} left` : ""}`, it.total == null && (it.priceText || "no price")]
                   .filter(Boolean)
                   .join(", ");
-                const line = `${bits}${vs}${each}`.replace(/^, /, "");
+                const line = `${bits}${vs}${each}${gap ? `, ${gap}` : ""}`.replace(/^, /, "");
                 return line ? h("div", { class: "meta" }, line) : null;
               })(),
               known.length ? h("div", { class: "flags" }, known) : null
@@ -3363,6 +3374,19 @@
       it.lens === "project" ? (it.refWorking ? resaleNet(it) - (it.partsCost || 0) : it.refParts)
       : it.refWorking;
     return base != null ? Math.max(0, Math.floor(base - ship)) : null;
+  };
+  // Before a scan, and with the AI off: Reseller's price gap and an auction's bid limit from the typical price alone,
+  // worked out as a scan's are (priceNotes, bidCapFor) but with no parts cost, since only a scan reads the fault.
+  // Nothing for something that isn't your search, a lot, another currency or a likely scam.
+  const freeMoney = (f) => {
+    const market = f?.ownMarket || lastMarket;
+    if (!(market?.median > 0) || f.total == null || f.lot || f.foreign || f.related === false || likelyScam(f)) return null;
+    if (TKRules.offSearch(f.title, marketFor) || TKRules.accessoryOf(f.title, marketFor)) return null;
+    const m = { ...f, lens };
+    priceNotes(m, market, lens, cfg.feePct ?? 13.6);
+    const margin = lens === "project" ? m.marginBeforeRepair : null;
+    const bidCap = f.auction ? bidCapFor(m) : null;
+    return margin != null || bidCap != null ? { margin, bidCap, feePct: m.feePct, shipOut: m.shipOut } : null;
   };
 
   // ---------- remembered scores ----------

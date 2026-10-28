@@ -2825,7 +2825,8 @@
     greatsSig = sig;
     const finds = [];
     for (const [key, f] of facts) {
-      if (!f.fresh || f.hidden || f.filtered || likelyScam(f) || f.related === false) continue;
+      // New to you, or a first look at this search (nothing on it known yet, so nothing counts as "new").
+      if (!(f.fresh || pageHadKnown === false) || f.hidden || f.filtered || likelyScam(f) || f.related === false) continue;
       const it = scored.get(key);
       const great = it?.score != null ? it.related !== false && shownV(it, f).v === "great" : prefs.markPrices !== false && TKRules.freeRead(f, marketOf(f))?.v === "great";
       if (!great) continue;

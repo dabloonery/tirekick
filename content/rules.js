@@ -264,10 +264,12 @@
   // marks go only where onCard is set: the panel's list and the listing page always warn, so turning them off
   // never hides a likely scam everywhere.
   R.CHIP_GROUPS = ["scam", "price", "other"];
-  R.pickChips = (chips, { markScams = true, markPrices = true, markOther = true, markLimit = 3 } = {}, { onCard = false } = {}) => {
+  // On a likely scam's card (scam: true) only the price warnings stay: a "$102 below typical" under "Likely scam:
+  // off-site contact" reads like a deal. The panel's row keeps the number.
+  R.pickChips = (chips, { markScams = true, markPrices = true, markOther = true, markLimit = 3 } = {}, { onCard = false, scam = false } = {}) => {
     const on = { scam: markScams || !onCard, price: markPrices, other: markOther };
     const rank = (c) => (c[3] === "state" ? 0 : c[3] === "scam" ? 1 : 2);
-    const kept = chips.filter((c) => on[c[3]] !== false).map((c, i) => [c, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]);
+    const kept = chips.filter((c) => on[c[3]] !== false && !(onCard && scam && c[3] === "price" && c[0] !== "warn")).map((c, i) => [c, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]);
     return kept.slice(0, Math.max(1, Math.min(3, Math.round(markLimit) || 3))).map(([c]) => c);
   };
   // The three focuses at the top of settings, as the switches they set. Scam marks stay on in every one,

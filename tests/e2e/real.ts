@@ -63,8 +63,8 @@ dump("before a scan", free, freeRows);
 ok("the typical price comes from the fake sold search (about $252)", /\$252/.test(JSON.stringify(free)), free.map((x: any) => x.chips));
 // The fake sold search has 10 sales: a "fair" reference, which can't call a price alone bait (Check first, not Likely scam).
 ok("bait at 35% of typical is Too cheap? on a reference from 10 sales", /Too cheap\? Typical is \$252/.test(card(free, "Nintendo Switch OLED console - fast").chips.join()), card(free, "Nintendo Switch OLED console - fast"));
-ok("a game named after the console gets no price check, so no scam mark", /No price check/.test(card(free, "Mario Kart").chips.join()) && !/Too cheap|Likely scam/.test(card(free, "Mario Kart").chips.join()), card(free, "Mario Kart"));
-ok("a case for it gets no price check", /No price check/.test(card(free, "Nintendo Switch OLED carrying case").chips.join()), card(free, "Nintendo Switch OLED carrying case"));
+ok("a game named after the console gets no price check, so no scam mark", /Not the item, no price/.test(card(free, "Mario Kart").chips.join()) && !/Too cheap|Likely scam/.test(card(free, "Mario Kart").chips.join()), card(free, "Mario Kart"));
+ok("a case for it gets no price check", /Not the item, no price/.test(card(free, "Nintendo Switch OLED carrying case").chips.join()), card(free, "Nintendo Switch OLED carrying case"));
 ok("a console sold \"+ 3 games + case\" is priced as a console", /above typical/.test(card(free, "Nintendo Switch OLED white + 3").chips.join()), card(free, "Nintendo Switch OLED white + 3"));
 ok("a contact-me-on-WhatsApp post is a scam, with no \"Great price\" beside it", /Scam\? Off-site contact/.test(card(free, "Nintendo Switch OLED white text me").chips.join()) && !PRAISE.test(card(free, "Nintendo Switch OLED white text me").chips.join()), card(free, "Nintendo Switch OLED white text me"));
 ok("a for-parts one isn't too cheap and gets no price word", !/Too cheap|Likely scam|Great price|Good price/.test(card(free, "Nintendo Switch OLED for parts").chips.join()), card(free, "Nintendo Switch OLED for parts"));
@@ -72,6 +72,7 @@ ok("…and is set against working ones, saying so", /\$\d+ below working ones/.t
 // Each warning says why on the card itself (hover or focus), not only in a tooltip.
 const whyOf = (t: string) => p.ev(`[...document.querySelectorAll('.s-card')].find(c => c.querySelector('.s-card__title').textContent.startsWith(${JSON.stringify(t)}))?.querySelector('.tirekick-marks .tk-why')?.textContent || ''`);
 ok("the bait's card says why it's marked", /35% of the typical price.*usual bait/.test(await whyOf("Nintendo Switch OLED console - fast")), await whyOf("Nintendo Switch OLED console - fast"));
+ok("the WhatsApp post's card shows no price gap, which would read like a deal", !/below typical|above typical|about typical/.test(card(free, "Nintendo Switch OLED white text me").chips.join()), card(free, "Nintendo Switch OLED white text me"));
 ok("the WhatsApp post's card says what it asks", /Asks to talk off the site \(.*whatsapp.*buyer protection/.test(await whyOf("Nintendo Switch OLED white text me")), await whyOf("Nintendo Switch OLED white text me"));
 ok("the new seller's card says what the rule is", /Seller: 3 ratings \(your rule: at least 10 ratings/.test(await whyOf("Nintendo Switch OLED Splatoon")), await whyOf("Nintendo Switch OLED Splatoon"));
 ok("a card with nothing to warn about has no reasons box", !(await whyOf("Nintendo Switch OLED Model White")), await whyOf("Nintendo Switch OLED Model White"));

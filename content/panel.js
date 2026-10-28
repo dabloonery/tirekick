@@ -2028,7 +2028,7 @@
   // The chips a card wears: most useful first, three at most.
   // Every chip a listing could show, in order, each with its group (TKRules.CHIP_GROUPS). chipsFor keeps the
   // ones your settings show; onCard for the card on the page, where scam marks can be turned off too.
-  const chipsFor = (f = {}, opts) => TKRules.pickChips(allChips(f), prefs, opts);
+  const chipsFor = (f = {}, opts) => TKRules.pickChips(allChips(f), prefs, opts?.onCard ? { ...opts, scam: !!likelyScam(f) } : opts);
   const allChips = (f = {}) => {
     const c = [];
     if (showHidden && f.hidden) c.push(["warn", "Hidden", null, "state"]);
@@ -2063,9 +2063,9 @@
       const pw = f.project || unrelated || likelyScam(f) ? null : TKRules.priceWord(f.vsSold);
       c.push([pw?.rank >= 3 ? "good" : "plain", `${pw && pw.v !== "pass" ? `${pw.word} \u00b7 ` : ""}${TKRules.vsText(f.total, mk.median, { rough: mk.confidence === "rough", working: !!f.project })}`, `Typical price${f.project ? " of a working one" : ""}: about ${dollars(Math.round(mk.median))}, ${from(mk)}.`, "price"]);
     } else if (TKRules.placeholderPrice(f.price ?? f.total)) c.push(["plain", "Placeholder price?", `${dollars(f.price ?? f.total)} looks like a stand-in, not the real price, so it isn't compared with the typical price. Ask the seller.`, "price"]);
-    else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "No price check", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`, "price"]);
-    else if (f.accessory && mk?.median > 0) c.push(["plain", "No price check", `Looks like a game, accessory or part for it (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price. Typical price prices it from its own title.`, "price"]);
-    else if (f.foreign && mk?.median > 0) c.push(["plain", "No price check", foreignText(f.foreign), "price"]);
+    else if (mk?.median > 0 && TKRules.tooFarToCompare(f.price ?? f.total, mk.median)) c.push(["plain", "Not the item, no price", `Too far from the typical price (about ${dollars(Math.round(mk.median))}) to compare: it's likely a different item from the rest of this search.`, "price"]);
+    else if (f.accessory && mk?.median > 0) c.push(["plain", "Not the item, no price", `Looks like a game, accessory or part for it (\u201c${f.accessory}\u201d), not the ${marketFor ? `\u201c${marketFor}\u201d` : "thing"} itself, so it isn't compared with that typical price. Typical price prices it from its own title.`, "price"]);
+    else if (f.foreign && mk?.median > 0) c.push(["plain", "Other currency, no price", foreignText(f.foreign), "price"]);
     else if (f.priceNote) c.push(["plain", "No price check", f.priceNote, "price"]);
     if (f.isNew) c.push(["new", "New to you", null, "other"]);
     // Fixers want "untested" and "no power"; for anyone else it's a warning.

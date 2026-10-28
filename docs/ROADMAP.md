@@ -1113,7 +1113,7 @@ focus read **Custom**; picking a focus sets the switches again. The switches:
 | New setting | Default | Covers |
 |---|---|---|
 | `markScams` | on | The scam group of chips and the graying of likely scams |
-| `markPrices` | on | Price words, "Under typical: reason", "No price check" |
+| `markPrices` | on | Price words, "Under typical: reason", "Not the item, no price", "No price check" |
 | `markOther` | on | New to you, drops, auctions, lots, offers, "At your $" |
 | `useAI` | off (opt-in, dabloonery, 2026-10-23) | Every AI surface listed under No AI. Keys and models stay stored, so turning it back on needs nothing else |
 | `markLimit` | 3 | Chips per card: **3** (today) or **1**, the most important one (a scam mark always comes first) |
@@ -1239,10 +1239,10 @@ one changes the page address (the same as using the store's own menu), and the s
 | Free shipping | `LH_FS=1` | none | Prices compare better when shipping is known |
 | Shipping or Pickup | none | `deliveryMethod=shipping` / `local_pick_up` | Pickup means you see it working before you pay |
 | Listed in the last day, week, month | none | `daysSinceListed=1`, `7`, `30` | Old listings on Marketplace are often already sold |
-| US only | `LH_PrefLoc=1` | none | Listings from abroad, priced in another currency, get no price check today ("No price check") |
+| US only | `LH_PrefLoc=1` | none | Listings from abroad, priced in another currency, get no price check today ("Other currency, no price") |
 
 And one Tirekick-only filter that's missing: **Hide parts and accessories** for listings Tirekick reads as a game,
-case or part for what you searched (`f.accessory` from `TKRules.accessoryOf`, the "No price check" chip). A minimum
+case or part for what you searched (`f.accessory` from `TKRules.accessoryOf`, the "Not the item, no price" chip). A minimum
 price does this crudely now.
 
 Left out on purpose: distance (Marketplace keeps it with the location you set, not in the address in a way we can

@@ -217,7 +217,7 @@
         countTimer = setTimeout(() => count().catch(() => {}), 300);
       }
       if (c.alertsAck && Object.keys(c).length === 1) return;
-      if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "provider", "anthropicKey", "oaiModel"].some((k) => c[k])) return;
+      if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "provider", "anthropicKey", "oaiModel", "useAI"].some((k) => c[k])) return;
       if (!isShown()) return void (stale = true);
       clearTimeout(timer);
       timer = setTimeout(() => refresh().then(seen).catch(() => {}), 400);

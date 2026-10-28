@@ -42,6 +42,17 @@ ok("…one well under it says Too cheap?", /Too cheap\? Typical is \$300/.test(o
 await R(p, `r.querySelector('[data-act=tab]').click()`);
 await waitFor(() => R(p, `return !!r.querySelector('.list .row.plain')`));
 ok("an unscored row in the panel has Find photo elsewhere, beside Sold, Save and Hide", await R(p, `return [...r.querySelectorAll('.list .row.plain')].some(x=>[...x.querySelectorAll('.row-acts a')].some(a=>/Find photo elsewhere/.test(a.textContent) && /lens\.google\.com/.test(a.href)))`));
+// Reseller mode with the AI off: the price gap and an auction's bid limit come from the typical price alone, and
+// the list sorts by the gap.
+await R(p, `r.querySelector('[data-mode=reseller]').click()`);
+await waitFor(() => R(p, `return /price gap ~/.test(r.querySelector('.list').textContent)`));
+const lines = await R(p, `return [...r.querySelectorAll('.list .row.plain')].map(x=>x.textContent)`);
+ok("Reseller with no scan: a row has a price gap after fees, and the auction a bid limit", lines.some((t: string) => /price gap ~\$\d+ after 13\.6% fees.*before any repair \(est\.\)/.test(t)) && lines.some((t: string) => /worth bidding up to about \$\d+/.test(t)), lines);
+const gaps = lines.map((t: string) => (t.match(/price gap ~(\u2212?)\$(\d+)/) || []).slice(1)).filter((m: string[]) => m.length).map(([neg, n]: string[]) => (neg ? -1 : 1) * Number(n));
+ok("…sorted by the biggest price gap", gaps.length > 1 && gaps.every((g: number, i: number) => !i || gaps[i - 1] >= g), { gaps, lines });
+ok("…and the fee box shows without an AI", await R(p, `return getComputedStyle(r.querySelector('.feewrap')).display !== 'none'`));
+await R(p, `r.querySelector('[data-mode=buyer]').click()`);
+await sleep(300);
 ok("…a broken one is never marked (the median is for working ones)", !/Too cheap|Likely scam: typical/.test(of("$35.00")), cs);
 ok("…and an auction isn't either (a bid isn't a price)", !/Too cheap|Likely scam: typical/.test(of("$60.00")), cs);
 // An accessory for the search, added the way a feed adds cards as you scroll: no price check, no scam mark.

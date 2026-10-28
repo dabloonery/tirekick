@@ -1,6 +1,6 @@
 // Fails if manifest.json's version is lower than on the branch a change is going into. The same number is
-// fine: the version only moves when dabloonery uploads a build to the Chrome Web Store (dabloonery, 2026-10-21), so
-// pull requests in between keep it as it is.
+// fine: main carries the next upload's number and moves one step per Chrome Web Store upload (dabloonery,
+// 2026-10-28), so pull requests in between keep it as it is.
 // Usage: deno run --allow-read --allow-run --allow-env scripts/version-check.mjs origin/main   (CI passes the PR's base)
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";

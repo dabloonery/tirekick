@@ -36,7 +36,7 @@ pages at their real addresses (the browser maps the hosts to it) and a fake AI t
 
 - **One pull request per change**, with `deno task test` green. Say what changed and why, and for anything that
   touches scoring, scam checks or prompts, how it affects real listings (`deno task eval` gives the numbers).
-- **Don't change the version** in `manifest.json`. It changes only when a build goes to the Chrome Web Store.
+- **Don't change the version** in `manifest.json`. The maintainer moves it one step per Chrome Web Store upload.
 - **A listing that fooled the checks** goes into `tests/eval/cases.mjs` first, labeled, then the rule changes.
 - **A store changed its pages?** Read [docs/adding-a-site.md](docs/adding-a-site.md) and the fixture notes in
   `tests/README.md`. Adapters in `content/adapters.js` are layered on purpose, so an old layout keeps working.

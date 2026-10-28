@@ -3259,7 +3259,7 @@
     const n = (fn) => items.filter(fn).length;
     const { soldCooldownUntil = 0, soldCooldownWhy, soldLog = [], soldCache = {} } = await chrome.storage.local.get(["soldCooldownUntil", "soldCooldownWhy", "soldLog", "soldCache"]);
     const lines = [
-      `Tirekick ${chrome.runtime.getManifest().version} on ${TK.currentSite()} (${type}), ${location.origin}${location.pathname}`,
+      `Tirekick ${chrome.runtime.getManifest().version_name || chrome.runtime.getManifest().version} on ${TK.currentSite()} (${type}), ${location.origin}${location.pathname}`,
       type === "results" && `Cards on the page: ${document.querySelectorAll(TK.currentSite() === "ebay" ? TK.EBAY_CARDS : TK.listingLinks()).length}; read as listings: ${items.length}`,
       type === "results" && items.length && `With a title ${n((i) => i.title)}, price ${n((i) => i.price != null)}, photo ${n((i) => i.imageUrl)}, shipping known ${n((i) => i.shipping != null)}, seller rating ${n((i) => i.sellerPct != null)}`,
       type === "results" && items.length && `First titles: ${items.slice(0, 3).map((i) => `\u201c${i.title.slice(0, 40)}\u201d`).join(", ")}`,

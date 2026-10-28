@@ -206,6 +206,8 @@ ok("30 days of spend: one labeled chart, a table view, model names", await R(p, 
 ok("no usage counters on Home", await R(p, `return !/What you use/.test(r.querySelector('.view-home').textContent)`));
 const version = await o.ev(`chrome.runtime.getManifest().version`);
 ok("Home shows the version", await R(p, `return r.querySelector('.hm-foot').textContent.includes(${JSON.stringify(version)})`));
+const versionName = await o.ev(`chrome.runtime.getManifest().version_name || ""`);
+if (versionName) ok("a -dev build says so on Home", await R(p, `return r.querySelector('.hm-foot').textContent.includes(${JSON.stringify(versionName)})`));
 await store(`{listingMemory:{}, stats:{}, saved:{}, savedSearches:{}, startHidden:false}`);
 await sleep(800);
 ok("a first visit gets a getting-started checklist", await R(p, `return /Getting started/.test(r.querySelector('.view-home').textContent) && r.querySelectorAll('.hm-steps li').length===4`));

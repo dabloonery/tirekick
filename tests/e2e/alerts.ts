@@ -25,7 +25,7 @@ const gk = (await get("savedSearches"))?.["ebay|pentax k1000"]?.gk || [];
 ok("auto-scan's great listing is kept on the saved search", found && gk[0]?.k?.startsWith("ebay:") && /^https:\/\/www\.ebay\.com\/itm\//.test(gk[0].u) && gk[0].t, gk);
 await sleep(500);
 ok("…and the toolbar number says so", (await o.ev(`chrome.action.getBadgeText({})`)) === "1", await o.ev(`chrome.action.getBadgeText({})`));
-ok("…with a tooltip that names it", /found a great one/.test(await o.ev(`chrome.action.getTitle({})`)), await o.ev(`chrome.action.getTitle({})`));
+ok("…with a tooltip that names it", /had a great find/.test(await o.ev(`chrome.action.getTitle({})`)), await o.ev(`chrome.action.getTitle({})`));
 const before = JSON.stringify(gk);
 await p.ev(`location.reload()`);
 await sleep(6000);

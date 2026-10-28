@@ -1404,7 +1404,10 @@
     if (alive()) chrome.storage.local.set({ introDone: true }).catch(storeFailed);
   });
   $('[data-act="help"]').addEventListener("click", () => {
-    if (TK.pageType() === "other") return setStatus("Open an eBay or Marketplace search to try it. Your saved listings and searches are under Saved, and what changed is on Home.");
+    if (TK.pageType() === "other") {
+      const names = TKSites.inUse(cfg || {}).map((s) => s.name); // Craigslist too, once it's on
+      return setStatus(`Open a search on ${names.length > 1 ? `${names.slice(0, -1).join(", ")} or ${names.at(-1)}` : names[0]} to try it. Your saved listings and searches are under Saved, and what changed is on Home.`);
+    }
     showIntro(welcome.hidden);
     if (!welcome.hidden) welcome.scrollIntoView({ block: "nearest" });
   });
@@ -2461,7 +2464,7 @@
     const partsNow = () => (partsEl.value.trim() === "" ? null : Math.max(0, Number(partsEl.value)) || 0);
     const showNet = () => {
       const net = TKShared.savedNet({ ...r, parts: partsNow() ?? undefined }, ref, cfg.feePct ?? 13.6);
-      out.textContent = net == null ? (ref ? "no price" : "no sold price yet: scan it in Reseller") : `\u2248 ${money(net)} net`;
+      out.textContent = net == null ? (ref ? "no price" : aiOff() ? "no sold price yet: it comes with a scan" : "no sold price yet: scan it in Reseller") : `\u2248 ${money(net)} net`;
       out.title = net == null ? "" : `At the sold median ${dollars(Math.round(ref.sold))}, less ${cfg.feePct ?? 13.6}% + $0.40 fees${ref.ship ? ` and ~${dollars(ref.ship)} shipping` : ""}, the ${dollars(r.p)} price${partsNow() ? ` and ${dollars(partsNow())} parts` : ""}. Before sales tax and your time.`;
     };
     const keep = () => {
@@ -2751,7 +2754,7 @@
     // Too few sales of its own version to price it by: say so, so the number isn't taken for that version's.
     const few = m?.variantMissing?.length ? `too few ${m.variantMissing.map(TKRules.kindWord).join(" or ")} sales to go on alone` : "";
     if (!m?.variantUsed) return few ? `, every version together (${few})` : "";
-    if (m.variantQuery) return ", a lookup of that version from earlier today";
+    if (m.variantQuery) return ", from an earlier lookup"; // within the last day (the sold cache); from() names its words
     const words = (m.variantWords || []).map(TKRules.kindWord);
     const others = m.variantOthers?.length ? `${m.variantOthers.map((v) => `\u201c${v}\u201d`).join(" and ")} left out` : "";
     return words.length ? ` like this one (${[words.join(", "), others, few].filter(Boolean).join("; ")})` : ` that name no other version${others || few ? ` (${[others, few].filter(Boolean).join("; ")})` : ""}`;

@@ -50,7 +50,7 @@ test("alerts: a great find on a saved search, raised again by a newer one", () =
   assert.deepEqual(merged.map((g) => [g.k, g.t]), [["ebay:12", "K1000 body"], ["ebay:11", "Pentax K1000 with 50mm"]], "the new one first; one found again keeps its first sighting");
   assert.equal(S.alerts({}, { "ebay|pentax": { q: "pentax", gk: merged } }, { "g:ebay|pentax": "ebay:11" })[0].isNew, true, "a newer find is new again");
   assert.equal(S.mergeGreats([], [...Array(9)].map((_, i) => ({ k: `ebay:${i}` }))).length, S.GREAT_MAX);
-  assert.equal(S.alertSummary(S.alerts({}, searches, {})), "1 saved search found a great one");
+  assert.equal(S.alertSummary(S.alerts({}, searches, {})), "1 saved search had a great find");
 });
 
 test("alertSummary says what the toolbar number means", () => {

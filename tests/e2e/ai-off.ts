@@ -34,6 +34,11 @@ const said = await sh(a, `return r.querySelector('.status')?.textContent || ''`)
 ok("the price check doesn't mention an AI the user has off", /eBay sales of/.test(said) && !/your AI/.test(said), said);
 await o.ev(`chrome.storage.local.set({useSoldComps:false})`);
 
+await sh(a, `r.querySelector('[data-view=home]').click()`); await sleep(800);
+const aiStep = () => sh(a, `return [...r.querySelectorAll('.hm-steps li')].find(li=>/Add AI scores/.test(li.textContent))?.className ?? 'none'`);
+ok("Home's Add AI scores step isn't ticked for a key kept with the AI off", !/done/.test(await aiStep()), await aiStep());
 await o.ev(`chrome.storage.local.set({useAI:true, autoScan:false})`); await sleep(1200);
+ok("…and is ticked once it's on", /done/.test(await aiStep()), await aiStep());
+await sh(a, `r.querySelector('[data-view=page]')?.click()`); await sleep(500);
 ok("turned back on, Scan is back with the setup kept", (await sh(a, `return ${shown("[data-act=scan]")}`)) === true);
 c.close();

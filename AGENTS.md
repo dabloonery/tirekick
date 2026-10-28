@@ -25,7 +25,7 @@ Standing rules:
 - Never submit to the Chrome Web Store without dabloonery's OK.
 - One PR per change, with `deno task test` green.
 - Don't change the version in `manifest.json`. It stays as it is until dabloonery uploads a new build to the
-  Chrome Web Store (the store has 0.50.0; main is 0.58.0, the build for the next upload, dabloonery's pick on 2026-10-23); the next number is set at upload time (dabloonery, 2026-10-21).
+  Chrome Web Store (the store has 0.58.0, live since 2026-10-23; main stays 0.58.0 until the next upload); the next number is set at upload time (dabloonery, 2026-10-21).
 
 ## How the code fits together
 

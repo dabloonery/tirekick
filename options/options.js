@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "theme", "onCraigslist"];
+  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "notifyGreat", "theme", "onCraigslist"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicScanModel", "anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "filterWords"];
 
@@ -308,9 +308,19 @@ async function siteAccess(f) {
   note(`${site.name} stays off: the browser wasn't given access to it.`);
   return false;
 }
+// Notifications are an optional permission: asked for when the switch goes on (the request comes first, with no
+// await before it, or Firefox drops the prompt), given back when it goes off.
+async function notifyAccess(el) {
+  if (!el.checked) return void chrome.permissions.remove({ permissions: ["notifications"] }).catch(() => {});
+  if (await chrome.permissions.request({ permissions: ["notifications"] }).catch(() => false)) return true;
+  el.checked = false;
+  note("Notifications stay off: the browser wasn't allowed to show them.");
+  return false;
+}
 for (const f of FIELDS) {
   document.getElementById(f).addEventListener("change", async () => {
     if (optInSite(f) && (await siteAccess(f)) === false) return;
+    if (f === "notifyGreat" && (await notifyAccess(document.getElementById(f))) === false) return;
     const done = saving.then(() => saveField(f));
     saving = done.catch(() => {});
     await done;

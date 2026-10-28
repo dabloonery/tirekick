@@ -10,6 +10,16 @@ address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 
 source maps). Two items are worth knowing before review starts (M1, M2); the rest are small hardening
 ideas for a later release.
 
+## Saved-search alerts (2026-10-28, after 0.58.0)
+
+One new **optional** permission, `notifications` (Brief 1). It shows no warning at install and is asked for only
+when the user turns on "Notify me about great finds on saved searches"; turning it off calls
+`permissions.remove`. Notification text is a listing title and price the user's own page read (plain text, never
+markup), and the click handler opens only an address that passes `TKShared.safeUrl`. "Check my saved searches"
+opens saved search addresses that pass `TKSites.isSearchUrl`, in visible tabs, one at a time, only after the user
+presses it twice (the first press says what it will do); it starts no background fetch, and sold lookups keep
+their usual pacing. Nothing here blocks an upload.
+
 ## Check before the next upload (2026-10-23)
 
 **Still nothing blocks submission.** Rechecked `main` after the 2026-10-22 merges (#84 to #100). The manifest
@@ -98,6 +108,7 @@ Every permission is used, and none can be dropped without losing a feature:
 | AI service hosts | the services a user can pick in settings |
 | localhost `:11434`, `:1234` | Ollama and LM Studio |
 | optional `https://*.craigslist.org/*`, `https://images.craigslist.org/*` | Craigslist, only once turned on in settings (asked for then, given back when turned off; the page script is registered there only while both hold) |
+| optional `notifications` | great finds on saved searches, only once turned on in settings (asked for then, given back when turned off). Shows a title and price; the click opens the listing through `TKShared.safeUrl` |
 | optional `https://*/*`, `http://*/*` | "another OpenAI-style address" only |
 
 `tabs` is not requested and not needed: `chrome.tabs.query({ url })` works on eBay because the host

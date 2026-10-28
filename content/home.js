@@ -105,15 +105,45 @@
           h("button", { class: "hm-btn", onclick: () => send("openOptions", { section: "filters" }).catch(() => {}) }, "Open settings")));
     }
 
+    // "Check my saved searches" (Brief 1): opens each saved search in a tab, one at a time, so its listings are read
+    // and marked as when you open it yourself. First press says what it will do (and what a scan would cost),
+    // the second starts it. checkNote stays across redraws.
+    let checkNote = null; // null, { ask: text }, or { said: text }
+    function checkButton(d) {
+      const n = Math.min(12, Object.keys(d.savedSearches).length);
+      if (!n) return null;
+      const ask = async () => {
+        const s = await send("getSettings").catch(() => ({}));
+        const scans = s.autoScan && s.useAI === true;
+        const listings = Object.values(d.savedSearches).slice(0, 12).reduce((t, r) => t + (r?.n || 20), 0);
+        const cost = scans && s.provider !== "ollama" && s.scanRate > 0 ? listings * s.scanRate : 0;
+        checkNote = { ask: `Opens your ${plural(n, "saved search")} in tabs, one at a time, each once the one before has been read. ${scans ? `Each is scanned automatically as it opens${cost ? `, about $${cost < 0.01 ? "0.01" : cost.toFixed(2)} in all at most` : ""}.` : "Each gets its typical price and marks, as when you open it."} Great finds show up here.` };
+        refresh();
+      };
+      const run = async () => {
+        const r = await send("checkSavedSearches").then((x) => ({ ok: true, x }), (e) => ({ ok: false, e }));
+        checkNote = { said: r.ok ? `Opening ${plural(r.x?.n || n, "saved search")}, one at a time.` : String(r.e?.message || r.e) };
+        refresh();
+      };
+      if (checkNote?.ask) return h("div", { class: "hm-foot" }, h("p", { class: "hm-empty" }, checkNote.ask), h("div", { class: "acts" }, h("button", { class: "hm-btn", onclick: run }, "Start"), h("button", { class: "hm-btn", onclick: () => ((checkNote = null), refresh()) }, "Cancel")));
+      return h("div", { class: "hm-foot" }, h("button", { class: "hm-btn", onclick: ask, title: "Opens each saved search in a tab you can see, one after another. Nothing is checked in the background." }, "Check my saved searches"), checkNote?.said ? h("small", {}, ` ${checkNote.said}`) : null);
+    }
+    function greatRow(a) {
+      const g = a.top;
+      const href = TKShared.safeUrl(g.u) || searchUrl(D.savedSearches[a.key] || {});
+      const price = g.p != null ? `${money(g.p)}${g.ref > 0 ? `, typical ${money(g.ref)}` : ""}` : "";
+      return h("div", { class: `hm-alert${a.isNew ? " new" : ""}` }, h("span", { class: "hm-tag" }, a.isNew ? "New" : "Great find"), h("div", { class: "t" }, link(href, g.t || `“${a.title}”`), h("small", {}, `${price ? `${price}, ` : ""}on your “${a.title}” search, ${ago(a.when)}${a.n > 1 ? ` (${a.n} this week)` : ""}`)));
+    }
     function alertsSection(list) {
       const rows = list.length
         ? list.map((a) =>
-            a.kind === "drop"
+            a.kind === "great" ? greatRow(a)
+            : a.kind === "drop"
               ? h("div", { class: `hm-alert${a.isNew ? " new" : ""}` }, h("span", { class: "hm-tag" }, a.isNew ? "New" : "Cheaper"), h("div", { class: "t" }, link(itemHref(a.key), D.saved[a.key]?.t || itemHref(a.key)), h("small", {}, h("span", { class: "down" }, `↓ ${money(a.from - a.now)}`), ` since you saved it: ${money(a.from)} → ${money(a.now)}`)))
               : h("div", { class: `hm-alert${a.isNew ? " new" : ""}` }, h("span", { class: "hm-tag" }, a.isNew ? "New" : "At your price"), h("div", { class: "t" }, link(searchUrl(D.savedSearches[a.key] || {}), `“${a.title}”`), h("small", {}, `${plural(a.n, "listing")} at your ${money(a.deal)} when you last looked, ${ago(a.when)}`)))
           )
-        : [h("div", { class: "hm-empty", title: "Checked when those listings are on your screen, never in the background" }, "Nothing new. Saved listings that get cheaper, and saved searches with listings at your price, show up here.")];
-      return h("section", { class: "hm-sec" }, h("h3", {}, "Worth another look"), h("div", { class: "hm-alerts" }, rows));
+        : [h("div", { class: "hm-empty", title: "Checked when those listings are on your screen, never in the background" }, "Nothing new. Saved listings that get cheaper, and saved searches with a great find or listings at your price, show up here.")];
+      return h("section", { class: "hm-sec" }, h("h3", {}, "Worth another look"), h("div", { class: "hm-alerts" }, rows), checkButton(D));
     }
 
     function numbers(d) {

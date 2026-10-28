@@ -51,6 +51,7 @@ const DEFAULTS = {
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
   onCraigslist: false, // opt in (lib/sites.js "setting"): Tirekick works on Craigslist once this is on and its hosts are allowed
   autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)
+  notifyGreat: false, // a browser notification when a saved search you have open turns up a great find (asks for the permission)
 };
 
 async function getSettings() {
@@ -982,6 +983,103 @@ async function openTabs({ urls }) {
   for (const url of list) await chrome.tabs.create({ url, active: false });
   return list.length;
 }
+// "Check my saved searches" (Brief 1, option 2): you press it, and each saved search opens in a tab in front of you,
+// one at a time. Each waits until its page has settled (the panel's searchSettled: listings read, the automatic scan
+// or typical price done) or 45 seconds, then at least 5 seconds more before the next. Nothing is opened or fetched in
+// the background: you see every page, and the usual sold-lookup pacing applies. Great finds then raise alerts as on
+// any page you open. With automatic scanning on and a paid AI, a monthly budget must be set first.
+const CHECK_MAX = 12;
+const CHECK_GAP_MS = 5000;
+const CHECK_WAIT_MS = 45000;
+let checkRun = null; // { tabId, done } while a search is open and waited on
+// The saved searches it would open, or why it can't start.
+async function checkList() {
+  const settings = await getSettings();
+  const scans = settings.autoScan && settings.useAI === true;
+  if (scans && settings.provider !== "ollama" && !(settings.monthlyBudget > 0)) throw new Error("Automatic scanning is on: set a monthly budget in settings (Spending) before checking every saved search.");
+  const { savedSearches = {} } = await chrome.storage.local.get("savedSearches");
+  const list = Object.values(savedSearches)
+    .map((r) => TKShared.searchUrl(r))
+    .filter((u) => {
+      try {
+        const { protocol, hostname, pathname } = new URL(u);
+        return protocol === "https:" && TKSites.isSearchUrl({ hostname, pathname });
+      } catch {
+        return false;
+      }
+    })
+    .slice(0, CHECK_MAX);
+  if (!list.length) throw new Error("No saved searches to check yet.");
+  return { list, settings, scans };
+}
+async function checkSavedSearches() {
+  if (checkRun) throw new Error("Already checking your saved searches.");
+  checkRun = { tabId: -1, done: null }; // taken at once, so a second press can't start a second run
+  let run;
+  try {
+    run = await checkList();
+  } catch (err) {
+    checkRun = null;
+    throw err;
+  }
+  const { list, settings, scans } = run;
+  (async () => {
+    try {
+      for (const [i, url] of list.entries()) {
+        if (i) await sleep(CHECK_GAP_MS);
+        if (scans && settings.provider !== "ollama" && !(await checkBudget((await getSettings()).monthlyBudget).then(() => true, () => false))) break; // this month's budget is used up
+        const tab = await chrome.tabs.create({ url, active: true });
+        const keep = setInterval(() => chrome.runtime.getPlatformInfo().catch(() => {}), 20000); // the worker stays awake while it waits
+        await new Promise((resolve) => {
+          checkRun.tabId = tab.id;
+          checkRun.done = resolve;
+          setTimeout(resolve, CHECK_WAIT_MS);
+        });
+        clearInterval(keep);
+      }
+    } finally {
+      checkRun = null;
+    }
+  })().catch(() => {});
+  return { n: list.length };
+}
+function searchSettled(_payload, sender) {
+  if (checkRun && sender?.tab?.id === checkRun.tabId) checkRun.done?.();
+  return true;
+}
+
+// Notifications for great finds (opt in: the notifyGreat switch asks for the permission). One per saved search
+// an hour at most, and one per find. Clicking one opens the listing.
+const GREAT_GAP_MS = 60 * 60 * 1000;
+async function notifyGreats() {
+  const { notifyGreat } = await getSettings();
+  if (!notifyGreat || !chrome.notifications || !(await chrome.permissions.contains({ permissions: ["notifications"] }).catch(() => false))) return;
+  const { savedSearches = {}, alertsAck = {}, greatNotified = {} } = await chrome.storage.local.get(["savedSearches", "alertsAck", "greatNotified"]);
+  const now = Date.now();
+  const next = { ...greatNotified };
+  for (const a of TKShared.alerts({}, savedSearches, alertsAck)) {
+    if (a.kind !== "great" || !a.isNew) continue;
+    const was = greatNotified[a.key];
+    if (was && (was.k === a.top.k || now - was.at < GREAT_GAP_MS)) continue;
+    next[a.key] = { k: a.top.k, at: now };
+    const price = a.top.p != null ? `$${Math.round(a.top.p)}` : "";
+    const ref = a.top.ref > 0 ? `, typical $${a.top.ref}` : "";
+    await chrome.notifications.create(`tk-great|${a.top.u || ""}|${now}`, {
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("icons/icon128.png"),
+      title: `Great find on your \u201c${a.title.slice(0, 60)}\u201d search`,
+      message: `${a.top.t.slice(0, 90)}${price ? `: ${price}${ref}` : ""}`,
+    }).catch(() => {});
+  }
+  for (const k of Object.keys(next)) if (!savedSearches[k]) delete next[k];
+  if (JSON.stringify(next) !== JSON.stringify(greatNotified)) await chrome.storage.local.set({ greatNotified: next });
+}
+chrome.notifications?.onClicked.addListener((id) => {
+  const url = TKShared.safeUrl(id.split("|")[1] || "");
+  if (id.startsWith("tk-great|") && url) chrome.tabs.create({ url, active: true }).catch(() => {});
+  chrome.notifications.clear(id).catch(() => {});
+});
+
 // ---------- Message router ----------
 
 // ---------- Stopping ----------
@@ -1048,7 +1146,7 @@ const needsAI = (fn) => async (payload, sender) => {
   if ((await getSettings()).useAI === false) throw new Error(AI_OFF);
   return fn(payload, sender);
 };
-const HANDLERS = { storeEdit, soldSlot, rankBatch: needsAI(rankBatch), analyzeListing: needsAI(analyzeListing), suggestSearches: needsAI(suggestSearches), checkPhoto: needsAI(checkPhoto), photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, abort, panelTab, getSettings: getPageSettings };
+const HANDLERS = { storeEdit, soldSlot, rankBatch: needsAI(rankBatch), analyzeListing: needsAI(analyzeListing), suggestSearches: needsAI(suggestSearches), checkPhoto: needsAI(checkPhoto), photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, checkSavedSearches, searchSettled, abort, panelTab, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -1215,6 +1313,7 @@ async function updateBadge() {
 }
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.saved || changes.savedSearches || changes.alertsAck) updateBadge().catch(() => {});
+  if (changes.savedSearches) notifyGreats().catch(() => {});
 });
 
 // Tirekick's own page (hub/hub.html): look something up, saved listings and searches, Home. One tab:

@@ -39,6 +39,20 @@ test("alerts: cheaper saved listings and saved searches with listings at your pr
   assert.deepEqual(S.alerts(), []);
 });
 
+test("alerts: a great find on a saved search, raised again by a newer one", () => {
+  const now = Date.now();
+  const g1 = { k: "ebay:11", t: "Pentax K1000 with 50mm", p: 85, ref: 140, u: "https://www.ebay.com/itm/11", at: now - 1000 };
+  const searches = { "ebay|pentax": { q: "pentax", gk: [g1] }, "ebay|old": { q: "old", gk: [{ ...g1, k: "ebay:9", at: now - 8 * 864e5 }] } };
+  const [a] = S.alerts({}, searches, {});
+  assert.deepEqual([a.id, a.kind, a.value, a.n, a.top.p, a.isNew], ["g:ebay|pentax", "great", "ebay:11", 1, 85, true], "a week-old one is gone");
+  assert.equal(S.alerts({}, searches, { "g:ebay|pentax": "ebay:11" })[0].isNew, false, "seen");
+  const merged = S.mergeGreats([g1], [{ k: "ebay:12", t: "K1000 body", p: 60 }, { k: "ebay:11", t: "again" }], now);
+  assert.deepEqual(merged.map((g) => [g.k, g.t]), [["ebay:12", "K1000 body"], ["ebay:11", "Pentax K1000 with 50mm"]], "the new one first; one found again keeps its first sighting");
+  assert.equal(S.alerts({}, { "ebay|pentax": { q: "pentax", gk: merged } }, { "g:ebay|pentax": "ebay:11" })[0].isNew, true, "a newer find is new again");
+  assert.equal(S.mergeGreats([], [...Array(9)].map((_, i) => ({ k: `ebay:${i}` }))).length, S.GREAT_MAX);
+  assert.equal(S.alertSummary(S.alerts({}, searches, {})), "1 saved search found a great one");
+});
+
 test("alertSummary says what the toolbar number means", () => {
   const a = S.alerts({ "ebay:1": { p0: 70, p: 52 }, "ebay:2": { p0: 10, p: 5 } }, { s: { q: "s", deals: 1 } }, {});
   assert.equal(S.alertSummary(a), "2 saved listings got cheaper; 1 saved search had listings at your price");
@@ -202,7 +216,7 @@ test("cleanBackup: a damaged or hostile backup can't leave anything that breaks 
       "<img onerror>": { t: "bad key" },
       "ebay:999999999": "not a record",
     },
-    savedSearches: { "ebay|psp": { q: "psp", site: "mars", url: "https://evil.example/", n: "many" }, "ebay|": { q: "  " }, x: { q: 5 } },
+    savedSearches: { "ebay|psp": { q: "psp", site: "mars", url: "https://evil.example/", n: "many" }, "ebay|": { q: "  " }, x: { q: 5 }, "ebay|k1000": { q: "k1000", url: "https://www.ebay.com/sch/i.html?_nkw=k1000", gk: [{ k: "ebay:5", t: "K1000", p: 80, u: "javascript:alert(1)", at: 3 }, { k: "../x", t: "bad" }, "junk"] } },
     quickFilters: { "ebay|psp": { words: 12, min: "5", max: 100, fresh: "yes", broken: "sometimes", a: 9 }, "old": { projects: true }, "ebay|cam": { store: { cond: "used", freeShip: "on", "bad key!": "x", format: "<script>" }, a: 2 } },
     notInterested: { "ebay:111111111": { t: "x", a: 3 }, "ebay:222222222": null },
     listingMemory: { "ebay:333333333": { p: 20, pa: 1, f: 1, a: 4, h: [[25, 1], ["x", 2], 7] }, "ebay:444444444": { p: 3 } },
@@ -215,7 +229,8 @@ test("cleanBackup: a damaged or hostile backup can't leave anything that breaks 
   assert.deepEqual(sets.saved["ebay:123456789"], { t: "Camera", u: "https://www.ebay.com/itm/123456789", img: "", p0: 50, a0: 1, p: null, a: 2 }, "a bad link is rebuilt, a photo from elsewhere dropped, a price that isn't a number cleared, extra fields gone");
   assert.deepEqual(sets.saved["fb:42"], { t: "", u: "https://www.facebook.com/marketplace/item/42/", img: "https://scontent.fbcdn.net/x.jpg", p0: null, a0: 0, p: 10, a: 5 });
   assert.deepEqual(Object.keys(sets.saved).sort(), ["ebay:123456789", "fb:42"]);
-  assert.deepEqual(sets.savedSearches, { "ebay|psp": { site: "ebay", q: "psp", url: "https://www.ebay.com/sch/i.html?_nkw=psp", a0: 0, v: 0, n: 0, fresh: 0, deal: 0, deals: 0 } });
+  assert.deepEqual(sets.savedSearches["ebay|psp"], { site: "ebay", q: "psp", url: "https://www.ebay.com/sch/i.html?_nkw=psp", a0: 0, v: 0, n: 0, fresh: 0, deal: 0, deals: 0 });
+  assert.deepEqual(sets.savedSearches["ebay|k1000"].gk, [{ k: "ebay:5", t: "K1000", p: 80, ref: null, u: "", at: 3 }], "great finds keep listing keys and safe addresses only");
   assert.deepEqual(sets.quickFilters["ebay|psp"], { words: "", min: 0, max: 100, fresh: false, broken: "", deal: 0, a: 9 });
   assert.equal(sets.quickFilters.old.broken, "only", "the older Projects only still means broken ones only");
   assert.deepEqual(sets.quickFilters["ebay|cam"].store, { cond: "used", freeShip: "on" }, "store filters keep only short names and values");

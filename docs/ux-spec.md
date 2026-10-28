@@ -64,7 +64,7 @@ flowchart LR
 | Scanning | Status line *Ranking 6 listings with Haiku 5.5…*, spinner, **Stop**, a progress hairline under the tabs; the Scan button is disabled | Stop (optional) | Verified (`states.ts`) |
 | Results | *2 worth a look*, the verdict bar, counts, Save search / Try on Marketplace / Start over; the ranked list (a title shows the card on the page, **Open ↗** under the price opens it); tags on the cards | Open the best one | Verified |
 | Listing page | 60px score dot, verdict, summary, suggested offer with a message to copy, questions for the seller | Copy message | Verified |
-| Repeat use | Home leads the tabs: *Worth another look* first when there's something (price drops, saved searches at your price), then getting started, then numbers that open their lists; spending and usage are folded | Open the alert | Verified (`features.ts`) |
+| Repeat use | Home leads the tabs: *Worth another look* first when there's something (price drops, great finds and listings at your price on saved searches), with **Check my saved searches** under it, then getting started, then numbers that open their lists; spending and usage are folded | Open the alert | Verified (`features.ts`, `alerts.ts`) |
 | Leave | Settings › Backup and your data: Save a backup, Restore, **Delete everything** (asks first). Uninstalling also deletes everything | Delete everything | Verified (`states.ts`) |
 
 ## 4. States

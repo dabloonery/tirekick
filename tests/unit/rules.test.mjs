@@ -789,6 +789,9 @@ test("pickChips: each kind of mark follows its switch, scam marks lead, and only
   assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markScams: false }, { onCard: true })), ["At your $50", "Good price · $20 below typical", "New to you"]);
   assert.deepEqual(texts(R.pickChips(chips.slice(0, 4), { markScams: false })), ["Code in title: AB12", "At your $50", "Good price · $20 below typical"], "the panel and listing page keep the warning");
   assert.equal(R.pickChips(chips, { markLimit: 0 }).length, 3, "a bad limit is the default");
+  const bait = [["warn", "Contact outside the site?", "why", "scam"], ["plain", "$102 below typical", "", "price"], ["warn", "Likely scam: typical is $200", "why", "price"]];
+  assert.deepEqual(texts(R.pickChips(bait, {}, { onCard: true, scam: true })), ["Contact outside the site?", "Likely scam: typical is $200"], "a likely scam's card drops the price gap, keeps the price warning");
+  assert.deepEqual(texts(R.pickChips(bait, {}, { scam: true })), texts(bait), "the panel's row keeps the number");
 });
 
 test("focusOf: the three focuses and Custom, from the switches they set", () => {

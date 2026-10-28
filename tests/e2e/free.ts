@@ -46,9 +46,9 @@ ok("…a broken one is never marked (the median is for working ones)", !/Too che
 ok("…and an auction isn't either (a bid isn't a price)", !/Too cheap|Likely scam: typical/.test(of("$60.00")), cs);
 // An accessory for the search, added the way a feed adds cards as you scroll: no price check, no scam mark.
 await p.ev(`document.querySelector('ul').insertAdjacentHTML('beforeend', '<li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 lens cap</div><div class="s-card__price">$8.00</div><a href="https://www.ebay.com/itm/7777777777">item</a></li>')`);
-await waitFor(async () => /No price check/.test(((await chips()).find(([pr]: string[]) => pr === "$8.00") || [])[1] || ""));
+await waitFor(async () => /Not the item, no price/.test(((await chips()).find(([pr]: string[]) => pr === "$8.00") || [])[1] || ""));
 const capChips = ((await chips()).find(([pr]: string[]) => pr === "$8.00") || [])[1] || "";
-ok("an accessory for the search isn't compared with the thing's typical price, so it's no scam", /No price check/.test(capChips) && !/Too cheap|Likely scam|typical/.test(capChips), capChips);
+ok("an accessory for the search isn't compared with the thing's typical price, so it's no scam", /Not the item, no price/.test(capChips) && !/Too cheap|Likely scam|typical/.test(capChips), capChips);
 // A page that rewrites the part after "#" as you scroll (Craigslist's "#search=2~gallery~80") is still the same
 // page: the marks and the panel's list stay, instead of clearing and coming back a second later.
 const rows = () => R(p, `return r.querySelectorAll('.list .row').length`);
@@ -89,9 +89,9 @@ await fb.close();
 // The same card priced in Canadian dollars (a buyer in Canada): not held against US-dollar sales.
 const fbc = await open("https://www.facebook.com/marketplace/search?query=pentax+k1000&currency");
 const fbcChip = () => fbc.ev(`[...document.querySelectorAll('[data-tirekick-key]')].filter(c=>c.querySelector('a[href*="/item/111/"]')||c.matches('a[href*="/item/111/"]')).map(c=>[...c.querySelectorAll('.tk-chip')].map(x=>x.textContent+' ~ '+(x.title||'')).join(' | ')).join(' || ')`);
-await waitFor(async () => /No price check/.test(await fbcChip()));
+await waitFor(async () => /Other currency, no price/.test(await fbcChip()));
 const cad = await fbcChip();
-ok("a CA$85 Marketplace listing gets no price check against US-dollar sales, and says why", /No price check ~ Priced in CA\$/.test(cad) && !/typical/.test(cad.split("~")[0]), cad);
+ok("a CA$85 Marketplace listing gets no price check against US-dollar sales, and says why", /Other currency, no price ~ Priced in CA\$/.test(cad) && !/typical/.test(cad.split("~")[0]), cad);
 await fbc.close();
 await store(`{soldCache:{}}`);
 

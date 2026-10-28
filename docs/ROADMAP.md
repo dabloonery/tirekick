@@ -45,7 +45,7 @@ check); those are in git history.*
 | Free parts of briefs 2, 3, 4 and 6 | Built in 0.37.0 to 0.40.0 (age and price moves, the offer helper, "Too cheap?" and same-photo marks, CSV export) |
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
-| Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; next is Brief 1 (alerts, options 1 and 2). Brief 5's Craigslist is built, opt in (2026-10-27, [status](#craigslist-built-2026-10-27)); OfferUp is next there. Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
+| Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; Brief 1 (alerts, options 1 and 2) is built (2026-10-28; dabloonery checks a notification in Vivaldi). Brief 5's Craigslist is built, opt in (2026-10-27, [status](#craigslist-built-2026-10-27)); OfferUp is next there. Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Version numbers
@@ -516,6 +516,15 @@ Tell the user, without them watching the panel, when one of their saved searches
 #### User story
 
 As a buyer with a saved search for "pentax k1000", I want a notification when a new Great listing appears, so I can get to it before someone else does, without re-running the search myself.
+
+**Built 2026-10-28.** Great finds are kept on the saved search (`gk`, `TKShared.mergeGreats`: a week, five at most),
+raise a Home alert and the toolbar number (`kind: "great"` in `TKShared.alerts`), and with the opt-in switch a
+notification (`notifyGreats` in `background.js`, optional `notifications` permission). A great find is a listing first
+seen on this visit that a scan calls great or, before a scan, reads as a great price for free (so it works with the AI
+off). **Check my saved searches** on Home (and the hub) opens up to 12 saved searches in visible tabs, one at a time,
+each waiting for the panel's `searchSettled` (or 45 s) plus 5 s; with automatic scanning on and a paid AI it needs a
+budget. Open questions answered with their defaults: great finds only (at your price already alerts), and the
+notification has the title and price. Left for dabloonery: a notification checked in Vivaldi.
 
 #### dabloonery's decision (2026-10-14): build options 1 and 2
 

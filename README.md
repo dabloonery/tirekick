@@ -49,10 +49,15 @@ below). Saved and Home work on any eBay or Marketplace page.
 
 ## Home
 
-- **Worth another look**: saved listings that got cheaper since you saved them, and saved searches
-  that had listings at your price the last time you looked. New ones also show as a number on the
+- **Worth another look**: saved listings that got cheaper since you saved them, saved searches
+  that had listings at your price the last time you looked, and great finds on a saved search (a listing new to
+  you that a scan calls great, or that reads as a great price before one), kept for a week. New ones also show as a number on the
   toolbar icon; clicking the icon then opens the panel on Home, and looking at Home marks them seen.
   Nothing checks in the background: these update when those listings are on your screen.
+  **Check my saved searches** opens each saved search in a tab in front of you, one at a time, so they're read
+  and marked as if you'd opened them (it says first what it will do, and what automatic scans would cost). In
+  settings, **Notify me about great finds on saved searches** adds a browser notification (asked for when you
+  turn it on).
 - **At a glance**: saved listings, price drops, saved searches and listings at your price.
 - **Spent on paid AI, 30 days** (only once something was spent; folded): a bar per day, with
   **Table view** for the numbers and the cost per model.

@@ -2811,7 +2811,35 @@
     saved = await writeStored("saved", { patch: Object.fromEntries(stale.map((it) => [keyOf(it.url), { p: it.price, a: Date.now() }])) }); // a listing unsaved meanwhile stays unsaved
   };
   // A saved search remembers when you last looked and how much was new then.
+  // Great finds on a saved search you have open (Brief 1): a listing first seen on this visit that a scan calls great,
+  // or before a scan reads as a great price for free, and isn't hidden, filtered, a likely scam or something else.
+  // Kept on the saved search (gk, TKShared.mergeGreats), so Home, the toolbar badge and, when you turned them on,
+  // notifications say so. Only from pages on your screen, like every other alert.
+  let greatsSig = "";
+  const noteGreats = async () => {
+    const q = pageSearch();
+    const k = q && searchKey(q);
+    const rec = k && savedSearches[k];
+    const sig = `${pageEpoch}|${facts.size}|${scored.size}|${lastMarket?.median || 0}`;
+    if (!rec || TK.pageType() !== "results" || sig === greatsSig) return;
+    greatsSig = sig;
+    const finds = [];
+    for (const [key, f] of facts) {
+      // New to you, or a first look at this search (nothing on it known yet, so nothing counts as "new").
+      if (!(f.fresh || pageHadKnown === false) || f.hidden || f.filtered || likelyScam(f) || f.related === false) continue;
+      const it = scored.get(key);
+      const great = it?.score != null ? it.related !== false && shownV(it, f).v === "great" : prefs.markPrices !== false && TKRules.freeRead(f, marketOf(f))?.v === "great";
+      if (!great) continue;
+      const ref = marketOf(f)?.median;
+      finds.push({ k: key, t: (f.title || "").slice(0, 200), p: f.total ?? null, ref: ref > 0 ? Math.round(ref) : null, u: TKShared.safeUrl(f.url) || "" });
+    }
+    const known = new Set(TKShared.freshGreats(rec.gk).map((g) => g.k));
+    if (!finds.some((g) => !known.has(g.k))) return;
+    const gk = TKShared.mergeGreats(rec.gk, finds);
+    savedSearches = await writeStored("savedSearches", { patch: { [k]: { gk } } });
+  };
   const noteSearchVisit = async (all) => {
+    noteGreats().catch(() => {});
     const q = pageSearch();
     const rec = q && savedSearches[searchKey(q)];
     const deals = all.filter((f) => f.deal && !f.hidden && !f.filtered).length;
@@ -3607,6 +3635,8 @@
     setIf(scanBtn, "title", est ? "Estimated from what scoring has cost per listing with this model. Listings already judged this way come back free." : "");
     autoTick(n, toScore, changed);
     autoPriceTick();
+    settleTick(n, toScore);
+    noteGreats().catch(() => {});
     if (autoOn() && autoHold && autoHold !== "stopped") {
       // Automatic scanning hit a problem (a key, the budget, the connection): say so on the closed tab too.
       setIf(countEl, "textContent", "!");
@@ -3974,6 +4004,22 @@
     if (autoSig !== sig) return void (autoSig = sig); // listings may still be loading: look again next time
     autoSig = null;
     scan({ auto: true });
+  };
+
+  // "Check my saved searches" (background.js) opens each saved search and waits for it: once the page has its
+  // listings, nothing is running and no automatic scan or price lookup is about to start, for two ticks, the
+  // panel says so, once per page. The background ignores it from any tab it isn't waiting on.
+  let settledFor = -1;
+  let settleSeen = "";
+  const settleTick = (n, toScore) => {
+    if (settledFor === pageEpoch || !facts.size || busyN > 0 || scanning || document.hidden) return void (settleSeen = "");
+    const scanDue = autoOn() && !autoHold && !modelMissing && (seen.size ? n : toScore) > 0;
+    const priceDue = !autoOn() && cfg.useSoldComps !== false && !freeRow.hidden && autoPriced !== `${pageEpoch}|${queryEl.value.trim().toLowerCase()}`;
+    if (scanDue || priceDue) return void (settleSeen = "");
+    const sig = `${pageEpoch}|${facts.size}`;
+    if (settleSeen !== sig) return void (settleSeen = sig);
+    settledFor = pageEpoch;
+    send("searchSettled").catch(() => {});
   };
 
   // The typical price on its own, once per search you're looking at: the free marks then show without a press.

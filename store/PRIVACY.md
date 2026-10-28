@@ -14,7 +14,7 @@ Anything that leaves your computer goes to a service you chose, because you aske
 All of this is kept in your browser's extension storage and never sent to the developer:
 
 - **Your settings**, including any API key you paste in. Keys stay in this browser profile; the pages Tirekick works on never see them.
-- **Listings and searches you saved, and listings you hid**, with the prices you saw.
+- **Listings and searches you saved, and listings you hid**, with the prices you saw, and for a saved search the great finds seen on it in the last week (title, price, address), for Home and the toolbar number.
 - **Listings you've seen** (title, price, when), so it can say "new to you" and show price drops and history. Kept for 90 days.
 - **Photo fingerprints** for Marketplace listings you scroll past: a 16-character code worked out from each thumbnail (not the photo itself), so it can spot the same photo on another listing. Kept for 90 days.
 - **Scores** for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and **sold-price results**, kept for a day.
@@ -60,6 +60,11 @@ so read the one for the service you pick. Ollama and LM Studio keep everything o
 - Collect payment details or messages.
 
 ## Permissions
+
+Notifications are optional: Tirekick asks for them only when you turn on **Notify me about great finds on
+saved searches**, and gives them back when you turn it off. A notification shows a listing's title and price on
+your own computer; nothing is sent anywhere, and nothing is checked in the background: finds come only from
+pages you open, or that **Check my saved searches** opens in front of you after you press it.
 
 Each permission and what it's for is listed in `store/LISTING.md`.
 

@@ -44,8 +44,17 @@ await waitFor(() => R(p, `return !!r.querySelector('.list .row.plain')`));
 ok("an unscored row in the panel has Find photo elsewhere, beside Sold, Save and Hide", await R(p, `return [...r.querySelectorAll('.list .row.plain')].some(x=>[...x.querySelectorAll('.row-acts a')].some(a=>/Find photo elsewhere/.test(a.textContent) && /lens\.google\.com/.test(a.href)))`));
 // Reseller mode with the AI off: the price gap and an auction's bid limit come from the typical price alone, and
 // the list sorts by the gap.
+// A "$1" stand-in price is no real asking price, so it gets no price gap (it would top the list by the typical price).
+await p.ev(`document.querySelector('ul').insertAdjacentHTML('beforeend', '<li class="s-card"><img alt=""><div class="s-card__title">Pentax K1000 camera body, message me</div><div class="s-card__price">$1.00</div><a href="https://www.ebay.com/itm/7777777770">item</a></li><li class="s-card"><img alt=""><div class="s-card__title">WTB Pentax K1000 camera</div><div class="s-card__price">$40.00</div><a href="https://www.ebay.com/itm/7777777771">item</a></li>')`);
+await waitFor(() => R(p, `return /message me/.test(r.querySelector('.list').textContent)`));
 await R(p, `r.querySelector('[data-mode=reseller]').click()`);
 await waitFor(() => R(p, `return /price gap ~/.test(r.querySelector('.list').textContent)`));
+const standIn = await R(p, `return [...r.querySelectorAll('.list .row')].map(x=>x.textContent).find(t=>/message me/.test(t)) || ''`);
+ok("…a $1 stand-in price gets no price gap", standIn && !/price gap/.test(standIn), standIn);
+const wanted = await R(p, `return [...r.querySelectorAll('.list .row')].map(x=>x.textContent).find(t=>/WTB Pentax/.test(t)) || ''`);
+ok("…nor does a \"WTB\" post", wanted && !/price gap/.test(wanted), wanted);
+const farUnder = await R(p, `return [...r.querySelectorAll('.list .row')].map(x=>x.textContent).find(t=>/35mm SLR body, working/.test(t) && /Likely scam/.test(t)) || ''`);
+ok("…nor a row the free read calls a likely scam (it would read like a deal)", farUnder && !/price gap/.test(farUnder), farUnder || await R(p, `return [...r.querySelectorAll(".list .row")].map(x=>x.textContent)`));
 const lines = await R(p, `return [...r.querySelectorAll('.list .row.plain')].map(x=>x.textContent)`);
 ok("Reseller with no scan: a row has a price gap after fees, and the auction a bid limit", lines.some((t: string) => /price gap ~\$\d+ after 13\.6% fees.*before any repair \(est\.\)/.test(t)) && lines.some((t: string) => /worth bidding up to about \$\d+/.test(t)), lines);
 const gaps = lines.map((t: string) => (t.match(/price gap ~(\u2212?)\$(\d+)/) || []).slice(1)).filter((m: string[]) => m.length).map(([neg, n]: string[]) => (neg ? -1 : 1) * Number(n));

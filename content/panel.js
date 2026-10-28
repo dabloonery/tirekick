@@ -3410,8 +3410,11 @@
     it.accessory = TKRules.accessoryOf(it.title, marketFor);
     it.vsWorking = it.total != null && it.refPrice > 0 && !it.lot && !it.accessory && !TKRules.offSearch(it.title, marketFor) && !TKRules.tooFarToCompare(it.total, it.refPrice) ? it.total / it.refPrice : null;
     it.vsParts = forLens !== "use" && it.total != null && pm > 0 && !it.lot ? it.total / pm : null;
-    it.marginBeforeRepair = forLens === "project" && it.total != null && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
-    it.asIsMargin = forLens === "project" ? TKRules.asIsMargin(it, market, feePct) : null; // the floor if the repair fails
+    // A stand-in asking price ("$1", "$1234") isn't what you'd pay, so no margin from it: a "$1" one would top the
+    // margin sort with the whole typical price.
+    const real = it.total != null && !TKRules.tooFarToCompare(it.price ?? it.total, w);
+    it.marginBeforeRepair = forLens === "project" && real && w > 0 && !it.lot && !it.auction ? Math.round(resaleNet(it) - it.total) : null;
+    it.asIsMargin = forLens === "project" && !TKRules.placeholderPrice(it.price ?? it.total) ? TKRules.asIsMargin(it, market, feePct) : null; // the floor if the repair fails
   };
   // The most an auction is worth bidding, shipping included: the market price (Use); break-even after
   // fees and parts, or what broken ones sell for when there's no working price (Fix & flip).
@@ -3425,11 +3428,14 @@
   };
   // Before a scan, and with the AI off: Reseller's price gap and an auction's bid limit from the typical price alone,
   // worked out as a scan's are (priceNotes, bidCapFor) but with no parts cost, since only a scan reads the fault.
-  // Nothing for something that isn't your search, a lot, another currency or a likely scam.
+  // Nothing for something that isn't your search, a lot, another currency, a likely scam or an off-topic post (a
+  // "WTB" post, a service: TKRules.offTopic).
   const freeMoney = (f) => {
     const market = f?.ownMarket || lastMarket;
-    if (!(market?.median > 0) || f.total == null || f.lot || f.foreign || f.related === false || likelyScam(f)) return null;
+    if (!(market?.median > 0) || f.total == null || f.lot || f.foreign || f.related === false || likelyScam(f) || TKRules.offTopic(f)) return null;
     if (TKRules.offSearch(f.title, marketFor) || TKRules.accessoryOf(f.title, marketFor)) return null;
+    // Nor one the free read calls a likely scam (far under the typical price): a gap there reads like a deal (#146).
+    if (prefs.markPrices !== false && TKRules.freeRead(f, marketOf(f))?.word === "Likely scam") return null;
     const m = { ...f, lens };
     priceNotes(m, market, lens, cfg.feePct ?? 13.6);
     const margin = lens === "project" ? m.marginBeforeRepair : null;

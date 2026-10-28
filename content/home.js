@@ -63,7 +63,8 @@
     const itemHref = (k) => TKShared.savedItemUrl(k, D.saved[k]);
 
     function start(d) {
-      const keyed = d.provider === "ollama" || (d.provider === "openai" && !!d.oaiModel) || (d.provider === "anthropic" && !!d.hasKey);
+      // Ticked once the AI is on and set up: a key kept from before, with the AI turned off, isn't this step done.
+      const keyed = d.useAI === true && (d.provider === "ollama" || (d.provider === "openai" && !!d.oaiModel) || (d.provider === "anthropic" && !!d.hasKey));
       const steps = [
         { done: Object.keys(d.listingMemory).length > 0, title: "Look at a search", text: `Search ${TKSites.inUse().map((s) => s.name).join(" or ")}. Tirekick marks likely scams and odd prices on the cards as they load.`, acts: TKSites.inUse().map((s) => link(s.home, s.name, { class: "hm-btn" })) },
         { done: (d.stats.scans || 0) + (d.stats.soldLookups || 0) > 0, title: "Check the typical price", text: "“Typical price” in the panel compares every listing with recent eBay sales." },
@@ -216,7 +217,7 @@
         countTimer = setTimeout(() => count().catch(() => {}), 300);
       }
       if (c.alertsAck && Object.keys(c).length === 1) return;
-      if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "provider", "anthropicKey", "oaiModel"].some((k) => c[k])) return;
+      if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "provider", "anthropicKey", "oaiModel", "useAI"].some((k) => c[k])) return;
       if (!isShown()) return void (stale = true);
       clearTimeout(timer);
       timer = setTimeout(() => refresh().then(seen).catch(() => {}), 400);

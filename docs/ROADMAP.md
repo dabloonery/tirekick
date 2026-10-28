@@ -38,7 +38,7 @@ check); those are in git history.*
 
 | Plan | State |
 |---|---|
-| Chrome Web Store | Public beta live; the store has 0.50.0. `main` is 0.58.0, set for the next upload (2026-10-23). Uploading it is dabloonery's call ([checklist](#chrome-web-store-each-upload)) |
+| Chrome Web Store | Public beta live; the store has 0.58.0 (live since 2026-10-23), the same as `main`, which keeps that number until the next upload. Uploading it is dabloonery's call ([checklist](#chrome-web-store-each-upload)) |
 | Scam checks and prices | [Honest low prices](#honest-low-prices) done (#57 to #82); layout guards, long-feed speed and an eval with the real prompts merged 2026-10-21 and 22; [prices by version](#prices-by-version) 2026-10-27 |
 | Real-use fixes | The 2026-10-16 fixes reached `main` on 2026-10-22 (#84, [After real use](#after-real-use-2026-10-16)); recheck them on the real sites |
 | Sturdier no-AI features | All 8 shipped ([summary](#tirekick-making-the-no-ai-features-sturdier)). Real saved eBay and Marketplace searches are fixtures since #90; listing, sold and category pages are still hand-made |

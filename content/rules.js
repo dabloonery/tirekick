@@ -588,20 +588,38 @@
   // whole market, as before. Returns the market as is, or a copy with that group's numbers, variantUsed (the pattern)
   // and variantWords (what the listing was matched on: ["lite"], ["gen 2", "256gb"], [] for a plain one), and
   // variantMissing: its tier or generation when there were too few sales of it.
+  // A narrower lookup remembered from today (market.narrower: [{ q, market }], the sold cache): "switch lite" for a
+  // Lite on a "nintendo switch" page whose own Lite sales are too few. It counts when every word of that search is
+  // in the title and it names the version that's missing. No new lookup is made.
+  const narrowerFor = (market, f, missing) => {
+    const names = (market.variants?._same || []).filter((x) => x.startsWith("@"));
+    for (const { q, market: m } of market.narrower || []) {
+      if (!(m?.median > 0) || m.confidence === "rough" || !(m.n >= 5) || R.missingWord(f.title, q) || R.offSearch(f.title, q)) continue;
+      const [t, g] = R.versionOf(q, names);
+      if (missing.every((w) => w === t || w === g)) return { q, m };
+    }
+    return null;
+  };
   R.forVariant = (market, f) => {
     const vs = market?.variants;
     if (!vs || !f?.title) return market;
     const v = R.versionOf(f.title, vs._same || []);
     const p = lookupsOf(v).find((k) => vs[k]?.median > 0 && vs[k].confidence !== "rough");
     // Its tier or generation without enough sales of its own (variantMissing, for the hover): "lite" compared with
-    // the whole market, a Switch 2 with sales of any generation.
+    // the whole market, a Switch 2 with sales of any generation. Unless a narrower lookup of it is remembered.
     const want = [v[0], v[1]].filter(Boolean);
-    if (!p) return want.length ? { ...market, variantMissing: want } : market;
-    const sub = vs[p];
-    const { variants, ...rest } = market;
-    const [t, g, s] = p.split("/");
+    const [t, g, s] = (p || "").split("/");
     const words = [t, g, s].filter((x) => x && x !== "*");
     const missing = want.filter((w) => !words.includes(w));
+    const alt = missing.length && narrowerFor(market, f, missing);
+    if (alt) {
+      const { variants, narrower, ...rest } = market;
+      const m = alt.m;
+      return { ...rest, median: m.median, p10: m.p10, p25: m.p25, p75: m.p75, n: m.n, confidence: m.confidence, ...(m.ship > 0 && { ship: m.ship }), query: alt.q, variantUsed: want.join("/"), variantWords: want, variantQuery: alt.q };
+    }
+    if (!p) return want.length ? { ...market, variantMissing: want } : market;
+    const sub = vs[p];
+    const { variants, narrower, ...rest } = market;
     const tiers = [...new Set(Object.keys(vs).map((k) => k.split("/")[0]).filter((x) => x && !x.startsWith("_")))];
     return { ...rest, median: sub.median, p10: sub.p10, p25: sub.p25, p75: sub.p75, n: sub.n, confidence: sub.confidence, variantUsed: p, variantWords: words, ...(!t && tiers.length && { variantOthers: tiers }), ...(missing.length && { variantMissing: missing }) };
   };

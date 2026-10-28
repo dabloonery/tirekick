@@ -2751,6 +2751,7 @@
     // Too few sales of its own version to price it by: say so, so the number isn't taken for that version's.
     const few = m?.variantMissing?.length ? `too few ${m.variantMissing.map(TKRules.kindWord).join(" or ")} sales to go on alone` : "";
     if (!m?.variantUsed) return few ? `, every version together (${few})` : "";
+    if (m.variantQuery) return ", a lookup of that version from earlier today";
     const words = (m.variantWords || []).map(TKRules.kindWord);
     const others = m.variantOthers?.length ? `${m.variantOthers.map((v) => `\u201c${v}\u201d`).join(" and ")} left out` : "";
     return words.length ? ` like this one (${[words.join(", "), others, few].filter(Boolean).join("; ")})` : ` that name no other version${others || few ? ` (${[others, few].filter(Boolean).join("; ")})` : ""}`;
@@ -2762,8 +2763,27 @@
     if (f.url && scored.get(keyOf(f.url))?.related === false) f.related = false;
     return TKRules.compareFacts(f, marketOf(f), marketFor);
   };
+  // Today's other sold lookups, for a version this search has too few sales of (TKRules.forVariant's narrower): a
+  // "switch lite" lookup prices a Lite on a "nintendo switch" page. Kept off the market's own fields (not
+  // enumerable), so it's never stored or sent with it.
+  let narrowerList = [];
+  const withNarrower = (market) => {
+    if (market?.variants) Object.defineProperty(market, "narrower", { value: narrowerList, configurable: true, writable: true, enumerable: false });
+    return market;
+  };
+  const loadNarrower = async () => {
+    const { soldCache = {} } = await chrome.storage.local.get("soldCache");
+    narrowerList = Object.entries(soldCache)
+      .filter(([k, v]) => k.startsWith("v2:used:") && v?.market?.median > 0 && Date.now() - v.at < TKSold.TTL_MS)
+      .map(([k, v]) => ({ q: k.slice(8), market: v.market }));
+  };
+  loadNarrower().catch(() => {});
+  chrome.storage.onChanged.addListener((changes) => {
+    if (!alive() || !changes.soldCache) return;
+    loadNarrower().then(() => lastMarket?.variants && applyMarket(lastMarket)).catch(() => {});
+  });
   const applyMarket = (market) => {
-    lastMarket = market;
+    lastMarket = withNarrower(market);
     marketFor = queryEl.value.trim().toLowerCase();
     for (const f of facts.values()) f.vsSold = vsSoldOf(f);
     for (const it of scored.values()) followMarket(it, market);

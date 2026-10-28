@@ -941,6 +941,19 @@ test("forVariant: a listing is compared with sales of its own kind", () => {
   // A Switch 2 with no group of its own: sales of any generation, and the hover says too few were Switch 2s.
   const sw2 = R.forVariant({ ...mixed, variants: { ...mixed.variants, _same: ["@switch"] } }, { title: "Nintendo Switch 2 Console" });
   assert.deepEqual([sw2.variantUsed, sw2.variantMissing], ["/*/*", ["gen 2"]]);
+  // Too few of a version here, but a narrower lookup of it from earlier today: priced from that one.
+  const thin = { ...mixed, variants: { "/*/*": mixed.variants["/*/*"], _same: ["@switch"] }, narrower: [
+    { q: "switch oled", market: { median: 250, n: 3, confidence: "fair" } },
+    { q: "switch lite", market: { median: 98, p25: 90, p75: 105, n: 14, confidence: "good", ship: 12 } },
+    { q: "nintendo switch 2", market: { median: 420, n: 20, confidence: "good" } },
+  ] };
+  const thinLite = R.forVariant(thin, { title: "Nintendo Switch Lite Coral" });
+  assert.deepEqual([thinLite.median, thinLite.n, thinLite.variantWords, thinLite.variantQuery, thinLite.query, thinLite.ship, thinLite.variantMissing], [98, 14, ["lite"], "switch lite", "switch lite", 12, undefined], "a Lite against the remembered Lite lookup");
+  assert.equal(thinLite.narrower, undefined, "the copy doesn't carry the list");
+  assert.equal(R.forVariant(thin, { title: "Nintendo Switch 2 Console" }).median, 420, "a Switch 2 against a Switch 2 lookup");
+  assert.deepEqual(R.forVariant(thin, { title: "Nintendo Switch OLED" }).variantMissing, ["oled"], "a lookup with too few sales doesn't count");
+  assert.equal(R.forVariant(thin, { title: "Nintendo Switch Console Gray" }).median, 160, "a plain one keeps this search's own");
+  assert.equal(R.forVariant(thin, { title: "Nintendo Lite carrying case" }).variantQuery, undefined, "a title without every word of that lookup doesn't use it");
   assert.equal(R.forVariant({ median: 100 }, { title: "Nintendo Switch Lite" }).median, 100, "a market from before versions");
   assert.equal(R.forVariant({ median: 100, variants: { lite: { median: 50, confidence: "good" } } }, { title: "Switch Lite" }).median, 100, "a cached market from the first version of this (keys by tier alone) is left alone");
   assert.equal(R.forVariant(null, { title: "x" }), null);

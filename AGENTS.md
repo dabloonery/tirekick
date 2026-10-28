@@ -24,8 +24,9 @@ Standing rules:
 - Add new plans as sections in `docs/ROADMAP.md` or `docs/REFERENCE.md`, not as new files.
 - Never submit to the Chrome Web Store without dabloonery's OK.
 - One PR per change, with `deno task test` green.
-- Don't change the version in `manifest.json`. It stays as it is until dabloonery uploads a new build to the
-  Chrome Web Store (the store has 0.58.0, live since 2026-10-23; main stays 0.58.0 until the next upload); the next number is set at upload time (dabloonery, 2026-10-21).
+- Don't change the version in `manifest.json`. The store has 0.58.0 (live since 2026-10-23); `main` is 0.59.0, the
+  number the next upload goes up as, and stays there however many PRs merge first. After that upload, the next one is
+  0.59.1, then 0.59.2: one step per store upload, so the store number never jumps (dabloonery, 2026-10-28). `version_name` says "-dev" on `main` (Home shows it and when the build was loaded); `deno task pack` leaves it out of the store zip.
 
 ## How the code fits together
 

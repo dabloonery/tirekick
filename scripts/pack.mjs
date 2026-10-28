@@ -24,6 +24,9 @@ for (const s of SHIP) fs.existsSync(path.join(ROOT, s)) ? walk(s) : fail(`missin
 
 // ---------- checks ----------
 const manifest = JSON.parse(read("manifest.json"));
+// version_name ("0.59.0-dev") marks a build loaded from the folder; the store zip leaves it out, so the store shows
+// the plain version.
+if (manifest.version_name && !manifest.version_name.startsWith(manifest.version)) fail(`version_name ${manifest.version_name} doesn't start with the version ${manifest.version}`);
 if (manifest.description.length > 132) fail(`the description is ${manifest.description.length} characters; the Chrome Web Store allows 132`);
 for (const size of Object.keys(manifest.icons || {})) if (!files.includes(manifest.icons[size])) fail(`icon not found: ${manifest.icons[size]}`);
 for (const f of [manifest.background?.service_worker, manifest.options_ui?.page]) if (f && !files.includes(f)) fail(`not found: ${f}`);
@@ -60,12 +63,15 @@ const crcOf =
     for (const b of buf) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
     return (c ^ 0xffffffff) >>> 0;
   });
+// manifest.json as it is, less version_name, with its formatting kept.
+const storeManifest = () => Buffer.from(read("manifest.json").replace(/^\s*"version_name":[^\n]*\n/m, ""), "utf8");
+if (JSON.parse(storeManifest()).version_name) throw new Error("version_name would ship");
 const parts = [];
 const central = [];
 let offset = 0;
 const DOS_DATE = (0 << 9) | (1 << 5) | 1; // 1980-01-01
 for (const name of files) {
-  const data = fs.readFileSync(path.join(ROOT, name));
+  const data = name === "manifest.json" ? storeManifest() : fs.readFileSync(path.join(ROOT, name));
   const deflated = zlib.deflateRawSync(data, { level: 9 });
   const [method, body] = deflated.length < data.length ? [8, deflated] : [0, data];
   const nameBuf = Buffer.from(name, "utf8");

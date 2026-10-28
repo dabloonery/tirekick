@@ -195,15 +195,20 @@
       );
     }
 
+    // A build loaded from the folder says "-dev" (manifest version_name, which the store zip leaves out) and when it
+    // was loaded, so one test build can be told from the next while the version stays put until the upload.
     function footer() {
-      return h("div", { class: "hm-foot" }, h("span", {}, `Version ${chrome.runtime.getManifest().version}`), h("button", { class: "hm-btn small", onclick: () => send("openOptions").catch(() => {}) }, "Settings, backup and restore"));
+      const m = chrome.runtime.getManifest();
+      const dev = m.version_name && m.version_name !== m.version;
+      const at = dev && D?.loadedAt > 0 ? new Date(D.loadedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+      return h("div", { class: "hm-foot" }, h("span", {}, `Version ${m.version_name || m.version}${at ? `, loaded ${at}` : ""}`), h("button", { class: "hm-btn small", onclick: () => send("openOptions").catch(() => {}) }, "Settings, backup and restore"));
     }
 
     // ---------- load and draw ----------
     let refresh = async function () {
       const d = await chrome.storage.local.get({
         provider: "anthropic", oaiModel: "",
-        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {}, marksBack: false, useAI: false,
+        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {}, marksBack: false, useAI: false, loadedAt: 0,
       });
       // The API key stays in the background script; the page only learns whether there is one.
       d.hasKey = await send("getSettings").then((s) => !!s.hasKey).catch(() => false);

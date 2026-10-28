@@ -38,7 +38,7 @@ check); those are in git history.*
 
 | Plan | State |
 |---|---|
-| Chrome Web Store | Public beta live; the store has 0.58.0 (live since 2026-10-23), the same as `main`, which keeps that number until the next upload. Uploading it is dabloonery's call ([checklist](#chrome-web-store-each-upload)) |
+| Chrome Web Store | Public beta live; the store has 0.58.0 (live since 2026-10-23). `main` is 0.59.0, the number of the next upload, and keeps it until then ([version numbers](#version-numbers)). Uploading it is dabloonery's call ([checklist](#chrome-web-store-each-upload)) |
 | Scam checks and prices | [Honest low prices](#honest-low-prices) done (#57 to #82); layout guards, long-feed speed and an eval with the real prompts merged 2026-10-21 and 22; [prices by version](#prices-by-version) 2026-10-27 |
 | Real-use fixes | The 2026-10-16 fixes reached `main` on 2026-10-22 (#84, [After real use](#after-real-use-2026-10-16)); recheck them on the real sites |
 | Sturdier no-AI features | All 8 shipped ([summary](#tirekick-making-the-no-ai-features-sturdier)). Real saved eBay and Marketplace searches are fixtures since #90; listing, sold and category pages are still hand-made |
@@ -53,6 +53,9 @@ check); those are in git history.*
 PRs #13 to #22 all shipped as 0.36.0, and an older pre-rename build (`second-look-0.36.1.zip`) carries a higher
 number. From 0.37.0 to 0.57.0, CI failed a pull request that didn't raise the version. Since 2026-10-21 (dabloonery) the
 version stays put between Chrome Web Store uploads, and CI only fails one that lowers it (`deno task version-check`).
+The store went from 0.50.0 straight to 0.58.0 that way. Since 2026-10-28 (dabloonery) `main` carries the number the
+next upload goes up as, so a build loaded unpacked can be told apart from the store's: 0.59.0 now, kept however many
+PRs merge first. After each upload it moves one step (0.59.1, 0.59.2), never once per PR.
 
 ### Open source (decided 2026-10-14, done early on 2026-10-22)
 
@@ -409,7 +412,7 @@ door eBay has just shut.
 forms) is in git history before 2026-10-22. Store form answers are in `store/LISTING.md`; the security review
 is in `store/SECURITY-REVIEW.md`.* Nothing is uploaded without dabloonery's OK.
 
-- [ ] dabloonery says which build goes up; the version is set then (it stays put between uploads).
+- [ ] dabloonery says which build goes up; it carries `main`'s version, one step above the store's. After the upload, move `main` one step on (0.59.0 to 0.59.1, and `version_name` to 0.59.1-dev).
 - [ ] `deno task test`, then `deno task pack`. Unzip `dist/tirekick-<version>.zip` into a fresh folder, load it
       with **Load unpacked**, and click through: an eBay search, the panel, a scan with a key, a Marketplace
       search, settings, a backup and restore.
@@ -499,7 +502,7 @@ Suggested order: 2 → 3 → 4 → 6 (export) → 5 (Craigslist first) → 1.
 
 **Tests.** `deno task test:unit` (unit), `tests/all.sh` (everything, real extension in headless Chrome against a mock AI). Add a unit test for any new pure rule and an e2e check for any new surface. A known flaky one: "Filter button opens the fields" fails on main too (headless timing).
 
-**Shipping.** Draft PR per brief against `main`, keep the version as it is (it changes only at a store upload), update `docs/ux-spec.md` (states table and components), `README.md`, and `store/PRIVACY.md` / `store/LISTING.md` whenever what's read, stored or requested changes. No Chrome Web Store submission until dabloonery says.
+**Shipping.** Draft PR per brief against `main`, keep the version as it is (it moves one step per store upload, never per PR), update `docs/ux-spec.md` (states table and components), `README.md`, and `store/PRIVACY.md` / `store/LISTING.md` whenever what's read, stored or requested changes. No Chrome Web Store submission until dabloonery says.
 
 ---
 

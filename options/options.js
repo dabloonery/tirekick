@@ -523,7 +523,7 @@ document.getElementById("exportCsv").addEventListener("click", async () => {
 });
 // Counts only, to paste somewhere if you want to (TKShared.usageReport): copied, never sent.
 document.getElementById("copyUsage").addEventListener("click", async () => {
-  const text = TKShared.usageReport(await chrome.storage.local.get(null), chrome.runtime.getManifest().version);
+  const text = TKShared.usageReport(await chrome.storage.local.get(null), chrome.runtime.getManifest().version_name || chrome.runtime.getManifest().version);
   try {
     await navigator.clipboard.writeText(text);
     note("Usage summary copied. It has counts only, no listings or searches.");

@@ -1196,6 +1196,8 @@ async function upgradeStorage() {
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
+  // When this build was installed or loaded (a folder reload counts as an update): Home shows it on a "-dev" build.
+  if (details?.reason !== "chrome_update") chrome.storage.local.set({ loadedAt: Date.now() }).catch(() => {});
   // Defaults are not copied into storage: getSettings() fills in whatever you haven't set, so a better
   // default (a new model, say) reaches every install that never chose otherwise.
   await upgradeStorage().catch((e) => console.warn("[Tirekick] storage upgrade:", e.message));

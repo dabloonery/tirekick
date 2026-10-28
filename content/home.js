@@ -125,8 +125,8 @@
         checkNote = { said: r.ok ? `Opening ${plural(r.x?.n || n, "saved search")}, one at a time.` : String(r.e?.message || r.e) };
         refresh();
       };
-      if (checkNote?.ask) return h("div", { class: "hm-foot" }, h("p", { class: "hm-empty" }, checkNote.ask), h("div", { class: "acts" }, h("button", { class: "hm-btn", onclick: run }, "Start"), h("button", { class: "hm-btn", onclick: () => ((checkNote = null), refresh()) }, "Cancel")));
-      return h("div", { class: "hm-foot" }, h("button", { class: "hm-btn", onclick: ask, title: "Opens each saved search in a tab you can see, one after another. Nothing is checked in the background." }, "Check my saved searches"), checkNote?.said ? h("small", {}, ` ${checkNote.said}`) : null);
+      if (checkNote?.ask) return h("div", { class: "hm-check" }, h("p", { class: "hm-empty" }, checkNote.ask), h("div", { class: "acts" }, h("button", { class: "hm-btn", onclick: run }, "Start"), h("button", { class: "hm-btn", onclick: () => ((checkNote = null), refresh()) }, "Cancel")));
+      return h("div", { class: "hm-check" }, h("button", { class: "hm-btn", onclick: ask, title: "Opens each saved search in a tab you can see, one after another. Nothing is checked in the background." }, "Check my saved searches"), checkNote?.said ? h("small", {}, ` ${checkNote.said}`) : null);
     }
     function greatRow(a) {
       const g = a.top;
@@ -339,6 +339,7 @@
     .hm table { border-collapse:collapse; width:100%; font-size:13px; margin-top:6px; }
     .hm th, .hm td { text-align:left; padding:4px 6px; border-bottom:var(--bw) solid var(--rule); }
     .hm td.n, .hm th.n { text-align:right; font-variant-numeric:tabular-nums; }
+    .hm-check { margin-top:10px; color:var(--muted); font-size:13px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
     .hm-foot { margin-top:14px; padding-top:12px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:13px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
     @media (prefers-reduced-motion: reduce) { .hm .col i, .hm-tip { transition:none; } }
 `;

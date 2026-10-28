@@ -781,7 +781,11 @@ The hub's Search buttons include it once on (www.craigslist.org, which sends you
 
 Real saved pages (an Albuquerque electronics search and a post, trimmed by `tests/helpers/trim-page.py craigslist`)
 are `tests/fixtures/craigslist-*-real.html`; the hand-made ones stay for the older layouts and the scam signs. Left: no page test of the panel on Craigslist, since e2e can't grant an
-optional host; remembering the last city for the hub's search; trying it live in Vivaldi (the permission prompt too).
+optional host; remembering the last city for the hub's search.
+
+Tried live in Vivaldi (dabloonery, 2026-10-28): turning it on in settings granted access and it worked on the next
+page load; the live try found the new addresses (#143) and Craigslist rewriting the address's "#search=" part while
+you scroll, which made the panel and marks redraw (#144). With both, scores stay put on a scrolled search.
 
 #### How each store fits (same for all)
 
@@ -798,11 +802,11 @@ optional host; remembering the last city for the hub's search; trying it live in
 #### Open questions
 
 - Which first, OfferUp or Craigslist? The plan suggests Craigslist (simpler markup). Default: Craigslist.
-- Which Craigslist areas does dabloonery use? (For fixtures and the hub's default.)
+- Which Craigslist areas does dabloonery use? (For fixtures and the hub's default.) Albuquerque, from the saved pages.
 - Mercari as a second sold reference, or eBay only? Default: eBay only at first.
 - Is Poshmark wanted at all, given it's mostly apparel?
 - Distance filter ("within N miles"), since OfferUp and Craigslist both show distance: worth adding?
-- Vivaldi: check that optional host permission prompts appear and work in Vivaldi.
+- Vivaldi: check that optional host permission prompts appear and work in Vivaldi. Done for Craigslist (2026-10-28).
 
 #### How to know it's done (per store)
 

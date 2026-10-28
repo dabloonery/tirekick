@@ -350,8 +350,9 @@ few “lite” sales to go on alone)", `variantMissing`).
 
 Left: sold pages are still hand-made fixtures, so how often real lookups have enough of a kind is unmeasured. Settings'
 "Copy a usage summary" (`TKShared.usageReport`, counts only, never sent) now says how many saved lookups split by
-version and how many versions came from 5 to 7 sales, for anyone who wants to share it. A version with too few sales could also use a narrower lookup already saved ("switch
-lite" for a Lite on a "nintendo switch" page), again with no new lookup. Not axes yet: model years and chips ("2020",
+version and how many versions came from 5 to 7 sales, for anyone who wants to share it. A version with too few sales now uses a narrower lookup from earlier the same day
+("switch lite" for a Lite on a "nintendo switch" page, at least 5 sales, every word of it in the title), again with no
+new lookup; the price hover says so. Not axes yet: model years and chips ("2020",
 "M1" vs "M2"), colors and carrier locks.
 
 ## After real use (2026-10-16)

@@ -64,7 +64,8 @@ test("titleCode: the random code on the end of bulk-posted Marketplace scams", (
   for (const [t, c] of [["Nintendo Game Boy Advance SP M2465", "M2465"], ["Halo Special Edition Xbox S1337", "S1337"], ["Nintendo DS Lite Pink U2X503", "U2X503"]]) {
     assert.equal(TK.titleCode(t), c, t);
   }
-  for (const t of ["Nintendo Game Boy Advance SP", "Samsung SSD 500GB", "Sony PlayStation 2 Slim PS2", "Pentax K1000", "Nintendo Wii U 32GB", "ASUS RTX3060 Graphics Card"]) {
+  for (const t of ["Nintendo Game Boy Advance SP", "Samsung SSD 500GB", "Sony PlayStation 2 Slim PS2", "Pentax K1000", "Nintendo Wii U 32GB", "ASUS RTX3060 Graphics Card",
+    "EVGA RTX 3060 Ti XC 8GB GDDR6", "MSI RTX 4080 Super 16GB GDDR6X", "Intel Core i7 12700KF", "AMD Ryzen 7 5800X3D", "Intel Core i5 LGA1700", "Radeon RX 6700XT"]) {
     assert.equal(TK.titleCode(t), "", t);
   }
   assert.equal(TK.titleStem("Nintendo Game Boy Advance SP M2465", "M2465"), "nintendo game boy advance sp");

@@ -71,6 +71,23 @@ export const MARKETS = {
     "/m3/*": { median: 800, p10: 690, p25: 760, p75: 850, n: 9, confidence: "fair" },
     "/*/*": { median: 450, p10: 140, p25: 300, p75: 640, n: 60, confidence: "fair" },
   } },
+  // Plain 3060s (12GB and 8GB) beside 3060 Tis: each card model and memory size on its own (assumed numbers).
+  "rtx 3060": { median: 205, p10: 150, ship: 15, confidence: "good", n: 60, variants: {
+    _same: ["@3060"],
+    "/rtx 3060/*": { median: 190, p10: 150, p25: 172, p75: 205, n: 36, confidence: "good" },
+    "/rtx 3060/12gb": { median: 200, p10: 170, p25: 188, p75: 212, n: 24, confidence: "good" },
+    "/rtx 3060/8gb": { median: 158, p10: 135, p25: 148, p75: 170, n: 9, confidence: "fair" },
+    "/rtx 3060 ti/*": { median: 245, p10: 205, p25: 232, p75: 262, n: 22, confidence: "good" },
+    "/*/*": { median: 205, p10: 150, p25: 180, p75: 240, n: 60, confidence: "good" },
+  } },
+  // A 5600 search gets 5600Xs, 5600Gs and 5600X3Ds too (assumed numbers).
+  "ryzen 5 5600": { median: 95, p10: 62, ship: 6, confidence: "good", n: 58, variants: {
+    _same: ["@5600"],
+    "/ryzen 5600/*": { median: 82, p10: 68, p25: 76, p75: 88, n: 20, confidence: "good" },
+    "/ryzen 5600x/*": { median: 98, p10: 82, p25: 92, p75: 105, n: 18, confidence: "good" },
+    "/ryzen 5600g/*": { median: 74, p10: 60, p25: 69, p75: 80, n: 8, confidence: "fair" },
+    "/ryzen 5600x3d/*": { median: 178, p10: 150, p25: 168, p75: 190, n: 8, confidence: "fair" },
+  } },
   "ds": { median: 60, ship: 6, confidence: "fair", n: 40 },
   "4tb hard drive": { median: 55, ship: 8, confidence: "good", n: 40 }, // assumed, for the real drive search below
   "ipod": { median: 60, ship: 6, confidence: "fair", n: 40 }, // assumed, for the real "ds" search below
@@ -233,6 +250,18 @@ export const CASES = [
   ebay("macbook air", "Apple MacBook Air 15\" M3 16GB 512GB Starlight", 735, 0, seller(99.7, 860), { truth: "honest", word: "fair", note: "an M3 under M3 sales; far over the mix" }),
   ebay("macbook air", "Apple MacBook Air M1 13.3\" 8GB 256GB Space Gray", 405, 0, seller(99.5, 520), { truth: "honest", word: "fair" }),
   ebay("macbook air", "Apple MacBook Air M3 13\" 8GB 256GB NEW SEALED", 219, 0, seller(100, 0), { truth: "scam", scan: "great", note: "27% of an M3, but 49% of the mix" }),
+
+  // ---------- rtx 3060, no Ti or memory named ($205 for the mix; 12GB $200, 8GB $158, Ti $245) ----------
+  ebay("rtx 3060", "EVGA GeForce RTX 3060 Ti XC Gaming 8GB GDDR6", 249, 0, seller(99.8, "1.6K"), { truth: "honest", word: "fair", note: "a Ti at Ti prices; over the mix" }),
+  ebay("rtx 3060", "Gigabyte GeForce RTX 3060 Gaming OC 8GB GDDR6", 150, 0, seller(99.5, 640), { truth: "honest", word: "fair", note: "an 8GB 3060 at 8GB prices; a bargain against the mix" }),
+  ebay("rtx 3060", "MSI GeForce RTX 3060 Ventus 2X 12G OC 12GB", 198, 0, seller(99.7, "3.1K"), { truth: "honest", word: "fair" }),
+  fb("rtx 3060", "RTX 3060Ti Founders Edition, used for 1 yr", 215, { truth: "honest", word: "fair", note: "a Ti written as one word, for pickup" }),
+  ebay("rtx 3060", "NVIDIA GeForce RTX 3060 Ti Founders Edition 8GB NEW SEALED", 89, 0, seller(100, 0), { truth: "scam", scan: "great", note: "36% of a Ti from a new seller" }),
+
+  // ---------- ryzen 5 5600 (5600 $82, 5600X $98, 5600G $74, 5600X3D $178; $95 for the mix) ----------
+  ebay("ryzen 5 5600", "AMD Ryzen 5 5600X3D 6-Core Desktop Processor", 169, 0, seller(99.6, 820), { truth: "honest", word: "fair", note: "an X3D, nearly twice the mix" }),
+  ebay("ryzen 5 5600", "AMD Ryzen 5 5600G 6-Core CPU with Radeon Graphics", 72, 0, seller(99.4, 300), { truth: "honest", word: "fair" }),
+  ebay("ryzen 5 5600", "AMD Ryzen 5 5600 6-Core 3.5GHz AM4 CPU tray", 79, 0, seller(99.9, "5K"), { truth: "honest", word: "fair" }),
 
   // ---------- scams that give the same excuses as honest cheap listings (CHEAP below) ----------
   ebay("nintendo switch oled", "Nintendo Switch OLED - minor scratch, works perfect", 79, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "flaw", note: "bait with a flaw story, 31% from a new seller" }),

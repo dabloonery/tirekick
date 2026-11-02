@@ -355,8 +355,17 @@ Left: sold pages are still hand-made fixtures, so how often real lookups have en
 "Copy a usage summary" (`TKShared.usageReport`, counts only, never sent) now says how many saved lookups split by
 version and how many versions came from 5 to 7 sales, for anyone who wants to share it. A version with too few sales now uses a narrower lookup from earlier the same day
 ("switch lite" for a Lite on a "nintendo switch" page, at least 5 sales, every word of it in the title), again with no
-new lookup; the price hover says so. Not axes yet: model years and chips ("2020",
-"M1" vs "M2"), colors and carrier locks.
+new lookup; the price hover says so.
+
+Chips and model years (2026-11-02): an Apple chip ("M1", "M2 Pro", only in a title that names a Mac or an iPad) or a
+model year (1990 to 2039, not "2000 mAh" or a range) is the generation when the title names no "2nd gen" or "v2"
+(`TKRules.chipOf`, `yearOf`, `generationOf`), so a "macbook air" search no longer puts 2017 Intel Airs at $160 beside
+M3s at $800. A chip comes before a year (an M1 and an Intel Air were both 2020), a series number before a year ("Apple
+Watch Series 7 2021"), and a Mac's or an iPad Pro's number is its screen, not a model ("MacBook Air 13 2017").
+Eval: 6 new listings on a "macbook air" search; against the one median 4 of the 5 honest ones were wrong (a 2017 Air
+"Great price", an M2 and an M3 "Above typical") and the M3 bait would have cleared after a scan. Also fixed: a scan's
+note on a listing's version sent "gen 2" to the AI as "gen, 2". Not axes yet: colors and carrier locks (a "carrier
+locked" phone already counts as a reason it's cheap).
 
 ## After real use (2026-10-16)
 

@@ -473,7 +473,7 @@
   // V11s. A listing is compared with sales of its own kind, read on three axes:
   //  - tier: a version word ("lite", "oled", "pro max", "tool only"); none means the plain one.
   //  - generation: "2nd gen", "gen 2", "AirPods Pro 2" (all "gen 2"), or a revision, "v2" ("v 2"); none means it
-  //    doesn't say, so any generation.
+  //    doesn't say, so any generation. An Apple chip ("m1", "m2 pro") or a model year ("2017") counts as one too.
   //  - storage: the largest size of 16GB or more ("256gb"); none means it doesn't say, so any size.
   // Tier words, longer phrases first, so "Pro Max" isn't read as "Pro" or "Max".
   R.TIER_MODIFIERS = ["pro max", "digital edition", "disc edition", "body only", "tool only", "bare tool", "console only", "tablet only",
@@ -520,6 +520,34 @@
     const n = sizes[0];
     return n >= 1024 && n % 1024 === 0 ? `${n / 1024}tb` : `${n}gb`;
   };
+  // An Apple chip ("M1", "M2 Pro", "M3 Max"): a MacBook Air M1 and an M3 are as far apart as two generations. Only in a
+  // title that names a Mac or an iPad, so an "M2 NVMe SSD", "M4 screws" or a "BMW M3" part isn't read as one. "" for
+  // none, or several ("M1 M2 compatible").
+  const CHIP = /(?:^|\s)(m[1-9])(?:\s(pro|max|ultra))?(?=\s|$)/g;
+  const APPLE = /(?:^|\s)(?:apple|mac|macbook|imac|ipad)(?:\s|$)/;
+  R.chipOf = (text) => {
+    const t = R.normTitle(text);
+    if (!APPLE.test(t)) return "";
+    const chips = new Set([...t.matchAll(CHIP)].map((m) => (m[2] ? `${m[1]} ${m[2]}` : m[1])));
+    return chips.size === 1 ? [...chips][0] : "";
+  };
+  // A model year ("MacBook Air 2017", "2018 Topps", "iPad Pro 2021"), 1990 to 2039: a 2017 Intel MacBook Air sells for
+  // a fifth of an M3's price. Not a count or a size ("2000 mAh", "1500 watt"), and "" when the text names several
+  // ("2015-2017", "fits 2012 2013 2014").
+  const YEAR = /(?:^|\s)(199\d|20[0-3]\d)(?=\s|$)/g;
+  const NOT_YEAR = /^(?:w|watts?|mah|mhz|ghz|lbs?|pcs|pieces?|rpm|dpi|lumens?|mm|cc|psi|btu|ct|count|sq|ft|x|k|ml|g|kg|oz|calories|piece|points?|yards?|meters?|miles?|mi|km|hrs?|hours?)$/;
+  R.yearOf = (text) => {
+    const t = R.normTitle(text);
+    const years = new Set();
+    for (const m of t.matchAll(YEAR)) {
+      const next = t.slice(m.index + m[0].length).trim().split(" ")[0];
+      if (!NOT_YEAR.test(next)) years.add(m[1]);
+    }
+    return years.size === 1 ? [...years][0] : "";
+  };
+  // A title's generation, most exact first: "2nd gen" or "v2" as written, then an Apple chip, then (in R.versionOf) a
+  // number after the thing's name, then a model year.
+  R.generationOf = (text) => R.genOf(text) || R.chipOf(text) || R.yearOf(text);
   // A bare number right after the thing's name is its generation too: "Nintendo Switch 2" in a "nintendo switch"
   // search, "Meta Quest 3", "AirPods Pro 2", "iPad mini 6", "Apple Watch Series 7". The name is the search's last word
   // (kept in `same` as "@switch"), a tier word or "series". Up to 20, and not "Switch 2 Games", "Quest 2 128 GB" or a
@@ -528,9 +556,13 @@
   const modelNumberOf = (h, same) => {
     const names = new Set([...same.filter((x) => x.startsWith("@")).map((x) => x.slice(1)), ...R.TIER_MODIFIERS.filter((m) => m !== "plus" && !m.includes(" ")), "series"]);
     if (!same.some((x) => x.startsWith("@"))) return ""; // a typical price saved before this read numbers: as it was
+    // A Mac's number is its screen ("MacBook Air 13 2017", "MacBook Pro 16 A2141"), and so is an iPad Pro's 11 or 12.9:
+    // its chip or year says the generation.
+    if (/(?:^|\s)(?:macbook|imac)(?:\s|$)/.test(h)) return "";
     const w = h.split(" ");
     for (let i = 0; i + 1 < w.length; i++) {
       if (!names.has(w[i]) || !/^\d{1,2}$/.test(w[i + 1]) || +w[i + 1] > 20 || NOT_MODEL.test(w[i + 2] || "")) continue;
+      if (w[i] === "pro" && w[i - 1] === "ipad" && /^1[12]$/.test(w[i + 1])) continue;
       return `gen ${+w[i + 1]}`;
     }
     return "";
@@ -552,8 +584,9 @@
     if (versionSeen.has(key)) return versionSeen.get(key);
     if (versionSeen.size > 5000) versionSeen.clear();
     const h = head(title);
-    const tier = R.variantOf(h, same.join(" "));
-    const gen = R.genOf(h) || modelNumberOf(h, same);
+    // "M1 Pro" is the chip's, not a Pro tier: the chip carries it as its generation.
+    const tier = R.variantOf(h.replace(/(^|\s)(m[1-9]) (?:pro|max|ultra)(?=\s|$)/g, "$1$2"), same.join(" "));
+    const gen = R.genOf(h) || R.chipOf(h) || modelNumberOf(h, same) || R.yearOf(h);
     const size = same.includes("size") ? "" : R.sizeOf(h);
     const out = [tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
     versionSeen.set(key, out);
@@ -570,7 +603,7 @@
   // sets them apart from the rest, so those stay.
   R.VARIANT_COMMON = 0.6;
   R.variantGroups = (sales, query = "") => {
-    const same = [...R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m)), ...[R.genOf(query)].filter(Boolean), ...(R.sizeOf(query) ? ["size"] : [])];
+    const same = [...R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m)), ...[R.generationOf(query)].filter(Boolean), ...(R.sizeOf(query) ? ["size"] : [])];
     for (const x of searchName(query)) if (!same.includes(x)) same.push(x);
     const counts = new Map();
     for (const s of sales) {
@@ -629,6 +662,8 @@
     const g = w.match(/^gen (\d+)$/)?.[1];
     if (g) return `${g}${["th", "st", "nd", "rd"][+g % 100 > 10 && +g % 100 < 14 ? 0 : +g % 10] || "th"} generation`;
     if (/^v \d+$/.test(w)) return `\u201c${w.replace(" ", "").toUpperCase()}\u201d`; // a revision: "V2"
+    if (/^m\d(?: (?:pro|max|ultra))?$/.test(w)) return w.replace(/^m/, "M").replace(/ (\w)/, (_, c) => ` ${c.toUpperCase()}`); // a chip: "M2 Pro"
+    if (/^\d{4}$/.test(w)) return w; // a model year
     return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
   };
   R.variantLike = (market) => (market?.variantWords || []).join(" ");

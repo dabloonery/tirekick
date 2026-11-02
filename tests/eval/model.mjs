@@ -58,7 +58,7 @@ for (const [query, list] of byQuery) {
     const mk = R.forPickup(market, r.f, r.c.site === "facebook");
     const own = R.forVariant(market, r.f); // the version's own sales, as the panel's priceNotes sends them
     return {
-      refKind: own.variantUsed ? own.variantWords.join(" ") || "plain" : "",
+      refKind: own.variantUsed ? own.variantWords.join(", ") || "plain" : "",
       refN: own.n,
       refWorking: own.median,
       ...r.f,

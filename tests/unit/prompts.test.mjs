@@ -31,11 +31,14 @@ const market = { median: 200, p25: 150, p75: 240, n: 52, confidence: "fair", var
 
 test("scan prompt: a listing compared with its own version says so, with that version's median", () => {
   const lite = R.forVariant(market, { title: "Nintendo Switch Lite Coral" });
-  const line = globalThis.priceNotesText({ vsWorking: 0.9, refKind: lite.variantWords.join(" ") || "plain", refN: lite.n, refWorking: lite.median });
+  const line = globalThis.priceNotesText({ vsWorking: 0.9, refKind: lite.variantWords.join(", ") || "plain", refN: lite.n, refWorking: lite.median });
   assert.deepEqual(line, ["90% of working median for its version (lite: $95, 14 sales)"]);
   const plain = globalThis.priceNotesText({ vsWorking: 1, refKind: "plain", refN: 22, refWorking: 165, pickupShip: 14 });
   assert.deepEqual(plain, ["100% of working median for its version (sales that name no other version: $165, 22 sales) less $14 typical shipping (local pickup)"]);
   assert.deepEqual(globalThis.priceNotesText({ vsWorking: 0.5 }), ["50% of working median"], "against the whole search: as before");
+  // Words with a space in them stay whole: a generation and a chip.
+  assert.deepEqual(globalThis.priceNotesText({ vsWorking: 0.9, refKind: "gen 2, 256gb", refN: 9, refWorking: 150 }), ["90% of working median for its version (generation 2, 256GB: $150, 9 sales)"]);
+  assert.deepEqual(globalThis.priceNotesText({ vsWorking: 0.9, refKind: "m2 pro", refN: 9, refWorking: 1400 }), ["90% of working median for its version (M2 Pro: $1400, 9 sales)"]);
   assert.match(globalThis.marketText("nintendo switch", market), /These sales mix versions/);
   assert.doesNotMatch(globalThis.marketText("ps5", { median: 330, p25: 300, p75: 360, n: 55, confidence: "good" }), /mix versions/);
 });

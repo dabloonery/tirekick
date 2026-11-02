@@ -53,6 +53,15 @@ export const MARKETS = {
     "/gen 1/*": { median: 75, p10: 55, p25: 68, p75: 82, n: 16, confidence: "good" },
     "/gen 2/*": { median: 150, p10: 120, p25: 140, p75: 160, n: 24, confidence: "good" },
   } },
+  // Intel Airs from 2017 beside M1, M2 and M3 ones: each chip or model year on its own (assumed numbers).
+  "macbook air": { median: 450, p10: 140, ship: 18, confidence: "fair", n: 60, variants: {
+    _same: ["@air"],
+    "/2017/*": { median: 160, p10: 115, p25: 145, p75: 180, n: 10, confidence: "fair" },
+    "/m1/*": { median: 430, p10: 350, p25: 400, p75: 460, n: 18, confidence: "good" },
+    "/m2/*": { median: 620, p10: 520, p25: 590, p75: 660, n: 12, confidence: "fair" },
+    "/m3/*": { median: 800, p10: 690, p25: 760, p75: 850, n: 9, confidence: "fair" },
+    "/*/*": { median: 450, p10: 140, p25: 300, p75: 640, n: 60, confidence: "fair" },
+  } },
   "ds": { median: 60, ship: 6, confidence: "fair", n: 40 },
   "4tb hard drive": { median: 55, ship: 8, confidence: "good", n: 40 }, // assumed, for the real drive search below
   "ipod": { median: 60, ship: 6, confidence: "fair", n: 40 }, // assumed, for the real "ds" search below
@@ -201,6 +210,14 @@ export const CASES = [
   ebay("iphone 13", "Apple iPhone 13 128GB Blue Unlocked - Battery 89% - Pro Seller", 285, 0, seller(99.6, "2.2K"), { truth: "honest", word: "fair", note: "a plain 128GB; \"Pro Seller\" read as a Pro before" }),
   ebay("airpods pro", "Apple AirPods Pro 2 Wireless Earbuds USB-C", 139, 0, seller(99.7, "3K"), { truth: "honest", word: "fair", note: "\"Pro 2\" is the second generation" }),
   ebay("airpods pro", "Apple AirPods Pro 1st Generation with MagSafe Case", 85, 0, seller(99.2, 210), { truth: "honest", word: "pass", note: "over what first-generation ones sell for; Good price against the mix" }),
+
+  // ---------- macbook air, no chip or year named ($450 for the mix; 2017 Intel $160, M1 $430, M2 $620, M3 $800) ----------
+  ebay("macbook air", "Apple MacBook Air 13\" 2017 Core i5 8GB 128GB SSD", 145, 0, seller(99.6, "1.3K"), { truth: "honest", word: "fair", note: "a 2017 Intel Air at 32% of the mix: Likely scam before" }),
+  fb("macbook air", "MacBook Air 2017 13 inch, works great", 125, { truth: "honest", word: "fair", note: "the same, for pickup" }),
+  ebay("macbook air", "Apple MacBook Air M2 2022 13.6\" 8GB 256GB Midnight", 575, 0, seller(99.8, "2.4K"), { truth: "honest", word: "fair", note: "an M2 a little under M2 sales; Above typical against the mix" }),
+  ebay("macbook air", "Apple MacBook Air 15\" M3 16GB 512GB Starlight", 735, 0, seller(99.7, 860), { truth: "honest", word: "fair", note: "an M3 under M3 sales; far over the mix" }),
+  ebay("macbook air", "Apple MacBook Air M1 13.3\" 8GB 256GB Space Gray", 405, 0, seller(99.5, 520), { truth: "honest", word: "fair" }),
+  ebay("macbook air", "Apple MacBook Air M3 13\" 8GB 256GB NEW SEALED", 219, 0, seller(100, 0), { truth: "scam", scan: "great", note: "27% of an M3, but 49% of the mix" }),
 
   // ---------- scams that give the same excuses as honest cheap listings (CHEAP below) ----------
   ebay("nintendo switch oled", "Nintendo Switch OLED - minor scratch, works perfect", 79, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "flaw", note: "bait with a flaw story, 31% from a new seller" }),

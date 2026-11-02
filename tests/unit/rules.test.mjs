@@ -884,12 +884,43 @@ test("versionOf: a number after the thing's name is its generation", () => {
   assert.deepEqual(R.versionOf("Meta Quest 3 512GB", ["@quest"]), ["", "gen 3", "512gb"]);
   assert.deepEqual(R.versionOf("Apple iPad mini 6 64GB", ["@ipad"]), ["mini", "gen 6", "64gb"], "after a tier word too");
   assert.deepEqual(R.versionOf("Apple Watch Series 7 45mm GPS", ["@watch"]), ["", "gen 7", ""]);
-  assert.deepEqual(R.versionOf("MacBook Pro 14 M1 Pro 16GB 512GB", ["pro", "@pro"]), ["", "", "512gb"], "a screen size before the chip isn't a model");
+  assert.deepEqual(R.versionOf("MacBook Pro 14 M1 Pro 16GB 512GB", ["pro", "@pro"]), ["", "m1 pro", "512gb"], "a screen size before the chip isn't a model: the chip is");
   assert.deepEqual(R.versionOf("Bose QuietComfort 45", ["@quietcomfort"]), ["", "", ""], "over 20 is a model name, not a generation");
   assert.deepEqual(R.versionOf("Nintendo Switch 2 Console", []), ["", "", ""], "a typical price saved before this reads as it did");
   // The search names a number: that's the thing itself, and an iPhone 14 in an "iphone 13" search's sales stands apart.
   assert.deepEqual(R.versionOf("Apple iPhone 13 Pro 256GB", ["gen 13", "@iphone"]), ["pro", "", "256gb"]);
   assert.deepEqual(R.versionOf("Apple iPhone 14 128GB", ["gen 13", "@iphone"]), ["", "gen 14", "128gb"]);
+});
+
+test("chipOf and yearOf: an Apple chip or a model year is a generation", () => {
+  assert.equal(R.chipOf("Apple MacBook Air 13 M1 8GB 256GB"), "m1");
+  assert.equal(R.chipOf("MacBook Pro 16 M2 Max 32GB"), "m2 max");
+  assert.equal(R.chipOf("iPad Air 5th gen M1"), "m1");
+  for (const t of ["Samsung 970 EVO Plus M2 NVMe 1TB", "BMW M3 E46 headlight", "M4 screws 100 pcs", "MacBook Air M1 M2 sleeve"]) assert.equal(R.chipOf(t), "", t);
+  assert.equal(R.yearOf("MacBook Air 13 2017 Core i5"), "2017");
+  assert.equal(R.yearOf("2018 Topps Shohei Ohtani RC"), "2018");
+  for (const t of ["Anker PowerCore 2000 mAh", "1500 watt heater", "Fits 2015-2017 Honda Civic", "Nintendo Switch", "RTX 2080 Ti"]) assert.equal(R.yearOf(t), "", t);
+  assert.equal(R.generationOf("MacBook Air M1 2020"), "m1", "the chip before the year: an M1 and an Intel Air were both 2020");
+  assert.equal(R.generationOf("AirPods Pro 2nd Generation 2022"), "gen 2", "a generation as written comes first");
+  assert.deepEqual(["m1", "m2 pro", "2017"].map(R.kindWord), ["M1", "M2 Pro", "2017"]);
+});
+
+test("versionOf: Macs and iPads by chip or year, not by screen size", () => {
+  const air = ["@air"];
+  assert.deepEqual(R.versionOf("Apple MacBook Air 13\" 2017 Core i5 8GB 128GB", air), ["", "2017", "128gb"], "13 is the screen");
+  assert.deepEqual(R.versionOf("MacBook Air M2 2022 13.6 8GB 256GB", air), ["", "m2", "256gb"]);
+  assert.deepEqual(R.versionOf("MacBook Air M1 2020 256GB", ["m1", "@m1"]), ["", "", "256gb"], "the search names the chip: it's the thing itself");
+  assert.deepEqual(R.versionOf("Mac mini M2 Pro 512GB", ["@mac"]), ["mini", "m2 pro", "512gb"], "M2 Pro is the chip, not a Pro tier");
+  assert.deepEqual(R.versionOf("Apple iPad Pro 11 M2 128GB", ["@ipad"]), ["pro", "m2", "128gb"], "11 is the screen");
+  assert.deepEqual(R.versionOf("Apple iPad Pro 11 Wi-Fi 128GB", ["@ipad"]), ["pro", "", "128gb"]);
+  assert.deepEqual(R.versionOf("Apple Watch Series 7 2021 45mm", ["@watch"]), ["", "gen 7", ""], "a series number before a year");
+  const sales = [
+    ...[150, 155, 160, 160, 165, 170, 175, 180].map((total, i) => ({ title: `Apple MacBook Air 13 2017 i5 ${i}`, total })),
+    ...[400, 410, 420, 430, 430, 440, 450, 460].map((total, i) => ({ title: `MacBook Air M1 8GB 256GB ${i}`, total })),
+  ];
+  const g = R.variantGroups(sales, "macbook air");
+  assert.deepEqual([g.groups["/2017/*"].length, g.groups["/m1/*"].length, g.groups["/*/*"].length], [8, 8, 16]);
+  assert.deepEqual(R.variantGroups(sales, "macbook air m1").same, ["m1", "@m1"]);
 });
 
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.

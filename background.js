@@ -49,6 +49,9 @@ const DEFAULTS = {
   useAI: false,
   monthlyBudget: 0, // dollars; 0 = no budget. Claude calls stop once this month's estimated spend reaches it
   showTab: true, // keep a slim tab on eBay/Facebook pages (needs the page script to load automatically)
+  // The pause switch (toolbar popup and settings): nothing on store pages, no panel, tags or scans, until it's
+  // turned back on. Saved, look-ups and settings still work (dabloonery, 2026-11-02).
+  paused: false,
   onCraigslist: false, // opt in (lib/sites.js "setting"): Tirekick works on Craigslist once this is on and its hosts are allowed
   autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)
   notifyGreat: false, // a browser notification when a saved search you have open turns up a great find (asks for the permission)
@@ -959,9 +962,11 @@ async function getFont({ file }) {
   return fontCache.get(file);
 }
 
-// Page scripts get the settings without the API key: they never need it.
-async function getPageSettings() {
+// Page scripts get the settings without the API key: they never need it. A search opened by "Check my saved
+// searches" runs while Tirekick is paused: you pressed the button, so it shows what it found there.
+async function getPageSettings(_payload, sender) {
   const { anthropicKey, oaiKey, ...rest } = await getSettings();
+  if (rest.paused && checkTabs.has(sender?.tab?.id)) rest.paused = false;
   return { ...rest, scanModel: scanModelOf(rest), hasKey: !!anthropicKey, hasOaiKey: !!oaiKey, oaiName: rest.oaiUrl ? oaiName(rest.oaiUrl) : "", scanRate: await perListingCost() };
 }
 
@@ -993,6 +998,15 @@ const CHECK_MAX = 12;
 const CHECK_GAP_MS = 5000;
 const CHECK_WAIT_MS = 45000;
 let checkRun = null; // { tabId, done } while a search is open and waited on
+const checkTabs = new Set(); // the tabs this run opened: their panel runs even while Tirekick is paused
+// Resolves once a tab has finished loading (or after ms, whichever is first).
+const tabLoaded = (tabId, ms) =>
+  new Promise((resolve) => {
+    const done = () => (clearTimeout(t), chrome.tabs.onUpdated.removeListener(on), resolve());
+    const on = (id, info) => id === tabId && info.status === "complete" && done();
+    const t = setTimeout(done, ms);
+    chrome.tabs.onUpdated.addListener(on);
+  });
 // The saved searches it would open, or why it can't start.
 async function checkList() {
   const settings = await getSettings();
@@ -1030,16 +1044,20 @@ async function checkSavedSearches() {
         if (i) await sleep(CHECK_GAP_MS);
         if (scans && settings.provider !== "ollama" && !(await checkBudget((await getSettings()).monthlyBudget).then(() => true, () => false))) break; // this month's budget is used up
         const tab = await chrome.tabs.create({ url, active: true });
+        checkTabs.add(tab.id);
         const keep = setInterval(() => chrome.runtime.getPlatformInfo().catch(() => {}), 20000); // the worker stays awake while it waits
         await new Promise((resolve) => {
           checkRun.tabId = tab.id;
           checkRun.done = resolve;
           setTimeout(resolve, CHECK_WAIT_MS);
+          // Paused (or with the slim tab off), the page scripts don't load by themselves: put them on this one.
+          tabLoaded(tab.id, CHECK_WAIT_MS).then(() => ensureInjected(tab.id, { force: true })).catch(() => {});
         });
         clearInterval(keep);
       }
     } finally {
       checkRun = null;
+      checkTabs.clear();
     }
   })().catch(() => {});
   return { n: list.length };
@@ -1204,6 +1222,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await upgradeStorage().catch((e) => console.warn("[Tirekick] storage upgrade:", e.message));
   await syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
   refreshOpenTabs().catch(() => {});
+  updateIcon().catch(() => {});
   const { useAI } = await getSettings();
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -1247,7 +1266,8 @@ async function sitesInUse() {
 }
 
 async function doSyncAutoScripts() {
-  const { showTab } = await getSettings();
+  const { showTab: tab, paused } = await getSettings();
+  const showTab = tab && !paused; // paused: nothing loads on store pages
   const def = {
     id: AUTO_ID,
     matches: TKSites.matches(await sitesInUse()), // lib/sites.js (each also needs its host permission in manifest.json)
@@ -1263,6 +1283,7 @@ async function doSyncAutoScripts() {
   else if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: [AUTO_ID] });
 }
 chrome.storage.onChanged.addListener((changes) => {
+  if (changes.paused) pauseChanged(changes.paused.newValue === true).catch((e) => console.warn("[Tirekick]", e.message));
   if (changes.showTab || TKSites.all.some((s) => s.setting && changes[s.setting])) syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
   // The photo check is an AI call: its menu entry goes with the AI.
   // Cleared (Delete everything) is off too: the AI is opt-in.
@@ -1273,16 +1294,16 @@ chrome.permissions.onAdded.addListener(() => syncAutoScripts().catch(() => {}));
 chrome.runtime.onStartup.addListener(() => {
   upgradeStorage().catch(() => {}); // a restored profile, or an update applied while the browser was closed
   syncAutoScripts().catch(() => {});
-  updateBadge().catch(() => {});
+  updateIcon().catch(() => {});
 });
 
 // After an install or an update, eBay and Marketplace tabs that are already open get the new page scripts, so
 // you don't have to reload them. The old copy steps aside within a second (teardown in content/panel.js).
-async function refreshOpenTabs() {
-  const { showTab } = await getSettings();
-  if (!showTab) return;
+async function refreshOpenTabs({ wait = 1500 } = {}) {
+  const { showTab, paused } = await getSettings();
+  if (!showTab || paused) return;
   const tabs = await chrome.tabs.query({ url: TKSites.matches(await sitesInUse()) });
-  await sleep(1500);
+  await sleep(wait);
   for (const t of tabs) if (t.id >= 0 && !t.discarded) await ensureInjected(t.id).catch(() => {});
 }
 
@@ -1290,7 +1311,9 @@ async function refreshOpenTabs() {
 // No content scripts are declared in the manifest, so page loads are untouched.
 // Clicking the toolbar icon (or the right-click item) injects the scripts on demand.
 
-async function ensureInjected(tabId) {
+// Paused, nothing goes on a page unless a saved-search check asks (force).
+async function ensureInjected(tabId, { force = false } = {}) {
+  if (!force && (await getSettings()).paused) throw new Error(PAUSED);
   const [{ result: present } = {}] = await chrome.scripting.executeScript({
     target: { tabId },
     func: () => !!window.__tirekickPanel,
@@ -1301,6 +1324,45 @@ async function ensureInjected(tabId) {
   return !!present;
 }
 
+// ---------- The pause switch ----------
+// Paused (the switch in the toolbar popup and in settings), Tirekick puts nothing on store pages: the page
+// scripts stop loading, the panels already open take themselves and their tags off (content/panel.js), and the
+// icon opens the popup, where the switch is. The icon goes gray so you can tell. Turning it back on loads the
+// panel into the store tabs you have open, without a reload.
+const PAUSED = "Tirekick is paused on store pages.";
+async function pauseChanged(paused) {
+  await syncAutoScripts();
+  await updateIcon();
+  if (!paused) await refreshOpenTabs({ wait: 0 });
+}
+// The icon in gray, drawn from the color one (no second set of files to keep in step).
+let grayIcon = null;
+async function grayIconData() {
+  if (grayIcon) return grayIcon;
+  const out = {};
+  for (const size of [16, 32]) {
+    const blob = await (await fetch(chrome.runtime.getURL(`icons/icon${size}.png`))).blob();
+    const ctx = new OffscreenCanvas(size, size).getContext("2d");
+    ctx.drawImage(await createImageBitmap(blob), 0, 0, size, size);
+    const img = ctx.getImageData(0, 0, size, size);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const y = Math.round(0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]);
+      d[i] = d[i + 1] = d[i + 2] = y;
+      d[i + 3] = Math.round(d[i + 3] * 0.6); // faded as well, so it reads as off in a light or dark toolbar
+    }
+    out[size] = img;
+  }
+  return (grayIcon = out);
+}
+async function updateIcon() {
+  const { paused } = await getSettings();
+  const m = chrome.runtime.getManifest().action.default_icon;
+  if (paused) await chrome.action.setIcon({ imageData: await grayIconData() });
+  else await chrome.action.setIcon({ path: Object.fromEntries(Object.entries(m).map(([k, v]) => [k, `/${v}`])) });
+  await updateBadge();
+}
+
 // On a page Tirekick doesn't work on, the icon says so for a few seconds instead of doing nothing.
 // ---------- The toolbar badge ----------
 // A number on the icon when something saved is worth another look: a saved listing got cheaper, or a
@@ -1309,7 +1371,7 @@ async function ensureInjected(tabId) {
 async function updateBadge() {
   const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
   const fresh = TKShared.alerts(saved, savedSearches, alertsAck).filter((a) => a.isNew);
-  const base = chrome.runtime.getManifest().action.default_title;
+  const base = chrome.runtime.getManifest().action.default_title + ((await getSettings()).paused ? " (paused on store pages)" : "");
   await chrome.action.setBadgeBackgroundColor({ color: "#1A2B4C" }); // navy, as the icon tile (lib/theme.js)
   await chrome.action.setBadgeText({ text: fresh.length > 99 ? "99+" : fresh.length ? String(fresh.length) : "" });
   await chrome.action.setTitle({ title: fresh.length ? `${base}\n${TKShared.alertSummary(fresh)}. Click the icon to see them.` : base });
@@ -1347,6 +1409,7 @@ async function showPopup(tabId) {
   }
 }
 async function openPanel(tabId) {
+  if ((await getSettings()).paused) return showPopup(tabId); // the popup has the switch to turn it back on
   try {
     const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
     const news = TKShared.alerts(saved, savedSearches, alertsAck).some((a) => a.isNew);

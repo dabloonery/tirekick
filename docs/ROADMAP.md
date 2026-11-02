@@ -46,7 +46,25 @@ check); those are in git history.*
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
 | Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; Brief 1 (alerts, options 1 and 2) is built (2026-10-28; dabloonery checks a notification in Vivaldi). Brief 5's Craigslist is built, opt in (2026-10-27, [status](#craigslist-built-2026-10-27)); OfferUp is next there. Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
+| Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
+
+### Pause switch
+
+*Asked for and built 2026-11-02 (dabloonery): "a toggle to turn off the scans and stuff that populate the screen",
+to clear visual space without going to the browser's extensions page.*
+
+- **Where:** a switch at the top of the toolbar popup (and of Tirekick's own page), and "Pause Tirekick on store
+  pages" in settings (On the page). Both are the one setting `paused` (off by default).
+- **Paused:** the page scripts stop loading on store pages, panels already open take themselves and their card
+  tags off at once (no reload), and nothing is scanned, so your AI isn't used there. The toolbar icon goes gray
+  and its tooltip says paused; clicking it on a store page opens the popup, where the switch is.
+- **Still works:** Saved, look-ups, Home and settings. "Check my saved searches" still runs: you pressed it, so
+  the searches it opens show Tirekick (only those tabs). Open tabs don't raise alerts while paused, since nothing
+  reads them.
+- **Turned back on:** the panel loads into the store tabs already open, again without a reload.
+- **Not in a backup:** restoring one never pauses Tirekick, or turns it back on, behind your back.
+- Test: `tests/e2e/pause.ts`.
 
 ### Version numbers
 
@@ -1107,6 +1125,7 @@ choice at the top of settings, without making the scam check easier to lose by a
 | `useSoldComps` (on) | Settings, On the page | eBay sold lookups, so every price word and the "Too cheap?" and "Likely scam: typical is…" price marks |
 | `autoMarks` (on) | Settings, Filters and marks | All chips on cards before a scan: scam marks, price words, New to you, drops, auctions, lots, seller warnings |
 | `showTab` (on) | Settings, On the page | The slim tab on store pages; off, Tirekick loads only from the toolbar icon |
+| `paused` (off) | Toolbar popup, Settings, On the page | Nothing on store pages until it's turned back on ([Pause switch](#pause-switch), 2026-11-02) |
 | `autoScan` (off) | Settings and the panel | AI scores new listings as they load |
 | AI service (none) | Settings, AI scores | With none chosen the AI parts stay as quiet invitations; nothing turns them off |
 | `filterWords`, `minSellerRatings`, `minSellerPct` | Settings, Filters and marks | What gets filtered out, when a seller gets a warning |

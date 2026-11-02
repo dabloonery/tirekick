@@ -1,5 +1,7 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct",
-  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "notifyGreat", "theme", "onCraigslist"];
+  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "notifyGreat", "theme", "onCraigslist", "paused"];
+// Not in a backup: restoring one shouldn't pause Tirekick, or turn it back on, behind your back.
+const NOT_BACKED_UP = ["paused"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
 const MAY_BE_EMPTY = ["anthropicScanModel", "anthropicKey", "oaiKey", "oaiModel", "oaiVisionModel", "interests", "filterWords"];
 
@@ -171,6 +173,7 @@ document.getElementById("resetSpend").addEventListener("click", async () => {
   note("Spending counter reset.");
 });
 chrome.storage.onChanged.addListener((c) => {
+  if (c.paused) document.getElementById("paused").checked = c.paused.newValue === true; // the popup has the same switch
   if (c.usage) showSpend();
   if (c.saved || c.savedSearches) showMemory();
   // The panel's model menu changes these too; keep this page in step (unless you're typing in one).
@@ -278,7 +281,7 @@ async function saveField(f) {
   const moved = f === "oaiUrl" ? await keyFollowsAddress() : "";
   const el = document.getElementById(f);
   if (el.type === "number" && String(v) !== el.value) el.value = v; // show what was actually kept
-  note(f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : optInSite(f) ? `Saved. Reload open ${optInSite(f).name} tabs to see the change.` : `Saved.${moved}`);
+  note(f === "paused" ? (v ? "Paused. Nothing shows on store pages until you turn this off." : "On again. Open store tabs show Tirekick now.") : f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : optInSite(f) ? `Saved. Reload open ${optInSite(f).name} tabs to see the change.` : `Saved.${moved}`);
 }
 // Each address keeps its own key: a new address puts the key you had away (it stays with its own service)
 // and brings back the one you entered for the new address before, if there is one.
@@ -497,7 +500,7 @@ const SECRET = ["anthropicKey", "oaiKey"];
 const isRecord = (v) => v && typeof v === "object" && !Array.isArray(v);
 document.getElementById("backup").addEventListener("click", async () => {
   const all = await chrome.storage.local.get([...FIELDS, ...BACKUP_SETS]);
-  const settings = Object.fromEntries(FIELDS.filter((f) => !SECRET.includes(f) && all[f] !== undefined).map((f) => [f, all[f]]));
+  const settings = Object.fromEntries(FIELDS.filter((f) => !SECRET.includes(f) && !NOT_BACKED_UP.includes(f) && all[f] !== undefined).map((f) => [f, all[f]]));
   const data = { app: BACKUP_APPS[0], version: chrome.runtime.getManifest().version, at: new Date().toISOString(), settings };
   for (const k of BACKUP_SETS) if (all[k]) data[k] = all[k];
   const a = document.createElement("a");
@@ -572,7 +575,7 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   const settings = {};
   let skipped = 0;
   for (const [f, v] of Object.entries(isRecord(data.settings) ? data.settings : {})) {
-    if (!FIELDS.includes(f) || SECRET.includes(f)) continue;
+    if (!FIELDS.includes(f) || SECRET.includes(f) || NOT_BACKED_UP.includes(f)) continue;
     const clean = TKShared.cleanSetting(f, v);
     if (clean === undefined) skipped++;
     else settings[f] = clean;

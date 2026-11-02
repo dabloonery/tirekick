@@ -203,7 +203,9 @@ in Reseller (for when you only want fix-ups).
   worst case if the fix doesn't work out.
 - **Saved, in Reseller** has a parts box and a short note (140 characters) on each listing, and shows what it
   would net at its sold price after fees, shipping and those parts, as you type. The CSV export has the parts,
-  the net and the note.
+  the net and the note. The sold price is a scan's when there is one; otherwise it's the free typical price,
+  kept on the saved listing whenever it's on screen with one (a search page, its own page, or **Typical price**
+  on its card), so this works with the AI off too.
 - The comparison is only as good as the search words: "Pentax K1000 body" beats "camera". Edit
   "Compare prices against" if the page's search is vague.
 - **Auctions** are recognized ("3 bids · 2d 4h left"). Their price is only a current bid, so the

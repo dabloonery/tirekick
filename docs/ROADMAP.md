@@ -47,6 +47,7 @@ check); those are in git history.*
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
 | Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; Brief 1 (alerts, options 1 and 2) is built (2026-10-28; dabloonery checks a notification in Vivaldi). Brief 5's Craigslist is built, opt in (2026-10-27, [status](#craigslist-built-2026-10-27)); OfferUp is next there. Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
+| Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Pause switch

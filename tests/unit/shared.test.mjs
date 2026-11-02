@@ -424,6 +424,20 @@ test("Saved workbench: parts and a note kept on a saved listing, and the net the
   assert.equal(sets.saved["ebay:3"].note.length, S.NOTE_MAX);
 });
 
+test("Saved workbench with the AI off: the free typical price kept on the saved listing, a scan's still first", () => {
+  const saved = { "ebay:1": { t: "Broken Switch", u: "https://www.ebay.com/itm/1", p0: 60, p: 52, a0: 2, a: 3, parts: 15, sold: 140, ship: 12, sa: 5 } };
+  assert.deepEqual(S.savedSold("ebay:1", {}, saved["ebay:1"]), { sold: 140, ship: 12, at: 5 });
+  assert.equal(S.savedSold("ebay:1", {}), null, "nothing without the record");
+  assert.deepEqual(S.savedSold("ebay:1", { "ebay:1": { flip: { refWorking: 150, shipOut: 10 } } }, saved["ebay:1"]), { sold: 150, ship: 10 }, "a scan's own sold median wins");
+  assert.deepEqual(S.savedSold("ebay:1", { "ebay:1": { flip: { refWorking: 150, refIsEstimate: true } } }, saved["ebay:1"]), { sold: 140, ship: 12, at: 5 }, "a scan with only an estimate falls back to it");
+  const [row] = S.savedRows(saved, {});
+  assert.deepEqual([row.sold, row.net], [140, 42], "the CSV has the sold median and the net with no scan");
+  const { sets } = S.cleanBackup({ saved: { ...saved, "ebay:2": { t: "x", sold: -4, ship: "9" }, "ebay:3": { t: "y", sold: 80 } } });
+  assert.deepEqual([sets.saved["ebay:1"].sold, sets.saved["ebay:1"].ship, sets.saved["ebay:1"].sa], [140, 12, 5], "a backup keeps it");
+  assert.equal("sold" in sets.saved["ebay:2"] || "ship" in sets.saved["ebay:2"], false, "a negative price is left out");
+  assert.deepEqual([sets.saved["ebay:3"].sold, "ship" in sets.saved["ebay:3"]], [80, false]);
+});
+
 test("usageReport: counts only, never a search, a listing or a seller", () => {
   const all = {
     useAI: true, provider: "anthropic", lens: "project",

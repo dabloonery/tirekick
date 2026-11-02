@@ -1211,6 +1211,55 @@ test("versionOf: tablets by line and generation, and cellular ones apart", () =>
   assert.deepEqual(["hd 10 plus", "fire 7", "max 11"].map(R.kindWord), ["Fire HD 10 Plus", "Fire 7", "Fire Max 11"]);
 });
 
+test("consoleOf: consoles and handhelds by their words and model codes", () => {
+  const v = (t, q) => R.versionOf(t, R.variantGroups([], q).same);
+  // PlayStation: Slim Digital is its own tier, a disc one the plain one, and a CFI code says which.
+  assert.deepEqual(R.variantGroups([], "ps5").same, ["gen 5", "@playstation"], "PS5 is PlayStation 5");
+  assert.deepEqual(v("PS5 Slim Digital 1TB", "ps5"), ["slim digital", "", "1tb"]);
+  assert.deepEqual(v("PS5 Slim Disc 1TB", "ps5"), ["slim", "", "1tb"]);
+  assert.deepEqual(v("Sony PlayStation 5 Disc Edition 825GB", "ps5"), ["", "", "825gb"], "disc is the plain one");
+  assert.deepEqual(v("Sony PS5 CFI-1015B", "ps5"), ["digital edition", "", ""]);
+  assert.deepEqual(v("PS5 CFI-2015 Slim", "ps5"), ["slim", "", ""], "2015 is a model code, not a year");
+  assert.deepEqual(v("PS5 Console with Pro Controller", "ps5"), ["", "", ""]);
+  assert.deepEqual(v("PS5 Slim Digital", "ps5 slim"), ["slim digital", "", ""], "a Slim search still sets the Digital ones apart");
+  assert.deepEqual(v("PS4 CUH-7215B", "playstation"), ["pro", "gen 4", ""]);
+  assert.deepEqual(v("PlayStation 5 Digital", "playstation"), ["digital edition", "gen 5", ""]);
+  // Xbox: the line is the generation, S or X the tier.
+  assert.deepEqual(v("Xbox Series S 512GB White", "xbox series"), ["series s", "", "512gb"]);
+  assert.deepEqual(v("Microsoft Xbox Series X 1TB", "xbox series"), ["series x", "", "1tb"]);
+  assert.deepEqual(v("Xbox Series X 1TB", "xbox series x"), ["", "", "1tb"], "the search names it: the thing itself");
+  assert.deepEqual(v("Xbox Series S 512GB", "xbox series x"), ["series s", "", "512gb"]);
+  assert.deepEqual(v("Xbox Series X|S Controller", "xbox series"), ["", "", ""], "names both");
+  assert.deepEqual(v("Xbox One X 1TB", "xbox"), ["one x", "xbox one", "1tb"]);
+  assert.deepEqual(v("Xbox 360 E", "xbox"), ["360 e", "xbox 360", ""]);
+  assert.deepEqual(v("Xbox One S All Digital Edition", "xbox one"), ["one s digital", "", ""]);
+  // Nintendo: the DS line, Game Boys, and Switch model codes.
+  assert.deepEqual(v("New Nintendo 3DS XL Galaxy", "nintendo"), ["new xl", "3ds", ""]);
+  assert.deepEqual(v("Brand New Nintendo 3DS XL Red", "nintendo 3ds"), ["xl", "", ""], "Brand New is its condition");
+  assert.deepEqual(v("Nintendo 2DS XL Black", "2ds"), ["new xl", "", ""], "every 2DS XL is a New one");
+  assert.deepEqual(v("Nintendo DSi LL", "nintendo ds"), ["xl", "dsi", ""]);
+  assert.deepEqual(v("Nintendo Game Boy Advance SP AGS-101 Cobalt", "game boy"), ["sp ags-101", "gameboy advance", ""]);
+  assert.deepEqual(v("GBA SP AGS-001 Flame", "game boy advance sp"), ["", "", ""]);
+  assert.deepEqual(v("Game Boy Color Purple", "gameboy"), ["", "gameboy color", ""]);
+  assert.deepEqual(v("Nintendo Switch HEG-001 White", "nintendo switch"), ["oled", "", ""]);
+  assert.deepEqual(v("Nintendo Switch HAC-001(-01) Neon", "nintendo switch"), ["", "v 2", ""]);
+  assert.deepEqual(v("Nintendo Switch 2 Mario Kart Bundle", "nintendo"), ["", "gen 2", ""]);
+  assert.deepEqual(v("Nintendo Switch 2 Games Lot", "nintendo"), ["", "", ""]);
+  // Others.
+  assert.deepEqual(v("Meta Quest 3S 128GB", "meta quest"), ["", "3s", "128gb"]);
+  assert.deepEqual(v("Meta Quest 3S 128GB", "meta quest 3"), ["", "3s", "128gb"], "a 3S isn't a Quest 3");
+  assert.deepEqual(v("ASUS ROG Ally X 1TB", "rog ally"), ["ally x", "", "1tb"]);
+  // Not consoles.
+  for (const t of ["Leviton light switch 2 pack", "Citroen DS 21 badge", "Canon EOS 5D"]) assert.equal(R.consoleOf(t), null, t);
+  assert.deepEqual(R.versionOf("Sony PS5 CFI-1015B", []), ["", "", ""], "a typical price saved before this reads as it did");
+  const sales = [
+    ...[200, 205, 210, 210, 215, 220, 225, 230].map((total, i) => ({ title: `Xbox Series S 512GB ${i}`, total })),
+    ...[380, 390, 400, 400, 410, 415, 420, 430].map((total, i) => ({ title: `Microsoft Xbox Series X 1TB ${i}`, total })),
+  ];
+  const g = R.variantGroups(sales, "xbox series");
+  assert.deepEqual([g.groups["series s/*/*"].length, g.groups["series x/*/*"].length], [8, 8]);
+});
+
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.
 const switchSales = () => [
   ...[150, 155, 158, 160, 160, 162, 165, 168, 170, 155].map((total, i) => ({ title: `Nintendo Switch Console Gray ${i}`, total })),

@@ -127,6 +127,26 @@ export const MARKETS = {
     "/gen 11/*": { median: 95, p10: 78, p25: 88, p75: 102, n: 16, confidence: "fair" },
     "/*/*": { median: 70, p10: 30, p25: 45, p75: 92, n: 60, confidence: "fair" },
   } },
+  // Consoles whose versions read from words and model codes (TKRules.consoleOf): disc, Digital, Slim, Slim Digital
+  // and Pro PS5s; Series S beside Series X; frontlit and backlit Game Boy Advance SPs (assumed numbers).
+  "ps5": { median: 380, p10: 260, ship: 25, confidence: "fair", n: 60, variants: {
+    _same: ["gen 5", "@playstation"],
+    "/*/*": { median: 360, p10: 310, p25: 345, p75: 380, n: 16, confidence: "good" },
+    "digital edition/*/*": { median: 290, p10: 250, p25: 275, p75: 305, n: 12, confidence: "fair" },
+    "slim/*/*": { median: 400, p10: 350, p25: 385, p75: 420, n: 10, confidence: "fair" },
+    "slim digital/*/*": { median: 340, p10: 300, p25: 325, p75: 355, n: 9, confidence: "fair" },
+    "pro/*/*": { median: 620, p10: 540, p25: 600, p75: 650, n: 9, confidence: "fair" },
+  } },
+  "xbox series": { median: 330, p10: 180, ship: 25, confidence: "fair", n: 55, variants: {
+    _same: ["@series", "xbox series"],
+    "series x/*/*": { median: 400, p10: 340, p25: 380, p75: 420, n: 26, confidence: "good" },
+    "series s/*/*": { median: 210, p10: 170, p25: 195, p75: 225, n: 22, confidence: "good" },
+  } },
+  "game boy advance sp": { median: 90, p10: 55, ship: 6, confidence: "fair", n: 50, variants: {
+    _same: ["@sp", "sp", "gameboy advance"],
+    "/*/*": { median: 75, p10: 55, p25: 68, p75: 85, n: 32, confidence: "good" },
+    "sp ags-101/*/*": { median: 140, p10: 115, p25: 130, p75: 155, n: 14, confidence: "fair" },
+  } },
   "ds": { median: 60, ship: 6, confidence: "fair", n: 40 },
   "4tb hard drive": { median: 55, ship: 8, confidence: "good", n: 40 }, // assumed, for the real drive search below
   "ipod": { median: 60, ship: 6, confidence: "fair", n: 40 }, // assumed, for the real "ds" search below
@@ -325,6 +345,19 @@ export const CASES = [
   ebay("canon 50mm", "Canon EF 50mm f/1.4 USM Standard Lens", 225, 0, seller(99.4, 260), { truth: "honest", word: "fair", note: "Above typical against the mix" }),
   ebay("canon 50mm", "Canon EF 50mm f/1.2L USM Lens", 1040, 0, seller(99.8, "1.6K"), { truth: "honest", word: "fair", note: "7x the mix" }),
   ebay("canon 50mm", "Canon EF 50mm f/1.2 L USM Lens like new", 290, 0, seller(100, 1), { truth: "scam", scan: "great", note: "26% of an f/1.2L, but twice the mix" }),
+
+  // ---------- consoles by model: a PS5's Slim, Digital and Pro, Xbox Series S and X, a backlit SP ----------
+  ebay("ps5", "Sony PlayStation 5 Pro 2TB Console", 580, 0, seller(99.7, "1.1K"), { truth: "honest", word: "fair", note: "a Pro under Pro sales; far over the mix" }),
+  ebay("ps5", "PS5 Slim Digital Edition 1TB White", 310, 0, seller(99.4, 640), { truth: "honest", word: "fair", note: "a Slim Digital under its sales; read as a Slim before" }),
+  ebay("ps5", "Sony PS5 Digital CFI-1015B", 270, 0, seller(99.1, 210), { truth: "honest", word: "fair", note: "the model code says Digital" }),
+  ebay("ps5", "PlayStation 5 Disc Edition CFI-1215A 825GB", 345, 0, seller(99.9, "3K"), { truth: "honest", word: "fair", note: "a disc one is the plain one" }),
+  ebay("ps5", "Sony PS5 Pro 2TB brand new sealed", 199, 0, seller(100, 0), { truth: "scam", scan: "great", note: "32% of a Pro, 52% of the mix" }),
+  ebay("xbox series", "Microsoft Xbox Series S 512GB White", 185, 0, seller(99.6, 900), { truth: "honest", word: "fair", note: "a Series S at 56% of the mix: Check first before" }),
+  ebay("xbox series", "Xbox Series X 1TB Console Black", 420, 0, seller(99.8, "1.5K"), { truth: "honest", word: "fair", note: "a Series X a little over its sales; Above typical against the mix" }),
+  fb("xbox series", "Xbox series s, works great", 160, { truth: "honest", word: "fair", note: "the same, for pickup" }),
+  ebay("xbox series", "Xbox Series X 1TB new in box", 129, 0, seller(100, 0), { truth: "scam", scan: "great", note: "32% of a Series X" }),
+  ebay("game boy advance sp", "Nintendo Game Boy Advance SP AGS-101 Cobalt", 135, 0, seller(99.5, 430), { truth: "honest", word: "fair", note: "a backlit SP; Above typical against frontlit ones" }),
+  ebay("game boy advance sp", "GBA SP AGS-001 Flame Red", 70, 0, seller(99.3, 260), { truth: "honest", word: "fair" }),
 
   // ---------- scams that give the same excuses as honest cheap listings (CHEAP below) ----------
   ebay("nintendo switch oled", "Nintendo Switch OLED - minor scratch, works perfect", 79, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "flaw", note: "bait with a flaw story, 31% from a new seller" }),

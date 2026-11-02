@@ -5016,6 +5016,11 @@
   document.addEventListener("visibilitychange", () => !document.hidden && wake(false), until);
   // After an update this copy can't reach the extension any more: get out of the way so the new one can load.
   const teardown = () => {
+    // Work under way stops with it: a scan's later batches, an analysis, search ideas (paused means your AI isn't
+    // used on store pages, and a copy cut off by an update has no one to show the answers to).
+    try {
+      stopAll();
+    } catch {}
     retired = true;
     clearInterval(timer);
     clearTimeout(photoTimer);

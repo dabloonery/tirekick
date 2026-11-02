@@ -106,6 +106,23 @@ export const MARKETS = {
     "f1.4/*/*": { median: 240, p10: 190, p25: 220, p75: 260, n: 12, confidence: "fair" },
     "f1.2/*/*": { median: 1100, p10: 900, p25: 1020, p75: 1180, n: 8, confidence: "fair" },
   } },
+  // Series 3s beside Series 9s and Ultras, and cellular ones apart from GPS ones (assumed numbers).
+  "apple watch": { median: 180, p10: 40, ship: 8, confidence: "fair", n: 60, variants: {
+    _same: ["@watch"],
+    "/gen 3/*": { median: 45, p10: 32, p25: 40, p75: 52, n: 12, confidence: "fair" },
+    "/gen 9/*": { median: 240, p10: 195, p25: 225, p75: 260, n: 14, confidence: "fair" },
+    "/gen 9/45mm cellular": { median: 290, p10: 250, p25: 275, p75: 305, n: 8, confidence: "fair" },
+    "ultra/*/*": { median: 480, p10: 400, p25: 450, p75: 520, n: 9, confidence: "fair" },
+    "/*/*": { median: 180, p10: 40, p25: 90, p75: 260, n: 60, confidence: "fair" },
+  } },
+  // Paperwhites from 2015 to 2021: Amazon's generation, however a listing says it (assumed numbers).
+  "kindle paperwhite": { median: 70, p10: 30, ship: 6, confidence: "fair", n: 60, variants: {
+    _same: ["@paperwhite", "paperwhite"],
+    "/gen 7/*": { median: 35, p10: 25, p25: 31, p75: 40, n: 14, confidence: "fair" },
+    "/gen 10/*": { median: 60, p10: 48, p25: 55, p75: 66, n: 12, confidence: "fair" },
+    "/gen 11/*": { median: 95, p10: 78, p25: 88, p75: 102, n: 16, confidence: "fair" },
+    "/*/*": { median: 70, p10: 30, p25: 45, p75: 92, n: 60, confidence: "fair" },
+  } },
   "ds": { median: 60, ship: 6, confidence: "fair", n: 40 },
   "4tb hard drive": { median: 55, ship: 8, confidence: "good", n: 40 }, // assumed, for the real drive search below
   "ipod": { median: 60, ship: 6, confidence: "fair", n: 40 }, // assumed, for the real "ds" search below
@@ -268,6 +285,16 @@ export const CASES = [
   ebay("macbook air", "Apple MacBook Air 15\" M3 16GB 512GB Starlight", 735, 0, seller(99.7, 860), { truth: "honest", word: "fair", note: "an M3 under M3 sales; far over the mix" }),
   ebay("macbook air", "Apple MacBook Air M1 13.3\" 8GB 256GB Space Gray", 405, 0, seller(99.5, 520), { truth: "honest", word: "fair" }),
   ebay("macbook air", "Apple MacBook Air M3 13\" 8GB 256GB NEW SEALED", 219, 0, seller(100, 0), { truth: "scam", scan: "great", note: "27% of an M3, but 49% of the mix" }),
+
+  // ---------- eBay: apple watch and kindle paperwhite, a version mix (2026-11-02) ----------
+  ebay("apple watch", "Apple Watch Series 3 38mm GPS Space Gray Aluminum", 42, 0, seller(99.4, 610), { truth: "honest", word: "fair", note: "a Series 3 at 23% of the mix" }),
+  ebay("apple watch", "Apple Watch Series9 45mm GPS + Cellular Midnight", 285, 0, seller(99.8, "1.9K"), { truth: "honest", word: "fair", note: "cellular, against cellular Series 9 sales; Above typical against the mix" }),
+  ebay("apple watch", "Apple Watch Ultra 2 49mm Titanium Ocean Band", 460, 0, seller(99.6, 740), { truth: "honest", word: "fair" }),
+  ebay("apple watch", "Apple Watch S9 45mm NEW SEALED", 69, 0, seller(100, 0), { truth: "scam", scan: "great", note: "29% of a Series 9, 38% of the mix" }),
+  ebay("kindle paperwhite", "Kindle Paperwhite 3 4GB Black WiFi", 32, 0, seller(99.7, 420), { truth: "honest", word: "fair", note: "a Paperwhite 3 is the 7th generation" }),
+  ebay("kindle paperwhite", "Amazon Kindle Paperwhite 5 8GB Agave Green", 92, 0, seller(99.9, "3.1K"), { truth: "honest", word: "fair", note: "a Paperwhite 5 is the 11th; Above typical against the mix" }),
+  ebay("kindle paperwhite", "Kindle Paperwhite 2018 Waterproof 8GB", 58, 0, seller(99.5, 230), { truth: "honest", word: "fair", note: "2018 is the 10th" }),
+  ebay("kindle paperwhite", "Kindle Paperwhite 11th Generation NEW SEALED", 25, 0, seller(100, 0), { truth: "scam", scan: "great", note: "26% of an 11th, 36% of the mix" }),
 
   // ---------- rtx 3060, no Ti or memory named ($205 for the mix; 12GB $200, 8GB $158, Ti $245) ----------
   ebay("rtx 3060", "EVGA GeForce RTX 3060 Ti XC Gaming 8GB GDDR6", 249, 0, seller(99.8, "1.6K"), { truth: "honest", word: "fair", note: "a Ti at Ti prices; over the mix" }),

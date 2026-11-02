@@ -410,6 +410,7 @@ const kindText = (words = []) =>
     const g = w.match(/^gen (\d+)$/)?.[1];
     if (g) return `generation ${g}`;
     if (/^v \d+$/.test(w)) return w.replace(" ", "").toUpperCase();
+    if (/^m\d(?: \w+)?$/.test(w)) return w.replace(/(^|\s)(\w)/g, (_, s, c) => s + c.toUpperCase()); // a chip: "M2 Pro"
     return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : w;
   }).join(", ") || "sales that name no other version";
 
@@ -580,7 +581,7 @@ const scamNotes = (it) =>
 // sales (the panel's priceNotes: refKind) says so, with that version's median, so it doesn't read as off the search's.
 function priceNotesText(it) {
   const notes = [];
-  const version = it.refKind && it.refWorking > 0 ? ` for its version (${it.refKind === "plain" ? "sales that name no other version" : kindText(it.refKind.split(" "))}: ${money(it.refWorking)}, ${it.refN} sales)` : "";
+  const version = it.refKind && it.refWorking > 0 ? ` for its version (${it.refKind === "plain" ? "sales that name no other version" : kindText(it.refKind.split(", "))}: ${money(it.refWorking)}, ${it.refN} sales)` : "";
   if (it.vsWorking != null) notes.push(`${Math.round(it.vsWorking * 100)}% of working median${version}${it.pickupShip > 0 ? ` less $${Math.round(it.pickupShip)} typical shipping (local pickup)` : ""}`);
   if (it.vsParts != null) notes.push(`${Math.round(it.vsParts * 100)}% of for-parts median`);
   if (it.marginBeforeRepair != null) notes.push(`margin before repairs ${it.marginBeforeRepair < 0 ? "-" : ""}$${Math.abs(it.marginBeforeRepair)}`);

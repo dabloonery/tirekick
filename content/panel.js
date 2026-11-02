@@ -3398,7 +3398,7 @@
     market = TKRules.forVariant(market, it); // a Lite resells for what Lites sell for, not the search's mix
     // Which sales its typical price is from, for the model's line (rankBatch): "lite", "gen 2 256gb", or "plain" for
     // sales that name no other version. "" for the whole search.
-    it.refKind = market?.variantUsed ? (market.variantWords || []).join(" ") || "plain" : "";
+    it.refKind = market?.variantUsed ? (market.variantWords || []).join(", ") || "plain" : ""; // ", ": a word may hold a space ("gen 2", "m2 pro")
     it.refN = it.refKind ? market.n : null;
     const w = market?.median;
     it.shipOut = market?.ship ?? null;

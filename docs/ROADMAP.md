@@ -23,7 +23,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
   - [Brief 7: Built-in browser AI](#brief-7-built-in-browser-ai) (first after the 1.0.0 launch)
   - [Brief 8: Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) (plan; check first that it helps)
-  - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then Safari)
+  - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then Safari; Firefox code built 2026-11-02, dabloonery to check it by hand)
   - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
   - [Brief 11: Side panel mode](#brief-11-side-panel-mode) (idea from the 2026-10-15 UI audit)
   - [Brief 12: Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) (2026-10-23: Without the AI, Scam check only, Everything; built 2026-10-23)
@@ -46,6 +46,7 @@ check); those are in git history.*
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
 | Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; Brief 1 (alerts, options 1 and 2) is built (2026-10-28; dabloonery checks a notification in Vivaldi). Brief 5's Craigslist is built, opt in (2026-10-27, [status](#craigslist-built-2026-10-27)); OfferUp is next there. Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
+| More browsers | Firefox code and a zip for each browser built 2026-11-02 ([status](#firefox-built-2026-11-02)); dabloonery checks it in Firefox and Edge by hand before any upload to either store |
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
@@ -478,6 +479,21 @@ is in `store/SECURITY-REVIEW.md`.* Nothing is uploaded without dabloonery's OK.
       review's Vivaldi section (icon and badge, shortcut, the right-click entries).
 - Keep the unpacked copy used day to day separate from the store install: they have different extension IDs, so
   saved data doesn't move between them (**Save a backup** and **Restore** carry it across).
+
+### Edge Add-ons and addons.mozilla.org
+
+The same steps as above, and nothing goes up without dabloonery's OK. `deno task pack` writes both zips.
+
+- **Edge** (Microsoft Partner Center, free): `dist/tirekick-<version>.zip`, the same zip as Chrome's. Load it in
+  Edge (`edge://extensions`, Developer mode, Load unpacked on the unzipped folder) and click through as above,
+  plus the Vivaldi checks (icon and badge, Alt+Shift+L, the right-click entries). Listing text, privacy policy
+  link and screenshots come from `store/LISTING.md` and `store/screenshots/`.
+- **Firefox** (addons.mozilla.org, free): `dist/tirekick-<version>-firefox.zip`. Unzip it and load it at
+  `about:debugging` → This Firefox → Load Temporary Add-on (pick its `manifest.json`), then run the
+  [Firefox checks](#firefox-built-2026-11-02). No source upload is needed: there's no build step. The data
+  question: "Website content" is optional, asked for when the AI is turned on (it matches
+  `data_collection_permissions` in `manifest.json` and `store/PRIVACY.md`). The add-on id
+  `tirekick@tirekick.app` never changes, or Firefox users lose their saved data on the next update.
 
 ### If the review comes back with questions
 
@@ -1033,8 +1049,8 @@ tooltip wording), `lib/shared.js` (nothing new in storage). One PR, light and da
 
 ### Brief 9: More browsers
 
-Added 2026-10-15 (dabloonery: platform-agnostic plans belong here). Scoped against the code on 2026-10-27; nothing
-built yet. **When:** after the "Prices by version" work merges and Craigslist has been tried on real pages
+Added 2026-10-15 (dabloonery: platform-agnostic plans belong here). Scoped against the code on 2026-10-27; the
+Firefox code and both zips built 2026-11-02 ([status](#firefox-built-2026-11-02)). **When:** after the "Prices by version" work merges and Craigslist has been tried on real pages
 (dabloonery, 2026-10-27). Do Edge first (a listing only), then Firefox.
 
 **Edge (small, a listing).** Chrome, Vivaldi, Brave, Opera and Edge are all Chromium and load the same zip, so there
@@ -1094,6 +1110,38 @@ e2e drive Chrome through the DevTools protocol and `--host-resolver-rules`; Fire
 and answer the data questions to match `data_collection_permissions`. Review takes from minutes to a few days.
 Firefox keeps the same `gecko.id` across updates, so saved data stays put. Each upload gets the same steps as
 "Chrome Web Store: each upload" and waits on dabloonery's OK.
+
+#### Firefox: built 2026-11-02
+
+Items 1 to 3 and 5 are on `main` (one PR); item 4 (a note when Firefox takes a store's access away) is next. The
+cloud machine where this was built has no Firefox, so none of it has run in Firefox yet: dabloonery checks it by
+hand. What changed:
+
+- `manifest.json` has `background.scripts` beside the worker, `browser_specific_settings.gecko` (the id, Firefox
+  140 or later, and the data question: none required, "website content" optional) and `minimum_chrome_version`
+  121. The folder still loads unpacked in Chrome and Vivaldi as is.
+- `deno task pack` writes two zips: `tirekick-<version>.zip` for Chrome, Edge and every other Chromium browser
+  (without the Firefox keys), and `tirekick-<version>-firefox.zip` (without the worker). It checks that
+  `background.scripts` names the same files `background.js` imports.
+- `background.js` calls `importScripts` only where it exists, and `openHome` opens a new tab where
+  `runtime.getContexts` is missing.
+- Settings asks for a custom AI address first thing in the Test click, so Firefox shows the prompt.
+- Turning on the AI in settings (the switch, or "Everything") asks Firefox once to let listing text go to an AI
+  service; saying no leaves the AI off. Turning it off gives that back. Other browsers aren't asked. Not
+  covered: an AI turned on by a restored backup or an older install doesn't ask.
+- CI runs `web-ext lint` on the Firefox zip.
+
+The by-hand checks in Firefox (dabloonery, before the first addons.mozilla.org upload):
+
+- [ ] It loads at `about:debugging` with no errors on the add-on's page, and the toolbar icon opens the popup.
+- [ ] An eBay search: the panel opens, the free marks and prices show, Saved works. A listing page.
+- [ ] Marketplace: a search and a listing.
+- [ ] Settings: turn on the AI (Firefox asks about website content), test a key, run a Scan.
+- [ ] A custom address (an OpenAI-style service on another address): the Test button brings up Firefox's prompt.
+- [ ] Sold prices from a Marketplace tab with no eBay tab open (the background fetch with eBay cookies; item 6).
+- [ ] The pause switch, Home in a tab ("Open Tirekick in a tab"), a backup and a restore.
+- [ ] Craigslist on, from settings (Firefox's prompt), and a Craigslist search.
+- [ ] A private window: nothing runs there unless the add-on is allowed in private windows.
 
 **Effort.** Edge: half a day, no code. Firefox: items 1 to 5 are about four small PRs (a day or two together),
 the Firefox smoke test another day, then a by-hand pass and the listing. Android Firefox is possible later (the

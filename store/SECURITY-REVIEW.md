@@ -179,7 +179,8 @@ dabloonery uses Vivaldi day to day. Tirekick should behave the same there, becau
 Chromium extension APIs: `storage`, `scripting`, `contextMenus`, `action`, `permissions`, `tabs`,
 `windows`, `runtime` and `commands`. It doesn't use the Chrome-only or Google-only APIs that other
 browsers leave out: no `sidePanel` (the panel is drawn inside the page), `offscreen`, `identity`, Google
-sign-in or Chrome Sync. `minimum_chrome_version` 116 is well below current Vivaldi.
+sign-in or Chrome Sync. `minimum_chrome_version` 121 (raised from 116 on 2026-11-02, for the Firefox
+background key) is well below current Vivaldi.
 
 Vivaldi installs straight from the Chrome Web Store, so one listing covers it. So do Edge, Brave and
 Opera (Opera needs its "Install Chrome Extensions" add-on).

@@ -45,6 +45,22 @@
   chrome.storage.local.get("theme").then(({ theme }) => applyTheme(theme));
   chrome.storage.onChanged.addListener((c) => c.theme && applyTheme(c.theme.newValue));
 
+  // ---------- the pause switch ----------
+  // On: the panel, tags and scans on store pages. Off (paused): nothing shows there and open store tabs clear
+  // right away; everything on this page still works. The same switch as "Pause Tirekick on store pages" in settings.
+  const pauseBtn = $("#pause-switch");
+  const showPause = (paused) => {
+    pauseBtn.setAttribute("aria-checked", String(!paused));
+    $("#pause-hint").textContent = paused ? "Paused. Nothing shows on store pages until you turn this back on." : "The panel, tags and scans on store pages. Turn off to pause them.";
+  };
+  chrome.storage.local.get("paused").then(({ paused }) => showPause(paused === true));
+  chrome.storage.onChanged.addListener((c) => c.paused && showPause(c.paused.newValue === true));
+  pauseBtn.addEventListener("click", () => {
+    const paused = pauseBtn.getAttribute("aria-checked") === "true";
+    showPause(paused);
+    chrome.storage.local.set({ paused }).catch(() => showPause(!paused));
+  });
+
   // ---------- look something up ----------
   const qEl = $("#q");
   const answer = $("#answer");

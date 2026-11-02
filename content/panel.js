@@ -13,6 +13,16 @@
   // Ends every listener this copy puts on the page itself (document and window), at teardown.
   const life = new AbortController();
   const until = { signal: life.signal };
+  // The same for the extension's own events (storage changes, messages): a copy that was paused or replaced
+  // must not draw on the page again when something changes in another tab.
+  const onChrome = (ev, fn) => {
+    ev.addListener(fn);
+    life.signal.addEventListener("abort", () => {
+      try {
+        ev.removeListener(fn);
+      } catch {} // cut off from the extension already
+    });
+  };
 
   // A tab left open across the update from Second Look (the old name) still holds that version's panel
   // and card tags. Its script is cut off from the extension (it removes its own panel, not the tags),
@@ -809,7 +819,7 @@
     if (card) themePref ? (card.dataset.theme = themePref) : delete card.dataset.theme;
   };
   chrome.storage.local.get("theme").then(({ theme }) => applyTheme(theme)).catch(() => {});
-  chrome.storage.onChanged.addListener((changes) => changes.theme && applyTheme(changes.theme.newValue));
+  onChrome(chrome.storage.onChanged, (changes) => changes.theme && applyTheme(changes.theme.newValue));
   const panel = $(".panel");
   const countEl = $(".count");
   const statusEl = $(".status");
@@ -1377,7 +1387,7 @@
     renderSpend((await chrome.storage.local.get("usage")).usage);
   };
   loadFooter();
-  chrome.storage.onChanged.addListener((changes) => {
+  onChrome(chrome.storage.onChanged, (changes) => {
     if (!alive()) return;
     if (changes.usage) renderSpend(changes.usage.newValue);
     if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize", "autoScan", "useAI"].some((k) => changes[k])) loadFooter().then(refreshPending);
@@ -1840,7 +1850,7 @@
   };
   window.addEventListener("pagehide", saveMemoryNow, until);
   document.addEventListener("visibilitychange", () => document.hidden && saveMemoryNow(), until);
-  chrome.storage.onChanged.addListener((changes) => {
+  onChrome(chrome.storage.onChanged, (changes) => {
     if (!changes.listingMemory || !alive()) return;
     const next = changes.listingMemory.newValue;
     if (!next) return void ((memory = {}), dirtyMemory.clear()); // "Forget seen listings" in settings: don't write it back
@@ -2403,6 +2413,7 @@
   const homeCount = $('.nav [data-view="home"] .cnt');
   const home = TKHome.mount($(".view-home"), {
     send,
+    signal: life.signal, // its storage listener goes at teardown
     go: (v) => setView(v),
     isShown: () => view === "home" && wrap.classList.contains("open") && !document.hidden,
     onAlerts: (n) => {
@@ -2619,7 +2630,7 @@
     if (TK.pageType() === "results" && facts.size) redecorateAll();
     if (TK.pageType() === "item") renderItemInfo();
   };
-  chrome.storage.onChanged.addListener((changes) => {
+  onChrome(chrome.storage.onChanged, (changes) => {
     if (!alive() || !(changes.saved || changes.savedSearches)) return;
     if (changes.saved) saved = changes.saved.newValue || {};
     if (changes.savedSearches) savedSearches = changes.savedSearches.newValue || {};
@@ -2781,7 +2792,7 @@
       .map(([k, v]) => ({ q: k.slice(8), market: v.market }));
   };
   loadNarrower().catch(() => {});
-  chrome.storage.onChanged.addListener((changes) => {
+  onChrome(chrome.storage.onChanged, (changes) => {
     if (!alive() || !changes.soldCache) return;
     loadNarrower().then(() => lastMarket?.variants && applyMarket(lastMarket)).catch(() => {});
   });
@@ -3521,7 +3532,7 @@
     }
     return n;
   };
-  chrome.storage.onChanged.addListener((changes) => {
+  onChrome(chrome.storage.onChanged, (changes) => {
     if (!alive() || !changes.scans) return;
     scansCache = changes.scans.newValue || {};
     for (const [key, snap] of pendingScans.values()) (scansCache[key] = { ...(scansCache[key] || {}) })[snap.lens] = snap; // not saved yet here
@@ -3606,9 +3617,11 @@
   let pageVersion = 0;
   let keysMemo = null;
   const ours = (n) => n.nodeType === 1 && (n.classList.contains("tirekick-sticker") || n.classList.contains("tirekick-marks") || n.id === "tirekick-styles");
-  new MutationObserver((recs) => {
+  const pageWatch = new MutationObserver((recs) => {
     if (recs.some((r) => r.type === "attributes" || r.removedNodes.length || [...r.addedNodes].some((n) => !ours(n)))) (pageVersion++, (keysMemo = null));
-  }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["href"] });
+  });
+  life.signal.addEventListener("abort", () => pageWatch.disconnect());
+  pageWatch.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["href"] });
   const currentKeys = () => {
     if (keysMemo) return new Set(keysMemo);
     const sel = TK.listingLinks();
@@ -3947,7 +3960,7 @@
     })
   );
   // Settings changed in another tab or the options page: filters and seller rules apply straight away.
-  chrome.storage.onChanged.addListener((changes) => {
+  onChrome(chrome.storage.onChanged, (changes) => {
     if (!alive()) return;
     if (["filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit"].some((k) => changes[k])) loadPrefs().then(redecorateAll);
     if (changes.feePct) showFee();
@@ -4806,7 +4819,7 @@
     }
   };
 
-  chrome.runtime.onMessage.addListener((msg) => {
+  onChrome(chrome.runtime.onMessage, (msg) => {
     if (msg?.type === "tirekick-check-photo" && msg.imageUrl) checkPhotoFromMenu(msg.imageUrl);
   });
 
@@ -5017,5 +5030,10 @@
     window.removeEventListener("tirekick-toggle", toggleOpen);
     window.__tirekickPanel = false;
   };
+  // Paused (the switch in the toolbar popup and settings): this copy takes its panel and card tags off the page
+  // and stops. Turning it back on loads a fresh copy into the tab (background.js pauseChanged).
+  const pauseIf = (paused) => paused === true && !retired && teardown();
+  onChrome(chrome.storage.onChanged, (c) => alive() && c.paused && pauseIf(c.paused.newValue));
+  send("getSettings").then((s) => pauseIf(s?.paused)).catch(() => {});
   sync();
 })();

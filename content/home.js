@@ -38,7 +38,7 @@
   const MODEL_NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-5-5": "Haiku 5.5", "claude-haiku-4-5": "Haiku 4.5" };
   const modelName = (id) => MODEL_NAMES[id] || id;
 
-  function mount(box, { send, go = () => {}, isShown = () => true, onAlerts = () => {} }) {
+  function mount(box, { send, go = () => {}, isShown = () => true, onAlerts = () => {}, signal }) {
     let D = null; // the stored data last drawn
     let lastAlerts = [];
     const root = h("div", { class: "hm" });
@@ -245,7 +245,7 @@
     let stale = true;
     let timer = 0;
     let countTimer = 0;
-    chrome.storage.onChanged.addListener((c) => {
+    const onStore = (c) => {
       if (!chrome.runtime?.id) return;
       if (c.saved || c.savedSearches || c.alertsAck) {
         clearTimeout(countTimer);
@@ -256,6 +256,15 @@
       if (!isShown()) return void (stale = true);
       clearTimeout(timer);
       timer = setTimeout(() => refresh().then(seen).catch(() => {}), 400);
+    };
+    chrome.storage.onChanged.addListener(onStore);
+    // The panel's Home goes with the panel (a paused or replaced copy); the hub's lives as long as its page.
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer);
+      clearTimeout(countTimer);
+      try {
+        chrome.storage.onChanged.removeListener(onStore);
+      } catch {}
     });
     const drawn = refresh;
     refresh = async () => {

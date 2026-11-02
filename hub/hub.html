@@ -81,6 +81,20 @@
   .legal p { margin:0 0 6px; }
   [hidden] { display:none !important; }
 
+  /* the pause switch: Tirekick on store pages, or paused there (orange on, gray off; flat, no gloss) */
+  .pause { display:flex; align-items:center; gap:12px; margin:-8px 0 22px; padding:10px 14px; border:var(--bw) solid var(--rule); border-radius:var(--r); }
+  .pause .pt { flex:1; min-width:0; }
+  .pause b { display:block; font-weight:600; }
+  .pause .hint { display:block; }
+  .switch { flex:none; position:relative; width:44px; min-height:0; height:26px; padding:0; border-radius:999px; border:var(--bw) solid var(--line); background:var(--paper-2); }
+  .switch::after { content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--muted); transition:transform .15s; }
+  .switch[aria-checked="true"] { background:var(--btn); border-color:var(--btn); }
+  .switch[aria-checked="true"]::after { transform:translateX(18px); background:var(--on-btn); }
+  .switch:hover { border-color:var(--ink); }
+  .switch[aria-checked="true"]:hover { background:var(--btn); opacity:.88; }
+  @media (prefers-reduced-motion: reduce) { .switch::after { transition:none; } }
+  html.popup .pause { margin:-4px 0 14px; padding:8px 12px; }
+
   /* The same page as the toolbar icon's popup (hub.html?popup): narrow, tighter, the legal lines folded away */
   html.popup body { width:400px; }
   html.popup main { padding:14px 16px 16px; }
@@ -108,6 +122,11 @@
     <a class="tab-link" href="hub.html" target="_blank" title="This page in its own tab">Open in a tab ↗</a>
     <a href="../options/options.html" id="settings-link">Settings</a>
   </header>
+
+  <div class="pause" id="pause">
+    <div class="pt"><b id="pause-label">On store pages</b><span class="hint" id="pause-hint"></span></div>
+    <button type="button" class="switch" id="pause-switch" role="switch" aria-checked="true" aria-labelledby="pause-label" aria-describedby="pause-hint"></button>
+  </div>
 
   <section class="look" aria-labelledby="look-h">
     <h2 id="look-h">Look something up</h2>

@@ -65,6 +65,9 @@ below). Saved and Home work on any eBay or Marketplace page.
 - On a page Tirekick doesn't work on, the toolbar icon opens **Tirekick's own page as a popup**: a lookup,
   your saved listings and searches, and Home. **Open in a tab ↗** at its top (or right-click the icon,
   **Open Tirekick in a tab**) gives it a whole tab. On eBay and Marketplace the icon opens the panel instead.
+- **Pause on store pages**: the switch at the top of that popup (also in settings) takes Tirekick off eBay,
+  Marketplace and Craigslist at once, with no reload: no panel, tags or scans, and the icon goes gray. Saved,
+  look-ups and Check my saved searches still work. Turn it back on and open tabs get Tirekick again.
 
 Every listing gets a tag: a score out of 100, a verdict (Great deal, Worth a look, Fair price,
 Skip, Likely scam) and one line on the price. Hover it (or Tab to it) for the reasons. When a scan finishes the panel scrolls to the results. Scroll for more and the

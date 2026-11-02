@@ -414,6 +414,7 @@ const kindText = (words = []) =>
     if (g) return `generation ${g}`;
     if (/^v \d+$/.test(w)) return w.replace(" ", "").toUpperCase();
     if (/^m\d(?: \w+)?$/.test(w)) return w.replace(/(^|\s)(\w)/g, (_, s, c) => s + c.toUpperCase()); // a chip: "M2 Pro"
+    if (w === "locked") return "carrier-locked";
     return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : w;
   }).join(", ") || "sales that name no other version";
 

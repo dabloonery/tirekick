@@ -416,7 +416,9 @@
     return out;
   };
   const cheapReasonOf = (title, text, query) => {
-    const t = R.fold(`${title || ""} ${text || ""}`).replace(/\s+/g, " ");
+    let t = R.fold(`${title || ""} ${text || ""}`).replace(/\s+/g, " ");
+    // Compared with locked phones' sales (R.forVariant): its carrier lock isn't why it's cheap.
+    if (R.hasWord(query, "locked")) t = t.replace(/\b(?:(?:carrier|network|sim|verizon|at ?t|at&t|t-mobile|sprint|cricket|metro) locked|locked to (?:verizon|at ?t|at&t|t-mobile|sprint|cricket|metro|a carrier))\b/gi, " ");
     const said = (re) => {
       for (const m of t.matchAll(new RegExp(re.source, "gi"))) {
         if (SAID_AWAY.test(t.slice(Math.max(0, m.index - 24), m.index)) || /^[- ]?free\b/.test(t.slice(m.index + m[0].length))) continue;
@@ -481,7 +483,8 @@
   // Only what comes before "with", "+" or "bundle" names the thing: "Switch with Pro Controller" is a Switch, and
   // "iPhone 13 with 64GB card" isn't a 64GB phone.
   // "Galaxy S21+" is a Plus, not an S21 with something added.
-  const head = (title) => R.normTitle(String(title ?? "").replace(/([a-z0-9])\+(?=\s|$)/gi, "$1 plus").split(/\s(?:with|w\/|includes?|including|plus\s+\d+(?=\s)|bundle)\s|\s*[+&]\s*/i)[0]);
+  // Nor is "8GB+128GB" a phone with something added, or "AT&T" two things.
+  const head = (title) => R.normTitle(String(title ?? "").replace(/(\d\s?[gt]b)\s*\+\s*(?=\d)/gi, "$1 ").replace(/\bat\s?&\s?t\b/gi, "att").replace(/([a-z0-9])\+(?=\s|$)/gi, "$1 plus").split(/\s(?:with|w\/|includes?|including|plus\s+\d+(?=\s)|bundle)\s|\s*[+&]\s*/i)[0]);
   // A tier word that names something else: "Pro Seller", "Pro Controller Bundle", "(Max Battery 100%)", "Plus
   // Carrying Case". "Plus" is a version only after a model number ("8 Plus", "S10 Plus", "Note 20 Plus").
   const NOT_TIER = /^(?:controllers?|sellers?|battery|batteries|cases?|covers?|chargers?|charging|grips?|docks?|adapters?|cables?|stands?|skins?|protectors?|carrying|bags?|pouch|tips|shipping|membership|subscription|games?|bundle)$/;
@@ -545,9 +548,54 @@
     }
     return years.size === 1 ? [...years][0] : "";
   };
-  // A title's generation, most exact first: "2nd gen" or "v2" as written, then an Apple chip, then (in R.versionOf) a
-  // number after the thing's name, then a model year.
-  R.generationOf = (text) => R.genOf(text) || R.chipOf(text) || R.yearOf(text);
+  // A phone's model, read only in a title that names the line (iPhone, Pixel or Galaxy), so an "A54" part or an
+  // "S21" anything else isn't one: "iPhone 13" and "Pixel 7" ("gen 13", "gen 7", as a search ending in the number has
+  // them), "iPhone XR", "iPhone 6s", "Pixel 7a" (the cheaper one, not a Pixel 7), "Galaxy S21", "S10e", "A54",
+  // "Note 20", "Z Fold 5", "Z Flip 4". An "iPhone 13" search mixes in 14s, and a "samsung galaxy" one has S9s beside S24s.
+  // "" for none, or several ("Galaxy S21 S22 case", "iPhone 12 13 14").
+  const PHONE_MODELS = [
+    [/(?:^|\s)iphone\s?(\d{1,2})([sc]?)(?=\s|$)/g, (m) => (m[2] ? `${+m[1]}${m[2]}` : `gen ${+m[1]}`)],
+    [/(?:^|\s)iphone\s?(x|xr|xs)(?=\s|$)/g, (m) => m[1]],
+    [/(?:^|\s)pixel\s?(\d{1,2})(a?)(?=\s|$)/g, (m) => (m[2] ? `${+m[1]}a` : `gen ${+m[1]}`)],
+  ];
+  const GALAXY = /(?:^|\s)galaxy(?:\s|$)/; // not "samsung" alone: a "Samsung 980 Pro M2" is an SSD
+  const GALAXY_MODEL = /(?:^|\s)(?:([sa])(\d{1,2})(e?)|note\s?(\d{1,2})|z?\s?(fold|flip)\s?(\d))(?=\s|$)/g;
+  R.phoneModelOf = (text) => {
+    const t = R.normTitle(text);
+    const seen = new Set();
+    for (const [re, label] of PHONE_MODELS) {
+      for (const m of t.matchAll(re)) {
+        seen.add(label(m));
+        // "iPhone 12 13 14", "iPhone 12/12 Pro": a list of models (a case that fits them all), not one phone.
+        const next = t.slice(m.index + m[0].length).trim().split(" ")[0];
+        if (/^(?:\d{1,2}|x|xr|xs)$/.test(next) && !(+next > 20) && next !== m[1]) seen.add(`and ${next}`);
+      }
+    }
+    if (GALAXY.test(t)) {
+      for (const m of t.matchAll(GALAXY_MODEL)) seen.add(m[1] ? `${m[1]}${+m[2]}${m[3]}` : m[4] ? `note ${+m[4]}` : `${m[5]} ${m[6]}`);
+    }
+    return seen.size === 1 ? [...seen][0] : "";
+  };
+  // Carrier locked or not: a locked phone sells for less than an unlocked one, so locked sales are kept apart
+  // ("locked"), and a phone that says "Unlocked" or nothing is compared with the rest. A carrier's name without
+  // "unlocked" ("iPhone 13 128GB Verizon", "Cricket") counts as locked; "Verizon Unlocked" doesn't. Only in a title that
+  // names a phone, so an "unlocked" i7 isn't read as one. An iCloud, activation or FRP lock is a different thing (a
+  // phone for parts), not a carrier's. "" when it says nothing, or both ("locked or unlocked").
+  const PHONE = /(?:^|\s)(?:iphone|galaxy|pixel|samsung|motorola|moto|oneplus|phone|smartphone|cellphone)(?:\s|$)/;
+  const NOT_CARRIER_LOCK = /(?:^|\s)(?:icloud|activation|frp|google|account|bootloader|fmi|screen|sim tray)\s?(?:lock|locked)(?=\s|$)/g;
+  const UNLOCKED = /(?:^|\s)(?:unlocked|sim free|simfree)(?=\s|$)/;
+  const LOCKED = /(?:^|\s)locked(?=\s|$)/;
+  const CARRIER = /(?:^|\s)(?:att|at t|t mobile|tmobile|verizon|sprint|cricket|boost mobile|metro ?pcs|metro by t mobile|tracfone|straight talk|total wireless|xfinity|us cellular|spectrum mobile|consumer cellular|mint mobile)(?=\s|$)/;
+  R.lockOf = (text) => {
+    const t = R.normTitle(String(text ?? "").replace(/\bat\s?&\s?t\b/gi, "att")).replace(NOT_CARRIER_LOCK, " ");
+    if (!PHONE.test(t)) return "";
+    const unlocked = UNLOCKED.test(t);
+    if (LOCKED.test(t)) return unlocked ? "" : "locked";
+    return !unlocked && CARRIER.test(t) ? "locked" : "";
+  };
+  // A title's generation, most exact first: "2nd gen" or "v2" as written, then an Apple chip, then a phone's model,
+  // then (in R.versionOf) a number after the thing's name, then a model year.
+  R.generationOf = (text) => R.genOf(text) || R.chipOf(text) || R.phoneModelOf(text) || R.yearOf(text);
   // A bare number right after the thing's name is its generation too: "Nintendo Switch 2" in a "nintendo switch"
   // search, "Meta Quest 3", "AirPods Pro 2", "iPad mini 6", "Apple Watch Series 7". The name is the search's last word
   // (kept in `same` as "@switch"), a tier word or "series". Up to 20, and not "Switch 2 Games", "Quest 2 128 GB" or a
@@ -576,8 +624,9 @@
     if (/^\d{1,2}$/.test(last)) return w.length > 1 ? [`gen ${+last}`, `@${w[w.length - 2]}`] : [];
     return [`@${last}`];
   };
-  // A title's version as [tier, generation, storage], each "" when it names none. `same`: labels that are the thing
-  // itself, not a version (the search names them, or most sales have them); "size" there turns storage off.
+  // A title's version as [tier, generation, storage], each "" when it names none, and a fourth, "locked", for a
+  // carrier-locked phone (R.lockOf). `same`: labels that are the thing itself, not a version (the search names them,
+  // or most sales have them); "size" there turns storage off.
   const versionSeen = new Map(); // (title, same) -> the answer: every card asks again each time the list redraws
   R.versionOf = (title, same = []) => {
     const key = `${title ?? ""}\u0001${same.join("|")}`;
@@ -586,29 +635,37 @@
     const h = head(title);
     // "M1 Pro" is the chip's, not a Pro tier: the chip carries it as its generation.
     const tier = R.variantOf(h.replace(/(^|\s)(m[1-9]) (?:pro|max|ultra)(?=\s|$)/g, "$1$2"), same.join(" "));
-    const gen = R.genOf(h) || R.chipOf(h) || modelNumberOf(h, same) || R.yearOf(h);
+    // A phone's model only in a split saved since names were (as modelNumberOf): one saved before reads as it did.
+    const gen = R.genOf(h) || R.chipOf(h) || (same.some((x) => x.startsWith("@")) && R.phoneModelOf(h)) || modelNumberOf(h, same) || R.yearOf(h);
     const size = same.includes("size") ? "" : R.sizeOf(h);
     const out = [tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
+    const lock = R.lockOf(title); // the whole title: "iPhone 13 with case - Unlocked"
+    if (lock && !same.includes(lock)) out.push(lock);
     versionSeen.set(key, out);
     return out;
   };
   // The groups a sale counts in: its tier always, its generation and size or any ("*"). "lite/*/*" is every Lite,
   // "/gen 2/*" every plain second generation, "/*/256gb" every plain 256GB one.
-  const patternsOf = ([t, g, s]) => [`${t}/${g || "*"}/${s || "*"}`, `${t}/${g || "*"}/*`, `${t}/*/${s || "*"}`, `${t}/*/*`];
-  // The patterns a listing tries, most like it first: its whole version, then any size, then any generation.
-  const lookupsOf = ([t, g, s]) => [...new Set([`${t}/${g || "*"}/${s || "*"}`, `${t}/${g || "*"}/*`, `${t}/*/*`])];
+  // A carrier-locked phone's sales count only in groups of locked ones: "pro/gen 13/*/locked".
+  const patternsOf = ([t, g, s, l]) => [`${t}/${g || "*"}/${s || "*"}`, `${t}/${g || "*"}/*`, `${t}/*/${s || "*"}`, `${t}/*/*`].map((p) => (l ? `${p}/${l}` : p));
+  // The patterns a listing tries, most like it first: its whole version, then any size, then any generation. A locked
+  // phone tries locked sales first, then the rest (and the hover says there were too few locked ones).
+  const lookupsOf = ([t, g, s, l]) => {
+    const ps = [`${t}/${g || "*"}/${s || "*"}`, `${t}/${g || "*"}/*`, `${t}/*/*`];
+    return [...new Set([...(l ? ps.map((p) => `${p}/${l}`) : []), ...ps])];
+  };
   // Sales split by version, for TK.summarizeSold: { same, groups: { "lite/*/*": [sales], "/gen 2/*": […], … } }. A
   // label the search names, or a tier word over 60% of the sales have ("20V Max" on nearly every DeWalt drill), is the
   // thing itself (same); a search that names a size turns storage off. A size or generation most sales have still
   // sets them apart from the rest, so those stay.
   R.VARIANT_COMMON = 0.6;
   R.variantGroups = (sales, query = "") => {
-    const same = [...R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m)), ...[R.generationOf(query)].filter(Boolean), ...(R.sizeOf(query) ? ["size"] : [])];
+    const same = [...R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m)), ...[R.generationOf(query)].filter(Boolean), ...(R.sizeOf(query) ? ["size"] : []), ...[R.lockOf(`phone ${query}`)].filter(Boolean)];
     for (const x of searchName(query)) if (!same.includes(x)) same.push(x);
     const counts = new Map();
     for (const s of sales) {
-      const t = R.versionOf(s.title, same)[0];
-      if (t) counts.set(t, (counts.get(t) || 0) + 1);
+      const [t, , , l] = R.versionOf(s.title, same);
+      for (const x of [t, l]) if (x) counts.set(x, (counts.get(x) || 0) + 1); // nearly all locked ("iphone 13 verizon"): the thing itself
     }
     for (const [t, n] of counts) if (n > sales.length * R.VARIANT_COMMON) same.push(t);
     const groups = {};
@@ -628,8 +685,8 @@
     const names = (market.variants?._same || []).filter((x) => x.startsWith("@"));
     for (const { q, market: m } of market.narrower || []) {
       if (!(m?.median > 0) || m.confidence === "rough" || !(m.n >= 5) || R.missingWord(f.title, q) || R.offSearch(f.title, q)) continue;
-      const [t, g] = R.versionOf(q, names);
-      if (missing.every((w) => w === t || w === g)) return { q, m };
+      const [t, g, , l] = R.versionOf(q, names);
+      if (missing.every((w) => w === t || w === g || w === l)) return { q, m };
     }
     return null;
   };
@@ -640,9 +697,9 @@
     const p = lookupsOf(v).find((k) => vs[k]?.median > 0 && vs[k].confidence !== "rough");
     // Its tier or generation without enough sales of its own (variantMissing, for the hover): "lite" compared with
     // the whole market, a Switch 2 with sales of any generation. Unless a narrower lookup of it is remembered.
-    const want = [v[0], v[1]].filter(Boolean);
-    const [t, g, s] = (p || "").split("/");
-    const words = [t, g, s].filter((x) => x && x !== "*");
+    const want = [v[0], v[1], v[3]].filter(Boolean);
+    const [t, g, s, l] = (p || "").split("/");
+    const words = [t, g, s, l].filter((x) => x && x !== "*");
     const missing = want.filter((w) => !words.includes(w));
     const alt = missing.length && narrowerFor(market, f, missing);
     if (alt) {
@@ -664,6 +721,10 @@
     if (/^v \d+$/.test(w)) return `\u201c${w.replace(" ", "").toUpperCase()}\u201d`; // a revision: "V2"
     if (/^m\d(?: (?:pro|max|ultra))?$/.test(w)) return w.replace(/^m/, "M").replace(/ (\w)/, (_, c) => ` ${c.toUpperCase()}`); // a chip: "M2 Pro"
     if (/^\d{4}$/.test(w)) return w; // a model year
+    if (w === "locked") return "carrier-locked";
+    if (/^(?:[sa]\d{1,2}e?|x|xr|xs)$/.test(w)) return w.toUpperCase(); // a phone: "S21", "A54", "iPhone XR"
+    if (/^(?:note|fold|flip) \d+$/.test(w)) return w.charAt(0).toUpperCase() + w.slice(1); // "Note 20", "Fold 5"
+    if (/^\d{1,2}[asc]$/.test(w)) return w; // "Pixel 7a", "iPhone 6s"
     return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
   };
   R.variantLike = (market) => (market?.variantWords || []).join(" ");

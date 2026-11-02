@@ -382,8 +382,21 @@ M3s at $800. A chip comes before a year (an M1 and an Intel Air were both 2020),
 Watch Series 7 2021"), and a Mac's or an iPad Pro's number is its screen, not a model ("MacBook Air 13 2017").
 Eval: 6 new listings on a "macbook air" search; against the one median 4 of the 5 honest ones were wrong (a 2017 Air
 "Great price", an M2 and an M3 "Above typical") and the M3 bait would have cleared after a scan. Also fixed: a scan's
-note on a listing's version sent "gen 2" to the AI as "gen, 2". Not axes yet: colors and carrier locks (a "carrier
-locked" phone already counts as a reason it's cheap).
+note on a listing's version sent "gen 2" to the AI as "gen, 2". Not an axis yet: colors.
+
+Phones (2026-11-02): a phone's model is its generation in any search, read only in a title naming the line
+(`TKRules.phoneModelOf`): "iPhone 13", "iPhone XR", "iPhone 6s", "Pixel 7" and "Pixel 7a" (the cheaper one, kept apart
+from the 7), "Galaxy S21", "S10e", "A54", "Note 20", "Z Fold 5". So a "samsung galaxy" search no longer prices an S24
+against S9s, and an "iphone pro max" search keeps 12s and 15s apart. A title naming several ("case for iPhone 12 13 14")
+counts as none, and a typical price saved before reads as it did. Carrier locks are a fourth axis (`TKRules.lockOf`,
+keys ending "/locked"): "carrier locked", "locked to Verizon", or a carrier's name without "unlocked" ("128GB Cricket")
+puts a phone with locked sales only; "Unlocked" or nothing puts it with the rest; an iCloud or FRP lock isn't a
+carrier's. A locked listing tries locked sales first, then its kind's (the hover says there were too few locked ones),
+and once it's compared with locked sales its lock is no longer the reason it's cheap. A search naming a carrier, or
+sales over 60% locked, makes the lock the thing itself. Storage: "8GB+128GB" and "AT&T" no longer cut a title short.
+Eval: 5 new listings on "iphone 13" and "samsung galaxy" searches; against the one median 4 of them came out wrong (an
+S24 "Above typical", a locked iPhone "Good price"), and the S24 Ultra bait at 38% of its kind would have cleared after
+a scan.
 
 ## After real use (2026-10-16)
 

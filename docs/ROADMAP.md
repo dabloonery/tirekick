@@ -414,6 +414,22 @@ in a "12gb" one), and "GDDR6", "LGA1700", "12700KF" or "5800X3D" at the end of a
 scammer's code. Eval: 8 new listings on "rtx 3060" and "ryzen 5 5600" searches; 5 of the 7 honest ones were wrong
 before (a Ti and a 5600X3D "Above typical", an 8GB card and a 5600G "Good price"), all right now.
 
+Cameras and lenses (2026-11-02, dabloonery: "make the version filtering even more robust", one category at a time). A
+search for a camera (a camera maker and a model like "a7", "5d", "z6", or "camera") or a lens (a focal length or
+"lens") is marked in `_same` ("#camera", "#lens"; `TKRules.cameraSearch`), and its sales are read the camera way. A
+camera: "Mark III", "Mk2", "III" after the model and fused forms ("A7III", "A7M3", "5DMKIV", "X100V") are the
+generation; a letter after the search's model is a model of its own ("a7R", "a7C" in a "sony a7" search, "X100F");
+a lens with the body ("with 28-70mm", "lens kit") is a "kit", and "body only" is the plain one (titles leave it out as
+often as they say it). Not "Interchangeable-Lens Camera" (how Sony names a body), a lens cap or a cleaning kit. A
+lens: its focal length and widest aperture are its tier ("f1.8" in a "canon 50mm" search), "II", "Mark II" or
+Tamron's "G2" its generation (not Tamron's "Di III"), and a Canon or Nikon mount right before the focal length ("RF
+50mm", "Nikkor Z") takes storage's place, so a lens that doesn't say its mount is compared with any. Sony's and
+Fujifilm's mounts go unsaid too often to tell apart; a "sony ps5", "canon pixma" or headphone search is read as
+before. Eval: 10 new listings on "sony a7" and "canon 50mm" searches; against the one median 7 of the 8 honest ones
+were wrong (an a7 II "Great price", an a7 IV, an a7R and an f/1.2L "Above typical") and both baits were only Check
+first. Left: camera models in a search that names only the line ("canon eos", "fujifilm x-t": "R6" beside "R50"),
+Sony and Fujifilm mounts, and "L", "IS" or "VR" lens lines with the same aperture.
+
 ## After real use (2026-10-16)
 
 dabloonery's notes from using the beta on eBay and Marketplace.

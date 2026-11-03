@@ -2767,7 +2767,7 @@
     if (!m?.variantUsed) return few ? `, every version together (${few})` : "";
     if (m.variantQuery) return ", from an earlier lookup"; // within the last day (the sold cache); from() names its words
     const words = (m.variantWords || []).map(TKRules.kindWord);
-    const others = m.variantOthers?.length ? `${m.variantOthers.map((v) => `\u201c${v}\u201d`).join(" and ")} left out` : "";
+    const others = m.variantOthers?.length ? `${m.variantOthers.map(TKRules.kindWord).join(" and ")} left out` : "";
     return words.length ? ` like this one (${[words.join(", "), others, few].filter(Boolean).join("; ")})` : ` that name no other version${others || few ? ` (${[others, few].filter(Boolean).join("; ")})` : ""}`;
   };
   // An accessory or part for the search ("Case for Nintendo Switch") isn't compared with the thing's typical price.

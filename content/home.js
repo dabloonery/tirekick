@@ -94,6 +94,23 @@
         ...bad.map(([, r]) => h("p", { class: "hm-empty" }, `${r.note} Seen ${ago(r.bad)}. Updating Tirekick usually fixes this; if it doesn't, use Check this page in the panel on that page and send what it copies.`)));
     }
 
+    // eBay or Facebook that the browser won't let Tirekick read (Firefox's add-on settings can take them away, and
+    // Chrome's site access can hold them back), so nothing shows there. On Tirekick's own page the button asks the
+    // browser again, right in the click; in a store page's panel, which can't ask, it opens that page.
+    function blocked(d) {
+      if (!d.blocked.length) return null;
+      const names = d.blocked.map((s) => s.name).join(" and ");
+      const canAsk = !!chrome.permissions?.request;
+      const ask = () => {
+        chrome.permissions.request({ origins: d.blocked.flatMap((s) => s.origins) }).catch(() => false).then(() => refresh());
+      };
+      return h("section", { class: "hm-sec" }, h("h3", {}, `Tirekick can't read ${names}`),
+        h("p", { class: "hm-empty" }, `The browser isn't letting Tirekick read ${names} pages, so it shows nothing there. That's set in the browser's settings for Tirekick (site access, or the add-on's permissions in Firefox).`),
+        h("div", { class: "acts" }, canAsk
+          ? h("button", { class: "hm-btn", onclick: ask }, "Allow again")
+          : h("button", { class: "hm-btn", onclick: () => send("openHome").catch(() => {}) }, "Open Tirekick to allow it")));
+    }
+
     // Once, after the update that split "Mark cards before you scan": it was off here, which also took the scam
     // marks off the cards while likely scams stayed grayed out, so the scam marks came back on.
     function marksBack(d) {
@@ -212,6 +229,7 @@
       });
       // The API key stays in the background script; the page only learns whether there is one.
       d.hasKey = await send("getSettings").then((s) => !!s.hasKey).catch(() => false);
+      d.blocked = await send("blockedSites").then((x) => (Array.isArray(x) ? x : [])).catch(() => []);
       D = d;
       const list = alertsOf(d.saved, d.savedSearches, d.alertsAck);
       lastAlerts = list;
@@ -219,7 +237,7 @@
       // What's new comes first: it's why you'd come back. Getting started follows while you're new to it;
       // the numbers lead to the lists behind them; paid AI spending, if any, folds away at the end.
       const first = list.length ? [alertsSection(list), start(d)] : [start(d), alertsSection(list)];
-      root.replaceChildren(...[health(d), marksBack(d), ...first, numbers(d), spend(d), footer()].filter(Boolean));
+      root.replaceChildren(...[blocked(d), health(d), marksBack(d), ...first, numbers(d), spend(d), footer()].filter(Boolean));
       return list;
     }
 
@@ -258,12 +276,18 @@
       timer = setTimeout(() => refresh().then(seen).catch(() => {}), 400);
     };
     chrome.storage.onChanged.addListener(onStore);
+    // Access given or taken away (only seen on Tirekick's own page: a store page's script has no permissions API).
+    const onAccess = () => isShown() ? refresh().catch(() => {}) : void (stale = true);
+    chrome.permissions?.onAdded.addListener(onAccess);
+    chrome.permissions?.onRemoved.addListener(onAccess);
     // The panel's Home goes with the panel (a paused or replaced copy); the hub's lives as long as its page.
     signal?.addEventListener("abort", () => {
       clearTimeout(timer);
       clearTimeout(countTimer);
       try {
         chrome.storage.onChanged.removeListener(onStore);
+        chrome.permissions?.onAdded.removeListener(onAccess);
+        chrome.permissions?.onRemoved.removeListener(onAccess);
       } catch {}
     });
     const drawn = refresh;

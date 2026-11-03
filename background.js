@@ -1171,7 +1171,7 @@ const needsAI = (fn) => async (payload, sender) => {
   if ((await getSettings()).useAI === false) throw new Error(AI_OFF);
   return fn(payload, sender);
 };
-const HANDLERS = { storeEdit, soldSlot, rankBatch: needsAI(rankBatch), analyzeListing: needsAI(analyzeListing), suggestSearches: needsAI(suggestSearches), checkPhoto: needsAI(checkPhoto), photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, checkSavedSearches, searchSettled, abort, panelTab, getSettings: getPageSettings };
+const HANDLERS = { storeEdit, soldSlot, rankBatch: needsAI(rankBatch), analyzeListing: needsAI(analyzeListing), suggestSearches: needsAI(suggestSearches), checkPhoto: needsAI(checkPhoto), photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, blockedSites, checkSavedSearches, searchSettled, abort, panelTab, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];
@@ -1262,21 +1262,32 @@ function syncAutoScripts() {
   return syncing;
 }
 
-// The sites the page scripts go on: eBay and Marketplace, and an opt-in store once it's turned on in settings and
-// the browser has given Tirekick its pages (turning it off, or taking the access away, takes it off again).
+// The sites the page scripts go on: eBay and Marketplace, and an opt-in store once it's turned on in settings, each
+// while the browser lets Tirekick read its pages. Firefox lets you take eBay or Facebook away in the add-on's
+// settings, and Chrome's "site access" can hold them back; Home says so (blockedSites) with a button that asks again.
 async function sitesInUse() {
   const settings = await getSettings();
   const out = [];
-  for (const s of TKSites.inUse(settings)) if (!s.setting || (await chrome.permissions.contains({ origins: s.matches }).catch(() => false))) out.push(s);
+  for (const s of TKSites.inUse(settings)) if (await chrome.permissions.contains({ origins: s.matches }).catch(() => false)) out.push(s);
+  return out;
+}
+// eBay or Facebook, turned on as always, that the browser won't let Tirekick read (an opt-in store whose access was
+// taken away is simply off, as when it was turned on and refused).
+async function blockedSites() {
+  const out = [];
+  for (const s of TKSites.inUse(await getSettings())) {
+    if (!s.setting && !(await chrome.permissions.contains({ origins: s.matches }).catch(() => false))) out.push({ key: s.key, name: s.name, origins: TKSites.originsOf(s) });
+  }
   return out;
 }
 
 async function doSyncAutoScripts() {
   const { showTab: tab, paused } = await getSettings();
-  const showTab = tab && !paused; // paused: nothing loads on store pages
+  const matches = TKSites.matches(await sitesInUse()); // lib/sites.js (each also needs its host permission in manifest.json)
+  const showTab = tab && !paused && matches.length > 0; // paused, or no store it may read: nothing loads on store pages
   const def = {
     id: AUTO_ID,
-    matches: TKSites.matches(await sitesInUse()), // lib/sites.js (each also needs its host permission in manifest.json)
+    matches,
     js: CONTENT_FILES,
     runAt: "document_end", // the tab shows as soon as the page is parsed, not after every image loads
     persistAcrossSessions: true,
@@ -1296,7 +1307,10 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.useAI || changes.paused) getSettings().then(({ useAI, paused }) => chrome.contextMenus.update(MENU_ID, { visible: useAI === true && paused !== true }, () => void chrome.runtime.lastError));
 });
 chrome.permissions.onRemoved.addListener(() => syncAutoScripts().catch(() => {}));
-chrome.permissions.onAdded.addListener(() => syncAutoScripts().catch(() => {}));
+// Access given back (Home's "Allow again", or the browser's own settings): the store tabs already open get the panel.
+chrome.permissions.onAdded.addListener(({ origins = [] } = {}) => {
+  syncAutoScripts().then(() => origins.length && refreshOpenTabs({ wait: 0 })).catch(() => {});
+});
 chrome.runtime.onStartup.addListener(() => {
   upgradeStorage().catch(() => {}); // a restored profile, or an update applied while the browser was closed
   syncAutoScripts().catch(() => {});
@@ -1308,7 +1322,9 @@ chrome.runtime.onStartup.addListener(() => {
 async function refreshOpenTabs({ wait = 1500 } = {}) {
   const { showTab, paused } = await getSettings();
   if (!showTab || paused) return;
-  const tabs = await chrome.tabs.query({ url: TKSites.matches(await sitesInUse()) });
+  const url = TKSites.matches(await sitesInUse());
+  if (!url.length) return;
+  const tabs = await chrome.tabs.query({ url });
   await sleep(wait);
   for (const t of tabs) if (t.id >= 0 && !t.discarded) await ensureInjected(t.id).catch(() => {});
 }

@@ -19,9 +19,9 @@ background.
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens. Edge, Brave and
-   Opera load it the same way. Firefox (140 or later, still being tried out): open `about:debugging`, choose
-   **This Firefox**, then **Load Temporary Add-on**, and pick this folder's `manifest.json` (Firefox drops it
-   again when it closes).
+   Opera load it the same way. Firefox (140 or later, still being tried out) needs its own build: run
+   `deno task pack`, open `about:debugging`, choose **This Firefox**, then **Load Temporary Add-on**, and pick
+   `dist/tirekick-<version>-firefox.zip` (Firefox drops it again when it closes).
 2. The checks and marks work right away. AI scores are optional and off until you turn them on: to
    add them, turn on **Use an AI** under **AI scores**, choose the AI service you have a key for (or Ollama
    or LM Studio on your own computer), and paste its key. Settings save as you go, the key is checked

@@ -456,3 +456,12 @@ test("a backup keeps saved Craigslist posts under either kind of key, and nothin
   assert.deepEqual(Object.keys(sets.saved).sort(), ["cl:7791000001", "cl:wVo8Fw1YFEXCw2vSs6CZ92"]);
   assert.equal(sets.saved["cl:wVo8Fw1YFEXCw2vSs6CZ92"].u, "https://www.craigslist.org/view/d/x/wVo8Fw1YFEXCw2vSs6CZ92");
 });
+
+test("spendCounted: what a monthly budget can stop on", () => {
+  assert.equal(S.spendCounted({ provider: "ollama" }), "free");
+  assert.equal(S.spendCounted({ provider: "openai", oaiUrl: "http://localhost:1234/v1" }), "free", "LM Studio");
+  assert.equal(S.spendCounted({ provider: "anthropic" }), true);
+  assert.equal(S.spendCounted({ provider: "openai", oaiUrl: "https://openrouter.ai/api/v1" }), true, "OpenRouter reports its costs");
+  assert.equal(S.spendCounted({ provider: "openai", oaiUrl: "https://api.openai.com/v1" }), false, "no prices entered: nothing is counted");
+  assert.equal(S.spendCounted({ provider: "openai", oaiUrl: "https://api.openai.com/v1", oaiPriceIn: 0.15, oaiPriceOut: 0.6 }), true);
+});

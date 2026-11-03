@@ -52,7 +52,12 @@ const ask = `new Promise(ok=>chrome.runtime.sendMessage({type:'checkSavedSearche
 await o.ev(`chrome.storage.local.set({monthlyBudget:0})`);
 const noBudget = await o.ev(ask);
 ok("with automatic scanning and a paid AI, it needs a monthly budget", noBudget?.ok === false && /budget/.test(noBudget.error), noBudget);
-await o.ev(`chrome.storage.local.set({monthlyBudget:5})`);
+// A service whose spending isn't counted (no prices entered): a budget can't stop its scans, so it says so.
+const was = await o.ev(`chrome.storage.local.get(['provider','oaiUrl'])`);
+await o.ev(`chrome.storage.local.set({monthlyBudget:5, provider:'openai', oaiUrl:'https://api.openai.com/v1', oaiPriceIn:0, oaiPriceOut:0})`);
+const uncounted = await o.ev(ask);
+ok("…and with a service whose spending isn't counted, it asks for its prices", uncounted?.ok === false && /isn't counted/.test(uncounted.error), uncounted);
+await o.ev(`chrome.storage.local.remove(['provider','oaiUrl']).then(()=>chrome.storage.local.set(${JSON.stringify(was)}))`);
 const both = await o.ev(`Promise.all([${ask}, ${ask}])`);
 ok("one run at a time", both.filter((r: any) => r?.ok).length === 1 && both.some((r: any) => /Already checking/.test(r?.error || "")), both);
 

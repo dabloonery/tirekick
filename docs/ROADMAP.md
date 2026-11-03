@@ -1130,7 +1130,8 @@ Firefox keeps the same `gecko.id` across updates, so saved data stays put. Each 
 
 #### Firefox: built 2026-11-02
 
-Items 1 to 3 and 5 are on `main` (one PR); item 4 (a note when Firefox takes a store's access away) is next. The
+Items 1 to 3 and 5 are in one PR; item 4 in the next (a note on Home when the browser won't let Tirekick read eBay
+or Facebook, with "Allow again"; it covers Chrome's site access setting too; test `tests/e2e/access.ts`). The
 cloud machine where this was built has no Firefox, so none of it has run in Firefox yet: dabloonery checks it by
 hand. What changed:
 
@@ -1158,6 +1159,8 @@ The by-hand checks in Firefox (dabloonery, before the first addons.mozilla.org u
 - [ ] Sold prices from a Marketplace tab with no eBay tab open (the background fetch with eBay cookies; item 6).
 - [ ] The pause switch, Home in a tab ("Open Tirekick in a tab"), a backup and a restore.
 - [ ] Craigslist on, from settings (Firefox's prompt), and a Craigslist search.
+- [ ] In the add-on's Permissions (about:addons), turn off eBay: Home says "Tirekick can't read eBay", eBay pages
+      show nothing, and Allow again brings it back (the eBay tabs already open get the panel without a reload).
 - [ ] A private window: nothing runs there unless the add-on is allowed in private windows.
 
 **Effort.** Edge: half a day, no code. Firefox: items 1 to 5 are about four small PRs (a day or two together),

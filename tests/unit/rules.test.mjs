@@ -694,6 +694,18 @@ test("accessoryOf: parts beyond electronics (a blender's jar, a set's minifigure
   ]) assert.equal(R.accessoryOf(t, q), "", t);
 });
 
+test("big things picked up locally have a lower too-cheap line; bait at a fifth of the price is still marked", () => {
+  assert.equal(R.bulky("Herman Miller Aeron Chair Size B"), true);
+  assert.equal(R.bulky("", "Trek FX 3 bike"), true);
+  assert.equal(R.bulky("Nintendo Switch OLED"), false);
+  assert.equal(R.bulky("table lamp"), false, "a lamp isn't a table");
+  const local = { median: 390, confidence: "good", local: true };
+  assert.equal(R.tooCheap({ title: "Herman Miller Aeron Chair", total: 120 }, local), null, "31%: a quick local sale");
+  assert.ok(R.tooCheap({ title: "Herman Miller Aeron Chair", total: 60 }, local), "15%: still too cheap");
+  assert.ok(R.tooCheap({ title: "Nintendo Switch OLED", total: 90 }, { ...local, median: 238 }), "not for small things");
+  assert.ok(R.tooCheap({ title: "Herman Miller Aeron Chair", total: 120, shipping: 0 }, { median: 390, confidence: "good" }), "not on eBay");
+});
+
 test("cheapReason: a flaw, something missing or a cheaper version, in the listing's words", () => {
   const why = (t, q = "") => R.cheapReason(t, "", q);
   assert.equal(why("Nintendo Switch OLED - dead pixel on screen, otherwise works"), "dead pixel");

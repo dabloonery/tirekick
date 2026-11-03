@@ -340,6 +340,18 @@
   // is only "low" (Check first), never "far" (Likely scam) on price alone. Bait copies the search's words.
   R.TOO_CHEAP = { far: 0.4, low: 0.55 };
   R.LOCAL_NET = 0.864; // what an eBay seller keeps after fees (13.6%): a pickup seller asking that much nets the same
+  // Big things picked up locally (furniture, bikes, big appliances, fitness machines): eBay's sales of them reach the
+  // whole country and often include freight, so honest local prices run well under them (an Aeron chair at $120 on
+  // Marketplace against $450 sold on eBay). On a local site the too-cheap lines are this much lower for them
+  // (dabloonery, 2026-11-03): bait at a fifth of the price is still marked, a quick local sale isn't.
+  R.BULKY_LOCAL = 0.6;
+  const BULKY = new RegExp(String.raw`\b(?:sofas?|couch(?:es)?|sectionals?|loveseats?|recliners?|futons?|ottomans?|armchairs?|chairs?|desks?|` +
+    String.raw`(?:dining|coffee|kitchen|end|side|patio|picnic|pool|ping pong) tables?|dressers?|nightstands?|bed ?frames?|bunk beds?|mattress(?:es)?|headboards?|` +
+    String.raw`bookcases?|bookshelf|bookshelves|shelving|cabinets?|armoires?|wardrobes?|hutch|credenzas?|tv stands?|benches|cribs?|` +
+    String.raw`bikes?|bicycles?|e-?bikes?|treadmills?|ellipticals?|rowing machines?|home gym|squat rack|weight bench|` +
+    String.raw`washers?|dryers?|fridges?|refrigerators?|freezers?|stoves?|dishwashers?|grills?|smokers?|(?:lawn |riding )?mowers?|snow ?blowers?|` +
+    String.raw`kayaks?|canoes?|pianos?|hot tubs?|aeron|herman miller|steelcase|kallax|hemnes|ektorp)\b`, "i");
+  R.bulky = (...texts) => BULKY.test(texts.filter(Boolean).join(" "));
   R.tooCheap = (f, market) => {
     const c = cheapLevel(f, market);
     return c && c.level !== "reason" ? c : null;
@@ -364,8 +376,9 @@
     const pct = f.total / market.median;
     const risky = !f.offWords && (f.sellerRisk ?? R.riskySeller(f)); // sellerRisk: worked out by the caller (the eval, at a fixed date)
     // A pickup seller keeps the whole price; an eBay seller pays about 13.6% in fees, so the same net asks less locally.
-    // Not beside a strong seller sign: a new account at half price is the scam's look on any site.
-    const cut = market.local && !risky ? R.LOCAL_NET : 1;
+    // Not beside a strong seller sign: a new account at half price is the scam's look on any site. Lower again for
+    // big things picked up locally (R.BULKY_LOCAL).
+    const cut = market.local && !risky ? R.LOCAL_NET * (R.bulky(market.query, f.title) ? R.BULKY_LOCAL : 1) : 1;
     if (pct >= R.TOO_CHEAP.low * cut) return null;
     const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, `${market.query || ""} ${R.variantLike(market)}`.trim());
     const out = (level, extra) => ({ level, pct: Math.round(pct * 100), ...(why && level !== "far" && { why }), ...extra });

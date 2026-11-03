@@ -173,3 +173,9 @@ Checked against current published prices (per million tokens, input/output): Opu
 | The accessory words were all electronics (case, charger, controller, shell) | A part of a kitchen appliance, a LEGO set or a bike read as the thing at a bait price: "Vitamix 5200 64oz container" at $40 and "LEGO 75192 Millennium Falcon minifigures only" at $90 were red "Likely scam", "Trek FX 3 rear wheel" Check first | `accessoryOf` knows bowl, container, pitcher, jar, lid, blade, filter, attachment, cushion, pad, wheel, tire, pedal, saddle and minifigure; "all attachments" reads as what comes with it. In the eval (6 new listings), honest ones marked Likely scam went from 2 to 0 and Check first from 3 to 2 |
 
 Still missed: a part named in the middle of the title ("KitchenAid mixer bowl 5 qt stainless", "Aeron chair arm pads (pair)") is still read as the thing; a scan sets those aside.
+
+## Big things picked up locally (2026-11-03)
+
+| Problem | Effect on real listings | Now |
+|---|---|---|
+| eBay's sales of furniture, bikes, big appliances and fitness machines reach the whole country and often include freight, so honest local prices run well under them | "Herman Miller Aeron Chair" at $120 and "Peloton Bike" at $250 on Marketplace were Check first, too cheap to be real | On a local site, their too-cheap lines are 0.6 times lower (`R.BULKY_LOCAL`, chosen by dabloonery on 2026-11-03), found from the title's words (`R.bulky`). Bait at a fifth of the price is still marked. In the eval (5 new listings), honest ones marked Check first went from 4 to 2 and no scam lost its mark |

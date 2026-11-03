@@ -34,6 +34,9 @@ export const MARKETS = {
   "vitamix 5200": { median: 220, ship: 20, confidence: "good", n: 40 },
   "lego 75192": { median: 650, ship: 30, confidence: "good", n: 25 },
   "trek fx 3": { median: 520, ship: 80, confidence: "fair", n: 12 },
+  // Big things picked up locally (2026-11-03): eBay's sales include freight and reach the whole country.
+  "herman miller aeron": { median: 450, ship: 60, confidence: "fair", n: 20 },
+  "peloton bike": { median: 700, ship: 90, confidence: "good", n: 30 },
   // Lites, V1s and OLEDs together, and each version on its own as TK.summarizeSold splits them (TKRules.forVariant).
   "nintendo switch": { median: 200, p10: 95, ship: 14, confidence: "fair", n: 52, variants: {
     _same: ["@switch"],
@@ -346,6 +349,12 @@ export const CASES = [
   ebay("lego 75192", "LEGO Star Wars 75192 UCS Millennium Falcon sealed", 520, 0, seller(99.8, "3.3K"), { truth: "honest", word: "good" }),
   fb("trek fx 3", "Trek FX 3 rear wheel", 45, { truth: "honest", word: "none" }),
   fb("trek fx 3", "Trek FX 3 Disc hybrid bike 2021 size M", 350, { truth: "honest", word: "good" }),
+  // ---------- big things picked up locally: a quick local sale isn't bait, a fifth of the price still is ----------
+  fb("herman miller aeron", "Herman Miller Aeron Chair Size B", 120, { truth: "honest", word: "great" }),
+  fb("herman miller aeron", "Herman Miller Aeron Chair fully loaded, size C", 260, { truth: "honest", word: "good" }),
+  fb("peloton bike", "Peloton Bike original, works great, must pick up", 250, { truth: "honest", word: "great" }),
+  fb("peloton bike", "Peloton Bike+ brand new", 90, { truth: "scam" }),
+  fb("peloton bike", "Peloton bike PELO77X", 300, { truth: "scam", note: "a title code, beside a low price" }),
 ];
 
 // Honest listings priced far under typical: the ones the checks are most likely to call scams. Written from what

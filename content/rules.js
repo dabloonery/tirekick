@@ -707,10 +707,100 @@
     }
     return "";
   };
+  // Consoles and handhelds, whose versions a title says in words and model codes the general reading misses:
+  // "PS5 Slim Digital" (two tier words), "Xbox Series S" against "Series X", "New 3DS XL", "Game Boy Advance SP
+  // AGS-101", "Switch HEG-001" (an OLED). Returns { tier, gen } for a title that names one ("" is the plain one or
+  // any generation), or null to read it the usual way. A family that spans console generations ("xbox": a 360, a
+  // One, a Series) has its line as the generation; the word that sets one apart within it is the tier.
+  const CONSOLE_ALIAS = [
+    [/(?<=^|\s)(?:ps|playstation)\s?([1-5])(?=\s|$)/g, "playstation $1"],
+    [/(?<=^|\s)game boy(?=\s|$)/g, "gameboy"],
+    [/(?<=^|\s)gba(?=\s|$)/g, "gameboy advance"],
+    [/(?<=^|\s)gbc(?=\s|$)/g, "gameboy color"],
+    [/(?<=^|\s)(?:xsx)(?=\s|$)/g, "xbox series x"],
+    [/(?<=^|\s)(?:xss)(?=\s|$)/g, "xbox series s"],
+    [/(?<=^|\s)(3ds|2ds|dsi)\s(?:ll)(?=\s|$)/g, "$1 xl"],
+  ];
+  const consoleWords = (h) => CONSOLE_ALIAS.reduce((t, [re, to]) => t.replace(re, to), String(h ?? ""));
+  const has = (t, re) => re.test(t);
+  // "Brand New 3DS" is its condition; "New Nintendo 3DS" or "New 3DS XL" is the model.
+  const NEW_DS = /(?:^|\s)(?<!(?:brand|like|almost|never|sealed|condition|open|box)\s)new (?:nintendo )?(?:3ds|2ds)(?=\s|$)/;
+  R.consoleOf = (title) => {
+    const t = consoleWords(R.normTitle(title));
+    const words = t.split(" ");
+    const one = (re) => new Set([...t.matchAll(re)].map((m) => m[1]));
+    // PlayStation: the number is the generation (or a model code's: CFI is a PS5, CUH a PS4); Pro, Slim and Digital
+    // are tiers, a Slim Digital a tier of its own, and a disc one ("Disc Edition", "Standard") the plain one.
+    // CFI-1xxx is the first PS5, 2xxx the Slim, 7xxx the Pro, with A for disc and B for digital.
+    const ps = one(/(?:^|\s)playstation ([1-5])(?=\s|$)/g);
+    const cfi = t.match(/(?:^|\s)cfi\s?([127])\d{3}([ab])?(?=\s|$)/);
+    const cuh = t.match(/(?:^|\s)cuh\s?([127])\d{3}[ab]?(?=\s|$)/);
+    if (ps.size > 1) return null;
+    if (ps.size || cfi || cuh) {
+      const n = [...ps][0] || (cfi ? "5" : "4");
+      const code = cfi || cuh;
+      const pro = tierAt(words, "pro") || code?.[1] === "7";
+      const slim = /(?:^|\s)slim(?=\s|$)/.test(t) || code?.[1] === "2";
+      const digital = /(?:^|\s)digital(?=\s|$)/.test(t) || cfi?.[2] === "b";
+      return { tier: pro ? "pro" : slim && digital ? "slim digital" : slim ? "slim" : digital ? "digital edition" : "", gen: `gen ${n}` };
+    }
+    // Xbox: the line (360, One, Series) is the generation, then S, X or E within it; an all-digital one is its own.
+    if (has(t, /(?:^|\s)xbox(?=\s|$)/)) {
+      // "Xbox One" only as that ("Series X, one controller" is a Series X).
+      const lines = new Set([...one(/(?:^|\s)xbox (360|one|series)(?=\s|$)/g), ...one(/(?:^|\s)(360|series) [sxe](?=\s|$)/g)]);
+      if (lines.size > 1) return null;
+      const line = [...lines][0];
+      if (!line) return null;
+      const sub = one(new RegExp(`(?:^|\\s)${line} ([sxe])(?=\\s|$)`, "g"));
+      const digital = /(?:^|\s)(?:all )?digital(?=\s|$)/.test(t);
+      // "Series X|S" names both: any.
+      const letter = sub.size === 1 && !has(t, new RegExp(`(?:^|\\s)${line} [sx] [sx](?=\\s|$)`)) ? [...sub][0] : "";
+      const tier = letter ? `${line} ${letter}${digital ? " digital" : ""}` : line === "360" && /(?:^|\s)slim(?=\s|$)/.test(t) ? "360 s" : "";
+      return { tier, gen: `xbox ${line}` };
+    }
+    // Nintendo's DS line: DS, DSi, 3DS and 2DS are generations; XL ("LL" in Japan), Lite and New are tiers.
+    const ds = one(/(?:^|\s)(ds|dsi|3ds|2ds)(?=\s|$)/g);
+    if (ds.size === 1 && (has(t, /(?:^|\s)nintendo(?=\s|$)/) || !ds.has("ds") || has(t, /(?:^|\s)ds (?:lite|xl)(?=\s|$)/))) {
+      const isNew = NEW_DS.test(t);
+      const xl = /(?:^|\s)(?:3ds|2ds|dsi) xl(?=\s|$)/.test(t);
+      // There's no 2DS XL that isn't a New one.
+      const isNew2 = isNew || /(?:^|\s)2ds xl(?=\s|$)/.test(t);
+      const lite = /(?:^|\s)ds lite(?=\s|$)/.test(t);
+      return { tier: [isNew2 && "new", xl && "xl", lite && "lite"].filter(Boolean).join(" "), gen: [...ds][0] };
+    }
+    // Game Boy: Advance, Color and Pocket are generations (or their codes: AGB, CGB, MGB, and DMG for the first);
+    // SP and Micro are tiers, and a backlit SP (AGS-101) sells for more than a frontlit one.
+    if (has(t, /(?:^|\s)gameboy(?=\s|$)|(?:^|\s)(?:agb|ags|cgb|mgb|dmg|oxy)\s?\d{2,3}(?=\s|$)/)) {
+      const code = t.match(/(?:^|\s)(agb|ags|cgb|mgb|dmg|oxy)\s?(\d{2,3})(?=\s|$)/);
+      const fam = code ? { agb: "advance", ags: "advance", oxy: "advance", cgb: "color", mgb: "pocket", dmg: "" }[code[1]] : null;
+      const named = one(/(?:^|\s)gameboy (advance|color|colour|pocket|light)(?=\s|$)/g);
+      if (named.size > 1) return null;
+      const line = (fam ?? [...named][0]?.replace("colour", "color")) || (has(t, /(?:^|\s)(?:sp|micro)(?=\s|$)/) ? "advance" : "");
+      const sp = has(t, /(?:^|\s)sp(?=\s|$)/) || code?.[1] === "ags";
+      const micro = has(t, /(?:^|\s)micro(?=\s|$)/) || code?.[1] === "oxy";
+      const backlit = sp && (code?.[1] === "ags" && code[2] === "101" || has(t, /(?:^|\s)(?:backlit|brighter)(?=\s|$)/));
+      return { tier: micro ? "micro" : backlit ? "sp ags-101" : sp ? "sp" : "", gen: line ? `gameboy ${line}` : "" };
+    }
+    // Switch: model codes. HEG-001 is the OLED, HDH-001 the Lite, HAC-001(-01) the longer-battery V2, BEE-001 the
+    // Switch 2; and a Switch 2 is the second generation in any search ("nintendo", not only "nintendo switch").
+    if (has(t, /(?:^|\s)switch(?=\s|$)/) || has(t, /(?:^|\s)(?:hac|heg|hdh|bee)\s?001(?=\s|$)/)) {
+      const tier = has(t, /(?:^|\s)heg\s?001(?=\s|$)/) ? "oled" : has(t, /(?:^|\s)hdh\s?001(?=\s|$)/) ? "lite" : null;
+      const two = t.match(/(?:^|\s)switch 2(?:\s(\S+))?(?=\s|$)/);
+      const gen = has(t, /(?:^|\s)bee\s?001(?=\s|$)/) || (two && !NOT_MODEL.test(two[1] || "")) ? "gen 2"
+        : has(t, /(?:^|\s)hac\s?001\s?01(?=\s|$)/) ? "v 2" : null;
+      return tier == null && gen == null ? null : { tier, gen };
+    }
+    // Meta Quest 3S is a cheaper headset than the Quest 3; ROG Ally X and Legion Go S are their own models too.
+    const qs = t.match(/(?:^|\s)quest (\d)s(?=\s|$)/);
+    if (qs) return { tier: null, gen: `${qs[1]}s` };
+    if (has(t, /(?:^|\s)ally x(?=\s|$)/)) return { tier: "ally x", gen: null };
+    if (has(t, /(?:^|\s)legion go s(?=\s|$)/)) return { tier: "go s", gen: null };
+    return null;
+  };
   // What a search adds to `same` for modelNumberOf: its name word ("@switch"), and the number it ends in as a
   // generation that's the thing itself ("iphone 13": "gen 13", "@iphone"). Words to leave out ("-case") don't count.
   const searchName = (query) => {
-    const w = R.normTitle(String(query ?? "").replace(/(?:^|\s)-\S+/g, " ")).split(" ").filter(Boolean);
+    const w = consoleWords(R.normTitle(String(query ?? "").replace(/(?:^|\s)-\S+/g, " "))).split(" ").filter(Boolean);
     if (!w.length) return [];
     const last = w[w.length - 1];
     if (/^\d{1,2}$/.test(last)) {
@@ -941,10 +1031,13 @@
     // Slim"), and "Core Ultra 7" is in the model. Not in a Mac (its chip or year says more than its Intel model), a
     // Surface, a tablet or a watch, which read their own.
     const part = APPLE.test(h) || kind ? "" : R.partOf(h);
-    const tier = part ? "" : tierIn(h, kind, same);
-    const gen = part || genIn(h, same, kind);
+    // A console's own reading (R.consoleOf) comes first, but not for a typical price saved before it ("@" names came
+    // then): one saved before reads as it did.
+    const con = !part && !kind && same.some((x) => x.startsWith("@")) ? R.consoleOf(h) : null;
+    const tier = part ? "" : con?.tier ?? tierIn(h, kind, same);
+    const gen = part || (con?.gen && !R.genOf(h) ? con.gen : genIn(h, same, kind));
     const size = same.includes("size") ? "" : part && !PC_BUILD.test(h) ? (isGpu(part) ? R.vramOf(h) : "") : sizeIn(h, kind);
-    const out = [tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
+    const out = [same.includes(tier) ? "" : tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
     const lock = R.lockOf(title); // the whole title: "iPhone 13 with case - Unlocked"
     if (lock && !same.includes(lock)) out.push(lock);
     versionSeen.set(key, out);
@@ -971,6 +1064,9 @@
     for (const x of cam ? cameraSame(query, cam) : searchName(query)) if (!same.includes(x)) same.push(x);
     const qh = head(query), qt = cam ? "" : tierIn(qh, deviceOf(qh), []);
     if (qt && !same.includes(qt)) same.push(qt); // "fire hd 10": every sale is an HD 10
+    // A console the search names: "xbox series x" is the Series X ("series x", "xbox series"), "ps5" the fifth.
+    const qc = cam ? null : R.consoleOf(head(query));
+    for (const x of [qc?.tier, qc?.gen]) if (x && !same.includes(x)) same.push(x);
     const counts = new Map();
     for (const s of sales) {
       const [t, , , l] = R.versionOf(s.title, same);

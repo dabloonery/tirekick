@@ -446,6 +446,19 @@ searches; against the one median 3 of the 6 honest ones were wrong (a Paperwhite
 and a Paperwhite 5 "Above typical") and the Series 9 bait would have cleared after a scan. Not read yet: a watch's case
 material (stainless steel and titanium sell above aluminum), Garmin's "7X" and "255S", and model codes ("SM-T870").
 
+Consoles and handhelds (2026-11-02, dabloonery asked for each category in turn): `TKRules.consoleOf` reads what the
+general rules missed. PlayStation: the number is the generation ("PS5" is "PlayStation 5", so a "playstation" search
+keeps PS4s apart), Pro, Slim, Digital and Slim Digital are tiers, a disc one is the plain one, and model codes count
+(CFI-1xxx/2xxx/7xxx with A or B for disc or digital; CUH for a PS4, so "CFI-2015" isn't a year). Xbox: the line (360,
+One, Series) is the generation and S, X or E the tier ("Series X|S" names both: any); before, a Series S and a Series X
+were one group. Nintendo: DS, DSi, 3DS and 2DS are generations with XL ("LL"), Lite and New as tiers ("Brand New" is a
+condition; every 2DS XL is a New one); Game Boy Advance, Color and Pocket are generations with SP, a backlit SP
+(AGS-101) and Micro as tiers; Switch codes HEG-001 (OLED), HDH-001 (Lite), HAC-001(-01) (V2) and BEE-001 (Switch 2),
+and a Switch 2 counts in a "nintendo" search too. Also a Quest 3S apart from a Quest 3, a ROG Ally X and a Legion Go S.
+A console the search names is the thing itself ("xbox series x"). Only for typical prices saved from now on, as with
+the "@" names. Eval: 11 new listings on "ps5", "xbox series" and "game boy advance sp" searches; 6 of the 9 honest
+ones were wrong before (a Series S "Great price", a Series X and a backlit SP "Above typical"), all right now.
+
 ## After real use (2026-10-16)
 
 dabloonery's notes from using the beta on eBay and Marketplace.

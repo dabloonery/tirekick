@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { loadScripts } from "../helpers/load.mjs";
 
-const { R } = await loadScripts();
+const { R, TK } = await loadScripts();
 
 test("hasWord matches whole words only, any case, and a/b means either", () => {
   assert.equal(R.hasWord("Game Boy REPRO cart", "repro"), true);
@@ -851,6 +851,69 @@ test("variantOf: the version a title names that the search doesn't", () => {
   assert.equal(R.variantOf(undefined), "");
 });
 
+test("partOf: a graphics card's or a processor's exact model", () => {
+  const cases = {
+    "MSI GeForce RTX 3060 Ventus 2X 12GB GDDR6": "rtx 3060",
+    "EVGA RTX 3060 Ti XC 8GB": "rtx 3060 ti",
+    "NVIDIA RTX 3060Ti Founders Edition": "rtx 3060 ti",
+    "ASUS TUF RTX 4070 Ti Super 16GB": "rtx 4070 ti super",
+    "GTX 1660 SUPER 6GB": "gtx 1660 super",
+    "Sapphire Pulse Radeon RX 6700XT 12GB": "rx 6700 xt",
+    "XFX RX 7900 XTX 24GB": "rx 7900 xtx",
+    "Radeon RX580 8GB": "rx 580",
+    "ZOTAC GeForce GT 1030 2GB": "gt 1030",
+    "Intel Arc A770 16GB": "arc a770",
+    "AMD Ryzen 5 5600X 6-Core Processor": "ryzen 5600x",
+    "Ryzen 7 5800X3D": "ryzen 5800x3d",
+    "AMD Ryzen 5 5600 CPU": "ryzen 5600",
+    "Intel Core i7-12700K 12th Gen LGA1700": "i7 12700k",
+    "Intel Core i7 12700KF": "i7 12700kf",
+    "Intel i5-13600K": "i5 13600k",
+    "Dell XPS 13 i7-1165G7 16GB 512GB": "i7 1165g7",
+    "Intel Core Ultra 7 265K": "ultra 7 265k",
+    "Gaming PC Ryzen 5 5600X RTX 3060 16GB 1TB": "rtx 3060",
+  };
+  for (const [t, want] of Object.entries(cases)) assert.equal(R.partOf(t), want, t);
+  // Not a card or processor, or several of them.
+  for (const t of ["Sony Cyber-shot DSC-RX100 VI", "BMW i3 2015 charger", "Ford Mustang GT 500 emblem", "Canon EOS R5 body",
+    "RTX 3060 3070 3080 GPU support bracket", "GTX 1070 / GTX 1080 backplate", "Intel Core i7 8th Gen laptop"]) assert.equal(R.partOf(t), "", t);
+  assert.deepEqual(["rtx 3060 ti", "rx 6700 xt", "rtx 4070 ti super", "ryzen 5800x3d", "i7 12700kf", "ultra 7 265k", "arc a770"].map(R.kindWord),
+    ["RTX 3060 Ti", "RX 6700 XT", "RTX 4070 Ti Super", "Ryzen 5800X3D", "i7-12700KF", "Core Ultra 7 265K", "Arc A770"]);
+});
+
+test("versionOf: cards and processors by exact model, cards by memory too", () => {
+  const q = ["@3060"];
+  assert.deepEqual(R.versionOf("MSI GeForce RTX 3060 Ventus 2X 12GB GDDR6", q), ["", "rtx 3060", "12gb"], "12GB is the card's memory");
+  assert.deepEqual(R.versionOf("EVGA RTX 3060 Ti FTW3 Ultra 8GB", q), ["", "rtx 3060 ti", "8gb"], "a maker's “Ultra” isn't a tier");
+  assert.deepEqual(R.versionOf("Intel Core i7-12700K 12th Gen", ["@12700k"]), ["", "i7 12700k", ""], "the model before “12th Gen”");
+  assert.deepEqual(R.versionOf("Gaming PC Ryzen 5 5600X RTX 3060 16GB 1TB", ["@pc"]), ["", "rtx 3060", "1tb"], "a computer's sizes are its own");
+  assert.deepEqual(R.versionOf("MacBook Pro 2019 Core i7 9750H 16GB 512GB", ["@pro"]), ["", "2019", "512gb"], "a Mac by its year");
+  // A plain 3060 against plain 3060s, apart from the Tis: the search's own model isn't the thing itself.
+  const sales = [
+    ...[180, 185, 190, 195, 195, 200, 205, 210].map((total, i) => ({ title: `RTX 3060 12GB Gaming OC ${i}`, total })),
+    ...[235, 240, 245, 245, 250, 255, 260, 265].map((total, i) => ({ title: `RTX 3060 Ti 8GB Founders ${i}`, total })),
+  ];
+  const g = R.variantGroups(sales, "rtx 3060");
+  assert.deepEqual([g.groups["/rtx 3060/*"].length, g.groups["/rtx 3060 ti/*"].length, g.groups["/rtx 3060/12gb"].length], [8, 8, 8]);
+  const v = TK.soldVariants(sales, "rtx 3060");
+  const market = { median: 220, n: 16, confidence: "good", variants: v };
+  assert.equal(R.forVariant(market, { title: "ASUS Dual RTX 3060 12GB" }).median, v["/rtx 3060/*"].median, "every plain one is 12GB: the same group");
+  assert.equal(R.forVariant(market, { title: "RTX 3060Ti Founders Edition" }).median, v["/rtx 3060 ti/*"].median);
+  assert.deepEqual(R.forVariant(market, { title: "RTX 3060Ti Founders Edition" }).variantWords, ["rtx 3060 ti"]);
+  // A page of only plain 3060s: the model is the thing itself, and nothing is missing.
+  const plain = sales.slice(0, 8);
+  assert.ok(R.variantGroups(plain, "rtx 3060").same.includes("rtx 3060"));
+  assert.equal(R.forVariant({ median: 195, n: 8, variants: { "/rtx 3060 ti/*": { median: 250, n: 8 }, _same: ["@3060", "rtx 3060"] } }, { title: "RTX 3060 12GB" }).variantMissing, undefined);
+});
+
+test("cheapReason: a lesser card or processor than the search names", () => {
+  assert.equal(R.cheapReason("Gigabyte RTX 3060 8GB", "", "rtx 3060 ti"), "rtx 3060");
+  assert.equal(R.cheapReason("AMD Ryzen 5 5600", "", "ryzen 5600x"), "ryzen 5600");
+  assert.equal(R.cheapReason("Intel Core i7-12700", "", "i7 12700k"), "i7 12700");
+  assert.equal(R.cheapReason("MSI RTX 3060 8GB", "", "rtx 3060 12gb"), "8gb");
+  for (const [t, q] of [["Ryzen 5 5600X", "ryzen 5600"], ["RTX 3060 Ti", "rtx 3060 ti"], ["RTX 3070", "rtx 3060"]]) assert.equal(R.cheapReason(t, "", q), "", `${t} / ${q}`);
+});
+
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.
 test("genOf and sizeOf: a generation and a storage size, however they're written", () => {
   for (const t of ["AirPods Pro 2nd Generation", "AirPods Pro (2nd Gen) USB-C", "AirPods Pro Gen 2", "iPad generation 2"]) assert.equal(R.genOf(t), "gen 2", t);
@@ -878,7 +941,7 @@ test("versionOf: tier words that name something else, and Plus written as +", ()
   assert.deepEqual(R.versionOf("Nintendo Switch Console Pro Controller Bundle", ["@switch"]), ["", "", ""], "a Pro Controller isn't a Pro");
   assert.deepEqual(R.versionOf("Apple iPhone 13 128GB Blue Unlocked - Battery 89% - Pro Seller", ["gen 13", "@iphone"]), ["", "", "128gb"], "nor is a Pro seller");
   assert.deepEqual(R.versionOf("Nintendo Switch Plus Carrying Case", ["@switch"]), ["", "", ""], "plus as in also");
-  assert.deepEqual(R.versionOf("Samsung Galaxy S21+ 5G 128GB Unlocked", ["@s21"]), ["plus", "", "128gb"], "S21+ is the Plus");
+  assert.deepEqual(R.versionOf("Samsung Galaxy S21+ 5G 128GB Unlocked", ["s21", "@s21"]), ["plus", "", "128gb"], "S21+ is the Plus");
   assert.deepEqual(R.versionOf("Apple iPhone 8 Plus 64GB", ["@iphone"]), ["plus", "gen 8", "64gb"]);
   assert.deepEqual(R.versionOf("Nintendo Switch Lite Coral (Plus 2 Games)", ["@switch"]), ["lite", "", ""]);
   assert.deepEqual(R.versionOf("Apple iPhone 13 Pro 128GB Sierra Blue (Max Battery 100%)", ["gen 13", "@iphone"]), ["pro", "", "128gb"]);
@@ -912,6 +975,72 @@ test("chipOf and yearOf: an Apple chip or a model year is a generation", () => {
   assert.equal(R.generationOf("MacBook Air M1 2020"), "m1", "the chip before the year: an M1 and an Intel Air were both 2020");
   assert.equal(R.generationOf("AirPods Pro 2nd Generation 2022"), "gen 2", "a generation as written comes first");
   assert.deepEqual(["m1", "m2 pro", "2017"].map(R.kindWord), ["M1", "M2 Pro", "2017"]);
+});
+
+test("phoneModelOf and lockOf: a phone's model and carrier lock", () => {
+  const model = (t) => R.phoneModelOf(t);
+  assert.equal(model("Apple iPhone 14 Pro 128GB"), "gen 14", "as a search ending in the number has it");
+  assert.equal(model("Apple iPhone XR 64GB Red"), "xr");
+  assert.equal(model("Apple iPhone 6s Plus 64GB"), "6s");
+  assert.equal(model("Google Pixel 7a 128GB Unlocked"), "7a", "the cheaper one, not a Pixel 7");
+  assert.equal(model("Google Pixel 7 Pro 256GB"), "gen 7");
+  assert.equal(model("Samsung Galaxy S21 Ultra 5G 128GB"), "s21");
+  assert.equal(model("Samsung Galaxy S10e 128GB"), "s10e");
+  assert.equal(model("Samsung Galaxy A54 5G 128GB"), "a54");
+  assert.equal(model("Samsung Galaxy Note 20 Ultra"), "note 20");
+  assert.equal(model("Samsung Galaxy Z Fold5 512GB"), "fold 5");
+  assert.equal(model("Galaxy Z Flip 4 128GB"), "flip 4");
+  for (const t of ["Galaxy S21 S22 S23 screen protector", "Case for iPhone 12 13 14", "Samsung 980 Pro M2 NVMe 1TB", "Yamaha S21 speaker", "iPhone"]) assert.equal(model(t), "", t);
+  assert.equal(model("iPhone 8 64 GB"), "gen 8", "a size isn't another model");
+  assert.equal(model("iPhone 12/12 Pro case"), "gen 12", "the same model twice is one");
+
+  const lock = (t) => R.lockOf(t);
+  assert.equal(lock("iPhone 13 128GB Verizon - carrier locked"), "locked");
+  assert.equal(lock("Apple iPhone 14 128GB AT&T"), "locked", "a carrier's name without “unlocked”");
+  assert.equal(lock("Samsung Galaxy S23 FE 128GB T-Mobile"), "locked");
+  assert.equal(lock("iPhone XR 64GB Cricket Wireless"), "locked");
+  assert.equal(lock("Apple iPhone 13 128GB Verizon Unlocked"), "");
+  assert.equal(lock("Apple iPhone 13 Pro 256GB Unlocked"), "");
+  assert.equal(lock("iPhone 13 128GB iCloud locked for parts"), "", "an iCloud lock isn't a carrier's");
+  assert.equal(lock("Google Pixel 7 FRP locked"), "");
+  assert.equal(lock("Intel Core i7-8700K Unlocked"), "", "only on a phone");
+  assert.equal(lock("Master Lock combination padlock locked"), "");
+  assert.equal(lock("Apple iPhone 13 128GB"), "", "says nothing");
+  assert.deepEqual(["locked", "s21", "xr", "note 20", "fold 5", "7a"].map(R.kindWord), ["carrier-locked", "S21", "XR", "Note 20", "Fold 5", "7a"]);
+});
+
+test("versionOf: phones by model, storage and carrier lock", () => {
+  assert.deepEqual(R.versionOf("Apple iPhone 14 128GB AT&T", ["gen 13", "@iphone"]), ["", "gen 14", "128gb", "locked"]);
+  assert.deepEqual(R.versionOf("Apple iPhone 13 Pro Max 256GB Unlocked", ["@iphone"]), ["pro max", "gen 13", "256gb"]);
+  assert.deepEqual(R.versionOf("Apple iPhone 13 Pro Max 256GB Unlocked", ["@max"]), ["pro max", "gen 13", "256gb"], "an “iphone pro max” search: the number before the tier");
+  assert.deepEqual(R.versionOf("Samsung Galaxy S21 Ultra 5G 12GB+256GB Unlocked", ["@galaxy"]), ["ultra", "s21", "256gb"], "8GB+128GB is memory and storage, not an add-on");
+  assert.deepEqual(R.versionOf("iPhone 13 AT&T 128GB", ["gen 13", "@iphone"]), ["", "", "128gb", "locked"], "AT&T isn't two things");
+  assert.deepEqual(R.versionOf("Google Pixel 7a 128GB", ["gen 7", "@pixel"]), ["", "7a", "128gb"], "a 7a stands apart in a “pixel 7” search");
+  assert.deepEqual(R.versionOf("iPhone 13 128GB Verizon", ["gen 13", "@iphone", "locked"]), ["", "", "128gb"], "locked is the thing itself");
+  assert.deepEqual(R.versionOf("Samsung Galaxy S21 5G 128GB", []), ["", "", "128gb"], "a typical price saved before reads as it did");
+});
+
+test("variantGroups and forVariant: locked phones apart", () => {
+  const sale = (title, total) => ({ title, total });
+  const sales = [...Array(10)].map((_, i) => sale(`iPhone 13 128GB Unlocked #${i}`, 300 + i)).concat([...Array(8)].map((_, i) => sale("iPhone 13 128GB Cricket", 200 + i)));
+  const g = R.variantGroups(sales, "iphone 13");
+  assert.deepEqual(Object.keys(g.groups).sort(), ["/*/*", "/*/*/locked", "/*/128gb", "/*/128gb/locked"]);
+  assert.equal(g.groups["/*/128gb"].length, 10, "locked sales don't count with the rest");
+  assert.ok(R.variantGroups(sales.slice(8), "iphone 13").same.includes("locked"), "nearly all locked: the thing itself");
+  assert.ok(R.variantGroups(sales, "iphone 13 verizon").same.includes("locked"), "the search names a carrier");
+  assert.ok(!R.variantGroups(sales, "iphone 13 unlocked").same.includes("locked"));
+  const m = { median: 280, n: 18, confidence: "good", variants: { _same: ["gen 13", "@iphone"],
+    "/*/128gb": { median: 305, n: 10, confidence: "good" }, "/*/*/locked": { median: 204, n: 8, confidence: "fair" } } };
+  const locked = R.forVariant(m, { title: "Apple iPhone 13 128GB Cricket" });
+  assert.equal(locked.median, 204);
+  assert.deepEqual(locked.variantWords, ["locked"]);
+  assert.equal(R.forVariant(m, { title: "Apple iPhone 13 128GB Unlocked" }).median, 305);
+  const few = R.forVariant({ ...m, variants: { ...m.variants, "/*/*/locked": undefined } }, { title: "Apple iPhone 13 128GB Cricket" });
+  assert.equal(few.median, 305, "too few locked sales: the rest of its kind");
+  assert.deepEqual(few.variantMissing, ["locked"]);
+  // Compared with locked sales, its lock isn't why it's cheap; against the rest, it still is.
+  assert.equal(R.cheapReason("iPhone 13 128GB Verizon - carrier locked", "", "iphone 13 locked"), "");
+  assert.equal(R.cheapReason("iPhone 13 128GB Verizon - carrier locked", "", "iphone 13"), "carrier locked");
 });
 
 test("versionOf: Macs and iPads by chip or year, not by screen size", () => {
@@ -953,7 +1082,7 @@ test("variantGroups: sales grouped by tier, generation and size", () => {
   // Sizes and generations: a 256GB iPhone 13 Pro counts in "pro/*/256gb", "pro/*/*" and so on.
   const phones = R.variantGroups([{ title: "iPhone 13 Pro 256GB", total: 500 }, { title: "iPhone 13 128GB", total: 300 }, { title: "iPhone 13", total: 290 }], "iphone 13");
   assert.deepEqual(Object.keys(phones.groups).sort(), ["/*/*", "/*/128gb", "pro/*/*", "pro/*/256gb"]);
-  assert.deepEqual(R.variantGroups([{ title: "iPhone 13 128GB", total: 300 }], "iphone 13 128gb").same, ["size", "@128gb"]);
+  assert.deepEqual(R.variantGroups([{ title: "iPhone 13 128GB", total: 300 }], "iphone 13 128gb").same, ["gen 13", "size", "@128gb"], "the phone the search names is the thing itself");
   assert.deepEqual(R.variantGroups([{ title: "iPhone 13", total: 300 }], "iphone 13").same, ["gen 13", "@iphone"], "the number the search ends in is the thing itself");
   assert.deepEqual(R.variantGroups([], "x"), { same: ["@x"], groups: {} });
   assert.deepEqual(R.variantGroups([], ""), { same: [], groups: {} });

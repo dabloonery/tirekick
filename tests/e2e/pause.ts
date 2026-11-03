@@ -24,6 +24,7 @@ s = await page(a);
 ok("paused: the open tab clears, no reload", !s.host && s.marks === 0, JSON.stringify(s));
 ok("paused: the icon's title says so", /paused/.test(await title()), await title());
 ok("paused: the settings box is ticked too", (await o.ev(`document.getElementById('paused').checked`)) === true);
+ok("paused: the settings banner says so first, with a way back on", /Paused/.test(await o.ev(`document.getElementById('statusTitle').textContent`)) && (await o.ev(`!document.getElementById('unpause').hidden && document.querySelector('#statusCard a.try').hidden`)) === true, await o.ev(`document.getElementById('statusTitle').textContent`));
 const b = await open(SEARCH); await sleep(2000);
 s = await page(b);
 ok("paused: a new store tab gets nothing", !s.host && s.marks === 0, JSON.stringify(s));
@@ -50,6 +51,7 @@ ok("…and the other store tabs stay clear", !s.host && s.marks === 0, JSON.stri
 // Back on from settings
 await o.ev(`document.getElementById('paused').click()`); await sleep(2500);
 ok("unticking the settings box turns it back on", (await o.ev(`chrome.storage.local.get('paused').then(s=>s.paused)`)) === false);
+ok("on again: the banner is back to its usual self", !/Paused/.test(await o.ev(`document.getElementById('statusTitle').textContent`)) && (await o.ev(`document.getElementById('unpause').hidden`)) === true);
 // (a tab reads its listings once it's the one on screen, as on any page load)
 await c.send("Target.activateTarget", { targetId: a.targetId }); await sleep(2000);
 s = await page(a);
@@ -59,4 +61,20 @@ s = await page(b);
 ok("on again: the tab opened while paused has them too", s.host && s.marks > 0, JSON.stringify(s));
 ok("on again: the icon's title is plain", !/paused/.test(await title()), await title());
 ok("on again: the popup's switch shows on", (await pop.ev(`document.getElementById('pause-switch').getAttribute('aria-checked')`)) === "true");
+
+// Paused in the middle of a scan: the batches under way are called off and the rest aren't sent (a scan doesn't
+// keep spending on a page Tirekick has left).
+const API = "http://localhost:1234";
+await o.ev(`chrome.storage.local.set({useAI:true, anthropicUrl:'${API}', anthropicKey:'slow', batchSize:1, autoScan:false})`);
+const d = await open(SEARCH); await sleep(2000);
+await fetch(`${API}/calls`, { method: "DELETE" });
+await d.ev(`document.getElementById('tirekick-host').shadowRoot.querySelector('[data-act=scan]').click()`);
+await sleep(1500);
+await o.ev(`chrome.storage.local.set({paused:true})`);
+await sleep(20000); // the slow key answers after 8 seconds: long enough for every batch to have gone
+const sent = (await (await fetch(`${API}/calls`)).json()).length;
+s = await page(d);
+// (the mock records a request once it has answered it: one called off never is)
+ok("paused mid-scan: the panel goes and the batches under way are called off", !s.host && sent === 0, JSON.stringify({ ...s, sent }));
+await o.ev(`chrome.storage.local.set({paused:false})`);
 c.close();

@@ -368,12 +368,19 @@ for (const b of document.querySelectorAll("[data-reveal]")) {
 
 // The banner at the top: is the model ready to run, and if not, what's the one thing missing?
 async function showStatus() {
-  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel", "useAI", "markScams", "markPrices", "markOther", "useSoldComps"]);
+  const s = await chrome.storage.local.get(["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiKey", "oaiModel", "oaiUrl", "textModel", "useAI", "markScams", "markPrices", "markOther", "useSoldComps", "paused"]);
   const provider = s.provider || "anthropic";
   const card = document.getElementById("statusCard");
   const keyLink = document.getElementById("keyLink");
+  // Paused (here or in the toolbar popup), "Ready" would send you to a store page that shows nothing: say so first.
+  const paused = s.paused === true;
+  document.getElementById("unpause").hidden = !paused;
+  for (const a of card.querySelectorAll("a.try")) a.hidden = paused;
   let ready = false, title, text;
-  if (TKRules.focusOf(s) === "scams") {
+  if (paused) {
+    title = "Paused on store pages";
+    text = "Nothing shows on eBay, Marketplace or Craigslist until you turn Tirekick back on. Saved, look-ups and Check my saved searches still work.";
+  } else if (TKRules.focusOf(s) === "scams") {
     ready = true;
     title = "Ready: scam check only";
     text = "Cards show only scam warnings, and your AI isn't used. Change it under What should Tirekick do.";
@@ -406,11 +413,12 @@ async function showStatus() {
   document.getElementById("statusTitle").textContent = title;
   document.getElementById("statusText").textContent = text;
   // A button to the chosen service's key page, until it's set up.
-  const keys = chosen && !ready && s.useAI === true ? serviceInfo(serviceOf()).keys : "";
+  const keys = chosen && !ready && !paused && s.useAI === true ? serviceInfo(serviceOf()).keys : "";
   keyLink.hidden = !keys;
   if (keys) keyLink.href = keys;
 }
 chrome.storage.onChanged.addListener(() => (showStatus(), showFocus()));
+document.getElementById("unpause").addEventListener("click", () => chrome.storage.local.set({ paused: false }).then(() => note("On again. Open store tabs show Tirekick now.")));
 
 // Claude: checks the key and that the model name exists, without spending anything.
 async function testClaude() {

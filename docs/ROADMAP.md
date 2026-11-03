@@ -57,8 +57,10 @@ to clear visual space without going to the browser's extensions page.*
 - **Where:** a switch at the top of the toolbar popup (and of Tirekick's own page), and "Pause Tirekick on store
   pages" in settings (On the page). Both are the one setting `paused` (off by default).
 - **Paused:** the page scripts stop loading on store pages, panels already open take themselves and their card
-  tags off at once (no reload), and nothing is scanned, so your AI isn't used there. The toolbar icon goes gray
-  and its tooltip says paused; clicking it on a store page opens the popup, where the switch is.
+  tags off at once (no reload), and nothing is scanned, so your AI isn't used there: a scan under way is called
+  off, and the right-click photo check goes from the menu. The toolbar icon goes gray and its tooltip says paused;
+  clicking it on a store page opens the popup, where the switch is. Settings' banner says paused, with a button
+  to turn it back on (2026-11-02 audit).
 - **Still works:** Saved, look-ups, Home and settings. "Check my saved searches" still runs: you pressed it, so
   the searches it opens show Tirekick (only those tabs). Open tabs don't raise alerts while paused, since nothing
   reads them.
@@ -382,8 +384,35 @@ M3s at $800. A chip comes before a year (an M1 and an Intel Air were both 2020),
 Watch Series 7 2021"), and a Mac's or an iPad Pro's number is its screen, not a model ("MacBook Air 13 2017").
 Eval: 6 new listings on a "macbook air" search; against the one median 4 of the 5 honest ones were wrong (a 2017 Air
 "Great price", an M2 and an M3 "Above typical") and the M3 bait would have cleared after a scan. Also fixed: a scan's
-note on a listing's version sent "gen 2" to the AI as "gen, 2". Not axes yet: colors and carrier locks (a "carrier
-locked" phone already counts as a reason it's cheap).
+note on a listing's version sent "gen 2" to the AI as "gen, 2". Not an axis yet: colors.
+
+Phones (2026-11-02): a phone's model is its generation in any search, read only in a title naming the line
+(`TKRules.phoneModelOf`): "iPhone 13", "iPhone XR", "iPhone 6s", "Pixel 7" and "Pixel 7a" (the cheaper one, kept apart
+from the 7), "Galaxy S21", "S10e", "A54", "Note 20", "Z Fold 5". So a "samsung galaxy" search no longer prices an S24
+against S9s, and an "iphone pro max" search keeps 12s and 15s apart. A title naming several ("case for iPhone 12 13 14")
+counts as none, and a typical price saved before reads as it did. Carrier locks are a fourth axis (`TKRules.lockOf`,
+keys ending "/locked"): "carrier locked", "locked to Verizon", or a carrier's name without "unlocked" ("128GB Cricket")
+puts a phone with locked sales only; "Unlocked" or nothing puts it with the rest; an iCloud or FRP lock isn't a
+carrier's. A locked listing tries locked sales first, then its kind's (the hover says there were too few locked ones),
+and once it's compared with locked sales its lock is no longer the reason it's cheap. A search naming a carrier, or
+sales over 60% locked, makes the lock the thing itself. Storage: "8GB+128GB" and "AT&T" no longer cut a title short.
+Eval: 5 new listings on "iphone 13" and "samsung galaxy" searches; against the one median 4 of them came out wrong (an
+S24 "Above typical", a locked iPhone "Good price"), and the S24 Ultra bait at 38% of its kind would have cleared after
+a scan.
+
+Graphics cards and processors (2026-11-02, dabloonery asked for sturdier version matching): a card's or processor's
+exact model is its generation (`TKRules.partOf`: "rtx 3060 ti", "rx 6700 xt", "arc a770", "ryzen 5600x", "ryzen
+5800x3d", "i7 12700k", "ultra 7 265k"; "3060Ti" and "6700XT" read as written apart), read before "12th Gen", and a
+card's memory is its size (`TKRules.vramOf`, 2GB to 48GB: a 3060 12GB against 12GB ones, not 8GB). Unlike a search's
+own generation, a search's own model stays a group ("rtx 3060" keeps plain 3060s apart from the Tis that eBay mixes
+in), unless every sale is that model. In a card or processor title there's no tier ("FTW3 Ultra", "ITX Mini" are a
+maker's line), a Mac is still read by its chip or year, and a whole computer's sizes are its memory and storage. Not
+read as one: a Sony RX100, a "Mustang GT 500" (GT needs GeForce or NVIDIA), a "BMW i3 2015" (a four-digit i3 to i9
+needs Intel, Core, a CPU word or a letter after it), or a list of models ("RTX 3060 3070 3080 bracket"). A lesser model
+than the search names is a reason it's cheap (`TKRules.lesserPart`: a plain 3060 in a "3060 ti" search, an 8GB card
+in a "12gb" one), and "GDDR6", "LGA1700", "12700KF" or "5800X3D" at the end of a title is no longer taken for a
+scammer's code. Eval: 8 new listings on "rtx 3060" and "ryzen 5 5600" searches; 5 of the 7 honest ones were wrong
+before (a Ti and a 5600X3D "Above typical", an 8GB card and a 5600G "Good price"), all right now.
 
 ## After real use (2026-10-16)
 

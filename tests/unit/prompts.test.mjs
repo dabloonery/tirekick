@@ -39,6 +39,7 @@ test("scan prompt: a listing compared with its own version says so, with that ve
   // Words with a space in them stay whole: a generation and a chip.
   assert.deepEqual(globalThis.priceNotesText({ vsWorking: 0.9, refKind: "gen 2, 256gb", refN: 9, refWorking: 150 }), ["90% of working median for its version (generation 2, 256GB: $150, 9 sales)"]);
   assert.deepEqual(globalThis.priceNotesText({ vsWorking: 0.9, refKind: "m2 pro", refN: 9, refWorking: 1400 }), ["90% of working median for its version (M2 Pro: $1400, 9 sales)"]);
+  assert.deepEqual(globalThis.priceNotesText({ vsWorking: 0.95, refKind: "s21, locked", refN: 8, refWorking: 150 }), ["95% of working median for its version (s21, carrier-locked: $150, 8 sales)"]);
   assert.match(globalThis.marketText("nintendo switch", market), /These sales mix versions/);
   assert.doesNotMatch(globalThis.marketText("ps5", { median: 330, p25: 300, p75: 360, n: 55, confidence: "good" }), /mix versions/);
 });

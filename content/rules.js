@@ -1141,14 +1141,17 @@
   // Returns the word that gave it away, or "".
   const PART = "case|cover|skin|sleeve|bag|pouch|stand|mount|dock|holder|strap|charger|charging cable|cable|cord|power supply|adapter|battery|" +
     "remote|controller|grip|protector|decal|sticker|faceplate|shell|housing|manual|box|lens cap|lens hood|bezel|" +
-    "charging station|stylus|knob|buttons?|ribbon cable|hinge|motherboard";
+    "charging station|stylus|knob|buttons?|ribbon cable|hinge|motherboard|" +
+    // beyond electronics: a mixer's bowl, a blender's jar, a vacuum's attachments, a chair's pads, a bike's wheel, a
+    // LEGO set's minifigures (each read as the thing at a bait price: a $40 Vitamix container was "Likely scam")
+    "bowl|container|pitcher|jar|lid|blade|filter|attachment|cushion|pad|wheel|tire|pedal|saddle|minifig|minifigure";
   const PART_LAST = new RegExp(String.raw`(?:^|\s)((?:${PART})s?)$`);
   const PART_FOR = new RegExp(String.raw`(?:^|\s)((?:${PART})s?) (?:only|for)\b`);
   // A part, a few words, then "for" and the search: "Composite AV Video Cable w USB Charge/Sync for iPod iPhone iPad".
   const PART_FOR_LATER = new RegExp(String.raw`(?:^|\s)((?:${PART})s?)(?: \S+){1,4} for (?!sale|parts|repair|cheap|free)(.*)$`);
   const PART_ANY = /\b(compatible with|for use with|replacement|screen protector|tempered glass|empty box|box only|no (?:console|camera|phone|watch|tablet|laptop|device|unit|handset|system|body)|video game(?! (?:console|system))|game cartridge|(?:cartridge|cart|disc|game|case) only|game disc|physical copy|(?:digital|download) code|game card|(?:(?:left|right) )?(?:earbud|airpod|ear ?bud)s? only)\b/;
-  // "with", "in", a count ("2 controllers"), or a word that says it's the whole thing: what comes with the item.
-  const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|console|system|bundle|cib|complete)(?:\s|$)/;
+  // "with", "in", "all", a count ("2 controllers"), or a word that says it's the whole thing: what comes with the item.
+  const WITH = /(?:^|\s)(?:with|w|in|includes?|including|incl|plus|and|all|console|system|bundle|cib|complete)(?:\s|$)/; // "all attachments": it has them
   const PART_AND = new RegExp(String.raw`\b((?:${PART})s?) and (?=(?:${PART})s?\b)`, "g");
   const GAME = /(?:^|\s)(games?)(?!\s(?:consoles?|systems?|boy|cube|gear|pad|controller|card))(?:\s|$)/;
   const comesWith = (t, m) => WITH.test(t.slice(0, m.index + 1)) || (/s$/.test(m[1]) && /(?:^|\s)\d+\s?$/.test(t.slice(0, m.index + 1)));

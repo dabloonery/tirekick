@@ -57,8 +57,10 @@ to clear visual space without going to the browser's extensions page.*
 - **Where:** a switch at the top of the toolbar popup (and of Tirekick's own page), and "Pause Tirekick on store
   pages" in settings (On the page). Both are the one setting `paused` (off by default).
 - **Paused:** the page scripts stop loading on store pages, panels already open take themselves and their card
-  tags off at once (no reload), and nothing is scanned, so your AI isn't used there. The toolbar icon goes gray
-  and its tooltip says paused; clicking it on a store page opens the popup, where the switch is.
+  tags off at once (no reload), and nothing is scanned, so your AI isn't used there: a scan under way is called
+  off, and the right-click photo check goes from the menu. The toolbar icon goes gray and its tooltip says paused;
+  clicking it on a store page opens the popup, where the switch is. Settings' banner says paused, with a button
+  to turn it back on (2026-11-02 audit).
 - **Still works:** Saved, look-ups, Home and settings. "Check my saved searches" still runs: you pressed it, so
   the searches it opens show Tirekick (only those tabs). Open tabs don't raise alerts while paused, since nothing
   reads them.

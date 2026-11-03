@@ -1224,14 +1224,14 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
   refreshOpenTabs().catch(() => {});
   updateIcon().catch(() => {});
-  const { useAI } = await getSettings();
+  const { useAI, paused } = await getSettings();
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
       title: "Check this photo with Tirekick",
       contexts: ["image"],
       documentUrlPatterns: TKSites.matches(),
-      visible: useAI === true,
+      visible: useAI === true && paused !== true,
     });
     // The icon's own right-click menu: the browser fills most of it; Tirekick adds only this.
     chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Tirekick in a tab", contexts: ["action"] });
@@ -1286,9 +1286,9 @@ async function doSyncAutoScripts() {
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.paused) pauseChanged(changes.paused.newValue === true).catch((e) => console.warn("[Tirekick]", e.message));
   if (changes.showTab || TKSites.all.some((s) => s.setting && changes[s.setting])) syncAutoScripts().catch((e) => console.warn("[Tirekick]", e.message));
-  // The photo check is an AI call: its menu entry goes with the AI.
-  // Cleared (Delete everything) is off too: the AI is opt-in.
-  if (changes.useAI) chrome.contextMenus.update(MENU_ID, { visible: changes.useAI.newValue === true }, () => void chrome.runtime.lastError);
+  // The photo check is an AI call on a store page: its menu entry goes with the AI, and while paused (it couldn't
+  // show its answer there). Cleared (Delete everything) is off too: the AI is opt-in.
+  if (changes.useAI || changes.paused) getSettings().then(({ useAI, paused }) => chrome.contextMenus.update(MENU_ID, { visible: useAI === true && paused !== true }, () => void chrome.runtime.lastError));
 });
 chrome.permissions.onRemoved.addListener(() => syncAutoScripts().catch(() => {}));
 chrome.permissions.onAdded.addListener(() => syncAutoScripts().catch(() => {}));

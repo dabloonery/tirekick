@@ -432,6 +432,20 @@ were wrong (an a7 II "Great price", an a7 IV, an a7R and an f/1.2L "Above typica
 first. Left: camera models in a search that names only the line ("canon eos", "fujifilm x-t": "R6" beside "R50"),
 Sony and Fujifilm mounts, and "L", "IS" or "VR" lens lines with the same aperture.
 
+Watches and tablets (2026-11-02, dabloonery asked for sturdier version matching): each kind now reads its own
+versions on the same three axes (`deviceOf`, `tierIn`, `genIn`, `sizeIn` in `content/rules.js`). A watch's size is its
+case and whether it's cellular ("45mm cellular"), never storage; "Watch5", "Series7" and an "S9" are read as numbers,
+"GPS + Cellular" is one thing (not a watch with something added), Galaxy's Classic and Active are tiers, a Forerunner's
+245 is its model, and a 2022 Apple Watch SE is the 2nd generation. A Galaxy Tab's "S7" or "A7" is its generation; a
+Surface's line (Pro, Go, Laptop, Book, Studio, Pro X) is its tier and "Surface Pro 7 i5" is a 7 ("11th Edition" an 11);
+a Kindle's line (Paperwhite, Oasis, Scribe, Signature) is its tier, and a Paperwhite 3, a 2015 Paperwhite and a "7th
+generation" one are all Amazon's 7th; a Fire's "HD 10" (with Plus or Kids) is its tier, since the number is the screen,
+and its year is its generation ("Fire HD 10 2021" is the 11th, so "fire hd 10" doesn't read as a 10th generation). A
+tablet's size adds "cellular" to its storage, iPads too. Eval: 8 new listings on "apple watch" and "kindle paperwhite"
+searches; against the one median 3 of the 6 honest ones were wrong (a Paperwhite 3 "Great price", a cellular Series 9
+and a Paperwhite 5 "Above typical") and the Series 9 bait would have cleared after a scan. Not read yet: a watch's case
+material (stainless steel and titanium sell above aluminum), Garmin's "7X" and "255S", and model codes ("SM-T870").
+
 ## After real use (2026-10-16)
 
 dabloonery's notes from using the beta on eBay and Marketplace.

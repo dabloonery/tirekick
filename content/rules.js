@@ -488,7 +488,13 @@
   // "iPhone 13 with 64GB card" isn't a 64GB phone.
   // "Galaxy S21+" is a Plus, not an S21 with something added.
   // Nor is "8GB+128GB" a phone with something added, or "AT&T" two things.
-  const head = (title) => R.normTitle(String(title ?? "").replace(/(\d\s?[gt]b)\s*\+\s*(?=\d)/gi, "$1 ").replace(/\bat\s?&\s?t\b/gi, "att").replace(/([a-z0-9])\+(?=\s|$)/gi, "$1 plus").split(/\s(?:with|w\/|includes?|including|plus\s+\d+(?=\s)|bundle)\s|\s*[+&]\s*/i)[0]);
+  // "GPS + Cellular" and "Wi-Fi + LTE" say one thing, not a watch with something added; "Watch5", "Series7" and
+  // "Active2" are "Watch 5", "Series 7", "Active 2"; an "Apple Watch S9" is a Series 9.
+  const prepModel = (s) => String(s ?? "")
+    .replace(/\b(?:gps|wi[\s-]?fi)\s*(?:\+|&|\/|and)\s*(?:cellular|lte|[345]g)\b/gi, "cellular")
+    .replace(/\b(watch|series|active|paperwhite|oasis)(\d{1,2})\b/gi, "$1 $2")
+    .replace(/\bwatch\s+s(\d{1,2})\b/gi, "watch series $1");
+  const head = (title) => R.normTitle(prepModel(title).replace(/(\d\s?[gt]b)\s*\+\s*(?=\d)/gi, "$1 ").replace(/\bat\s?&\s?t\b/gi, "att").replace(/([a-z0-9])\+(?=\s|$)/gi, "$1 plus").split(/\s(?:with|w\/|includes?|including|plus\s+\d+(?=\s)|bundle)\s|\s*[+&]\s*/i)[0]);
   // A tier word that names something else: "Pro Seller", "Pro Controller Bundle", "(Max Battery 100%)", "Plus
   // Carrying Case". "Plus" is a version only after a model number ("8 Plus", "S10 Plus", "Note 20 Plus").
   const NOT_TIER = /^(?:controllers?|sellers?|battery|batteries|cases?|covers?|chargers?|charging|grips?|docks?|adapters?|cables?|stands?|skins?|protectors?|carrying|bags?|pouch|tips|shipping|membership|subscription|games?|bundle)$/;
@@ -662,25 +668,27 @@
     if (LOCKED.test(t)) return unlocked ? "" : "locked";
     return !unlocked && CARRIER.test(t) ? "locked" : "";
   };
-  // A title's generation, most exact first: "2nd gen" or "v2" as written, then an Apple chip, then a phone's model,
-  // then (in R.versionOf) a number after the thing's name, then a model year. R.versionOf reads a card's or
-  // processor's model before all of these ("i7-12700K 12th Gen"); it's left out here, so a search's own model ("rtx
-  // 3060") isn't the thing itself and a plain 3060 gets sales of its own, apart from the 3060 Tis.
-  R.generationOf = (text) => R.genOf(text) || R.chipOf(text) || R.phoneModelOf(text) || R.yearOf(text);
+  // A title's generation, most exact first, as genIn reads it. R.versionOf reads a card's or processor's model before
+  // all of these ("i7-12700K 12th Gen"); it's left out here, so a search's own model ("rtx 3060") isn't the thing
+  // itself and a plain 3060 gets sales of its own, apart from the 3060 Tis.
+  R.generationOf = (text) => genIn(head(text), [], undefined, true);
   // A bare number right after the thing's name is its generation too: "Nintendo Switch 2" in a "nintendo switch"
   // search, "Meta Quest 3", "AirPods Pro 2", "iPad mini 6", "Apple Watch Series 7". The name is the search's last word
   // (kept in `same` as "@switch"), a tier word or "series". Up to 20, and not "Switch 2 Games", "Quest 2 128 GB" or a
   // screen size before the chip ("MacBook Pro 14 M1 Pro").
   const NOT_MODEL = /^(?:gb|tb|mb|games?|controllers?|joy|pack|pcs|pieces?|pairs?|lots?|ft|feet|in|inch|inches|x|units?|sets?|players?|batteries|months?|years?|hours?|day|days|m\d|i\d|intel|core|ryzen|retina)$/;
-  const modelNumberOf = (h, same) => {
-    const names = new Set([...same.filter((x) => x.startsWith("@")).map((x) => x.slice(1)), ...R.TIER_MODIFIERS.filter((m) => m !== "plus" && !m.includes(" ")), "series"]);
+  // A Surface's number comes before its processor ("Surface Pro 7 i5", "Surface Pro 4 m3"), so those don't stop it.
+  const NOT_MODEL_SURFACE = /^(?:gb|tb|mb|games?|pack|pcs|pieces?|lots?|in|inch|inches|x|units?|sets?)$/;
+  const modelNumberOf = (h, same, kind = deviceOf(h)) => {
+    const names = new Set([...same.filter((x) => x.startsWith("@")).map((x) => x.slice(1)), ...R.TIER_MODIFIERS.filter((m) => m !== "plus" && !m.includes(" ")), "series", ...(DEVICE_NAMES[kind] || [])]);
     if (!same.some((x) => x.startsWith("@"))) return ""; // a typical price saved before this read numbers: as it was
     // A Mac's number is its screen ("MacBook Air 13 2017", "MacBook Pro 16 A2141"), and so is an iPad Pro's 11 or 12.9:
-    // its chip or year says the generation.
-    if (/(?:^|\s)(?:macbook|imac)(?:\s|$)/.test(h)) return "";
+    // its chip or year says the generation. A Fire tablet's number is its screen too ("Fire HD 10"), its tier.
+    if (/(?:^|\s)(?:macbook|imac)(?:\s|$)/.test(h) || kind === "fire") return "";
+    const notModel = kind === "surface" ? NOT_MODEL_SURFACE : NOT_MODEL;
     const w = h.split(" ");
     for (let i = 0; i + 1 < w.length; i++) {
-      if (!names.has(w[i]) || !/^\d{1,2}$/.test(w[i + 1]) || +w[i + 1] > 20 || NOT_MODEL.test(w[i + 2] || "")) continue;
+      if (!names.has(w[i]) || !/^\d{1,2}$/.test(w[i + 1]) || +w[i + 1] > 20 || notModel.test(w[i + 2] || "")) continue;
       if (w[i] === "pro" && w[i - 1] === "ipad" && /^1[12]$/.test(w[i + 1])) continue;
       return `gen ${+w[i + 1]}`;
     }
@@ -692,7 +700,12 @@
     const w = R.normTitle(String(query ?? "").replace(/(?:^|\s)-\S+/g, " ")).split(" ").filter(Boolean);
     if (!w.length) return [];
     const last = w[w.length - 1];
-    if (/^\d{1,2}$/.test(last)) return w.length > 1 ? [`gen ${+last}`, `@${w[w.length - 2]}`] : [];
+    if (/^\d{1,2}$/.test(last)) {
+      if (w.length < 2) return [];
+      const h = w.join(" "), kind = deviceOf(h);
+      // "fire hd 10" ends in a screen, not a generation; "kindle paperwhite 3" is the 7th generation.
+      return kind === "fire" ? [`@${w[w.length - 2]}`] : [mapGen(h, kind, `gen ${+last}`, true), `@${w[w.length - 2]}`];
+    }
     return [`@${last}`];
   };
   // Cameras and lenses (2026-11-02). A "sony a7" search has the a7 II at $500 beside the a7 IV at $1,700, and a body
@@ -809,6 +822,90 @@
     const tier = [model, word !== "body only" && word, word !== "body only" && hasKit(raw) && !same.includes("kit") && "kit"].filter(Boolean);
     return [tier.join(" "), R.genOf(t) || camGenOf(t) || modelNumberOf(t, same) || R.yearOf(t), same.includes("size") ? "" : R.sizeOf(t)];
   };
+  // Watches and tablets (2026-11-02). Each kind reads its own versions, on the same three axes:
+  //  - watch (Apple Watch, Galaxy Watch, Pixel Watch, Garmin, Fitbit): "Series 7", "Watch5", "Classic" and
+  //    "Active" tiers, a Forerunner's 245; its size is the case ("45mm") and cellular or not, never storage, which a
+  //    model has one of. An Apple Watch SE's year is its generation (2022: the 2nd).
+  //  - tab (Galaxy Tab): "Tab S7" and "Tab A7" are the generation (an S7 and an A7 are a line apart too).
+  //  - surface: Pro, Go, Laptop, Book and Studio are tiers, "Surface Pro 7 i5" is a 7, "11th Edition" an 11.
+  //  - kindle: Paperwhite, Oasis, Scribe, Voyage and Signature are tiers; a Paperwhite 3 is the 7th generation and
+  //    a 2018 Paperwhite the 10th, so a listing matches sales however it says it.
+  //  - fire: "Fire 7", "HD 8", "HD 10", "Max 11" (with "Plus" or "Kids") are tiers, since the number is the screen;
+  //    a year is its generation ("Fire HD 10 2021" is the 11th).
+  //  A tablet's size (these, and an iPad) adds "cellular" to the storage: "Wi-Fi + Cellular" costs more.
+  const WATCH = /(?:^|\s)(?:watch|smartwatch|fitbit|garmin|forerunner|fenix|epix|vivoactive|amazfit)(?:\s|$)/;
+  const FIRE = /(?:^|\s)(?:fire (?:hdx?|max) \d{1,2}|(?:amazon|kindle) fire|fire 7 (?:tablet|\d{1,2}(?:st|nd|rd|th)))(?:\s|$)/;
+  const SURFACE = /(?:^|\s)(?:microsoft surface|surface (?:pro|go|laptop|book|studio|duo))(?:\s|$)/;
+  const TAB = /(?:^|\s)tab ([sa]\d{1,2})(?=\s|$)/;
+  const deviceOf = (h) => {
+    if (FIRE.test(h) && !/(?:^|\s)fire tv(?:\s|$)/.test(h)) return "fire";
+    if (/(?:^|\s)kindle(?:\s|$)/.test(h)) return "kindle";
+    if (SURFACE.test(h)) return "surface";
+    if (TAB.test(h)) return "tab";
+    if (WATCH.test(h)) return "watch";
+    if (/(?:^|\s)(?:ipad|tablet)(?:\s|$)/.test(h)) return "tablet";
+    return "";
+  };
+  // Words a number after which is the model, beyond the search's name (modelNumberOf).
+  const DEVICE_NAMES = { watch: ["watch", "active", "fenix", "vivoactive", "instinct", "charge", "versa", "sense"], surface: ["go", "laptop", "book", "studio"], kindle: ["paperwhite", "oasis"] };
+  // Tier words per kind, longer first; then the usual ones (R.TIER_MODIFIERS).
+  const DEVICE_TIERS = { watch: ["hermes", "classic", "active"], surface: ["pro x", "laptop studio", "laptop go", "pro", "go", "laptop", "book", "studio", "duo"], kindle: ["signature", "paperwhite", "oasis", "scribe", "voyage"] };
+  const tierIn = (h, kind, same) => {
+    const q = same.join(" ");
+    if (kind === "fire") {
+      const line = h.match(/(?:^|\s)(?:(hdx?|max) (\d{1,2})|fire (7))(?=\s|$)/);
+      if (line) {
+        const t = [line[3] ? "fire 7" : `${line[1]} ${line[2]}`, /(?:^|\s)plus(?:\s|$)/.test(h) && "plus", /(?:^|\s)kids(?:\s|$)/.test(h) && "kids"].filter(Boolean).join(" ");
+        return same.includes(t) ? "" : t;
+      }
+    }
+    const words = h.split(" ");
+    const own = (DEVICE_TIERS[kind] || []).find((m) => tierAt(words, m) && !R.hasWord(q, m));
+    // "M1 Pro" is the chip's, not a Pro tier: the chip carries it as its generation.
+    return own || R.variantOf(h.replace(/(^|\s)(m[1-9]) (?:pro|max|ultra)(?=\s|$)/g, "$1$2"), q);
+  };
+  // A generation number said another way, as the one people search for: a Paperwhite 3 or a 2015 Paperwhite is the
+  // 7th generation, an Oasis 2 the 9th, an Apple Watch SE from 2022 the 2nd, a Fire from 2021 the 11th.
+  // `num`: as "3rd gen" is written; `bare`: a number after the name ("Paperwhite 5", the 11th).
+  const PAPERWHITE = { num: { 1: 5, 2: 6, 3: 7, 4: 10 }, bare: { 1: 5, 2: 6, 3: 7, 4: 10, 5: 11, 6: 12 }, year: { 2012: 5, 2013: 6, 2015: 7, 2018: 10, 2021: 11, 2024: 12 } };
+  const OASIS = { num: { 1: 8, 2: 9, 3: 10 }, bare: { 1: 8, 2: 9, 3: 10 }, year: { 2016: 8, 2017: 9, 2019: 10 } };
+  const WATCH_SE = { year: { 2020: 1, 2022: 2, 2025: 3 } };
+  const mapGen = (h, kind, gen, bare = false) => {
+    const has = (w) => new RegExp(`(?:^|\\s)${w}(?:\\s|$)`).test(h);
+    const table = kind === "kindle" ? (has("paperwhite") ? PAPERWHITE : has("oasis") ? OASIS : null) : kind === "watch" && has("apple") && has("se") ? WATCH_SE : null;
+    const n = gen.match(/^gen (\d+)$/)?.[1];
+    // A "5th generation" Paperwhite could be either count, and most often means Amazon's: as written.
+    const nums = bare ? table?.bare : table?.num;
+    if (n && nums?.[n]) return `gen ${nums[n]}`;
+    if (/^\d{4}$/.test(gen)) {
+      if (table?.year?.[gen]) return `gen ${table.year[gen]}`;
+      if (kind === "fire" && +gen >= 2011 && +gen <= 2035) return `gen ${gen - 2010}`;
+    }
+    return gen;
+  };
+  // A title's generation, most exact first: "2nd gen" or "v2" as written, a Surface's "11th Edition", a Galaxy Tab's
+  // "S7", a Forerunner's number, an Apple chip, a phone's model, a number after the thing's name, then a model year.
+  // A phone's model only in a search's own words or a split saved since names were (as modelNumberOf): one saved
+  // before reads as it did.
+  const genIn = (h, same, kind = deviceOf(h), query = false) => {
+    const edition = kind === "surface" && h.match(/(?:^|\s)(\d{1,2})(?:st|nd|rd|th) edition(?:\s|$)/)?.[1];
+    const tab = kind === "tab" && h.match(TAB)?.[1];
+    const fr = kind === "watch" && h.match(/(?:^|\s)forerunner (\d{2,3})(?=\s|$)/)?.[1];
+    const g = R.genOf(h) || (edition && `gen ${+edition}`) || (tab && `tab ${tab}`) || (fr && `forerunner ${fr}`) || R.chipOf(h) || ((query || same.some((x) => x.startsWith("@"))) && R.phoneModelOf(h));
+    if (g) return mapGen(h, kind, g);
+    const bare = modelNumberOf(h, same, kind);
+    return bare ? mapGen(h, kind, bare, true) : mapGen(h, kind, R.yearOf(h));
+  };
+  // A watch's size is its case and whether it's cellular; a tablet's is its storage and whether it's cellular.
+  const CELL = /(?:^|\s)(?:cellular|lte|[345]g|esim)(?:\s|$)/;
+  const NO_CELL = /(?:^|\s)(?:no|non|not|without)\s(?:cellular|lte|[345]g)(?:\s|$)|(?:^|\s)gps only(?:\s|$)|(?:^|\s)wi\s?fi only(?:\s|$)/;
+  const sizeIn = (h, kind) => {
+    if (!kind) return R.sizeOf(h);
+    const cell = CELL.test(h) && !NO_CELL.test(h) ? "cellular" : "";
+    if (kind !== "watch") return [R.sizeOf(h), cell].filter(Boolean).join(" ");
+    const mm = new Set([...h.matchAll(/(?:^|\s)(3[6-9]|4\d|5[0-2])\s?mm(?=\s|$)/g)].map((m) => `${m[1]}mm`));
+    return [mm.size === 1 ? [...mm][0] : "", cell].filter(Boolean).join(" ");
+  };
   // A title's version as [tier, generation, storage], each "" when it names none, and a fourth, "locked", for a
   // carrier-locked phone (R.lockOf). `same`: labels that are the thing itself, not a version (the search names them,
   // or most sales have them); "size" there turns storage off.
@@ -825,15 +922,15 @@
       versionSeen.set(key, out);
       return out;
     }
+    const kind = deviceOf(h);
     // A graphics card or a processor: its model is the version ("rtx 3060 ti"), and a card's size is its memory
     // ("12gb"). No tier: "Ultra", "Mini" and "Slim" there are a maker's line ("FTW3 Ultra", "ITX Mini", "Gaming X
-    // Slim"), and "Core Ultra 7" is in the model.
-    const part = APPLE.test(h) ? "" : R.partOf(h); // a Mac's chip or year says more than its Intel model
-    // "M1 Pro" is the chip's, not a Pro tier: the chip carries it as its generation.
-    const tier = part ? "" : R.variantOf(h.replace(/(^|\s)(m[1-9]) (?:pro|max|ultra)(?=\s|$)/g, "$1$2"), same.join(" "));
-    // A phone's model only in a split saved since names were (as modelNumberOf): one saved before reads as it did.
-    const gen = part || R.genOf(h) || R.chipOf(h) || (same.some((x) => x.startsWith("@")) && R.phoneModelOf(h)) || modelNumberOf(h, same) || R.yearOf(h);
-    const size = same.includes("size") ? "" : part && !PC_BUILD.test(h) ? (isGpu(part) ? R.vramOf(h) : "") : R.sizeOf(h);
+    // Slim"), and "Core Ultra 7" is in the model. Not in a Mac (its chip or year says more than its Intel model), a
+    // Surface, a tablet or a watch, which read their own.
+    const part = APPLE.test(h) || kind ? "" : R.partOf(h);
+    const tier = part ? "" : tierIn(h, kind, same);
+    const gen = part || genIn(h, same, kind);
+    const size = same.includes("size") ? "" : part && !PC_BUILD.test(h) ? (isGpu(part) ? R.vramOf(h) : "") : sizeIn(h, kind);
     const out = [tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
     const lock = R.lockOf(title); // the whole title: "iPhone 13 with case - Unlocked"
     if (lock && !same.includes(lock)) out.push(lock);
@@ -859,6 +956,8 @@
     const same = [...R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m)), ...[R.generationOf(query)].filter(Boolean), ...(R.sizeOf(query) ? ["size"] : []), ...[R.lockOf(`phone ${query}`)].filter(Boolean)];
     const cam = R.cameraSearch(query);
     for (const x of cam ? cameraSame(query, cam) : searchName(query)) if (!same.includes(x)) same.push(x);
+    const qh = head(query), qt = cam ? "" : tierIn(qh, deviceOf(qh), []);
+    if (qt && !same.includes(qt)) same.push(qt); // "fire hd 10": every sale is an HD 10
     const counts = new Map();
     for (const s of sales) {
       const [t, , , l] = R.versionOf(s.title, same);
@@ -934,12 +1033,17 @@
       if (brand.startsWith("ultra")) return `Core Ultra ${brand.slice(6)} ${num.toUpperCase()}`;
       return `${brand === "ryzen" || brand === "arc" ? brand[0].toUpperCase() + brand.slice(1) : brand.toUpperCase()} ${num.toUpperCase()}${suffix}`;
     }
+    const tab = w.match(/^tab ([sa])(\d+)$/);
+    if (tab) return `Tab ${tab[1].toUpperCase()}${tab[2]}`; // a Galaxy Tab: "Tab S7"
     const mount = w.match(/^(\S+) mount$/)?.[1];
     if (mount) return `${mount.toUpperCase()} mount`; // "RF mount"
     // A camera's model or a lens: "“A7R”", "“A7R kit”", "24-70mm f/2.8".
     const parts = w.split(" ");
     if (parts.some((x) => /^\d+(?:\.\d+)?(?:-\d+)?mm$|^f\d/.test(x))) return parts.map((x) => x.replace(/^f(?=\d)/, "f/")).join(" ");
     if (parts.some(isCamModel)) return `\u201c${parts.map((x) => (isCamModel(x) ? x.toUpperCase() : x)).join(" ")}\u201d`;
+    if (/^forerunner \d+$/.test(w)) return `Forerunner ${w.split(" ")[1]}`;
+    if (/^(?:fire|hdx?|max) \d+/.test(w)) return `Fire ${w.replace(/^fire /, "").replace(/\b(hdx?)\b/, (x) => x.toUpperCase()).replace(/\b(max|plus|kids)\b/g, (x) => x[0].toUpperCase() + x.slice(1))}`; // "Fire HD 10 Plus"
+    if (/^(?:\d+mm|\d+(?:gb|tb))?(?: ?cellular)?$/.test(w) && w) return w.replace(/(\d+)(gb|tb)/, (_, n, u) => n + u.toUpperCase()); // "45mm cellular", "128GB cellular"
     return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
   };
   R.variantLike = (market) => (market?.variantWords || []).join(" ");

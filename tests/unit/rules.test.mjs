@@ -1024,7 +1024,7 @@ test("versionOf: a number after the thing's name is its generation", () => {
   assert.deepEqual(R.versionOf("Apple AirPods Pro 2 USB-C", ["pro", "@pro"]), ["", "gen 2", ""], "the same group as “AirPods Pro 2nd Generation”");
   assert.deepEqual(R.versionOf("Meta Quest 3 512GB", ["@quest"]), ["", "gen 3", "512gb"]);
   assert.deepEqual(R.versionOf("Apple iPad mini 6 64GB", ["@ipad"]), ["mini", "gen 6", "64gb"], "after a tier word too");
-  assert.deepEqual(R.versionOf("Apple Watch Series 7 45mm GPS", ["@watch"]), ["", "gen 7", ""]);
+  assert.deepEqual(R.versionOf("Apple Watch Series 7 45mm GPS", ["@watch"]), ["", "gen 7", "45mm"]);
   assert.deepEqual(R.versionOf("MacBook Pro 14 M1 Pro 16GB 512GB", ["pro", "@pro"]), ["", "m1 pro", "512gb"], "a screen size before the chip isn't a model: the chip is");
   assert.deepEqual(R.versionOf("Bose QuietComfort 45", ["@quietcomfort"]), ["", "", ""], "over 20 is a model name, not a generation");
   assert.deepEqual(R.versionOf("Nintendo Switch 2 Console", []), ["", "", ""], "a typical price saved before this reads as it did");
@@ -1120,7 +1120,7 @@ test("versionOf: Macs and iPads by chip or year, not by screen size", () => {
   assert.deepEqual(R.versionOf("Mac mini M2 Pro 512GB", ["@mac"]), ["mini", "m2 pro", "512gb"], "M2 Pro is the chip, not a Pro tier");
   assert.deepEqual(R.versionOf("Apple iPad Pro 11 M2 128GB", ["@ipad"]), ["pro", "m2", "128gb"], "11 is the screen");
   assert.deepEqual(R.versionOf("Apple iPad Pro 11 Wi-Fi 128GB", ["@ipad"]), ["pro", "", "128gb"]);
-  assert.deepEqual(R.versionOf("Apple Watch Series 7 2021 45mm", ["@watch"]), ["", "gen 7", ""], "a series number before a year");
+  assert.deepEqual(R.versionOf("Apple Watch Series 7 2021 45mm", ["@watch"]), ["", "gen 7", "45mm"], "a series number before a year");
   const sales = [
     ...[150, 155, 160, 160, 165, 170, 175, 180].map((total, i) => ({ title: `Apple MacBook Air 13 2017 i5 ${i}`, total })),
     ...[400, 410, 420, 430, 430, 440, 450, 460].map((total, i) => ({ title: `MacBook Air M1 8GB 256GB ${i}`, total })),
@@ -1128,6 +1128,67 @@ test("versionOf: Macs and iPads by chip or year, not by screen size", () => {
   const g = R.variantGroups(sales, "macbook air");
   assert.deepEqual([g.groups["/2017/*"].length, g.groups["/m1/*"].length, g.groups["/*/*"].length], [8, 8, 16]);
   assert.deepEqual(R.variantGroups(sales, "macbook air m1").same, ["m1", "@m1"]);
+});
+
+test("versionOf: watches by series, case size and cellular", () => {
+  const w = ["@watch"];
+  assert.deepEqual(R.versionOf("Apple Watch Series 8 41mm GPS + Cellular Midnight", w), ["", "gen 8", "41mm cellular"], "“+ Cellular” isn't something added");
+  assert.deepEqual(R.versionOf("Apple Watch Series7 45mm", w), ["", "gen 7", "45mm"]);
+  assert.deepEqual(R.versionOf("Apple Watch S9 45mm Aluminum", w), ["", "gen 9", "45mm"], "an S9 is a Series 9");
+  assert.deepEqual(R.versionOf("Apple Watch SE 2022 40mm", w), ["se", "gen 2", "40mm"], "the 2022 SE is the 2nd generation");
+  assert.deepEqual(R.versionOf("Apple Watch SE 2nd Gen 40mm", w), ["se", "gen 2", "40mm"]);
+  assert.deepEqual(R.versionOf("Apple Watch Ultra 2 49mm Titanium", w), ["ultra", "gen 2", "49mm"]);
+  assert.deepEqual(R.versionOf("Apple Watch Series 6 44mm GPS only", w), ["", "gen 6", "44mm"]);
+  assert.deepEqual(R.versionOf("Apple Watch Series 7 32GB 41mm 45mm bands", w), ["", "gen 7", ""], "a watch's storage isn't a version, and two cases are none");
+  assert.deepEqual(R.versionOf("Samsung Galaxy Watch4 40mm", w), ["", "gen 4", "40mm"]);
+  assert.deepEqual(R.versionOf("Galaxy Watch 6 Classic 47mm LTE", w), ["classic", "gen 6", "47mm cellular"]);
+  assert.deepEqual(R.versionOf("Samsung Galaxy Watch5 Pro 45mm", w), ["pro", "gen 5", "45mm"]);
+  assert.deepEqual(R.versionOf("Galaxy Watch Active2 44mm", ["@galaxy"]), ["active", "gen 2", "44mm"]);
+  assert.deepEqual(R.versionOf("Garmin Forerunner 245 Music", ["@garmin"]), ["", "forerunner 245", ""]);
+  assert.deepEqual(R.variantGroups([], "garmin forerunner 245").same.slice(0, 1), ["forerunner 245"]);
+  assert.deepEqual(["45mm cellular", "cellular", "128gb cellular", "forerunner 245"].map(R.kindWord), ["45mm cellular", "cellular", "128GB cellular", "Forerunner 245"]);
+});
+
+test("versionOf: tablets by line and generation, and cellular ones apart", () => {
+  const tab = ["@tab"];
+  assert.deepEqual(R.versionOf("Samsung Galaxy Tab S7 128GB WiFi", tab), ["", "tab s7", "128gb"]);
+  assert.deepEqual(R.versionOf("Galaxy Tab A7 Lite 32GB", tab), ["lite", "tab a7", "32gb"], "an A7 isn't an S7");
+  assert.deepEqual(R.versionOf("Galaxy Tab S9 FE 5G 128GB", tab), ["fe", "tab s9", "128gb cellular"]);
+  assert.deepEqual(R.versionOf("Galaxy Tab S7+ 256GB", tab), ["plus", "tab s7", "256gb"]);
+  assert.deepEqual(R.versionOf("Galaxy Tab S8 Ultra 256GB", ["tab s8", "@s8"]), ["ultra", "", "256gb"], "the search names the S8");
+  assert.equal(R.generationOf("galaxy tab s8"), "tab s8");
+  assert.equal(R.kindWord("tab s7"), "Tab S7");
+  assert.deepEqual(R.versionOf("iPad Air 4th Gen 64GB Wi-Fi + Cellular", ["@air"]), ["", "gen 4", "64gb cellular"]);
+  assert.deepEqual(R.versionOf("iPad Air 4 64GB WiFi", ["@air"]), ["", "gen 4", "64gb"]);
+  // Surface: the number comes before the processor, and the lines are tiers in a broad search.
+  const pro = ["pro", "@pro"];
+  assert.deepEqual(R.versionOf("Microsoft Surface Pro 7 i5 8GB 256GB", pro), ["", "gen 7", "256gb"]);
+  assert.deepEqual(R.versionOf("Surface Pro 4 m3 128GB", pro), ["", "gen 4", "128gb"]);
+  assert.deepEqual(R.versionOf("Surface Pro 11th Edition Snapdragon X 512GB", pro), ["", "gen 11", "512gb"]);
+  assert.deepEqual(R.versionOf("Surface Pro X SQ1 256GB", pro), ["pro x", "", "256gb"]);
+  assert.deepEqual(R.versionOf("Surface Go 2 64GB", ["@surface"]), ["go", "gen 2", "64gb"]);
+  assert.deepEqual(R.versionOf("Surface Laptop 4 13.5 i5", ["@surface"]), ["laptop", "gen 4", ""]);
+  assert.deepEqual(R.versionOf("Dell XPS 13 i7 16GB", ["@xps"]), ["", "", "16gb"], "a laptop's screen before its processor still isn't a model");
+  // Kindle: Amazon's generation, however it's said.
+  const pw = ["@paperwhite", "paperwhite"];
+  for (const t of ["Kindle Paperwhite 3", "Kindle Paperwhite 7th Generation", "Kindle Paperwhite 2015 4GB", "Kindle Paperwhite 3rd gen"]) assert.deepEqual(R.versionOf(t, pw), ["", "gen 7", ""], t);
+  assert.deepEqual(R.versionOf("Kindle Paperwhite 5 8GB", pw), ["", "gen 11", ""], "a Paperwhite 5 is the 11th");
+  assert.deepEqual(R.versionOf("Kindle Paperwhite 2018", pw), ["", "gen 10", ""]);
+  assert.deepEqual(R.versionOf("Kindle Paperwhite Signature Edition 32GB 2021", pw), ["signature", "gen 11", "32gb"]);
+  assert.deepEqual(R.versionOf("Kindle Oasis 2 8GB", ["@kindle"]), ["oasis", "gen 9", ""]);
+  assert.deepEqual(R.variantGroups([], "kindle paperwhite 3").same.slice(0, 1), ["gen 7"], "the search's number, as the 7th too");
+  // Fire: the number is the screen, a tier; a year is the generation.
+  const fire = ["@tablet"];
+  assert.deepEqual(R.versionOf("Amazon Fire HD 10 11th Generation 32GB", fire), ["hd 10", "gen 11", "32gb"]);
+  assert.deepEqual(R.versionOf("Fire HD 10 2021 32GB", fire), ["hd 10", "gen 11", "32gb"], "2021 is the 11th");
+  assert.deepEqual(R.versionOf("Fire 7 Tablet 12th gen", fire), ["fire 7", "gen 12", ""]);
+  assert.deepEqual(R.versionOf("Fire HD 8 Plus 10th Gen", fire), ["hd 8 plus", "gen 10", ""]);
+  assert.deepEqual(R.versionOf("Fire Max 11 64GB", fire), ["max 11", "", "64gb"]);
+  const g = R.variantGroups([], "fire hd 10");
+  assert.ok(g.same.includes("hd 10") && !g.same.includes("gen 10"), "“fire hd 10” names a screen, not the 10th generation");
+  assert.deepEqual(R.versionOf("Fire HD 10 9th gen", g.same), ["", "gen 9", ""]);
+  assert.deepEqual(R.versionOf("Amazon Fire TV Stick 4K 2021", ["@stick"]), ["", "2021", ""], "a Fire TV isn't a tablet");
+  assert.deepEqual(["hd 10 plus", "fire 7", "max 11"].map(R.kindWord), ["Fire HD 10 Plus", "Fire 7", "Fire Max 11"]);
 });
 
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.

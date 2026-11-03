@@ -47,6 +47,15 @@ export const MARKETS = {
     "pro/*/*": { median: 450, p10: 380, p25: 420, p75: 480, n: 15, confidence: "good" },
     "pro max/*/*": { median: 520, p10: 440, p25: 490, p75: 560, n: 10, confidence: "fair" },
     "mini/*/*": { median: 230, p10: 190, p25: 215, p75: 250, n: 10, confidence: "fair" },
+    "/*/*/locked": { median: 215, p10: 170, p25: 200, p75: 235, n: 11, confidence: "fair" }, // Cricket, Verizon, "carrier locked"
+  } },
+  // S9s beside S24 Ultras: each model on its own (assumed numbers).
+  "samsung galaxy": { median: 300, p10: 110, ship: 10, confidence: "fair", n: 60, variants: {
+    _same: ["@galaxy"],
+    "/s21/*": { median: 180, p10: 140, p25: 165, p75: 200, n: 14, confidence: "good" },
+    "/s24/*": { median: 520, p10: 440, p25: 490, p75: 550, n: 10, confidence: "fair" },
+    "ultra/s24/*": { median: 760, p10: 650, p25: 720, p75: 800, n: 9, confidence: "fair" },
+    "/*/*": { median: 260, p10: 110, p25: 170, p75: 480, n: 32, confidence: "fair" },
   } },
   "airpods pro": { median: 110, ship: 6, confidence: "good", n: 50, variants: {
     _same: ["pro", "@pro"],
@@ -202,6 +211,12 @@ export const CASES = [
   ebay("iphone 13", "Apple iPhone 13 Mini 128GB Pink Unlocked", 179, 0, seller(99.4, 380), { truth: "honest", word: "good" }),
   fb("iphone 13", "iPhone 13 Pro Max 256gb unlocked", 420, { truth: "honest", word: "fair" }),
   ebay("iphone 13", "Apple iPhone 13 Pro Max 256GB NEW SEALED", 199, 0, seller(100, 0), { truth: "scam", scan: "great", note: "38% of a Pro Max, but 62% of the mix: no mark at all before" }),
+  // Phones by model and carrier lock (2026-11-02): a locked iPhone against locked sales, a Galaxy against its own model's.
+  ebay("iphone 13", "Apple iPhone 13 128GB Midnight Cricket Wireless", 205, 0, seller(99.6, 820), { truth: "honest", word: "fair", note: "a locked phone against locked sales; 64% of the mix before" }),
+  ebay("iphone 13", "Apple iPhone 13 128GB Starlight Verizon NEW SEALED", 89, 0, seller(100, 0), { truth: "scam", scan: "great", note: "41% of locked sales" }),
+  ebay("samsung galaxy", "Samsung Galaxy S24 128GB Onyx Black Unlocked", 499, 0, seller(99.8, "2.5K"), { truth: "honest", word: "fair", note: "an S24 against S24 sales; Above typical against the mix" }),
+  ebay("samsung galaxy", "Samsung Galaxy S21 5G 128GB Phantom Gray Unlocked", 170, 0, seller(99.5, 600), { truth: "honest", word: "fair", note: "an S21 at 57% of the mix" }),
+  ebay("samsung galaxy", "Samsung Galaxy S24 Ultra 256GB Titanium Gray NEW SEALED", 289, 0, seller(100, 1), { truth: "scam", scan: "great", note: "38% of an S24 Ultra, 96% of the mix: no mark at all before" }),
   // ---------- airpods pro, no generation named ($110 for the mix; 1st gen $75, 2nd gen $150) ----------
   ebay("airpods pro", "Apple AirPods Pro 2nd Generation USB-C", 129, 0, seller(99.8, "4K"), { truth: "honest", word: "fair" }),
   // 2026-10-27 review: titles the first reading of versions got wrong.

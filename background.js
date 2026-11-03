@@ -6,7 +6,10 @@
 //      on eBay the page fetches them itself)
 // Content scripts send messages; this file answers them.
 
-importScripts("lib/sites.js", "lib/shared.js"); // TKSites: the sites it works on. TKShared: link and photo checks, settings limits, alert rules
+// TKSites: the sites it works on. TKShared: link and photo checks, settings limits, alert rules. Chrome runs this as a
+// service worker and loads them here; Firefox runs it as an event page, which has no importScripts, and the
+// manifest's background.scripts list has loaded them already.
+if (typeof importScripts === "function") importScripts("lib/sites.js", "lib/shared.js");
 
 const DEFAULTS = {
   theme: "match", // match the browser (dark if it does not say), or "dark" / "light"
@@ -1390,7 +1393,9 @@ async function openHome({ q = "" } = {}) {
   const base = chrome.runtime.getURL("hub/hub.html");
   const url = q ? `${base}?q=${encodeURIComponent(q.trim().slice(0, 200))}` : base;
   // Our own pages are found through getContexts (tabs.query can't see extension URLs without the "tabs" permission).
-  const [open] = await chrome.runtime.getContexts({ contextTypes: ["TAB"] }).then((cs) => cs.filter((x) => x.documentUrl?.startsWith(base) && x.tabId >= 0)).catch(() => []);
+  // A browser without it (older Firefox) opens a new tab.
+  const contexts = chrome.runtime.getContexts ? chrome.runtime.getContexts({ contextTypes: ["TAB"] }).catch(() => []) : Promise.resolve([]);
+  const [open] = (await contexts).filter((x) => x.documentUrl?.startsWith(base) && x.tabId >= 0);
   if (open) {
     await chrome.tabs.update(open.tabId, { active: true, ...(q ? { url } : {}) });
     await chrome.windows.update(open.windowId, { focused: true });

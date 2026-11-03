@@ -934,6 +934,75 @@ test("cheapReason: a lesser card or processor than the search names", () => {
   for (const [t, q] of [["Ryzen 5 5600X", "ryzen 5600"], ["RTX 3060 Ti", "rtx 3060 ti"], ["RTX 3070", "rtx 3060"]]) assert.equal(R.cheapReason(t, "", q), "", `${t} / ${q}`);
 });
 
+test("cameraSearch: a camera or a lens search, and nothing else a camera maker sells", () => {
+  for (const q of ["sony a7", "sony a7iii", "canon 5d mark iii", "nikon d750", "fujifilm x100", "canon camera", "mirrorless camera"]) assert.equal(R.cameraSearch(q), "camera", q);
+  for (const q of ["canon 50mm", "sony 24-70", "nikon 70-200 2.8", "85mm 1.8", "sigma art lens"]) assert.equal(R.cameraSearch(q), "lens", q);
+  for (const q of ["sony ps5", "sony wh-1000xm4", "canon pixma", "sony headphones", "gopro hero 11", "dewalt 12-20", "iphone 13", "macbook air", ""]) assert.equal(R.cameraSearch(q), "", q);
+});
+
+test("versionOf: a camera by generation, model letter and kit", () => {
+  const a7 = R.variantGroups([], "sony a7").same;
+  assert.deepEqual(a7, ["#camera", "@a7"]);
+  assert.deepEqual(R.versionOf("Sony Alpha a7 III Full-Frame Interchangeable-Lens Mirrorless Camera Body Only", a7), ["", "gen 3", ""], "a body is the plain one, and \"Interchangeable-Lens\" isn't a kit");
+  assert.deepEqual(R.versionOf("Sony A7III with FE 28-70mm Lens", a7), ["kit", "gen 3", ""]);
+  assert.deepEqual(R.versionOf("Sony A7M3 kit", a7), ["kit", "gen 3", ""], "\"A7M3\" is the a7 III");
+  assert.deepEqual(R.versionOf("SONY A7RIII mirrorless", a7), ["a7r", "gen 3", ""], "a letter after the model is a model of its own");
+  assert.deepEqual(R.versionOf("Sony a7C II", a7), ["a7c", "gen 2", ""]);
+  assert.deepEqual(R.versionOf("Sony A7 IV + 64GB card", a7), ["", "gen 4", ""]);
+  assert.deepEqual(R.versionOf("Sony Alpha A7 camera, 2 batteries, charger, cleaning kit", a7), ["", "", ""], "a cleaning kit isn't a lens");
+  assert.deepEqual(R.versionOf("Sony a7 III body, no lens", a7), ["", "gen 3", ""]);
+  const iii = R.variantGroups([], "canon 5d mark iii").same;
+  assert.deepEqual(iii, ["#camera", "gen 3", "@5d"], "the search names the generation: it's the thing itself");
+  assert.deepEqual(R.versionOf("Canon 5D MkIII 24-105 f/4L kit", iii), ["kit", "", ""]);
+  assert.deepEqual(R.versionOf("Canon 5DMKIV", iii), ["", "gen 4", ""]);
+  const x100 = R.variantGroups([], "fujifilm x100").same;
+  assert.deepEqual(["Fujifilm X100V Silver", "FUJIFILM X100VI", "Fujifilm X100F", "Fujifilm X100"].map((t) => R.versionOf(t, x100).slice(0, 2)), [["", "gen 5"], ["", "gen 6"], ["x100f", ""], ["", ""]]);
+  assert.deepEqual(R.versionOf("Nikon Z 6II body", R.variantGroups([], "nikon z6").same), ["", "gen 2", ""]);
+  assert.deepEqual(R.versionOf("Sony a7 III body", ["@a7"]), ["", "", ""], "a typical price saved before this reads as it did");
+});
+
+test("versionOf: a lens by focal length, aperture, mount and generation", () => {
+  const fifty = R.variantGroups([], "canon 50mm").same;
+  assert.deepEqual(fifty, ["#lens", "50mm"]);
+  assert.deepEqual(R.versionOf("Canon EF 50mm f/1.8 STM Lens", fifty), ["f1.8", "", "ef mount"]);
+  assert.deepEqual(R.versionOf("Canon RF50mm F1.8 STM", fifty), ["f1.8", "", "rf mount"]);
+  assert.deepEqual(R.versionOf("Canon EF 50mm f/1.2L USM", fifty), ["f1.2", "", "ef mount"]);
+  assert.deepEqual(R.versionOf("Canon 50mm 1:1.4 lens", fifty), ["f1.4", "", ""]);
+  assert.deepEqual(R.versionOf("Canon EF 50mm f/1.8 II", fifty), ["f1.8", "gen 2", "ef mount"]);
+  const gm = R.variantGroups([], "sony 24-70").same;
+  assert.deepEqual(gm, ["#lens", "24-70mm"], "a range with no \"mm\" in a search");
+  assert.deepEqual(R.versionOf("Sony FE 24-70mm f/2.8 GM II", gm), ["f2.8", "gen 2", ""], "\"FE\" isn't a Galaxy FE");
+  assert.deepEqual(R.versionOf("Sony 24-70mm F4 ZA OSS", gm), ["f4", "", ""]);
+  assert.deepEqual(R.versionOf("Sony a7 III with 24-70mm f/4", gm)[0], "kit", "a camera with the lens");
+  const tamron = R.variantGroups([], "tamron 28-75 2.8").same;
+  assert.deepEqual(tamron, ["#lens", "28-75mm", "f2.8"]);
+  assert.deepEqual(R.versionOf("Tamron 28-75mm F/2.8 Di III RXD Sony E", tamron), ["", "", ""], "Di III is a mount line");
+  assert.deepEqual(R.versionOf("Tamron 28-75mm f/2.8 Di III VXD G2", tamron), ["", "gen 2", ""]);
+  assert.deepEqual(R.versionOf("Nikon AF-S 70-200mm f/2.8G ED VR II", R.variantGroups([], "nikon 70-200").same), ["f2.8", "gen 2", ""]);
+  assert.deepEqual(R.versionOf("Nikon Z 70-200mm f/2.8 VR S", R.variantGroups([], "nikon 70-200").same), ["f2.8", "", "z mount"]);
+  assert.deepEqual(["f2.8", "24-70mm f4-5.6", "rf mount", "ef-s mount", "a7r", "a7r kit", "kit", "lite"].map(R.kindWord), ["f/2.8", "24-70mm f/4-5.6", "RF mount", "EF-S mount", "\u201cA7R\u201d", "\u201cA7R kit\u201d", "\u201ckit\u201d", "\u201clite\u201d"]);
+});
+
+test("forVariant: an a7 IV against a7 IVs, an f/1.2L against f/1.2Ls, an RF lens against RF ones", () => {
+  const sales = [
+    ...[460, 470, 480, 480, 490, 500, 510, 520].map((total, i) => ({ title: `Sony a7 II body ${i}`, total })),
+    ...[1550, 1600, 1620, 1650, 1650, 1680, 1700, 1720].map((total, i) => ({ title: `Sony Alpha a7 IV Body Only ${i}`, total })),
+    ...[1100, 1120, 1150, 1150, 1180, 1200].map((total, i) => ({ title: `Sony A7III w/ 28-70mm kit ${i}`, total })),
+  ];
+  const g = R.variantGroups(sales, "sony a7");
+  assert.deepEqual([g.groups["/gen 2/*"].length, g.groups["/gen 4/*"].length, g.groups["kit/gen 3/*"].length, g.groups["/*/*"].length], [8, 8, 6, 16]);
+  const market = { median: 1000, n: 60, confidence: "fair", variants: {
+    _same: ["#lens", "50mm"],
+    "f1.8/*/*": { median: 105, n: 30, confidence: "good" },
+    "f1.8/*/rf mount": { median: 150, n: 8, confidence: "fair" },
+    "f1.2/*/*": { median: 1100, n: 8, confidence: "fair" },
+  } };
+  assert.equal(R.forVariant(market, { title: "Canon EF 50mm f/1.2L USM" }).median, 1100);
+  assert.equal(R.forVariant(market, { title: "Canon RF 50mm F1.8 STM" }).median, 150);
+  assert.equal(R.forVariant(market, { title: "Canon EF 50mm f/1.8 STM" }).median, 105, "an EF one: any mount, as none of its own was kept");
+  assert.equal(R.forVariant(market, { title: "Canon 50mm f/1.8" }).median, 105, "no mount named: any mount");
+});
+
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.
 test("genOf and sizeOf: a generation and a storage size, however they're written", () => {
   for (const t of ["AirPods Pro 2nd Generation", "AirPods Pro (2nd Gen) USB-C", "AirPods Pro Gen 2", "iPad generation 2"]) assert.equal(R.genOf(t), "gen 2", t);

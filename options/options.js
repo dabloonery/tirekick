@@ -34,7 +34,9 @@ const showPreset = () => {
   sel.value = chosen ? serviceOf() : "";
   document.getElementById("serviceHint").textContent = chosen ? serviceInfo(sel.value).hint || "" : "";
 };
-// Tirekick may reach the listed services already; any other address needs your OK once.
+// Tirekick may reach the listed services already; any other address needs your OK once. Called at the start of
+// the click, before any await: Firefox shows the prompt only then. Outside a click (a new key tests itself) the
+// request is refused, and whether access is already there decides.
 async function allowOrigin(url) {
   let origin;
   try {
@@ -43,7 +45,7 @@ async function allowOrigin(url) {
     return false;
   }
   const origins = [`${origin}/*`];
-  return (await chrome.permissions.contains({ origins })) || chrome.permissions.request({ origins }).catch(() => false);
+  return chrome.permissions.request({ origins }).catch(() => chrome.permissions.contains({ origins })).catch(() => false);
 }
 const msg = document.getElementById("msg");
 const testMsg = document.getElementById("testMsg");
@@ -320,8 +322,24 @@ async function notifyAccess(el) {
   note("Notifications stay off: the browser wasn't allowed to show them.");
   return false;
 }
+// Firefox asks before an add-on sends what's on a page anywhere (data_collection_permissions in manifest.json). The
+// AI reads listing text, so turning it on asks Firefox once, right in the click, and turning it off gives that back.
+// Other browsers have no such question.
+const ASKS_DATA = location.protocol === "moz-extension:";
+const LISTING_TEXT = { data_collection: ["websiteContent"] };
+async function aiConsent(on) {
+  if (!ASKS_DATA) return true;
+  if (!on) return void chrome.permissions.remove(LISTING_TEXT).catch(() => {});
+  if (await chrome.permissions.request(LISTING_TEXT).catch(() => false)) return true;
+  note("The AI stays off: Firefox wasn't allowed to send listing text to an AI service.");
+  return false;
+}
 for (const f of FIELDS) {
   document.getElementById(f).addEventListener("change", async () => {
+    if (f === "useAI" && (await aiConsent(document.getElementById(f).checked)) === false) {
+      document.getElementById(f).checked = false;
+      return showAIOff();
+    }
     if (optInSite(f) && (await siteAccess(f)) === false) return;
     if (f === "notifyGreat" && (await notifyAccess(document.getElementById(f))) === false) return;
     const done = saving.then(() => saveField(f));
@@ -341,7 +359,8 @@ const showFocus = async () => {
 };
 for (const r of document.querySelectorAll('input[name="focus"]')) {
   r.addEventListener("change", async () => {
-    await chrome.storage.local.set(TKRules.FOCUS[r.value]);
+    const consent = aiConsent(TKRules.FOCUS[r.value].useAI === true); // asked first, in the click
+    await chrome.storage.local.set({ ...TKRules.FOCUS[r.value], ...((await consent) === false ? { useAI: false } : {}) });
     await load();
     note(r.value === "scams" ? "Saved. Cards show only scam warnings now." : r.value === "noai" ? "Saved. Your AI isn't used now." : "Saved. Everything is on, AI scores included.");
   });
@@ -445,13 +464,13 @@ async function testClaude() {
 
 // Ollama: lists installed models so you can see whether the names above match.
 // Other services: lists the models, so you can pick one instead of guessing its ID.
-async function testOpenAI() {
+async function testOpenAI(access) {
   const url = document.getElementById("oaiUrl").value.trim().replace(/\/+$/, "");
   const key = document.getElementById("oaiKey").value.trim();
   if (!url) return (testMsg.textContent = "Pick a service, or enter its address.");
   const { oaiKeyFor = "" } = await chrome.storage.local.get("oaiKeyFor");
   if (!TKShared.oaiKeyFits({ oaiKey: key, oaiKeyFor, oaiUrl: url })) return (testMsg.textContent = "That key was entered for another address. Paste the key for this one.");
-  if (!(await allowOrigin(url))) return (testMsg.textContent = "Tirekick needs your permission to reach that address.");
+  if (!(await access)) return (testMsg.textContent = "Tirekick needs your permission to reach that address.");
   testMsg.textContent = "Testing…";
   try {
     const res = await fetch(`${url}/models`, { headers: key ? { Authorization: `Bearer ${key}` } : {} });
@@ -473,11 +492,13 @@ async function testOpenAI() {
 }
 
 document.getElementById("test").addEventListener("click", async () => {
+  const provider = document.getElementById("provider").value;
+  const access = provider === "anthropic" ? null : allowOrigin(document.getElementById(provider === "openai" ? "oaiUrl" : "ollamaUrl").value.trim().replace(/\/+$/, ""));
   await saving;
-  if (document.getElementById("provider").value === "anthropic") return testClaude();
-  if (document.getElementById("provider").value === "openai") return testOpenAI();
+  if (provider === "anthropic") return testClaude();
+  if (provider === "openai") return testOpenAI(access);
   const url = document.getElementById("ollamaUrl").value.trim().replace(/\/+$/, "");
-  if (!(await allowOrigin(url))) return (testMsg.textContent = "Tirekick needs your permission to reach that address.");
+  if (!(await access)) return (testMsg.textContent = "Tirekick needs your permission to reach that address.");
   testMsg.textContent = "Testing…";
   try {
     const res = await fetch(`${url}/api/tags`);

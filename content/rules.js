@@ -695,6 +695,120 @@
     if (/^\d{1,2}$/.test(last)) return w.length > 1 ? [`gen ${+last}`, `@${w[w.length - 2]}`] : [];
     return [`@${last}`];
   };
+  // Cameras and lenses (2026-11-02). A "sony a7" search has the a7 II at $500 beside the a7 IV at $1,700, and a body
+  // beside a kit with a lens; a "canon 50mm" search has the f/1.8 at $100 beside the f/1.2L at $1,200. A search for a
+  // camera (a camera maker and a model, or "camera") or a lens (a focal length, or "lens") is marked in `same` ("#camera",
+  // "#lens"; a typical price saved before reads as it did), and its titles are read the camera way:
+  //  - a camera: "Mark III", "Mk2" or "III" after the model ("a7 III", "Z6 II", "A7III", "X100V") is the generation; a
+  //    letter after the search's model ("a7R", "a7S" in a "sony a7" search) is a model of its own (a tier, "a7r"); a
+  //    lens with it ("with 28-70mm", "lens kit") is a "kit", apart from a body.
+  //  - a lens: its focal length ("24-70mm") and widest aperture ("f2.8") are its tier, "II", "Mark II" or Tamron's
+  //    "G2" its generation ("GM II"), and a Canon or Nikon mount named before the focal length ("RF 50mm") takes the
+  //    storage's place ("rf mount"; none means it doesn't say, so any mount).
+  const CAMERA_MAKER = /(?:^|\s)(?:sony|canon|nikon|nikkor|fujifilm|fuji|panasonic|lumix|olympus|om system|leica|pentax|ricoh|hasselblad|sigma|tamron|tokina|samyang|rokinon|viltrox)(?:\s|$)/;
+  const CAMERA_WORD = /(?:^|\s)(?:cameras?|dslr|mirrorless|camcorder)(?:\s|$)/;
+  // What a camera maker makes besides cameras: a "sony ps5" or "canon pixma" search stays as it was.
+  const NOT_CAMERA = /(?:^|\s)(?:ps\d|playstation|bravia|tvs?|television|headphones?|earbuds|pixma|printers?|ink|toner|walkman|soundbar|speakers?|xperia|calculator)(?:\s|$)/;
+  // A camera model: a few letters and a number ("a7", "5d", "z6", "x100", "gh5", "rx100", "r6", "a7r"), not a size.
+  const CAM_MODEL = /^(?=[a-z]*\d)[a-z]{0,3}\d{1,4}[a-z]{0,2}$/;
+  const NOT_CAM_MODEL = /(?:gb|tb|mb|mp|mm|k|fps|x)$/;
+  const isCamModel = (w) => CAM_MODEL.test(w) && /[a-z]/.test(w) && !NOT_CAM_MODEL.test(w);
+  const ROMAN = { ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8 };
+  // "A7III", "A7RIV", "Z6II", "X100VI" as "a7 iii", "a7r iv", "z6 ii", "x100 vi"; "5DMKIII", "Mk2", "RX100M7" as "mark".
+  const camSplit = (t) => t
+    .replace(/mk\s?(?=(?:viii|vii|vi|iv|v|iii|ii|\d)(?:\s|$))/g, " mark ")
+    .replace(/(\d)m(\d)(?=\s|$)/g, "$1 mark $2")
+    .replace(/(^|\s)([a-z]{0,3}\d{1,4})([a-z]??)(viii|vii|vi|iv|v|iii|ii)(?=\s|$)/g, "$1$2$3 $4")
+    .replace(/\s+/g, " ").trim();
+  // The generation a camera's or a lens's title names: "gen 3" for "Mark III", "Mark 3", or "III" right after a model
+  // ("a7 III") or, on a lens, anywhere ("GM II", "VR II"; not Tamron's "Di III", a mount line), and "G2". "" for none,
+  // or several.
+  const camGenOf = (t, lens = false) => {
+    const w = t.split(" ");
+    const gens = new Set();
+    for (let i = 0; i < w.length; i++) {
+      if (w[i] === "mark" && (ROMAN[w[i + 1]] || /^\d$/.test(w[i + 1] || ""))) gens.add(ROMAN[w[i + 1]] || +w[i + 1]);
+      else if (ROMAN[w[i]] && w[i - 1] !== "mark" && (lens ? ROMAN[w[i]] <= 4 && w[i - 1] !== "di" : i > 0 && (isCamModel(w[i - 1]) || /^\d{1,4}$/.test(w[i - 1])))) gens.add(ROMAN[w[i]]);
+      else if (lens && /^g[2-4]$/.test(w[i])) gens.add(+w[i][1]);
+    }
+    return gens.size === 1 ? `gen ${[...gens][0]}` : "";
+  };
+  // A focal length: "24-70mm", "50mm", "28-70 f/3.5" ("mm" left out before an aperture). `loose`, for a search: any
+  // range ("sony 24-70").
+  const FOCAL = /(?:^|[^\d.])(\d{1,3}(?:\.\d)?)(?:\s?-\s?(\d{2,4}))?\s?mm(?![a-z])/;
+  const FOCAL_RANGE = /(?:^|[^\d.a-z])(\d{1,3})\s?-\s?(\d{2,4})(?=\s*(?:f\s?\/?\s?\d|1:\d|lens|$))/;
+  const FOCAL_LOOSE = /(?:^|[^\d.a-z])(\d{1,3})\s?-\s?(\d{2,4})(?![\d.])/;
+  const focalOf = (raw, loose = false) => {
+    const m = raw.match(FOCAL) || raw.match(loose ? FOCAL_LOOSE : FOCAL_RANGE);
+    if (!m || (m[2] && +m[2] <= +m[1]) || +m[1] < 4) return "";
+    return m[2] ? `${+m[1]}-${+m[2]}mm` : `${+m[1]}mm`;
+  };
+  // The widest aperture: "f/2.8", "F1.8", "f/4-5.6", "1:1.8" ("f2.8", "f4-5.6"). `loose`, for a search: a bare "1.8".
+  const APERTURE = /(?:^|[^a-z0-9])(?:f\s?\/?\s?|1:)(\d{1,2}(?:\.\d{1,2})?)(?:\s?-\s?(\d{1,2}(?:\.\d)?))?(?!\d)/;
+  const APERTURE_LOOSE = /(?:^|\s)(\d\.\d{1,2})(?=\s|$)/;
+  const apertureOf = (raw, loose = false) => {
+    const m = raw.match(APERTURE) || (loose && raw.match(APERTURE_LOOSE));
+    if (!m || !(+m[1] >= 0.9 && +m[1] <= 32)) return "";
+    return `f${+m[1]}${m[2] ? `-${+m[2]}` : ""}`;
+  };
+  // A Canon or Nikon mount right before the focal length ("Canon RF 50mm", "EF-S 18-55mm", "Nikkor Z 24-70mm"): an
+  // RF lens sells for more than the EF one. Sony's and Fujifilm's go unsaid too often to tell apart.
+  const MOUNT = /(?:^|[^a-z0-9-])(ef-?s|ef-?m|ef|rf-?s|rf|z)\s?(?=\d{1,3}(?:\.\d)?(?:\s?-\s?\d{2,4})?\s?mm)/;
+  const mountOf = (raw) => {
+    const m = raw.match(MOUNT)?.[1].replace(/^([er]f)-?([sm])$/, "$1-$2");
+    return m ? `${m} mount` : "";
+  };
+  // A body with a lens: a focal length of 8mm or more anywhere in the title, "kit", or a lens ("with lens"), unless it
+  // says "body only" or "no lens". Not "Interchangeable Lens Camera" (how Sony names a body), a lens cap or a cleaning kit.
+  const NO_KIT = /\b(?:body only|only body|no lens(?:es)?|without (?:a |the |any )?lens(?:es)?|lens(?:es)? (?:not included|sold separately))\b/;
+  const NOT_KIT = /\binterchangeable[\s-]lens\b|\blens(?:es)?[\s-](?:caps?|hoods?|adapters?|cloths?|cleaners?|cleaning|pens?|protectors?|filters?|covers?|mount|style)\b|\b(?:cleaning|repair|accessory|accessories|battery|charger|charging|cage|rig|tool|filter|strap|starter)\s+kits?\b/g;
+  const hasKit = (raw) => {
+    if (NO_KIT.test(raw)) return false;
+    const f = focalOf(raw);
+    if (f && parseFloat(f) >= 8) return true;
+    return /\b(?:kit|lens|lenses)\b/.test(raw.replace(NOT_KIT, " "));
+  };
+  // "camera", "lens" or "" for a search (see above).
+  R.cameraSearch = (query = "") => {
+    const raw = R.fold(String(query ?? "").replace(/(?:^|\s)-\S+/g, " "));
+    const t = R.normTitle(raw);
+    if (!t || NOT_CAMERA.test(t)) return "";
+    const maker = CAMERA_MAKER.test(t);
+    const lens = /(?:^|\s)(?:lens|lenses)(?:\s|$)/.test(t);
+    if (lens || (focalOf(raw, true) && (maker || /\d\s?mm\b/.test(raw)))) return "lens";
+    if (CAMERA_WORD.test(t) || (maker && camSplit(t).split(" ").some(isCamModel))) return "camera";
+    return "";
+  };
+  // What a camera or lens search adds to `same`: its mark, then what it names. A camera search's model ("@a7" for
+  // "sony a7 iii", "canon 5d mark iii") and generation; a lens search's focal length, aperture and mount.
+  const cameraSame = (query, kind) => {
+    const raw = R.fold(String(query ?? "").replace(/(?:^|\s)-\S+/g, " "));
+    const t = camSplit(R.normTitle(raw));
+    if (kind === "lens") return ["#lens", focalOf(raw, true), apertureOf(raw, true), mountOf(raw), camGenOf(t, true)].filter(Boolean);
+    const w = t.replace(/(?:\smark)?\s(?:viii|vii|vi|iv|v|iii|ii|\d)$/, "").split(" ");
+    return ["#camera", camGenOf(t), w.length && `@${w[w.length - 1]}`, /(?:^|\s)kit(?:\s|$)/.test(t) && "kit"].filter(Boolean);
+  };
+  // A title's version the camera way, as [tier, generation, mount or storage] (R.versionOf leaves out what's in `same`).
+  const cameraVersionOf = (title, h, same, kind) => {
+    const raw = R.fold(String(title ?? ""));
+    const t = camSplit(h);
+    if (kind === "lens") {
+      const rawHead = raw.split(/\s(?:with|w\/|includes?|including|bundle)\s|\s[+&]\s/)[0];
+      // A camera with the lens: "camera", "body" or "kit" (not "lens for a7 camera"), or the lens only after "with".
+      const focal = focalOf(rawHead);
+      const kit = (/(?:^|\s)(?:camera|body|dslr|mirrorless|kit)(?:\s|$)/.test(R.normTitle(raw).split(" for ")[0]) || (!focal && focalOf(raw))) && "kit";
+      // "FE" is Sony's full-frame lens line here, not a Galaxy "FE" tier.
+      const tier = [R.variantOf(t.replace(/(^|\s)fe(?=\s|$)/g, "$1"), same.join(" ")), focal, apertureOf(rawHead), kit].filter((x) => x && !same.includes(x));
+      return [tier.join(" "), R.genOf(t) || camGenOf(t, true), mountOf(rawHead)];
+    }
+    // A letter after the search's model is a model of its own: "a7r" in a "sony a7" search (not "a7" itself).
+    const name = same.find((x) => x.startsWith("@") && isCamModel(x.slice(1)))?.slice(1);
+    const model = (name && t.split(" ").find((x) => x.startsWith(name) && /^[a-z]{1,2}$/.test(x.slice(name.length)))) || "";
+    // A body, said or not, is the plain one: a camera's title says "body only" about as often as it leaves it out.
+    const word = R.variantOf(t.replace(model, ""), same.join(" "));
+    const tier = [model, word !== "body only" && word, word !== "body only" && hasKit(raw) && !same.includes("kit") && "kit"].filter(Boolean);
+    return [tier.join(" "), R.genOf(t) || camGenOf(t) || modelNumberOf(t, same) || R.yearOf(t), same.includes("size") ? "" : R.sizeOf(t)];
+  };
   // A title's version as [tier, generation, storage], each "" when it names none, and a fourth, "locked", for a
   // carrier-locked phone (R.lockOf). `same`: labels that are the thing itself, not a version (the search names them,
   // or most sales have them); "size" there turns storage off.
@@ -704,6 +818,13 @@
     if (versionSeen.has(key)) return versionSeen.get(key);
     if (versionSeen.size > 5000) versionSeen.clear();
     const h = head(title);
+    const cam = same.includes("#camera") ? "camera" : same.includes("#lens") ? "lens" : "";
+    if (cam) {
+      const [tier, gen, size] = cameraVersionOf(title, h, same, cam);
+      const out = [tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
+      versionSeen.set(key, out);
+      return out;
+    }
     // A graphics card or a processor: its model is the version ("rtx 3060 ti"), and a card's size is its memory
     // ("12gb"). No tier: "Ultra", "Mini" and "Slim" there are a maker's line ("FTW3 Ultra", "ITX Mini", "Gaming X
     // Slim"), and "Core Ultra 7" is in the model.
@@ -736,7 +857,8 @@
   R.VARIANT_COMMON = 0.6;
   R.variantGroups = (sales, query = "") => {
     const same = [...R.TIER_MODIFIERS.filter((m) => R.hasWord(query, m)), ...[R.generationOf(query)].filter(Boolean), ...(R.sizeOf(query) ? ["size"] : []), ...[R.lockOf(`phone ${query}`)].filter(Boolean)];
-    for (const x of searchName(query)) if (!same.includes(x)) same.push(x);
+    const cam = R.cameraSearch(query);
+    for (const x of cam ? cameraSame(query, cam) : searchName(query)) if (!same.includes(x)) same.push(x);
     const counts = new Map();
     for (const s of sales) {
       const [t, , , l] = R.versionOf(s.title, same);
@@ -761,7 +883,7 @@
   // Lite on a "nintendo switch" page whose own Lite sales are too few. It counts when every word of that search is
   // in the title and it names the version that's missing. No new lookup is made.
   const narrowerFor = (market, f, missing) => {
-    const names = (market.variants?._same || []).filter((x) => x.startsWith("@"));
+    const names = (market.variants?._same || []).filter((x) => x.startsWith("@") || x.startsWith("#"));
     for (const { q, market: m } of market.narrower || []) {
       if (!(m?.median > 0) || m.confidence === "rough" || !(m.n >= 5) || R.missingWord(f.title, q) || R.offSearch(f.title, q)) continue;
       const [t, g, , l] = R.versionOf(q, names);
@@ -812,6 +934,12 @@
       if (brand.startsWith("ultra")) return `Core Ultra ${brand.slice(6)} ${num.toUpperCase()}`;
       return `${brand === "ryzen" || brand === "arc" ? brand[0].toUpperCase() + brand.slice(1) : brand.toUpperCase()} ${num.toUpperCase()}${suffix}`;
     }
+    const mount = w.match(/^(\S+) mount$/)?.[1];
+    if (mount) return `${mount.toUpperCase()} mount`; // "RF mount"
+    // A camera's model or a lens: "“A7R”", "“A7R kit”", "24-70mm f/2.8".
+    const parts = w.split(" ");
+    if (parts.some((x) => /^\d+(?:\.\d+)?(?:-\d+)?mm$|^f\d/.test(x))) return parts.map((x) => x.replace(/^f(?=\d)/, "f/")).join(" ");
+    if (parts.some(isCamModel)) return `\u201c${parts.map((x) => (isCamModel(x) ? x.toUpperCase() : x)).join(" ")}\u201d`;
     return /^\d+(?:gb|tb)$/.test(w) ? w.toUpperCase() : `\u201c${w}\u201d`;
   };
   R.variantLike = (market) => (market?.variantWords || []).join(" ");

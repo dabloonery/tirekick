@@ -183,6 +183,30 @@ const kept = (await o.ev(`chrome.storage.local.get('saved')`)).saved?.["ebay:111
 ok("Reseller's Saved has a workbench: the net at the sold median, live as you type parts", net0 === "\u2248 $24 net" && net1 === "\u2248 $9 net", [net0, net1]);
 ok("…and keeps the parts and the note on the saved listing", kept?.parts === 15 && kept?.note === "needs a fan" && kept?.p === 85, kept);
 await wb.close();
+// With the AI off and no scan, the workbench and the CSV take the sold price from the free typical price, which is
+// kept on the saved listing (sold, ship) whenever it's on screen with one.
+await store(`{useAI:false, scans:{}, soldCache:{"v2:used:pentax k1000":{at:Date.now(), market:${JSON.stringify({ ...MARKET, median: 160, p25: 140, p75: 180, ship: 10 })}}}}`);
+const fs = await open("https://www.ebay.com/sch/i.html?_nkw=pentax+k1000");
+await waitFor(async () => (await o.ev(`chrome.storage.local.get('saved')`)).saved?.["ebay:1111111111"]?.sold > 0);
+const keptSold = (await o.ev(`chrome.storage.local.get('saved')`)).saved?.["ebay:1111111111"];
+ok("with the AI off, a saved listing on screen keeps the typical price it resells for", keptSold?.sold === 160 && keptSold?.ship === 10 && keptSold?.sa > 0 && keptSold?.parts === 15, keptSold);
+await R(fs, `r.querySelector('[data-act=tab]').click()`);
+await sleep(300);
+await R(fs, `r.querySelector('[data-view=saved]').click()`);
+await sleep(600);
+const freeNet = await R(fs, `const o = r.querySelector('.bench output'); return o && [o.textContent, o.title]`);
+ok("…and Reseller's workbench nets it with no scan", freeNet?.[0] === "\u2248 $28 net" && /typical price \$160 from eBay sales/.test(freeNet?.[1] || ""), freeNet);
+await fs.close();
+await store(`{saved:{'ebay:2222222222':{t:'Pentax K1000 body only',u:'https://www.ebay.com/itm/2222222222',p0:50,a0:${Date.now()},p:50,a:${Date.now()}}}}`);
+const ns = await open("https://www.ebay.com/sch/i.html?_nkw=nothing+here&empty=1");
+await sleep(1200);
+await R(ns, `r.querySelector('[data-act=tab]').click()`);
+await sleep(300);
+await R(ns, `r.querySelector('[data-view=saved]').click()`);
+await sleep(600);
+const noRef = await R(ns, `return r.querySelector('.bench output')?.textContent`);
+ok("…and one never seen with a typical price says how to get one, without a scan", noRef === "no sold price yet: check its typical price", noRef);
+await ns.close();
 await store(`{lens:'use'}`);
 await o.ev(`document.getElementById('exportCsv').click()`);
 await sleep(400);

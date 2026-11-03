@@ -1,5 +1,9 @@
-// Builds dist/tirekick-<version>.zip: only what the extension needs, checked first.
+// Builds the store zips, with only what the extension needs, checked first:
+//   dist/tirekick-<version>.zip          Chrome Web Store and Edge Add-ons (and Vivaldi, Brave, Opera: any Chromium)
+//   dist/tirekick-<version>-firefox.zip  addons.mozilla.org
 //   deno task pack     (or: node scripts/pack.mjs)
+// The folder's one manifest.json carries both browsers' keys, so it loads unpacked in either; each zip keeps only
+// its own browser's.
 // No dependencies: it writes the zip itself (deflate, fixed timestamps, so the same files give the same zip).
 
 import fs from "node:fs";
@@ -29,7 +33,14 @@ const manifest = JSON.parse(read("manifest.json"));
 if (manifest.version_name && !manifest.version_name.startsWith(manifest.version)) fail(`version_name ${manifest.version_name} doesn't start with the version ${manifest.version}`);
 if (manifest.description.length > 132) fail(`the description is ${manifest.description.length} characters; the Chrome Web Store allows 132`);
 for (const size of Object.keys(manifest.icons || {})) if (!files.includes(manifest.icons[size])) fail(`icon not found: ${manifest.icons[size]}`);
-for (const f of [manifest.background?.service_worker, manifest.options_ui?.page]) if (f && !files.includes(f)) fail(`not found: ${f}`);
+for (const f of [manifest.background?.service_worker, ...(manifest.background?.scripts || []), manifest.options_ui?.page]) if (f && !files.includes(f)) fail(`not found: ${f}`);
+// Firefox: an event page loads background.scripts in order, where Chrome's worker calls importScripts. Both lists
+// must name the same files, with background.js last.
+const gecko = manifest.browser_specific_settings?.gecko;
+if (!gecko?.id) fail("browser_specific_settings.gecko.id is missing (Firefox keeps saved data under it)");
+if (!gecko?.data_collection_permissions?.required?.length) fail("gecko.data_collection_permissions.required is missing (addons.mozilla.org requires it)");
+const imported = [...(read("background.js").match(/importScripts\(([^)]*)\)/)?.[1] || "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+if (JSON.stringify([...imported, "background.js"]) !== JSON.stringify(manifest.background?.scripts || [])) fail(`background.scripts should be ${JSON.stringify([...imported, "background.js"])}, the files background.js imports and then itself`);
 // every file the background script injects into pages, and every script a page of ours loads
 const bg = read("background.js");
 for (const [, f] of bg.matchAll(/"((?:content|lib)\/[\w.-]+\.js)"/g)) if (!files.includes(f)) fail(`background.js names ${f}, which isn't there`);
@@ -63,58 +74,73 @@ const crcOf =
     for (const b of buf) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
     return (c ^ 0xffffffff) >>> 0;
   });
-// manifest.json as it is, less version_name, with its formatting kept.
-const storeManifest = () => Buffer.from(read("manifest.json").replace(/^\s*"version_name":[^\n]*\n/m, ""), "utf8");
-if (JSON.parse(storeManifest()).version_name) throw new Error("version_name would ship");
-const parts = [];
-const central = [];
-let offset = 0;
+// manifest.json for one browser: no version_name, and no keys meant for the other browser.
+const storeManifest = (browser) => {
+  const m = JSON.parse(read("manifest.json"));
+  delete m.version_name;
+  if (browser === "firefox") {
+    delete m.minimum_chrome_version;
+    delete m.background.service_worker; // Firefox runs background.scripts as an event page
+  } else {
+    delete m.browser_specific_settings;
+    delete m.background.scripts; // Chrome runs the service worker
+  }
+  return Buffer.from(`${JSON.stringify(m, null, 2)}\n`, "utf8");
+};
 const DOS_DATE = (0 << 9) | (1 << 5) | 1; // 1980-01-01
-for (const name of files) {
-  const data = name === "manifest.json" ? storeManifest() : fs.readFileSync(path.join(ROOT, name));
-  const deflated = zlib.deflateRawSync(data, { level: 9 });
-  const [method, body] = deflated.length < data.length ? [8, deflated] : [0, data];
-  const nameBuf = Buffer.from(name, "utf8");
-  const crc = crcOf(data);
-  const local = Buffer.alloc(30);
-  local.writeUInt32LE(0x04034b50, 0);
-  local.writeUInt16LE(20, 4);
-  local.writeUInt16LE(0x0800, 6); // names are UTF-8
-  local.writeUInt16LE(method, 8);
-  local.writeUInt16LE(0, 10);
-  local.writeUInt16LE(DOS_DATE, 12);
-  local.writeUInt32LE(crc, 14);
-  local.writeUInt32LE(body.length, 18);
-  local.writeUInt32LE(data.length, 22);
-  local.writeUInt16LE(nameBuf.length, 26);
-  parts.push(local, nameBuf, body);
-  const entry = Buffer.alloc(46);
-  entry.writeUInt32LE(0x02014b50, 0);
-  entry.writeUInt16LE((3 << 8) | 20, 4);
-  entry.writeUInt16LE(20, 6);
-  entry.writeUInt16LE(0x0800, 8);
-  entry.writeUInt16LE(method, 10);
-  entry.writeUInt16LE(0, 12);
-  entry.writeUInt16LE(DOS_DATE, 14);
-  entry.writeUInt32LE(crc, 16);
-  entry.writeUInt32LE(body.length, 20);
-  entry.writeUInt32LE(data.length, 24);
-  entry.writeUInt16LE(nameBuf.length, 28);
-  entry.writeUInt32LE((0o100644 << 16) >>> 0, 38);
-  entry.writeUInt32LE(offset, 42);
-  central.push(entry, nameBuf);
-  offset += local.length + nameBuf.length + body.length;
+function zipOf(browser) {
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  for (const name of files) {
+    const data = name === "manifest.json" ? storeManifest(browser) : fs.readFileSync(path.join(ROOT, name));
+    const deflated = zlib.deflateRawSync(data, { level: 9 });
+    const [method, body] = deflated.length < data.length ? [8, deflated] : [0, data];
+    const nameBuf = Buffer.from(name, "utf8");
+    const crc = crcOf(data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6); // names are UTF-8
+    local.writeUInt16LE(method, 8);
+    local.writeUInt16LE(0, 10);
+    local.writeUInt16LE(DOS_DATE, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(body.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(nameBuf.length, 26);
+    parts.push(local, nameBuf, body);
+    const entry = Buffer.alloc(46);
+    entry.writeUInt32LE(0x02014b50, 0);
+    entry.writeUInt16LE((3 << 8) | 20, 4);
+    entry.writeUInt16LE(20, 6);
+    entry.writeUInt16LE(0x0800, 8);
+    entry.writeUInt16LE(method, 10);
+    entry.writeUInt16LE(0, 12);
+    entry.writeUInt16LE(DOS_DATE, 14);
+    entry.writeUInt32LE(crc, 16);
+    entry.writeUInt32LE(body.length, 20);
+    entry.writeUInt32LE(data.length, 24);
+    entry.writeUInt16LE(nameBuf.length, 28);
+    entry.writeUInt32LE((0o100644 << 16) >>> 0, 38);
+    entry.writeUInt32LE(offset, 42);
+    central.push(entry, nameBuf);
+    offset += local.length + nameBuf.length + body.length;
+  }
+  const centralBuf = Buffer.concat(central);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralBuf.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...parts, centralBuf, end]);
 }
-const centralBuf = Buffer.concat(central);
-const end = Buffer.alloc(22);
-end.writeUInt32LE(0x06054b50, 0);
-end.writeUInt16LE(files.length, 8);
-end.writeUInt16LE(files.length, 10);
-end.writeUInt32LE(centralBuf.length, 12);
-end.writeUInt32LE(offset, 16);
-const zip = Buffer.concat([...parts, centralBuf, end]);
 
 fs.mkdirSync(path.join(ROOT, "dist"), { recursive: true });
-const out = path.join(ROOT, "dist", `tirekick-${manifest.version}.zip`);
-fs.writeFileSync(out, zip);
-console.log(`${files.length} files, ${(zip.length / 1024).toFixed(0)} KB → ${path.relative(ROOT, out)}`);
+for (const [browser, suffix] of [["chromium", ""], ["firefox", "-firefox"]]) {
+  const zip = zipOf(browser);
+  const out = path.join(ROOT, "dist", `tirekick-${manifest.version}${suffix}.zip`);
+  fs.writeFileSync(out, zip);
+  console.log(`${files.length} files, ${(zip.length / 1024).toFixed(0)} KB → ${path.relative(ROOT, out)}`);
+}

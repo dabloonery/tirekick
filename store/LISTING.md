@@ -1,6 +1,8 @@
 # Chrome Web Store listing
 
-Everything the store's forms ask for. Upload `dist/tirekick-<version>.zip` from `deno task pack`.
+Everything the store's forms ask for. Upload `dist/tirekick-<version>.zip` from `deno task pack`. The same text
+serves Edge Add-ons (same zip) and addons.mozilla.org (`dist/tirekick-<version>-firefox.zip`); see the ROADMAP's
+"Edge Add-ons and addons.mozilla.org".
 
 ## Basics
 

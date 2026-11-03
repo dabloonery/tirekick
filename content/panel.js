@@ -2334,6 +2334,7 @@
       f.priceNote = e.message;
     }
     f.vsSold = vsSoldOf(f);
+    if (f.ownMarket) noteSold([[key, f]]);
     setStatus(f.ownMarket ? `\u201c${(f.title || "").slice(0, 50)}\u201d: typical price $${f.ownMarket.median}, from ${f.ownMarket.n} eBay sales of \u201c${query}\u201d.${noAINote(" Your AI wasn't used.")}` : f.priceNote, !f.ownMarket);
     redecorateAll();
   };
@@ -2382,7 +2383,8 @@
   const toggleSave = async (key) => {
     const f = facts.get(key) || scored.get(key) || (itemFacts?.key === key ? itemFacts : {});
     const was = !!saved[key];
-    saved = await writeStored("saved", { set: { [key]: was ? null : { t: f.title || "", u: f.url || location.href.split("?")[0], img: f.imageUrl || "", p0: f.price ?? null, a0: Date.now(), p: f.price ?? null, a: Date.now() } } });
+    const ref = was ? null : freeSold(f); // the typical price it resells for, when the page has one (noteSold)
+    saved = await writeStored("saved", { set: { [key]: was ? null : { t: f.title || "", u: f.url || location.href.split("?")[0], img: f.imageUrl || "", p0: f.price ?? null, a0: Date.now(), p: f.price ?? null, a: Date.now(), ...(ref && { sold: ref.sold, ...(ref.ship && { ship: ref.ship }), sa: Date.now() }) } } });
     afterSavedChange();
     setStatus(was ? "Removed from Saved." : `Saved \u201c${(f.title || "listing").slice(0, 50)}\u201d. It's under Saved at the bottom of the panel.`, false, { label: "Undo", fn: () => toggleSave(key) });
   };
@@ -2468,15 +2470,15 @@
   // (storeEdit patch, so another tab's price update doesn't undo them), and the net they leave at the sold median
   // (TKShared.savedNet), worked out as you type. Saved when you leave the box or press Enter.
   const bench = (k, r) => {
-    const ref = TKShared.savedSold(k, scansCache || {});
+    const ref = TKShared.savedSold(k, scansCache || {}, r);
     const out = h("output", {});
     const partsEl = h("input", { class: "b-parts", type: "number", min: "0", step: "any", inputmode: "decimal", value: Number.isFinite(r.parts) ? String(r.parts) : null, "aria-label": `Parts cost for ${(r.t || "this listing").slice(0, 60)}` });
     const noteEl = h("input", { class: "b-note", type: "text", maxlength: String(TKShared.NOTE_MAX), placeholder: "Repair notes, fault…", value: r.note || null, "aria-label": `Notes for ${(r.t || "this listing").slice(0, 60)}` });
     const partsNow = () => (partsEl.value.trim() === "" ? null : Math.max(0, Number(partsEl.value)) || 0);
     const showNet = () => {
       const net = TKShared.savedNet({ ...r, parts: partsNow() ?? undefined }, ref, cfg.feePct ?? 13.6);
-      out.textContent = net == null ? (ref ? "no price" : aiOff() ? "no sold price yet: it comes with a scan" : "no sold price yet: scan it in Reseller") : `\u2248 ${money(net)} net`;
-      out.title = net == null ? "" : `At the sold median ${dollars(Math.round(ref.sold))}, less ${cfg.feePct ?? 13.6}% + $0.40 fees${ref.ship ? ` and ~${dollars(ref.ship)} shipping` : ""}, the ${dollars(r.p)} price${partsNow() ? ` and ${dollars(partsNow())} parts` : ""}. Before sales tax and your time.`;
+      out.textContent = net == null ? (ref ? "no price" : aiOff() ? "no sold price yet: check its typical price" : "no sold price yet: check its typical price or scan it") : `\u2248 ${money(net)} net`;
+      out.title = net == null ? (ref ? "" : "Open it, or a search it's in, and press Typical price: the sold price it resells for is kept here.") : `At the ${ref.at ? `typical price ${dollars(Math.round(ref.sold))} from eBay sales (as of ${new Date(ref.at).toLocaleDateString()})` : `sold median ${dollars(Math.round(ref.sold))}`}, less ${cfg.feePct ?? 13.6}% + $0.40 fees${ref.ship ? ` and ~${dollars(ref.ship)} shipping` : ""}, the ${dollars(r.p)} price${partsNow() ? ` and ${dollars(partsNow())} parts` : ""}. Before sales tax and your time.`;
     };
     const keep = () => {
       const parts = partsNow();
@@ -2802,6 +2804,7 @@
     for (const f of facts.values()) f.vsSold = vsSoldOf(f);
     for (const it of scored.values()) followMarket(it, market);
     if (itemFacts) itemFacts.vsSold = vsSoldOf(itemFacts);
+    noteSold([...facts.entries(), ...(itemFacts ? [[itemFacts.key, itemFacts]] : [])]);
     redecorateAll();
     if (TK.pageType() === "item") renderItemInfo(); // the offer helper works from these prices
     refreshPending();
@@ -3444,10 +3447,15 @@
   // worked out as a scan's are (priceNotes, bidCapFor) but with no parts cost, since only a scan reads the fault.
   // Nothing for something that isn't your search, a lot, another currency, a likely scam or an off-topic post (a
   // "WTB" post, a service: TKRules.offTopic).
-  const freeMoney = (f) => {
+  const freeMarket = (f) => {
     const market = f?.ownMarket || lastMarket;
-    if (!(market?.median > 0) || f.total == null || f.lot || f.foreign || f.related === false || likelyScam(f) || TKRules.offTopic(f)) return null;
+    if (!(market?.median > 0) || f.lot || f.foreign || f.related === false || likelyScam(f) || TKRules.offTopic(f)) return null;
     if (TKRules.offSearch(f.title, marketFor) || TKRules.accessoryOf(f.title, marketFor)) return null;
+    return market;
+  };
+  const freeMoney = (f) => {
+    const market = f?.total != null && freeMarket(f);
+    if (!market) return null;
     // Nor one the free read calls a likely scam (far under the typical price): a gap there reads like a deal (#146).
     if (prefs.markPrices !== false && TKRules.freeRead(f, marketOf(f))?.word === "Likely scam") return null;
     const m = { ...f, lens };
@@ -3455,6 +3463,33 @@
     const margin = lens === "project" ? m.marginBeforeRepair : null;
     const bidCap = f.auction ? bidCapFor(m) : null;
     return margin != null || bidCap != null ? { margin, bidCap, feePct: m.feePct, shipOut: m.shipOut } : null;
+  };
+  // The sold price a saved listing resells for, read for free the same way (its own version's sales, the shipping
+  // buyers paid on them), whatever its asking price: { sold, ship } or null.
+  const freeSold = (f) => {
+    const market = freeMarket(f);
+    if (!market) return null;
+    const m = { ...f };
+    priceNotes(m, market, "project", cfg.feePct ?? 13.6);
+    return m.refWorking > 0 ? { sold: Math.round(m.refWorking), ship: m.shipOut > 0 ? Math.round(m.shipOut) : 0 } : null;
+  };
+  // Saved listings on screen keep that sold price on the saved record (sold, ship, sa), so Reseller's workbench and the
+  // CSV have one with the AI off, or before a scan (TKShared.savedSold; a scan's own still wins). pairs: [[key, facts]].
+  const noteSold = async (pairs) => {
+    if (!alive()) return;
+    const patch = {};
+    for (const [k, f] of pairs) {
+      const s = saved[k];
+      const ref = s && f ? freeSold(f) : null;
+      if (ref && (s.sold !== ref.sold || (s.ship || 0) !== ref.ship)) patch[k] = { sold: ref.sold, ship: ref.ship || null, sa: Date.now() };
+    }
+    if (!Object.keys(patch).length) return;
+    try {
+      saved = await writeStored("saved", { patch }); // a listing unsaved meanwhile stays unsaved
+    } catch {
+      return;
+    }
+    if (view === "saved") renderSaved();
   };
 
   // ---------- remembered scores ----------

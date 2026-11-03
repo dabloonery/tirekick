@@ -4005,9 +4005,16 @@
     cfg.autoScan = on;
     autoHold = "";
     if (alive()) await chrome.storage.local.set({ autoScan: on }).catch(storeFailed);
+    const counted = TKShared.spendCounted(cfg);
     if (!on) setStatus("Automatic scanning is off: press Scan when you want scores.");
-    else if (cfg.monthlyBudget > 0 || cfg.provider === "ollama")
-      setStatus(`Scanning automatically: new listings are scored as they load${cfg.provider === "ollama" ? " (free with Ollama)" : `, up to your $${cfg.monthlyBudget} monthly budget`}.`);
+    else if (counted === "free") setStatus("Scanning automatically: new listings are scored as they load (free: the model runs on this computer).");
+    else if (!counted)
+      // A budget stops on what's been counted, and nothing is for this service until its prices are in settings.
+      setStatus(`Scanning automatically: new listings are scored as they load. ${cfg.oaiName || "This service"}'s spending isn't counted until you enter its prices in settings, so no monthly budget can stop it.`, false, {
+        label: "Open settings",
+        fn: () => openSettings("model"),
+      });
+    else if (cfg.monthlyBudget > 0) setStatus(`Scanning automatically: new listings are scored as they load, up to your $${cfg.monthlyBudget} monthly budget.`);
     else
       setStatus("Scanning automatically: new listings are scored as they load. There's no monthly budget to stop it.", false, {
         label: "Set a $5 monthly budget",

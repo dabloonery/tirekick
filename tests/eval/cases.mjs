@@ -88,6 +88,24 @@ export const MARKETS = {
     "/ryzen 5600g/*": { median: 74, p10: 60, p25: 69, p75: 80, n: 8, confidence: "fair" },
     "/ryzen 5600x3d/*": { median: 178, p10: 150, p25: 168, p75: 190, n: 8, confidence: "fair" },
   } },
+  // Every a7 together: a7 IIs at $480 beside a7 IVs at $1,650, bodies beside kits, a7Rs (assumed numbers).
+  "sony a7": { median: 950, p10: 420, ship: 20, confidence: "fair", n: 60, variants: {
+    _same: ["#camera", "@a7"],
+    "/gen 2/*": { median: 480, p10: 400, p25: 450, p75: 520, n: 10, confidence: "fair" },
+    "/gen 3/*": { median: 950, p10: 820, p25: 900, p75: 1000, n: 14, confidence: "good" },
+    "kit/gen 3/*": { median: 1150, p10: 1000, p25: 1100, p75: 1220, n: 8, confidence: "fair" },
+    "/gen 4/*": { median: 1650, p10: 1450, p25: 1580, p75: 1720, n: 9, confidence: "fair" },
+    "a7r/*/*": { median: 1400, p10: 1050, p25: 1250, p75: 1550, n: 8, confidence: "fair" },
+    "/*/*": { median: 900, p10: 420, p25: 600, p75: 1400, n: 40, confidence: "fair" },
+  } },
+  // A focal length with every aperture: the f/1.8 at $100 beside the f/1.2L at $1,100 (assumed numbers).
+  "canon 50mm": { median: 140, p10: 80, ship: 8, confidence: "fair", n: 60, variants: {
+    _same: ["#lens", "50mm"],
+    "f1.8/*/*": { median: 105, p10: 80, p25: 95, p75: 120, n: 30, confidence: "good" },
+    "f1.8/*/rf mount": { median: 150, p10: 125, p25: 140, p75: 160, n: 8, confidence: "fair" },
+    "f1.4/*/*": { median: 240, p10: 190, p25: 220, p75: 260, n: 12, confidence: "fair" },
+    "f1.2/*/*": { median: 1100, p10: 900, p25: 1020, p75: 1180, n: 8, confidence: "fair" },
+  } },
   "ds": { median: 60, ship: 6, confidence: "fair", n: 40 },
   "4tb hard drive": { median: 55, ship: 8, confidence: "good", n: 40 }, // assumed, for the real drive search below
   "ipod": { median: 60, ship: 6, confidence: "fair", n: 40 }, // assumed, for the real "ds" search below
@@ -262,6 +280,20 @@ export const CASES = [
   ebay("ryzen 5 5600", "AMD Ryzen 5 5600X3D 6-Core Desktop Processor", 169, 0, seller(99.6, 820), { truth: "honest", word: "fair", note: "an X3D, nearly twice the mix" }),
   ebay("ryzen 5 5600", "AMD Ryzen 5 5600G 6-Core CPU with Radeon Graphics", 72, 0, seller(99.4, 300), { truth: "honest", word: "fair" }),
   ebay("ryzen 5 5600", "AMD Ryzen 5 5600 6-Core 3.5GHz AM4 CPU tray", 79, 0, seller(99.9, "5K"), { truth: "honest", word: "fair" }),
+
+  // ---------- sony a7, no generation named ($950 for the mix; a7 II $480, III $950, III kit $1,150, IV $1,650, a7R $1,400) ----------
+  ebay("sony a7", "Sony Alpha a7 II Mirrorless Camera Body 24.3MP", 445, 0, seller(99.8, "2.2K"), { truth: "honest", word: "fair", note: "an a7 II at 47% of the mix: Check first before" }),
+  ebay("sony a7", "Sony a7 IV Full-Frame Mirrorless Interchangeable-Lens Camera Body Only", 1580, 0, seller(99.7, 640), { truth: "honest", word: "fair", note: "an a7 IV; far over the mix" }),
+  ebay("sony a7", "Sony A7III with FE 28-70mm OSS Lens Kit", 1090, 0, seller(99.9, "1.1K"), { truth: "honest", word: "fair", note: "a kit against kits, not bodies" }),
+  ebay("sony a7", "Sony a7R IV 61MP Mirrorless Camera", 1350, 0, seller(99.5, 310), { truth: "honest", word: "fair", note: "an a7R, a model of its own" }),
+  ebay("sony a7", "Sony a7 IV Mirrorless Camera Body NEW", 540, 0, seller(100, 0), { truth: "scam", scan: "great", note: "33% of an a7 IV, but 57% of the mix" }),
+
+  // ---------- canon 50mm, no aperture named ($140 for the mix; f/1.8 $105, RF f/1.8 $150, f/1.4 $240, f/1.2L $1,100) ----------
+  ebay("canon 50mm", "Canon EF 50mm f/1.8 STM Lens", 98, 0, seller(99.9, "8K"), { truth: "honest", word: "fair", note: "the f/1.8 at 70% of the mix" }),
+  ebay("canon 50mm", "Canon RF 50mm F1.8 STM Lens", 145, 0, seller(99.6, 420), { truth: "honest", word: "fair", note: "an RF one, against RF ones" }),
+  ebay("canon 50mm", "Canon EF 50mm f/1.4 USM Standard Lens", 225, 0, seller(99.4, 260), { truth: "honest", word: "fair", note: "Above typical against the mix" }),
+  ebay("canon 50mm", "Canon EF 50mm f/1.2L USM Lens", 1040, 0, seller(99.8, "1.6K"), { truth: "honest", word: "fair", note: "7x the mix" }),
+  ebay("canon 50mm", "Canon EF 50mm f/1.2 L USM Lens like new", 290, 0, seller(100, 1), { truth: "scam", scan: "great", note: "26% of an f/1.2L, but twice the mix" }),
 
   // ---------- scams that give the same excuses as honest cheap listings (CHEAP below) ----------
   ebay("nintendo switch oled", "Nintendo Switch OLED - minor scratch, works perfect", 79, 0, seller(100, 0), { truth: "scam", scan: "good", cheapWhy: "flaw", note: "bait with a flaw story, 31% from a new seller" }),

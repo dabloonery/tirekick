@@ -165,3 +165,11 @@ Checked against current published prices (per million tokens, input/output): Opu
 
 - Claude API prices: [Finout](https://www.finout.io/blog/anthropic-api-pricing), [eesel.ai on Haiku 5.5](https://www.eesel.ai/blog/claude-haiku-5-5-pricing), [VentureBeat on Haiku 5.5](https://venturebeat.com/technology/anthropic-launches-claude-haiku-5-5-with-90-api-price-reduction-matching-gpt-6-luna) (third-party; confirm on Anthropic's pricing page).
 - eBay fees: [flowlister: final value fees explained](https://flowlister.com/blog/ebay-final-value-fees-explained/), [size.ly fee calculator](https://www.size.ly/tools/ebay-fee-calculator) (third-party; confirm in eBay Seller Center).
+
+## Parts beyond electronics (2026-11-02 audit)
+
+| Problem | Effect on real listings | Now |
+|---|---|---|
+| The accessory words were all electronics (case, charger, controller, shell) | A part of a kitchen appliance, a LEGO set or a bike read as the thing at a bait price: "Vitamix 5200 64oz container" at $40 and "LEGO 75192 Millennium Falcon minifigures only" at $90 were red "Likely scam", "Trek FX 3 rear wheel" Check first | `accessoryOf` knows bowl, container, pitcher, jar, lid, blade, filter, attachment, cushion, pad, wheel, tire, pedal, saddle and minifigure; "all attachments" reads as what comes with it. In the eval (6 new listings), honest ones marked Likely scam went from 2 to 0 and Check first from 3 to 2 |
+
+Still missed: a part named in the middle of the title ("KitchenAid mixer bowl 5 qt stainless", "Aeron chair arm pads (pair)") is still read as the thing; a scan sets those aside.

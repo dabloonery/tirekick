@@ -674,6 +674,26 @@ test("a free listing ($0) isn't a great price: it has no price to compare", () =
   assert.equal(R.bestPlace(f, m, { query: "nintendo switch oled" }).shelf, 1, "with the listings that have no price to compare");
 });
 
+test("accessoryOf: parts beyond electronics (a blender's jar, a set's minifigures, a bike's wheel), and what comes with it", () => {
+  for (const [t, q, w] of [
+    ["Vitamix 5200 64oz container", "vitamix 5200", "container"],
+    ["LEGO 75192 Millennium Falcon minifigures only", "lego 75192", "minifigures"],
+    ["Trek FX 3 rear wheel", "trek fx 3", "wheel"],
+    ["Instant Pot Duo 6qt lid", "instant pot", "lid"],
+    ["Ninja blender 72oz pitcher", "ninja blender", "pitcher"],
+    ["Sectional couch cushion", "couch", "cushion"],
+  ]) assert.equal(R.accessoryOf(t, q), w, t);
+  for (const [t, q] of [
+    ["Vitamix 5200 blender with container", "vitamix 5200"],
+    ["Trek FX 3 bike with new tires", "trek fx 3"],
+    ["Dyson V11 Absolute, all attachments", "dyson v11"],
+    ["Dyson V11 with 6 attachments", "dyson v11"],
+    ["Couch with 4 cushions", "couch"],
+    ["Hot Wheels Twin Mill", "hot wheels"],
+    ["Brita pitcher filter", "brita pitcher filter"],
+  ]) assert.equal(R.accessoryOf(t, q), "", t);
+});
+
 test("cheapReason: a flaw, something missing or a cheaper version, in the listing's words", () => {
   const why = (t, q = "") => R.cheapReason(t, "", q);
   assert.equal(why("Nintendo Switch OLED - dead pixel on screen, otherwise works"), "dead pixel");

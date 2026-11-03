@@ -463,7 +463,9 @@
     const like = R.variantLike(market);
     f.saysWhy = R.cheapReason(f.title, f.text, `${f.ownMarket ? "" : query} ${like}`.trim()); // why it's cheap, in its own words (tooCheap)
     const off = !f.ownMarket && R.offSearch(f.title, query);
-    const vs = market?.median > 0 && f.total != null && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.accessory && !off && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
+    // A free listing ($0, Marketplace's and Craigslist's "Free") has no share of the typical price: 0% read as a "Great price"
+    // and a great find on a saved search, for a free PS5 as much as a curbside couch.
+    const vs = market?.median > 0 && f.total > 0 && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.accessory && !off && !R.tooFarToCompare(f.price ?? f.total, market.median) ? f.total / market.median : null;
     f.cheap = (vs != null && (R.tooCheap(f, market)?.level || (R.cheapForReason(f, market) && "reason"))) || ""; // backs up a title code (codeBacked)
     return vs;
   };

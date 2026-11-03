@@ -665,6 +665,15 @@ test("a price in another currency isn't compared with US sales", () => {
   assert.ok(R.compareFacts({ title: "Nintendo Switch OLED", price: 180, total: 180 }, m, "nintendo switch oled") > 0.7, "dollars still are");
 });
 
+test("a free listing ($0) isn't a great price: it has no price to compare", () => {
+  const m = { median: 252, p25: 220, p75: 280, n: 40, confidence: "good" };
+  const f = { title: "Nintendo Switch OLED", price: 0, total: 0 };
+  assert.equal(R.compareFacts(f, m, "nintendo switch oled"), null);
+  f.vsSold = null;
+  assert.equal(R.freeRead(f, m), null, "no price word, so no great find either");
+  assert.equal(R.bestPlace(f, m, { query: "nintendo switch oled" }).shelf, 1, "with the listings that have no price to compare");
+});
+
 test("cheapReason: a flaw, something missing or a cheaper version, in the listing's words", () => {
   const why = (t, q = "") => R.cheapReason(t, "", q);
   assert.equal(why("Nintendo Switch OLED - dead pixel on screen, otherwise works"), "dead pixel");

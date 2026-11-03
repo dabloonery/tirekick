@@ -2,8 +2,17 @@
 //   dist/tirekick-<version>.zip          Chrome Web Store and Edge Add-ons (and Vivaldi, Brave, Opera: any Chromium)
 //   dist/tirekick-<version>-firefox.zip  addons.mozilla.org
 //   deno task pack     (or: node scripts/pack.mjs)
-// The folder's one manifest.json carries both browsers' keys, so it loads unpacked in either; each zip keeps only
-// its own browser's.
+// manifest.json in the folder is Chrome's (Chrome and Vivaldi load the folder unpacked as is, and list a key meant
+// for Firefox under Errors). The Firefox zip's manifest is made from it here: background.scripts in place of the
+// worker, and the gecko settings below. In Firefox, load that zip at about:debugging.
+// Firefox's settings. The id never changes, or Firefox users lose their saved data on the next update. The data
+// question matches store/PRIVACY.md: listing text goes only to the AI service you set up, so "website content" is
+// optional and asked for when the AI is turned on (options/options.js).
+const GECKO = {
+  id: "tirekick@tirekick.app",
+  strict_min_version: "140.0",
+  data_collection_permissions: { required: ["none"], optional: ["websiteContent"] },
+};
 // No dependencies: it writes the zip itself (deflate, fixed timestamps, so the same files give the same zip).
 
 import fs from "node:fs";
@@ -33,14 +42,14 @@ const manifest = JSON.parse(read("manifest.json"));
 if (manifest.version_name && !manifest.version_name.startsWith(manifest.version)) fail(`version_name ${manifest.version_name} doesn't start with the version ${manifest.version}`);
 if (manifest.description.length > 132) fail(`the description is ${manifest.description.length} characters; the Chrome Web Store allows 132`);
 for (const size of Object.keys(manifest.icons || {})) if (!files.includes(manifest.icons[size])) fail(`icon not found: ${manifest.icons[size]}`);
-for (const f of [manifest.background?.service_worker, ...(manifest.background?.scripts || []), manifest.options_ui?.page]) if (f && !files.includes(f)) fail(`not found: ${f}`);
-// Firefox: an event page loads background.scripts in order, where Chrome's worker calls importScripts. Both lists
-// must name the same files, with background.js last.
-const gecko = manifest.browser_specific_settings?.gecko;
-if (!gecko?.id) fail("browser_specific_settings.gecko.id is missing (Firefox keeps saved data under it)");
-if (!gecko?.data_collection_permissions?.required?.length) fail("gecko.data_collection_permissions.required is missing (addons.mozilla.org requires it)");
+for (const f of [manifest.background?.service_worker, manifest.options_ui?.page]) if (f && !files.includes(f)) fail(`not found: ${f}`);
+// Chrome lists these under Errors when the folder is loaded unpacked: they go in the Firefox zip only.
+if (manifest.background?.scripts) fail("manifest.json has background.scripts: Chrome says it needs Manifest V2. The Firefox zip adds it.");
+if (manifest.browser_specific_settings) fail("manifest.json has browser_specific_settings: the Firefox zip adds it (GECKO in scripts/pack.mjs).");
+// Firefox: an event page loads background.scripts in order, where Chrome's worker calls importScripts: the files
+// background.js imports, then itself.
 const imported = [...(read("background.js").match(/importScripts\(([^)]*)\)/)?.[1] || "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-if (JSON.stringify([...imported, "background.js"]) !== JSON.stringify(manifest.background?.scripts || [])) fail(`background.scripts should be ${JSON.stringify([...imported, "background.js"])}, the files background.js imports and then itself`);
+if (!imported.length || imported.some((f) => !files.includes(f))) fail(`background.js imports ${JSON.stringify(imported)}; each must ship`);
 // every file the background script injects into pages, and every script a page of ours loads
 const bg = read("background.js");
 for (const [, f] of bg.matchAll(/"((?:content|lib)\/[\w.-]+\.js)"/g)) if (!files.includes(f)) fail(`background.js names ${f}, which isn't there`);
@@ -80,10 +89,8 @@ const storeManifest = (browser) => {
   delete m.version_name;
   if (browser === "firefox") {
     delete m.minimum_chrome_version;
-    delete m.background.service_worker; // Firefox runs background.scripts as an event page
-  } else {
-    delete m.browser_specific_settings;
-    delete m.background.scripts; // Chrome runs the service worker
+    m.background = { scripts: [...imported, "background.js"] }; // an event page, in place of the worker
+    m.browser_specific_settings = { gecko: GECKO };
   }
   return Buffer.from(`${JSON.stringify(m, null, 2)}\n`, "utf8");
 };

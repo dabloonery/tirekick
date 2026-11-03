@@ -532,11 +532,11 @@ The same steps as above, and nothing goes up without dabloonery's OK. `deno task
   Edge (`edge://extensions`, Developer mode, Load unpacked on the unzipped folder) and click through as above,
   plus the Vivaldi checks (icon and badge, Alt+Shift+L, the right-click entries). Listing text, privacy policy
   link and screenshots come from `store/LISTING.md` and `store/screenshots/`.
-- **Firefox** (addons.mozilla.org, free): `dist/tirekick-<version>-firefox.zip`. Unzip it and load it at
-  `about:debugging` → This Firefox → Load Temporary Add-on (pick its `manifest.json`), then run the
+- **Firefox** (addons.mozilla.org, free): `dist/tirekick-<version>-firefox.zip`. Load it at `about:debugging` →
+  This Firefox → Load Temporary Add-on (pick the zip itself), then run the
   [Firefox checks](#firefox-built-2026-11-02). No source upload is needed: there's no build step. The data
   question: "Website content" is optional, asked for when the AI is turned on (it matches
-  `data_collection_permissions` in `manifest.json` and `store/PRIVACY.md`). The add-on id
+  `data_collection_permissions`, set in `scripts/pack.mjs`, and `store/PRIVACY.md`). The add-on id
   `tirekick@tirekick.app` never changes, or Firefox users lose their saved data on the next update.
 
 ### If the review comes back with questions
@@ -1162,12 +1162,14 @@ or Facebook, with "Allow again"; it covers Chrome's site access setting too; tes
 cloud machine where this was built has no Firefox, so none of it has run in Firefox yet: dabloonery checks it by
 hand. What changed:
 
-- `manifest.json` has `background.scripts` beside the worker, `browser_specific_settings.gecko` (the id, Firefox
-  140 or later, and the data question: none required, "website content" optional) and `minimum_chrome_version`
-  121. The folder still loads unpacked in Chrome and Vivaldi as is.
-- `deno task pack` writes two zips: `tirekick-<version>.zip` for Chrome, Edge and every other Chromium browser
-  (without the Firefox keys), and `tirekick-<version>-firefox.zip` (without the worker). It checks that
-  `background.scripts` names the same files `background.js` imports.
+- `manifest.json` in the folder stays Chrome's. The plan was one manifest with both browsers' keys, but Chrome and
+  Vivaldi list `background.scripts` under Errors ("requires manifest version of 2 or lower"; dabloonery saw it on
+  2026-11-03), so the Firefox keys moved into `scripts/pack.mjs` and `minimum_chrome_version` stays 116.
+- `deno task pack` writes two zips: `tirekick-<version>.zip` for Chrome, Edge and every other Chromium browser,
+  and `tirekick-<version>-firefox.zip`, whose manifest has `background.scripts` (the files `background.js`
+  imports, then itself) in place of the worker and `browser_specific_settings.gecko` (the id, Firefox 140 or
+  later, and the data question: none required, "website content" optional). It fails if either key turns up in
+  the folder's manifest. Firefox loads the zip, not the folder.
 - `background.js` calls `importScripts` only where it exists, and `openHome` opens a new tab where
   `runtime.getContexts` is missing.
 - Settings asks for a custom AI address first thing in the Test click, so Firefox shows the prompt.

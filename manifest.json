@@ -4,7 +4,7 @@
   "version": "0.59.0",
   "version_name": "0.59.0-dev",
   "description": "Beta. Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace.",
-  "minimum_chrome_version": "121",
+  "minimum_chrome_version": "116",
   "homepage_url": "https://tirekick.app",
   "permissions": [
     "storage",
@@ -39,8 +39,7 @@
     "http://*/*"
   ],
   "background": {
-    "service_worker": "background.js",
-    "scripts": ["lib/sites.js", "lib/shared.js", "background.js"]
+    "service_worker": "background.js"
   },
   "options_ui": {
     "page": "options/options.html",
@@ -60,16 +59,6 @@
       "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
-    }
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "tirekick@tirekick.app",
-      "strict_min_version": "140.0",
-      "data_collection_permissions": {
-        "required": ["none"],
-        "optional": ["websiteContent"]
-      }
     }
   },
   "commands": {

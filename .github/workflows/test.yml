@@ -24,3 +24,8 @@ jobs:
         run: deno task version-check origin/${{ github.base_ref }}
       - run: deno task test
       - run: deno task pack
+      # The Firefox zip through Mozilla's own checker (manifest keys, API names), the same one addons.mozilla.org
+      # runs. Firefox itself isn't on the runner; it's checked by hand (docs/ROADMAP.md, Brief 9).
+      - run: |
+          mkdir -p "$RUNNER_TEMP/firefox" && unzip -q dist/tirekick-*-firefox.zip -d "$RUNNER_TEMP/firefox"
+          npx --yes web-ext@10.8.0 lint --source-dir "$RUNNER_TEMP/firefox"

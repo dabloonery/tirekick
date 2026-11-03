@@ -400,6 +400,20 @@ Eval: 5 new listings on "iphone 13" and "samsung galaxy" searches; against the o
 S24 "Above typical", a locked iPhone "Good price"), and the S24 Ultra bait at 38% of its kind would have cleared after
 a scan.
 
+Graphics cards and processors (2026-11-02, dabloonery asked for sturdier version matching): a card's or processor's
+exact model is its generation (`TKRules.partOf`: "rtx 3060 ti", "rx 6700 xt", "arc a770", "ryzen 5600x", "ryzen
+5800x3d", "i7 12700k", "ultra 7 265k"; "3060Ti" and "6700XT" read as written apart), read before "12th Gen", and a
+card's memory is its size (`TKRules.vramOf`, 2GB to 48GB: a 3060 12GB against 12GB ones, not 8GB). Unlike a search's
+own generation, a search's own model stays a group ("rtx 3060" keeps plain 3060s apart from the Tis that eBay mixes
+in), unless every sale is that model. In a card or processor title there's no tier ("FTW3 Ultra", "ITX Mini" are a
+maker's line), a Mac is still read by its chip or year, and a whole computer's sizes are its memory and storage. Not
+read as one: a Sony RX100, a "Mustang GT 500" (GT needs GeForce or NVIDIA), a "BMW i3 2015" (a four-digit i3 to i9
+needs Intel, Core, a CPU word or a letter after it), or a list of models ("RTX 3060 3070 3080 bracket"). A lesser model
+than the search names is a reason it's cheap (`TKRules.lesserPart`: a plain 3060 in a "3060 ti" search, an 8GB card
+in a "12gb" one), and "GDDR6", "LGA1700", "12700KF" or "5800X3D" at the end of a title is no longer taken for a
+scammer's code. Eval: 8 new listings on "rtx 3060" and "ryzen 5 5600" searches; 5 of the 7 honest ones were wrong
+before (a Ti and a 5600X3D "Above typical", an 8GB card and a 5600G "Good price"), all right now.
+
 ## After real use (2026-10-16)
 
 dabloonery's notes from using the beta on eBay and Marketplace.

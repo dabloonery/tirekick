@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { loadScripts } from "../helpers/load.mjs";
 
-const { R } = await loadScripts();
+const { R, TK } = await loadScripts();
 
 test("hasWord matches whole words only, any case, and a/b means either", () => {
   assert.equal(R.hasWord("Game Boy REPRO cart", "repro"), true);
@@ -840,6 +840,69 @@ test("variantOf: the version a title names that the search doesn't", () => {
   assert.equal(R.variantOf("Nintendo Switch Console Gray Joy-Con", "nintendo switch"), "");
   assert.equal(R.variantOf("Seminole county map", "map"), "", "whole words only");
   assert.equal(R.variantOf(undefined), "");
+});
+
+test("partOf: a graphics card's or a processor's exact model", () => {
+  const cases = {
+    "MSI GeForce RTX 3060 Ventus 2X 12GB GDDR6": "rtx 3060",
+    "EVGA RTX 3060 Ti XC 8GB": "rtx 3060 ti",
+    "NVIDIA RTX 3060Ti Founders Edition": "rtx 3060 ti",
+    "ASUS TUF RTX 4070 Ti Super 16GB": "rtx 4070 ti super",
+    "GTX 1660 SUPER 6GB": "gtx 1660 super",
+    "Sapphire Pulse Radeon RX 6700XT 12GB": "rx 6700 xt",
+    "XFX RX 7900 XTX 24GB": "rx 7900 xtx",
+    "Radeon RX580 8GB": "rx 580",
+    "ZOTAC GeForce GT 1030 2GB": "gt 1030",
+    "Intel Arc A770 16GB": "arc a770",
+    "AMD Ryzen 5 5600X 6-Core Processor": "ryzen 5600x",
+    "Ryzen 7 5800X3D": "ryzen 5800x3d",
+    "AMD Ryzen 5 5600 CPU": "ryzen 5600",
+    "Intel Core i7-12700K 12th Gen LGA1700": "i7 12700k",
+    "Intel Core i7 12700KF": "i7 12700kf",
+    "Intel i5-13600K": "i5 13600k",
+    "Dell XPS 13 i7-1165G7 16GB 512GB": "i7 1165g7",
+    "Intel Core Ultra 7 265K": "ultra 7 265k",
+    "Gaming PC Ryzen 5 5600X RTX 3060 16GB 1TB": "rtx 3060",
+  };
+  for (const [t, want] of Object.entries(cases)) assert.equal(R.partOf(t), want, t);
+  // Not a card or processor, or several of them.
+  for (const t of ["Sony Cyber-shot DSC-RX100 VI", "BMW i3 2015 charger", "Ford Mustang GT 500 emblem", "Canon EOS R5 body",
+    "RTX 3060 3070 3080 GPU support bracket", "GTX 1070 / GTX 1080 backplate", "Intel Core i7 8th Gen laptop"]) assert.equal(R.partOf(t), "", t);
+  assert.deepEqual(["rtx 3060 ti", "rx 6700 xt", "rtx 4070 ti super", "ryzen 5800x3d", "i7 12700kf", "ultra 7 265k", "arc a770"].map(R.kindWord),
+    ["RTX 3060 Ti", "RX 6700 XT", "RTX 4070 Ti Super", "Ryzen 5800X3D", "i7-12700KF", "Core Ultra 7 265K", "Arc A770"]);
+});
+
+test("versionOf: cards and processors by exact model, cards by memory too", () => {
+  const q = ["@3060"];
+  assert.deepEqual(R.versionOf("MSI GeForce RTX 3060 Ventus 2X 12GB GDDR6", q), ["", "rtx 3060", "12gb"], "12GB is the card's memory");
+  assert.deepEqual(R.versionOf("EVGA RTX 3060 Ti FTW3 Ultra 8GB", q), ["", "rtx 3060 ti", "8gb"], "a maker's “Ultra” isn't a tier");
+  assert.deepEqual(R.versionOf("Intel Core i7-12700K 12th Gen", ["@12700k"]), ["", "i7 12700k", ""], "the model before “12th Gen”");
+  assert.deepEqual(R.versionOf("Gaming PC Ryzen 5 5600X RTX 3060 16GB 1TB", ["@pc"]), ["", "rtx 3060", "1tb"], "a computer's sizes are its own");
+  assert.deepEqual(R.versionOf("MacBook Pro 2019 Core i7 9750H 16GB 512GB", ["@pro"]), ["", "2019", "512gb"], "a Mac by its year");
+  // A plain 3060 against plain 3060s, apart from the Tis: the search's own model isn't the thing itself.
+  const sales = [
+    ...[180, 185, 190, 195, 195, 200, 205, 210].map((total, i) => ({ title: `RTX 3060 12GB Gaming OC ${i}`, total })),
+    ...[235, 240, 245, 245, 250, 255, 260, 265].map((total, i) => ({ title: `RTX 3060 Ti 8GB Founders ${i}`, total })),
+  ];
+  const g = R.variantGroups(sales, "rtx 3060");
+  assert.deepEqual([g.groups["/rtx 3060/*"].length, g.groups["/rtx 3060 ti/*"].length, g.groups["/rtx 3060/12gb"].length], [8, 8, 8]);
+  const v = TK.soldVariants(sales, "rtx 3060");
+  const market = { median: 220, n: 16, confidence: "good", variants: v };
+  assert.equal(R.forVariant(market, { title: "ASUS Dual RTX 3060 12GB" }).median, v["/rtx 3060/*"].median, "every plain one is 12GB: the same group");
+  assert.equal(R.forVariant(market, { title: "RTX 3060Ti Founders Edition" }).median, v["/rtx 3060 ti/*"].median);
+  assert.deepEqual(R.forVariant(market, { title: "RTX 3060Ti Founders Edition" }).variantWords, ["rtx 3060 ti"]);
+  // A page of only plain 3060s: the model is the thing itself, and nothing is missing.
+  const plain = sales.slice(0, 8);
+  assert.ok(R.variantGroups(plain, "rtx 3060").same.includes("rtx 3060"));
+  assert.equal(R.forVariant({ median: 195, n: 8, variants: { "/rtx 3060 ti/*": { median: 250, n: 8 }, _same: ["@3060", "rtx 3060"] } }, { title: "RTX 3060 12GB" }).variantMissing, undefined);
+});
+
+test("cheapReason: a lesser card or processor than the search names", () => {
+  assert.equal(R.cheapReason("Gigabyte RTX 3060 8GB", "", "rtx 3060 ti"), "rtx 3060");
+  assert.equal(R.cheapReason("AMD Ryzen 5 5600", "", "ryzen 5600x"), "ryzen 5600");
+  assert.equal(R.cheapReason("Intel Core i7-12700", "", "i7 12700k"), "i7 12700");
+  assert.equal(R.cheapReason("MSI RTX 3060 8GB", "", "rtx 3060 12gb"), "8gb");
+  for (const [t, q] of [["Ryzen 5 5600X", "ryzen 5600"], ["RTX 3060 Ti", "rtx 3060 ti"], ["RTX 3070", "rtx 3060"]]) assert.equal(R.cheapReason(t, "", q), "", `${t} / ${q}`);
 });
 
 // The blueprint's mixed search: 10 plain Switches around $160, 8 Lites around $95, 8 OLEDs around $240.

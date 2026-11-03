@@ -208,9 +208,10 @@
   // Bulk-posted fake listings end their titles with a short random code ("Game Boy Advance SP M2465",
   // "Halo Special Edition Xbox S1337", "... U2X503") so no two look identical. A real model number
   // can look the same ("Pentax K1000"), so on its own a code is a hint for the model; the same title
-  // posted again with a different code is certain (see the page pass in panel.js).
+  // posted again with a different code is certain (see the page pass in panel.js). Nor is a card's or a processor's
+  // own model or memory ("RTX 3060 Ti 8GB GDDR6", "Core i7 12700KF", "Ryzen 7 5800X3D", "LGA1700").
   const NOT_CODE =
-    /^(?:\d+(?:GB|TB|MB|MHZ|GHZ|HZ|MM|CM|IN|W|V|MAH|P|K|X|PCS?|FT|LBS?|OZ)|XBOX\d+|PS\d\w*|[23]DS\w*|N64\w*|NDS\w*|GBA\w*|SNES\w*|DSI\w*|RTX\d+|GTX\d+|RX\d+|GEN\d+|MK\d+|USB\w*|HDMI\w*|4K\w*|1080P?|720P?)$/;
+    /^(?:\d+(?:GB|TB|MB|MHZ|GHZ|HZ|MM|CM|IN|W|V|MAH|P|K|X|PCS?|FT|LBS?|OZ)|XBOX\d+|PS\d\w*|[23]DS\w*|N64\w*|NDS\w*|GBA\w*|SNES\w*|DSI\w*|RTX\d+\w*|GTX\d+\w*|RX\d+\w*|GEN\d+|G?DDR\d\w?|LGA\d+|AM\d|\d{3,4}(?:TI|XTX?|GRE)|\d{4,5}(?:KF|KS|F|X3D|XT|GE?|H[SX]?|U|G\d|T)|MK\d+|USB\w*|HDMI\w*|4K\w*|1080P?|720P?)$/;
   TK.titleCode = (title) => {
     const words = (title || "").trim().split(/\s+/);
     if (words.length < 3) return "";

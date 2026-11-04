@@ -283,7 +283,7 @@ async function saveField(f) {
   const moved = f === "oaiUrl" ? await keyFollowsAddress() : "";
   const el = document.getElementById(f);
   if (el.type === "number" && String(v) !== el.value) el.value = v; // show what was actually kept
-  note(f === "paused" ? (v ? "Paused. Nothing shows on store pages until you turn this off." : "On again. Open store tabs show Tirekick now.") : f === "showTab" ? "Saved. Reload open eBay and Facebook tabs to see the change." : optInSite(f) ? `Saved. Reload open ${optInSite(f).name} tabs to see the change.` : `Saved.${moved}`);
+  note(f === "paused" ? (v ? "Paused. Nothing shows on store pages until you turn this off." : "On again. Open store tabs show Tirekick now.") : f === "showTab" ? "Saved. Reload open store tabs to see the change." : optInSite(f) ? `Saved. Reload open ${optInSite(f).name} tabs to see the change.` : `Saved.${moved}`);
 }
 // Each address keeps its own key: a new address puts the key you had away (it stays with its own service)
 // and brings back the one you entered for the new address before, if there is one.
@@ -623,7 +623,7 @@ document.getElementById("restoreFile").addEventListener("change", async (e) => {
   showMemory();
   showSpend();
   const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
-  const reset = links ? ` ${plural(links, "link")} to somewhere other than eBay or Facebook ${links === 1 ? "was" : "were"} replaced.` : "";
+  const reset = links ? ` ${plural(links, "link")} to somewhere other than the stores Tirekick works on ${links === 1 ? "was" : "were"} replaced.` : "";
   const bad = dropped ? ` ${plural(dropped, "entry", "entries")} that didn't make sense ${dropped === 1 ? "was" : "were"} left out.` : "";
   const left = skipped ? ` ${plural(skipped, "setting")} in the file didn't make sense and ${skipped === 1 ? "was" : "were"} left out.` : "";
   note(`Restored from ${file.name}: ${plural(Object.keys(sets.saved || {}).length, "saved listing")}, ${plural(Object.keys(sets.savedSearches || {}).length, "search", "searches")}, and settings.${reset}${bad}${left}`);

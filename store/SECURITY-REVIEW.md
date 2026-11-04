@@ -103,7 +103,7 @@ Every permission is used, and none can be dropped without losing a feature:
 | `storage` | settings, saved items, seen-listing memory, score cache |
 | `scripting` | registering the page script on eBay and Facebook, injecting it on click, reading sold results through an open eBay tab |
 | `unlimitedStorage` | lifts the 10 MB cap on the same local storage so kept scores and seen listings can't fill it (old entries are still pruned) |
-| `contextMenus` | "Check this photo", "Open Tirekick in a tab" and, on selected text, "Look up … on eBay and Marketplace" |
+| `contextMenus` | "Check this photo", "Open Tirekick in a tab" and, on selected text, "Look up … with Tirekick" |
 | eBay, Facebook, image CDNs | the two sites it works on, and photo checks |
 | AI service hosts | the services a user can pick in settings |
 | localhost `:11434`, `:1234` | Ollama and LM Studio |
@@ -192,7 +192,7 @@ A few things that are Vivaldi's own UI rather than the extension, worth a look i
 | Alt+Shift+L shortcut | Vivaldi has its own shortcut system, and a Vivaldi shortcut on the same keys would win | Does the shortcut open the panel? If not, set it at vivaldi://extensions/shortcuts |
 | "Open Tirekick in a tab" on the icon's right-click menu | That entry uses the `action` menu context, which depends on how Vivaldi draws extension icons | Right-click the icon and look for it. The same thing is reachable by clicking the icon on any non-eBay page |
 | "Check this photo with Tirekick" | Standard page right-click menu | Right-click a listing photo on eBay |
-| "Look up … on eBay and Marketplace" | Standard right-click menu on selected text | Select a product name on any site and right-click |
+| "Look up … with Tirekick" | Standard right-click menu on selected text | Select a product name on any site and right-click |
 
 This part wasn't tested in Vivaldi here; the automated tests run in Chromium. dabloonery's daily use of the
 unpacked build already covers most of it. The checklist has a step to repeat these checks on the store

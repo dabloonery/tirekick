@@ -339,10 +339,10 @@
     /* Auto: a switch under Scan. On, new listings are scored as they load and Scan is only for a redo */
     .autoscan { display:flex; align-items:center; gap:8px; margin:-4px 0 0; color:var(--muted); font:400 13px/1.3 var(--ui); letter-spacing:normal; text-transform:none; cursor:pointer; }
     .autoscan[hidden] { display:none; }
-    .autoscan input { appearance:none; -webkit-appearance:none; flex:none; position:relative; width:30px; height:18px; margin:0; border-radius:999px; background:var(--rule); cursor:pointer; transition:background .15s; }
-    .autoscan input::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--raise); box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s; }
+    .autoscan input { appearance:none; -webkit-appearance:none; flex:none; position:relative; width:40px; height:24px; margin:0; border-radius:999px; background:var(--rule); cursor:pointer; transition:background .15s; }
+    .autoscan input::after { content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--raise); box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s; }
     .autoscan input:checked { background:var(--btn); }
-    .autoscan input:checked::after { transform:translateX(12px); background:var(--on-btn); }
+    .autoscan input:checked::after { transform:translateX(16px); background:var(--on-btn); }
     .autoscan input:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .autoscan:has(input:checked) { color:var(--ink); }
     @media (forced-colors: active) { .autoscan input { appearance:auto; } .autoscan input::after { display:none; } }
@@ -608,7 +608,7 @@
     .list .actions a, .list .actions button { color:var(--muted); font-weight:400; text-decoration-color:var(--line); }
     .list .actions a:hover, .list .actions button:hover:not(:disabled) { color:var(--ink); text-decoration-color:currentColor; }
     /* Open, under the price, on every row: the title shows the card on the page, Open goes to the listing */
-    .pr .open { display:block; margin-top:4px; font:600 13px/18px var(--ui); letter-spacing:normal; color:var(--ink); text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; white-space:nowrap; }
+    .pr .open { display:block; margin-top:1px; padding:3px 0; font:600 13px/18px var(--ui); letter-spacing:normal; color:var(--ink); text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px; white-space:nowrap; }
     .pr .open:hover { text-decoration-color:currentColor; }
     .pr .open:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     .photo { margin-top:8px; font-size:13px; padding:8px 10px; background:var(--paper-2); border-left:2px solid var(--ink); border-radius:0 var(--r-sm) var(--r-sm) 0; }

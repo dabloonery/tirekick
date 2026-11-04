@@ -61,6 +61,27 @@ await o.ev(`chrome.storage.local.remove(['provider','oaiUrl']).then(()=>chrome.s
 const both = await o.ev(`Promise.all([${ask}, ${ask}])`);
 ok("one run at a time", both.filter((r: any) => r?.ok).length === 1 && both.some((r: any) => /Already checking/.test(r?.error || "")), both);
 
+// The budget runs out partway: it stops, and Home says how far it got and why.
+await sleep(46000); // the run above ends (one search, at most 45 seconds)
+const usedUp = `usage:{days:{'${new Date().toLocaleDateString("en-CA")}':{usd:6,calls:3,models:{}}}}`;
+const SEARCH2 = "https://www.ebay.com/sch/i.html?_nkw=canon+ae-1";
+const two = `{'ebay|pentax k1000':{site:'ebay', q:'pentax k1000', url:'${SEARCH}', a0:1, v:0, n:0, fresh:0}, 'ebay|canon ae-1':{site:'ebay', q:'canon ae-1', url:'${SEARCH2}', a0:1, v:0, n:0, fresh:0}}`;
+const usageWas = await get("usage");
+await o.ev(`chrome.storage.local.set({monthlyBudget:5, ${usedUp}, savedSearches:${two}})`);
+const spentAlready = await o.ev(ask);
+ok("a budget already used up says so instead of opening nothing", spentAlready?.ok === false && /used up/.test(spentAlready.error), spentAlready);
+await o.ev(`chrome.storage.local.set({usage:${JSON.stringify(usageWas || { days: {} })}})`);
+const started2 = await o.ev(ask);
+ok("…with budget left it starts both", started2?.ok === true && started2.data?.n === 2, started2);
+await o.ev(`chrome.storage.local.set({${usedUp}})`); // spent while the first is open
+await waitFor(async () => (await get("checkEnd"))?.why === "budget", 60000);
+const end = await get("checkEnd");
+ok("the budget running out partway stops the run and records where", end?.opened === 1 && end?.of === 2, end);
+const hub2 = await open(`chrome-extension://${EXT}/hub/hub.html`);
+const home2 = () => hub2.ev(`document.body.innerText`);
+await waitFor(async () => /Opened 1 of 2 saved searches/.test(await home2()));
+ok("…and Home says how many it opened and why it stopped", /Opened 1 of 2 saved searches: this month's AI budget ran out/.test(await home2()), await home2());
+
 // ---------- notifications are opt in ----------
 ok("no notification permission until the switch asks for it", !(await o.ev(`chrome.permissions.contains({permissions:['notifications']})`)));
 c.close();

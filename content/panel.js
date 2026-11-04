@@ -454,8 +454,9 @@
       /* Sort sits at the right edge: its menu drops down, right-aligned to it, over the list it sorts */
       .sort::picker(select) { position-area:block-end span-inline-start; position-try-order:normal; position-try-fallbacks:flip-block; }
     }
-    .skipwrap { display:flex; align-items:center; gap:8px; flex:1 1 100%; order:4; }
-    .lb-quick { display:flex; flex-wrap:wrap; gap:6px; margin-right:auto; }
+    /* Sort and Skips and scams share a line when they fit, and the quick filters sit beside Filter, so the list starts higher */
+    .skipwrap { display:flex; align-items:center; gap:8px; flex:0 1 auto; order:4; }
+    .lb-quick { display:flex; flex-wrap:wrap; gap:6px; flex:1 1 calc(100% - 90px); min-width:0; }
     .qf { flex:1 1 100%; order:5; display:grid; gap:6px; margin-bottom:4px; }
     .qf[hidden] { display:none; }
     .qf-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
@@ -466,6 +467,7 @@
     .qf-price input { width:58px; }
     .qt { border:var(--bw) solid var(--line); background:none; color:var(--muted); font:600 13px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
     .qt:hover { color:var(--ink); border-color:var(--muted); }
+    .qf-toggle { align-self:flex-start; }
     .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
     .qf-apply { border-color:var(--accent); color:var(--ink); }
     .qf-store:empty { display:none; }
@@ -3045,14 +3047,16 @@
       return rank(b) - rank(a) || sc(b) - sc(a);
     },
   };
-  // One line over the list saying how "best first" ordered it, so the order never looks random.
+  // One short line over the list saying how "best first" ordered it, so the order never looks random; the whole
+  // rule is in its tooltip. One line, not two or three, so the list starts higher.
   const bestHint = (shown) => {
     const scoredN = shown.filter((it) => it.score != null).length;
     const rest = prefs.markPrices
       ? "good prices furthest below typical first, then the rest of your search, then parts and other things"
       : "your search in the store's order, then parts and other things";
-    if (!scoredN) return `Best first: ${rest}; warnings and likely scams last.`;
-    return `Best first: highest score first, your search before other things${scoredN < shown.length ? `, then the ones not scored yet (${rest})` : ""}; skips and likely scams last.`;
+    const full = !scoredN ? `Best first: ${rest}; warnings and likely scams last.` : `Best first: highest score first, your search before other things${scoredN < shown.length ? `, then the ones not scored yet (${rest})` : ""}; skips and likely scams last.`;
+    const short = scoredN ? "Best first: highest score first, skips and scams last." : prefs.markPrices ? "Best first: good prices furthest below typical first." : "Best first: your search in the store's order, scams last.";
+    return h("div", { class: "sorthint", title: full }, short);
   };
   const shownKeys = new Set(); // rows that already animated in; re-sorting shouldn't replay it
   // The list is only drawn while you can see it: tucked away (or on Saved or Home) a redraw just marks it
@@ -3070,7 +3074,7 @@
     placeMemo = new Map();
     shown.sort((a, b) => isSkip(a) - isSkip(b) || by(a, b)); // skipped and likely scams go last, whatever the sort
     shownMemo = null;
-    if (sortMode === "score" && shown.length > 1) listEl.append(h("div", { class: "sorthint" }, bestHint(shown)));
+    if (sortMode === "score" && shown.length > 1) listEl.append(bestHint(shown));
     shown.forEach((it, i) => {
       const key = keyOf(it.url);
       const f = facts.get(key) || it;

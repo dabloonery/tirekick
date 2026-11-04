@@ -34,7 +34,7 @@
     const d = Math.floor((Date.now() - t) / 864e5);
     return d <= 0 ? "today" : d === 1 ? "yesterday" : d < 30 ? `${d} days ago` : dayFmt(t);
   };
-  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : /(?:s|sh|ch|x)$/.test(w) ? "es" : "s"}`;
   const MODEL_NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-5-5": "Haiku 5.5", "claude-haiku-4-5": "Haiku 4.5" };
   const modelName = (id) => MODEL_NAMES[id] || id;
 
@@ -143,7 +143,10 @@
         refresh();
       };
       if (checkNote?.ask) return h("div", { class: "hm-check" }, h("p", { class: "hm-empty" }, checkNote.ask), h("div", { class: "acts" }, h("button", { class: "hm-btn", onclick: run }, "Start"), h("button", { class: "hm-btn", onclick: () => ((checkNote = null), refresh()) }, "Cancel")));
-      return h("div", { class: "hm-check" }, h("button", { class: "hm-btn", onclick: ask, title: "Opens each saved search in a tab you can see, one after another. Nothing is checked in the background." }, "Check my saved searches"), checkNote?.said ? h("small", {}, ` ${checkNote.said}`) : null);
+      // A run the monthly budget stopped partway (background's checkEnd), for a day or until the next run.
+      const end = d.checkEnd?.why === "budget" && Date.now() - d.checkEnd.at < 864e5 ? d.checkEnd : null;
+      const said = end ? `Opened ${end.opened} of ${plural(end.of, "saved search")}: this month's AI budget ran out, so the rest weren't opened. Raise it in settings (Spending) to check them.` : checkNote?.said;
+      return h("div", { class: "hm-check" }, h("button", { class: "hm-btn", onclick: ask, title: "Opens each saved search in a tab you can see, one after another. Nothing is checked in the background." }, "Check my saved searches"), said ? h("small", {}, ` ${said}`) : null);
     }
     function greatRow(a) {
       const g = a.top;
@@ -225,7 +228,7 @@
     let refresh = async function () {
       const d = await chrome.storage.local.get({
         provider: "anthropic", oaiModel: "",
-        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {}, marksBack: false, useAI: false, loadedAt: 0,
+        saved: {}, savedSearches: {}, listingMemory: {}, usage: { days: {} }, stats: {}, alertsAck: {}, startHidden: false, siteHealth: {}, marksBack: false, useAI: false, loadedAt: 0, checkEnd: null,
       });
       // The API key stays in the background script; the page only learns whether there is one.
       d.hasKey = await send("getSettings").then((s) => !!s.hasKey).catch(() => false);
@@ -270,7 +273,7 @@
         countTimer = setTimeout(() => count().catch(() => {}), 300);
       }
       if (c.alertsAck && Object.keys(c).length === 1) return;
-      if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "provider", "anthropicKey", "oaiModel", "useAI"].some((k) => c[k])) return;
+      if (!["saved", "savedSearches", "listingMemory", "usage", "stats", "startHidden", "provider", "anthropicKey", "oaiModel", "useAI", "checkEnd"].some((k) => c[k])) return;
       if (!isShown()) return void (stale = true);
       clearTimeout(timer);
       timer = setTimeout(() => refresh().then(seen).catch(() => {}), 400);

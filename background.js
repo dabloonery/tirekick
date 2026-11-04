@@ -1018,6 +1018,7 @@ async function checkList() {
   const counted = TKShared.spendCounted(settings);
   if (scans && !counted) throw new Error(`Automatic scanning is on, and ${oaiName(settings.oaiUrl)}'s spending isn't counted, so a budget can't stop it: enter its prices in settings (AI scores) before checking every saved search.`);
   if (scans && counted !== "free" && !(settings.monthlyBudget > 0)) throw new Error("Automatic scanning is on: set a monthly budget in settings (Spending) before checking every saved search.");
+  if (scans && counted !== "free") await checkBudget(settings.monthlyBudget); // used up already: say so, rather than open nothing
   const { savedSearches = {} } = await chrome.storage.local.get("savedSearches");
   const list = Object.values(savedSearches)
     .map((r) => TKShared.searchUrl(r))
@@ -1044,11 +1045,16 @@ async function checkSavedSearches() {
     throw err;
   }
   const { list, settings, scans } = run;
+  await chrome.storage.local.remove("checkEnd");
   (async () => {
     try {
       for (const [i, url] of list.entries()) {
         if (i) await sleep(CHECK_GAP_MS);
-        if (scans && TKShared.spendCounted(settings) !== "free" && !(await checkBudget((await getSettings()).monthlyBudget).then(() => true, () => false))) break; // this month's budget is used up
+        // This month's budget ran out partway: stop, and Home says how far it got and why (checkEnd).
+        if (scans && TKShared.spendCounted(settings) !== "free" && !(await checkBudget((await getSettings()).monthlyBudget).then(() => true, () => false))) {
+          await chrome.storage.local.set({ checkEnd: { opened: i, of: list.length, why: "budget", at: Date.now() } });
+          break;
+        }
         const tab = await chrome.tabs.create({ url, active: true });
         checkTabs.add(tab.id);
         const keep = setInterval(() => chrome.runtime.getPlatformInfo().catch(() => {}), 20000); // the worker stays awake while it waits

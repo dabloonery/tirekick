@@ -23,7 +23,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
   - [Brief 7: Built-in browser AI](#brief-7-built-in-browser-ai) (first after the 1.0.0 launch)
   - [Brief 8: Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) (plan; check first that it helps)
-  - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then Safari; Firefox code built 2026-11-02, dabloonery to check it by hand)
+  - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then desktop Safari; phones off the roadmap 2026-11-04; Firefox code built 2026-11-02, dabloonery to check it by hand)
   - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
   - [Brief 11: Side panel mode](#brief-11-side-panel-mode) (idea from the 2026-10-15 UI audit)
   - [Brief 12: Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) (2026-10-23: Without the AI, Scam check only, Everything; built 2026-10-23)
@@ -1193,8 +1193,11 @@ The by-hand checks in Firefox (dabloonery, before the first addons.mozilla.org u
 - [ ] A private window: nothing runs there unless the add-on is allowed in private windows.
 
 **Effort.** Edge: half a day, no code. Firefox: items 1 to 5 are about four small PRs (a day or two together),
-the Firefox smoke test another day, then a by-hand pass and the listing. Android Firefox is possible later (the
-panel already fits narrow screens) but needs its own pass.
+the Firefox smoke test another day, then a by-hand pass and the listing.
+
+**Phones are off the roadmap for now** (dabloonery, 2026-11-04): no Firefox for Android, Safari on iPhone or other
+mobile browser work. Most phone shopping happens in the eBay and Facebook apps, which no extension can reach, and
+the mobile sites would need their own adapters. Desktop Safari below stays as it was.
 
 - **Safari (large).** Needs Apple's Safari Web Extension converter, an Xcode wrapper app, a Mac to build on and
   the $99 a year Apple developer program, and ships through the App Store. Host permissions are granted per site by

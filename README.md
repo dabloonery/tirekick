@@ -159,7 +159,7 @@ Craigslist** button (your nearest city, as Craigslist picks it).
   from "What I want".
 - **Right-click any photo** and choose "Check this photo with Tirekick".
 - **Off eBay and Marketplace**: select a thing's name on any page, right-click, and choose **Look up
-  "…" on eBay and Marketplace**. Tirekick's own page opens with what it sells for on eBay (from sold
+  "…" with Tirekick**. Tirekick's own page opens with what it sells for on eBay (from sold
   listings, without the AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
   site, with your saved listings and searches (each marked eBay or Marketplace) and Home. Type an asking price
   beside the words (a thrift shelf, a yard sale) and it says, as you type, whether that's a good price and roughly

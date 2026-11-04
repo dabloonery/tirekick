@@ -4,7 +4,7 @@
 // - Saved: your saved listings and searches, each marked eBay or Marketplace, ready to open.
 // - Home: the same alerts, numbers and spending as the panel's Home tab.
 // The toolbar icon's popup on any other site (hub.html?popup: narrower, Settings in a tab), and a tab from
-// right-clicking selected text ("Look up … on eBay and Marketplace") or the icon ("Open Tirekick in a tab").
+// right-clicking selected text ("Look up … with Tirekick") or the icon ("Open Tirekick in a tab").
 // hub.html?q=words starts with a lookup.
 (() => {
   const TK = window.Tirekick;

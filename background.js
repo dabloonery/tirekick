@@ -860,7 +860,7 @@ async function checkPhoto({ imageUrl, title, signal }) {
   // Photos come from listing pages, which can point an image anywhere (even at a service on this computer):
   // only eBay's and Facebook's own image hosts are fetched, or a photo already inline in the page.
   const inline = /^data:image\//.test(imageUrl);
-  if (!inline && !TKShared.isListingImage(imageUrl)) throw new Error("Only photos from eBay and Facebook can be checked.");
+  if (!inline && !TKShared.isListingImage(imageUrl)) throw new Error("Only listing photos from the stores Tirekick works on can be checked.");
   const imgRes = await fetchWithTimeout(imageUrl, { signal }, 30 * 1000, "The photo took too long to load.");
   if (!imgRes.ok) throw new Error(`Couldn't load the photo (${imgRes.status}).`);
   if (!inline && !TKShared.isListingImage(imgRes.url)) throw new Error("That photo was passed on to another site, so it wasn't checked.");
@@ -1241,7 +1241,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     // The icon's own right-click menu: the browser fills most of it; Tirekick adds only this.
     chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Tirekick in a tab", contexts: ["action"] });
     // Anywhere: select a thing's name and see what it sells for, or search for it on both sites.
-    chrome.contextMenus.create({ id: LOOKUP_MENU_ID, title: "Look up \u201c%s\u201d on eBay and Marketplace", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: LOOKUP_MENU_ID, title: "Look up \u201c%s\u201d with Tirekick", contexts: ["selection"] });
   });
   updateBadge().catch(() => {});
 });

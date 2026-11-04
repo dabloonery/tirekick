@@ -90,7 +90,7 @@ Every message names what happened and what to do; where the fix is somewhere els
 | Empty Home | Home | Getting started (n of 4) and *Nothing new. Saved listings that get cheaper, and saved searches with listings at your price, show up here.* | The step's button |
 | eBay pushes back on sold lookups | Status / note | Sold prices pause for an hour; scans continue without them (Verified, `features.ts`) | — |
 | Extension updated under an open page | Status line | *Tirekick was updated. Reload this page to keep using it.* | **Reload the page** (Implemented) |
-| Photo can't be checked | Photo card | *Only photos from eBay and Facebook can be checked.* / *That photo is too large…* | — |
+| Photo can't be checked | Photo card | *Only listing photos from the stores Tirekick works on can be checked.* / *That photo is too large…* | — |
 
 Truthfulness rules: costs are always *estimates* and say so; "free" is only used for things that never call a paid service; a cut-off or failed batch never shows a score it didn't get.
 

@@ -494,3 +494,17 @@ test("workbench finds: kept clean, backed up, and read as a market for the flip 
   assert.deepEqual(Object.keys(sets.finds), ["fabc"]);
   assert.equal(dropped, 3);
 });
+
+test("workbench: Bought and Sold, the profit each made, and the totals", () => {
+  const base = { t: "pentax", sold: 58, ship: 9, a0: 1 };
+  assert.equal(S.findProfit({ ...base, ask: 15 }), null, "weighing it up: no profit yet");
+  assert.equal(S.findProfit({ ...base, st: "bought", paid: 15 }), 26, "at the typical price: 58 less 13.6%, 40 cents, $9, $15");
+  assert.equal(S.findProfit({ ...base, st: "sold", paid: 15, out: 70, parts: 5 }), 31);
+  assert.equal(S.findProfit({ ...base, st: "sold", paid: 15 }), null, "no sold-for price yet");
+  const t = S.benchTotals({ a: { ...base, st: "sold", paid: 15, out: 70 }, b: { ...base, st: "bought", paid: 20, parts: 5 }, c: { ...base }, d: null });
+  assert.deepEqual(t, { sold: 1, profit: 36, held: 1, inHeld: 25, heldProfit: 16, weighing: 1 });
+  const kept = S.cleanFind({ ...base, st: "sold", paid: 15, out: 70, bt: 2, so: 3, k: "ebay:111", u: "javascript:alert(1)" });
+  assert.deepEqual([kept.st, kept.paid, kept.out, kept.bt, kept.so, kept.k, kept.u], ["sold", 15, 70, 2, 3, "ebay:111", "https://www.ebay.com/itm/111"]);
+  const odd = S.cleanFind({ ...base, st: "stolen", k: "evil:1", u: "https://evil.example/" });
+  assert.ok(!("st" in odd) && !("k" in odd) && !("u" in odd));
+});

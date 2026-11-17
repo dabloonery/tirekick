@@ -15,7 +15,7 @@ All of this is kept in your browser's extension storage and never sent to the de
 
 - **Your settings**, including any API key you paste in. Keys stay in this browser profile; the pages Tirekick works on never see them.
 - **Listings and searches you saved, and listings you hid**, with the prices you saw, and for a saved search the great finds seen on it in the last week (title, price, address), for Home and the toolbar number.
-- **Finds you put on the workbench** on Tirekick's own page: the words you looked up, the asking price, parts, your note and the typical price then.
+- **Finds you put on the workbench** on Tirekick's own page: the words you looked up, the asking price, parts, your note, the typical price then, and what you paid and sold it for if you mark it bought or sold.
 - **Listings you've seen** (title, price, when), so it can say "new to you" and show price drops and history. Kept for 90 days.
 - **Photo fingerprints** for Marketplace listings you scroll past: a 16-character code worked out from each thumbnail (not the photo itself), so it can spot the same photo on another listing. Kept for 90 days.
 - **Scores** for listings you scanned or analyzed, kept for 60 days so they come back in other searches and tabs, and **sold-price results**, kept for a day.

@@ -49,7 +49,7 @@ check); those are in git history.*
 | More browsers | Firefox code and a zip for each browser built 2026-11-02 ([status](#firefox-built-2026-11-02)); dabloonery checks it in Firefox and Edge by hand before any upload to either store |
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
-| Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. Steps 1 and 2, the flip check and your own finds, built |
+| Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. Steps 1 to 3 built: the flip check, your own finds, Bought and Sold with profit totals |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Reseller workbench
@@ -69,8 +69,11 @@ Each step is its own PR, on Tirekick's own page (`hub/`), and the website says w
    `finds` record (`TKShared.cleanFind`; in backups, capped at 200): the words, asking price, parts, a note and the
    typical price then. The page's Workbench lists them with their call and most to pay, worked out again from what
    was kept (no new lookup until you press a find's words). The same words again update that find.
-3. **Saved as the workbench**: parts, notes and net on each saved item, Bought and Sold with their prices, and the
-   profit so far.
+3. **Bought and Sold** (built 2026-11-17): each find has Weighing up, Bought (paid starts at the asking price) or
+   Sold (what it sold for), the profit it made or should make (`TKShared.findProfit`: fees, 40 cents and the typical
+   shipping kept with it) and totals over the list (`TKShared.benchTotals`). Saved listings on the page go onto the
+   workbench with To workbench, keeping their price, parts, note, free typical price and link (`k`, `u`). The panel's
+   own Saved tab keeps its parts-and-note bench as it was.
 4. **Questions for the seller**: a safety checklist to copy into a message.
 
 ### Pause switch

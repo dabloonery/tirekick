@@ -166,7 +166,10 @@ Craigslist** button (your nearest city, as Craigslist picks it).
   check** says the most to pay to keep the profit you want (set there or in settings, $20 to start) once it resells
   on eBay after fees, shipping and any parts, and with an asking price, a plain **Buy**, **Offer $N** or **Pass**.
   **Add to workbench** keeps the find (a thrift shelf, a yard sale, a listing anywhere) on the page's **Workbench**
-  with its asking price, parts, a note and the typical price it had then, and checks it again as you change them. Add a version word after the lookup ("lite",
+  with its asking price, parts, a note and the typical price it had then, and checks it again as you change them.
+  Mark a find **Bought** (what you paid) and **Sold** (what it sold for) and the workbench keeps the profit, with
+  totals over the top: sold and the profit made, bought and what's in them. A saved listing goes there with **To
+  workbench**, keeping its link. Add a version word after the lookup ("lite",
   "2nd gen", "m2", "2017", "ti", "slim digital", "128gb", "verizon", "iii", "f/1.8") and it compares with sales of that version, without looking up again.
 - **Start over** clears the page's scores (Undo is right there); the marks on the cards stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Hide buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.

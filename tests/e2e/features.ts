@@ -294,10 +294,29 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   await sleep(500);
   const bench2 = { call: await hub.ev(`document.querySelector('#bench .find').dataset.call`), ask: (Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds)[0] as { ask: number }).ask };
   ok("…a new asking price on the workbench is kept, and the call follows it", bench2.call === "buy" && bench2.ask === 15, bench2);
+  const pick = (v: string) => hub.ev(`(() => { const el = document.querySelector('#bench .find select'); el.value = '${v}'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  const benchNow = async () => ({ ...(await hub.ev(`({ call: document.querySelector('#bench .find').dataset.call, text: document.querySelector('#bench .find').textContent, sum: document.querySelector('#bench-sum').textContent })`)), find: Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds)[0] as Record<string, unknown> });
+  await pick("bought");
+  await sleep(500);
+  const b1 = await benchNow();
+  ok("marked Bought, what you paid starts at the asking price, with what it should leave", b1.call === "bought" && b1.find.st === "bought" && b1.find.paid === 15 && /Should leave ~\$26 profit at the typical \$58/.test(b1.text) && /1 bought and not sold yet: \$15 in it, ~\$26 to come/.test(b1.sum), b1);
+  await pick("sold");
+  await sleep(500);
+  await hub.ev(`(() => { const el = document.querySelector('#bench .find input[aria-label^="Sold for"]'); el.focus(); el.value = '70'; el.dispatchEvent(new Event('change', { bubbles: true })); el.blur(); })()`);
+  await sleep(500);
+  const b2 = await benchNow();
+  ok("…then Sold, with what it sold for: the profit after fees and shipping, and the total", b2.call === "sold" && b2.find.out === 70 && /\$36 profit after 13\.6% fees, ~\$9 shipping/.test(b2.text) && /^1 sold, \$36 profit$/.test(b2.sum), b2);
   await hub.ev(`[...document.querySelectorAll('#bench .find button')].find(b => b.textContent === 'Remove').click()`);
   await sleep(500);
   ok("…and Remove takes it off", await hub.ev(`document.querySelector('#bench').hidden`) && !Object.keys((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {}).length);
   await typed("");
+  // A saved listing goes onto the workbench too, with the link back to it
+  await hub.ev(`[...document.querySelectorAll('#saved .row')].find(r => /Pentax on eBay/.test(r.textContent)).querySelector('.to-bench').click()`);
+  await sleep(600);
+  const fromSaved = { finds: Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {}) as Record<string, unknown>[], row: await hub.ev(`document.querySelector('#bench .find')?.textContent || ''`), link: await hub.ev(`document.querySelector('#bench .find a.open')?.href || ''`), saved: await hub.ev(`[...document.querySelectorAll('#saved .row')].find(r => /Pentax on eBay/.test(r.textContent)).textContent`) };
+  ok("a saved listing goes onto the workbench with its price and its link, and Saved says it's there", fromSaved.finds.length === 1 && fromSaved.finds[0].k === "ebay:111" && fromSaved.finds[0].ask === 80 && fromSaved.link === "https://www.ebay.com/itm/111" && /On the workbench/.test(fromSaved.saved), fromSaved);
+  await hub.ev(`chrome.runtime.sendMessage({ type: 'storeEdit', payload: { name: 'finds', edit: { clear: true } } })`);
+  await sleep(300);
   // One saved search: no "Open all" button, and nothing in its place (it used to print "null")
   await store(`{savedSearches:{'ebay|pentax':{site:'ebay',q:'pentax',v:1}}}`);
   await sleep(500);

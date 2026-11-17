@@ -162,8 +162,9 @@ Craigslist** button (your nearest city, as Craigslist picks it).
   "…" with Tirekick**. Tirekick's own page opens with what it sells for on eBay (from sold
   listings, without the AI) and a search on eBay, on Marketplace, or both. The toolbar icon opens the same page, as a popup, on any other
   site, with your saved listings and searches (each marked eBay or Marketplace) and Home. Type an asking price
-  beside the words (a thrift shelf, a yard sale) and it says, as you type, whether that's a good price and roughly
-  what reselling it on eBay would leave after fees and shipping. Add a version word after the lookup ("lite",
+  beside the words (a thrift shelf, a yard sale) and it says, as you type, whether that's a good price. Its **flip
+  check** says the most to pay to keep the profit you want (set there or in settings, $20 to start) once it resells
+  on eBay after fees, shipping and any parts, and with an asking price, a plain **Buy**, **Offer $N** or **Pass**. Add a version word after the lookup ("lite",
   "2nd gen", "m2", "2017", "ti", "slim digital", "128gb", "verizon", "iii", "f/1.8") and it compares with sales of that version, without looking up again.
 - **Start over** clears the page's scores (Undo is right there); the marks on the cards stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Hide buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.

@@ -2173,7 +2173,7 @@
   // Redrawing a card's marks replaces their elements; if the keyboard was on one of them (pressing Save
   // turns it into "Saved"), put focus back on the same place in the new marks instead of losing it.
   const decorate = (key, linkEl, m) => {
-    if (!linkEl?.isConnected) return;
+    if (!linkEl?.isConnected || (!m && inChat(linkEl))) return; // decorateAll checked its cards before measuring
     m ||= measure(linkEl);
     const marks = m.cell.querySelector(".tirekick-sticker, .tirekick-marks");
     const at = marks && marks.contains(document.activeElement) ? [...marks.querySelectorAll("button")].indexOf(document.activeElement) : null;
@@ -2196,6 +2196,10 @@
     const tagged = el.closest("[data-tirekick-key]");
     return !!tagged && tagged.dataset.tirekickKey === key && !!tagged.dataset.tkSig?.startsWith(base) && (tagged.dataset.tkHas !== "1" || !!tagged.querySelector(":scope > .tirekick-sticker, :scope > .tirekick-marks"));
   };
+  // A link to a listing inside one of Facebook's chat windows (a Messenger chat docked at the foot of the page)
+  // isn't a card: no tag or chips on it, or they cover the chat's close button. The reader skips these, but
+  // the pass that puts tags back on recycled cards finds every link to a listing, the chat's too.
+  const inChat = (el) => TK.currentSite() === "facebook" && !!el.getClientRects().length && TK.inChatBox(el);
   const decorateAll = (pairs) => {
     ensureStickerStyles();
     // Cards already dressed for what they show are skipped before anything is measured: the page pass
@@ -2204,7 +2208,7 @@
     for (const [key, el] of pairs) {
       if (!el?.isConnected) continue;
       const base = sigOf(key);
-      if (!isDressed(key, el, base)) live.push([key, el, base]);
+      if (!isDressed(key, el, base) && !inChat(el)) live.push([key, el, base]);
     }
     const ms = live.map(([, el]) => measure(el));
     live.forEach(([key, el, base], i) => decorate(key, el, { ...ms[i], base }));

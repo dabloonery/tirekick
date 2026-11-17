@@ -256,6 +256,41 @@
     const resell = `Resell on eBay: ~${R.dollars(Math.abs(net))} ${net >= 0 ? "margin" : "loss"} after ${feePct}% fees${ship ? ` and ${R.dollars(ship)} shipping` : ""} (est.)`;
     return { v: pw.v, word: pw.word, buyer: buyer.charAt(0).toUpperCase() + buyer.slice(1), resell };
   };
+  // The flip check (Tirekick's own page, the reseller workbench): the most worth paying to keep the profit you want
+  // after reselling on eBay at the typical price (fees, 40 cents, the shipping buyers paid, parts you'll put in),
+  // and a plain call against an asking price: Buy at or under it, Offer when a friendly offer at it is a fair ask
+  // (at least 70% of the asking price, lower reads as a lowball), Pass otherwise. With no asking price, only the
+  // most to pay. null without a typical price.
+  R.OFFER_FLOOR = 0.7;
+  R.flipCall = (asking, market, { title = "", feePct = 13.6, profit = 20, parts = 0 } = {}) => {
+    if (!(market?.median > 0)) return null;
+    const m = R.forVariant(market, { title });
+    const ship = m.ship > 0 ? m.ship : 0;
+    const want = profit > 0 ? profit : 0;
+    const extra = parts > 0 ? parts : 0;
+    const back = m.median * (1 - feePct / 100) - 0.4 - ship - extra; // what a sale leaves before the price you pay
+    const maxPay = Math.max(0, Math.floor(back - want));
+    const rough = m.confidence === "rough";
+    const costs = `${feePct}% fees${ship ? `, ${R.dollars(ship)} shipping` : ""}${extra ? `, ${R.dollars(extra)} parts` : ""}`;
+    const basis = `Resold at ${rough ? "about " : ""}${R.dollars(Math.round(m.median))} on eBay, less ${costs}.`;
+    const out = { maxPay, offer: null, call: null, net: null, word: "", why: "", basis, rough };
+    if (asking == null || asking === "" || !(asking >= 0)) return out;
+    const net = Math.round(back - asking);
+    out.net = net;
+    const left = `${R.dollars(Math.abs(net))} ${net >= 0 ? "profit" : "loss"}`;
+    if (maxPay > 0 && asking <= maxPay) return { ...out, call: "buy", word: "Buy", why: `At ${R.dollars(asking)} it leaves about ${left}${net > want ? `, ${R.dollars(net - want)} more than you want` : ""}.` };
+    const offer = maxPay > 0 ? R.roundOffer(maxPay) : 0;
+    if (offer > 0 && offer >= asking * R.OFFER_FLOOR)
+      return { ...out, call: "offer", offer, word: `Offer ${R.dollars(offer)}`, why: `At the ${R.dollars(asking)} asking price it leaves about ${left}. At ${R.dollars(offer)} you'd keep your ${R.dollars(want)}.` };
+    return {
+      ...out,
+      call: "pass",
+      word: "Pass",
+      why: maxPay > 0
+        ? `It would need to be ${R.dollars(maxPay)} or less for your ${R.dollars(want)}, too far under the ${R.dollars(asking)} asking price for an offer.`
+        : `Even at $0 a resale wouldn't leave your ${R.dollars(want)}.`,
+    };
+  };
   // The kinds of chip on a listing, each with its own switch in settings: scam marks (and the warnings that go
   // with them: a new or low-rated seller, the same title twice), price words, and everything else (new to you,
   // price drops, auctions, lots, offers). A chip is [kind, text, why, group]; "state" ones (why a listing is

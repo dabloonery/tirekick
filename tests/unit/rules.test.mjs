@@ -1415,6 +1415,30 @@ test("askingRead: an asking price against what it sells for, and what reselling 
   assert.equal(R.askingRead(40, null), null);
 });
 
+test("flipCall: the most to pay for the profit you want, and Buy, Offer or Pass", () => {
+  const m = { median: 58, n: 10, ship: 9, confidence: "fair" };
+  // 58 less 13.6%, 40 cents and $9 shipping leaves $40.71; less $20 profit: pay up to $20
+  const none = R.flipCall(null, m);
+  assert.deepEqual([none.maxPay, none.call], [20, null]);
+  assert.equal(none.basis, "Resold at $58 on eBay, less 13.6% fees, $9 shipping.");
+  const buy = R.flipCall(15, m);
+  assert.deepEqual([buy.call, buy.word, buy.net], ["buy", "Buy", 26]);
+  assert.equal(buy.why, "At $15 it leaves about $26 profit, $6 more than you want.");
+  const offer = R.flipCall(25, m);
+  assert.deepEqual([offer.call, offer.word, offer.offer], ["offer", "Offer $20", 20]);
+  assert.equal(offer.why, "At the $25 asking price it leaves about $16 profit. At $20 you'd keep your $20.");
+  const pass = R.flipCall(40, m);
+  assert.equal(pass.call, "pass");
+  assert.match(pass.why, /\$20 or less for your \$20, too far under the \$40 asking price/);
+  assert.equal(R.flipCall(40, m, { profit: 0 }).call, "buy", "no profit wanted: $40 is under the $40.71 a sale leaves");
+  assert.equal(R.flipCall(40, m, { profit: 10, parts: 5 }).maxPay, 25);
+  assert.match(R.flipCall(40, m, { parts: 5 }).basis, /\$5 parts/);
+  assert.equal(R.flipCall(10, m, { profit: 60 }).why, "Even at $0 a resale wouldn't leave your $60.");
+  assert.equal(R.flipCall(10, m, { profit: 60 }).maxPay, 0);
+  assert.match(R.flipCall(10, { ...m, confidence: "rough" }).basis, /^Resold at about \$58/);
+  assert.equal(R.flipCall(10, null), null);
+});
+
 test("askingRead: version words price it against sales of that version, and say so", () => {
   const market = { median: 200, n: 52, confidence: "fair", ship: 14, variants: { "lite/*/*": { median: 95, p10: 80, p25: 88, p75: 100, n: 14, confidence: "fair" }, "/*/*": { median: 165, p10: 140, p25: 155, p75: 175, n: 22, confidence: "good" } } };
   const lite = R.askingRead(85, market, { title: "nintendo switch lite" });

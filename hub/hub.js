@@ -148,6 +148,7 @@
     const words = qEl.value.trim();
     const same = lastLook && (words === lastLook.q || (lastLook.q.toLowerCase().split(/\s+/).every((w) => words.toLowerCase().includes(w)) &&
       TKRules.forVariant(lastLook.market, { title: words }).variantWords?.length));
+    showFlip(same ? words : null, priceEl.value.trim() === "" ? null : asking);
     if (!same || !(asking >= 0) || priceEl.value.trim() === "") {
       delete readEl.dataset.v;
       return readEl.replaceChildren();
@@ -155,10 +156,58 @@
     const r = TKRules.askingRead(asking, lastLook.market, { title: words, feePct: lastFee });
     if (!r) return readEl.replaceChildren();
     readEl.dataset.v = r.v;
-    readEl.replaceChildren(h("b", {}, r.word), h("span", {}, r.buyer), h("span", {}, r.resell));
+    // the buyer's word; what reselling would leave is the flip check's, below
+    readEl.replaceChildren(h("b", {}, r.word), h("span", {}, r.buyer));
   };
   priceEl.addEventListener("input", showRead);
   qEl.addEventListener("input", showRead);
+
+  // ---------- the flip check (the reseller workbench) ----------
+  // After a lookup: the most to pay to keep the profit you want once it resells on eBay at the typical price, and
+  // with an asking price, a plain Buy, Offer or Pass (TKRules.flipCall). The profit is the "flipProfit" setting,
+  // changed here or in settings; parts are for this one find and aren't kept.
+  const flipBox = $("#flip");
+  const flipOut = $("#flip-out");
+  const profitEl = $("#flip-profit");
+  const partsEl = $("#flip-parts");
+  let profit = 20; // background.js DEFAULTS
+  chrome.storage.local.get("flipProfit").then(({ flipProfit }) => {
+    if (Number.isFinite(flipProfit)) profit = flipProfit;
+    profitEl.value = String(profit);
+    showRead();
+  });
+  chrome.storage.onChanged.addListener((c) => {
+    if (c.flipProfit && Number.isFinite(c.flipProfit.newValue) && document.activeElement !== profitEl) {
+      profit = c.flipProfit.newValue;
+      profitEl.value = String(profit);
+      showRead();
+    }
+    if (c.feePct && Number.isFinite(c.feePct.newValue)) (lastFee = c.feePct.newValue), showRead();
+  });
+  profitEl.value = String(profit);
+  const showFlip = (words, asking) => {
+    const f = words != null && lastLook && TKRules.flipCall(asking, lastLook.market, { title: words, feePct: lastFee, profit, parts: parseFloat(partsEl.value) || 0 });
+    flipBox.hidden = !f;
+    if (!f) return;
+    if (f.call) flipOut.dataset.call = f.call;
+    else delete flipOut.dataset.call;
+    flipOut.replaceChildren(
+      ...[
+        f.call ? h("b", { class: "call" }, f.word) : null,
+        h("b", { class: "pay" }, f.maxPay > 0 ? `Pay up to ${money(f.maxPay)} for a ${money(profit)} profit` : `No price leaves a ${money(profit)} profit`),
+        f.why ? h("span", {}, f.why) : null,
+        h("span", {}, `${f.basis} Before sales tax and your time.${f.rough ? " Few sales: a rough guide." : ""}`),
+        f.call ? null : h("span", {}, "Type the asking price above for Buy, Offer or Pass."),
+      ].filter(Boolean) // replaceChildren would print a null as the word "null"
+    );
+  };
+  profitEl.addEventListener("input", () => {
+    const n = parseFloat(profitEl.value);
+    profit = n >= 0 ? n : 0;
+    showRead();
+  });
+  profitEl.addEventListener("change", () => chrome.storage.local.set({ flipProfit: S.clampSetting("flipProfit", profit) }).catch(() => {}));
+  partsEl.addEventListener("input", showRead);
 
   $("#look-form").addEventListener("submit", (e) => {
     e.preventDefault();

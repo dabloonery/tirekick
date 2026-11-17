@@ -237,21 +237,40 @@
     }
   });
   const benchBody = $("#bench-body");
+  // One find: its call (Buy, Offer or Pass) while you weigh it up, then Bought and Sold with what you paid and what it
+  // sold for, and the profit (TKShared.findProfit). Every box is kept when you leave it (storeEdit patch).
+  const STATES = [["", "Weighing up"], ["bought", "Bought"], ["sold", "Sold"]];
   const findRow = (k, r) => {
-    const f = TKRules.flipCall(r.ask ?? null, S.findMarket(r), { title: "", feePct: lastFee, profit, parts: r.parts || 0 });
-    const partsIn = h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", placeholder: "0", value: Number.isFinite(r.parts) ? String(r.parts) : null, "aria-label": `Parts cost for ${r.t.slice(0, 60)}` });
-    const askIn = h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", placeholder: "$", value: Number.isFinite(r.ask) ? String(r.ask) : null, "aria-label": `Asking price for ${r.t.slice(0, 60)}` });
-    const noteIn = h("input", { class: "note", type: "text", maxlength: String(S.NOTE_MAX), placeholder: "Notes: where, condition, fault…", value: r.note || null, "aria-label": `Notes for ${r.t.slice(0, 60)}` });
+    const st = r.st === "bought" || r.st === "sold" ? r.st : "";
+    const name = r.t.slice(0, 60);
+    const f = st ? null : TKRules.flipCall(r.ask ?? null, S.findMarket(r), { title: "", feePct: lastFee, profit, parts: r.parts || 0 });
+    const numIn = (label, v, placeholder = "") => h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", placeholder, value: Number.isFinite(v) ? String(v) : null, "aria-label": `${label} for ${name}` });
+    const askIn = numIn("Asking price", r.ask, "$");
+    const paidIn = numIn("Price paid", r.paid, "$");
+    const outIn = numIn("Sold for", r.out, "$");
+    const partsIn = numIn("Parts cost", r.parts, "0");
+    const noteIn = h("input", { class: "note", type: "text", maxlength: String(S.NOTE_MAX), placeholder: "Notes: where, condition, fault…", value: r.note || null, "aria-label": `Notes for ${name}` });
+    const stateIn = h("select", { "aria-label": `Where ${name} stands` }, STATES.map(([v, label]) => h("option", { value: v, ...(v === st && { selected: true }) }, label)));
     const num = (el) => (el.value.trim() === "" ? null : Math.max(0, parseFloat(el.value)) || 0);
+    const boxes = { ask: askIn, paid: paidIn, out: outIn, parts: partsIn };
     const keep = () => {
-      const patch = { parts: num(partsIn), ask: num(askIn), note: noteIn.value.trim().slice(0, S.NOTE_MAX) };
-      if (patch.parts === (r.parts ?? null) && patch.ask === (r.ask ?? null) && patch.note === (r.note || "")) return;
+      const patch = { note: noteIn.value.trim().slice(0, S.NOTE_MAX) };
+      for (const [f2, el] of Object.entries(boxes)) if (el.isConnected) patch[f2] = num(el);
+      if (Object.entries(patch).every(([f2, v]) => (f2 === "note" ? v === (r.note || "") : v === (r[f2] ?? null)))) return;
       edit({ patch: { [k]: patch } }).catch(() => {});
     };
-    for (const el of [partsIn, askIn, noteIn]) {
+    for (const el of [...Object.values(boxes), noteIn]) {
       el.addEventListener("change", keep);
       el.addEventListener("keydown", (e) => e.key === "Enter" && el.blur());
     }
+    // Bought: what you paid starts at the asking price. Sold: what it sold for starts empty, for you to type.
+    stateIn.addEventListener("change", () => {
+      const to = stateIn.value;
+      const paid = r.paid ?? r.ask ?? null;
+      const patch = to === "" ? { st: null } : { st: to, paid, ...(to === "bought" ? { bt: r.bt || Date.now() } : { bt: r.bt || Date.now(), so: Date.now() }) };
+      edit({ patch: { [k]: patch } }).catch(() => {});
+      stateIn.blur(); // the list redraws with the new boxes
+    });
     const again = h("button", { type: "button", class: "again", title: "Look it up again" }, r.t);
     again.addEventListener("click", () => {
       qEl.value = r.t;
@@ -262,31 +281,47 @@
       lookUp();
     });
     const when = r.sa ? new Date(r.sa).toLocaleDateString() : "";
+    const typical = r.sold > 0 ? `typical ${r.r ? "~" : ""}${money(r.sold)}${when ? ` (${when})` : ""}` : "";
+    const made = S.findProfit(r, lastFee);
+    const line = st === "sold"
+      ? made == null ? "Type what it sold for to see the profit." : `${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"} after ${lastFee}% fees${r.ship ? `, ~${money(r.ship)} shipping` : ""}${r.parts ? ` and ${money(r.parts)} parts` : ""}`
+      : st === "bought"
+        ? made == null ? (r.sold > 0 ? "Type what you paid to see what it should leave." : "No typical price kept for it.") : `Should leave ~${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"} at the ${typical}`
+        : f ? `${f.maxPay > 0 ? `Pay up to ${money(f.maxPay)}` : `No price leaves ${money(profit)}`} · ${typical}` : "No typical price: press it to look it up again.";
+    const shown = st === "sold" ? r.out : st === "bought" ? r.paid : r.ask;
+    const link = r.k && r.u ? h("a", { href: S.safeUrl(r.u, S.itemUrl(r.k)), target: "_blank", rel: "noopener", class: "open" }, `${siteName(r.k)} ↗`) : null;
     return h(
       "div",
-      { class: "find", ...(f?.call && { "data-call": f.call }) },
-      h("span", { class: "call" }, f?.call ? f.word : "No price"),
-      h(
-        "div",
-        { class: "ft" },
-        again,
-        h("small", {}, f ? `${f.maxPay > 0 ? `Pay up to ${money(f.maxPay)}` : `No price leaves ${money(profit)}`} · typical ${r.r ? "~" : ""}${money(r.sold)}${when ? ` (${when})` : ""}` : "No typical price: press it to look it up again.")
-      ),
-      Number.isFinite(r.ask) ? h("div", { class: "pr" }, money(r.ask)) : h("span", {}),
+      { class: "find", "data-call": st || f?.call || "" },
+      h("span", { class: "call" }, st ? (st === "sold" ? "Sold" : "Bought") : f?.call ? f.word : "No price"),
+      h("div", { class: "ft" }, again, link ? [" ", link] : null, h("small", {}, line)),
+      Number.isFinite(shown) ? h("div", { class: "pr" }, money(shown)) : h("span", {}),
       h(
         "div",
         { class: "fx" },
-        h("label", {}, "Asking $", askIn),
+        stateIn,
+        st ? h("label", {}, "Paid $", paidIn) : h("label", {}, "Asking $", askIn),
+        st === "sold" ? h("label", {}, "Sold for $", outIn) : null,
         h("label", {}, "Parts $", partsIn),
         noteIn,
         h("button", { type: "button", title: "Take it off the workbench", onclick: () => edit({ set: { [k]: null } }).catch(() => {}) }, "Remove")
       )
     );
   };
+  // Totals over the top: what's sold and the profit it made, and what's bought and waiting to sell.
+  const benchSum = $("#bench-sum");
   const drawBench = () => {
     const list = Object.entries(finds).sort((a, b) => (b[1].a0 || 0) - (a[1].a0 || 0));
     $("#bench").hidden = !list.length;
+    const t = S.benchTotals(finds, lastFee);
+    const bits = [
+      t.sold ? `${t.sold} sold, ${money(Math.abs(t.profit))} ${t.profit >= 0 ? "profit" : "loss"}` : null,
+      t.held ? `${t.held} bought and not sold yet: ${money(t.inHeld)} in ${t.held === 1 ? "it" : "them"}, ~${money(Math.abs(t.heldProfit))} ${t.heldProfit >= 0 ? "to come" : "loss"} at typical prices` : null,
+      t.weighing ? `${t.weighing} you're weighing up` : null,
+    ].filter(Boolean);
+    benchSum.textContent = bits.join(" · ");
     benchBody.replaceChildren(...list.map(([k, r]) => findRow(k, r)));
+    drawSaved(); // each saved listing says whether it's on the workbench
   };
   chrome.storage.local.get("finds").then(({ finds: f }) => {
     finds = f && typeof f === "object" ? f : {};
@@ -316,6 +351,14 @@
     if (!items.length && !searches.length) {
       return body.replaceChildren(h("p", { class: "empty" }, `Nothing saved yet. On ${sites.map((s) => s.name).join(" or ")}, hover a card and press Save, or use Save search in the panel.`));
     }
+    // A saved listing goes onto the workbench as a find: its title, price, the free typical price kept on it
+    // (TKShared.savedSold) and its parts and note, with the link back to it. Once there, it says so.
+    const onBench = new Set(Object.values(finds).map((f) => f?.k).filter(Boolean));
+    const toBench = (k, r) => {
+      const ref = S.savedSold(k, {}, r);
+      const find = S.cleanFind({ t: r.t || siteName(k), ask: r.p, parts: r.parts, note: r.note, ...(ref && { sold: ref.sold, ship: ref.ship, sa: ref.at || Date.now() }), k, u: r.u, a0: Date.now() });
+      if (find) edit({ set: { [S.newFindKey()]: find }, cap: { max: S.FIND_MAX, by: "a0" } }).catch(() => {});
+    };
     const listRows = items.map(([k, r]) => {
       const cheaper = S.dropped(r);
       return h(
@@ -323,7 +366,10 @@
         { class: "row" },
         h("span", { class: "tag" }, siteName(k)),
         h("div", { class: "t" }, h("a", { href: S.savedItemUrl(k, r), target: "_blank", rel: "noopener" }, r.t || S.savedItemUrl(k, r)), cheaper ? h("small", {}, `↓ ${money(r.p0 - r.p)} since you saved it`) : null),
-        r.p != null ? h("div", { class: "pr" }, money(r.p)) : null
+        r.p != null ? h("div", { class: "pr" }, money(r.p)) : null,
+        onBench.has(k)
+          ? h("span", { class: "on-bench" }, "On the workbench")
+          : h("button", { type: "button", class: "to-bench", title: "Weigh it up on the workbench, then mark it bought and sold", onclick: () => toBench(k, r) }, "To workbench")
       );
     });
     const searchRows = searches.map(([, r]) =>

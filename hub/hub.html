@@ -74,6 +74,13 @@
   .find .fx input[type=number] { width:76px; }
   .find .fx input.note { flex:1 1 160px; min-width:0; }
   .find .fx button { min-height:32px; padding:4px 10px; font-size:13px; }
+  .find .fx select { min-height:32px; padding:4px 8px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:inherit; font-size:14px; }
+  .find[data-call="bought"] { --v:var(--accent, var(--ink)); } .find[data-call="sold"] { --v:var(--v-good); }
+  .find .open { color:var(--muted); font-size:13px; white-space:nowrap; }
+  .bench-sum { margin:0 0 4px; font-weight:600; }
+  .bench-sum:empty { display:none; }
+  .row .to-bench { flex:none; align-self:center; min-height:30px; padding:4px 10px; font-size:13px; }
+  .row .on-bench { flex:none; align-self:center; color:var(--muted); font-size:13px; }
   .sites { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
   .sites .btn { min-height:36px; font-size:13px; }
   .answer { margin-top:16px; }
@@ -182,6 +189,7 @@
   <section class="block" aria-labelledby="bench-h" id="bench" hidden>
     <h2 id="bench-h">Workbench</h2>
     <p class="hint bench-intro">Finds you're weighing up from a thrift store, a yard sale or anywhere else. Each is checked against the typical price it had when you added it.</p>
+    <p class="bench-sum" id="bench-sum" aria-live="polite"></p>
     <div class="rows" id="bench-body"></div>
   </section>
 

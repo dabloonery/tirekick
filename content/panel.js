@@ -428,7 +428,7 @@
 
     /* first run, list bar */
     .setup { display:grid; gap:10px; padding:12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); font-size:14px; }
-    .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; margin:0 16px; padding:10px 0 8px;
+    .listbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:6px; margin:0 16px; padding:10px 0 8px;
       border-top:var(--bw) solid var(--rule); border-bottom:var(--bw) solid var(--rule); background:var(--paper); font-size:13px; color:var(--muted); }
     .listbar + .list > .row:first-child, .listbar + .list > .sorthint + .row { border-top:0; }
     .sorthint { padding:8px 0 6px; font-size:12px; line-height:1.4; color:var(--muted); }
@@ -456,25 +456,42 @@
     }
     /* Sort and Skips and scams share a line when they fit, and the quick filters sit beside Filter, so the list starts higher */
     .skipwrap { display:flex; align-items:center; gap:8px; flex:0 1 auto; order:4; }
-    .lb-quick { display:flex; flex-wrap:wrap; gap:6px; flex:1 1 calc(100% - 90px); min-width:0; }
-    .qf { flex:1 1 100%; order:5; display:grid; gap:6px; margin-bottom:4px; }
+    .sortpick { order:3; margin-right:auto; }
+    .lb-quick { display:contents; } /* its toggles flow on after Filter and wrap under it, so the bar stays two lines */
+    /* The Filter box opens right under the Filter button, as a tray, before Sort and Skips */
+    .qf { flex:1 1 100%; order:2; display:grid; gap:8px; margin:2px 0 4px; padding:10px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); background:var(--paper-2); }
+    .qf-cap { flex:1 1 100%; color:var(--muted); font:600 12px/1.2 var(--ui); }
     .qf[hidden] { display:none; }
     .qf-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
     .qf input { padding:6px 9px; font-size:13px; }
-    .qf-wordwrap { position:relative; flex:1 1 140px; display:flex; }
-    .qf-words { flex:1; width:auto; padding-right:26px !important; }
+    .qf-wordwrap { position:relative; flex:1 1 140px; min-width:0; display:flex; }
+    .qf-words { flex:1; width:auto; min-width:0; padding-right:26px !important; }
     .qf-price { display:flex; align-items:center; gap:3px; color:var(--muted); }
     .qf-price input { width:58px; }
     .qt { border:var(--bw) solid var(--line); background:none; color:var(--muted); font:600 13px/1 var(--ui); padding:5px 10px; border-radius:999px; cursor:pointer; }
     .qt:hover { color:var(--ink); border-color:var(--muted); }
-    .qf-toggle { align-self:flex-start; }
-    .qf-toggle.on { color:var(--ink); border-color:var(--ink); }
+    /* Filter opens a box, so it isn't a pill like the on/off filters beside it: a square-cornered button with a chevron, and a count badge */
+    .qf-toggle { align-self:flex-start; display:inline-flex; align-items:center; gap:6px; border-radius:var(--r-sm); color:var(--ink); }
+    .qf-toggle::after { content:""; width:5px; height:5px; margin:-3px 1px 0 1px; border:solid currentColor; border-width:0 1.5px 1.5px 0; transform:rotate(45deg); transition:transform .15s; }
+    .qf-toggle[aria-expanded="true"] { border-color:var(--ink); background:var(--paper-2); }
+    .qf-toggle[aria-expanded="true"]::after { margin-top:3px; transform:rotate(-135deg); }
+    .qf-n { display:inline-grid; place-items:center; min-width:17px; height:17px; padding:0 4px; box-sizing:border-box; border-radius:999px; background:var(--accent); color:var(--on-accent); font:700 11px/1 var(--ui); }
+    /* On/off filters read like check chips: an empty ring when off, a filled chip with a check when on */
+    .qt[aria-pressed] { display:inline-flex; align-items:center; gap:6px; padding-left:8px; }
+    .qt[aria-pressed]::before { content:""; flex:none; width:10px; height:10px; border:1.5px solid currentColor; border-radius:50%; opacity:.75; }
+    .qt[aria-pressed="true"]::before { content:"\\2713"; width:12px; height:12px; border:0; display:grid; place-items:center; font:800 12px/1 var(--ui); opacity:1; }
     .qf-apply { border-color:var(--accent); color:var(--ink); }
     .qf-store:empty { display:none; }
-    .qf-store label { display:flex; align-items:center; gap:4px; color:var(--muted); font:600 13px/1 var(--ui); }
+    .qf-store label { display:flex; align-items:center; gap:5px; color:var(--muted); font:600 13px/1 var(--ui); }
+    .qf-store select { field-sizing:content; min-height:28px; padding:4px 22px 4px 8px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background-color:var(--paper); color:var(--ink); font:600 13px/1 var(--ui); cursor:pointer;
+      appearance:none; -webkit-appearance:none; background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position:calc(100% - 11px) 55%, calc(100% - 7px) 55%; background-size:4px 4px; background-repeat:no-repeat; }
+    .qf-store select:has(option:checked:not([value=""])) { border-color:var(--ink); }
+    .qf-store select:focus-visible { outline:2px solid var(--ink); outline-offset:1px; }
+    .qf-store option { background:var(--paper); color:var(--ink); }
     .qt { min-height:26px; }
     .qt[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
-    .qf-deal { display:flex; align-items:center; gap:5px; margin:0 0 0 auto; color:var(--muted); font:600 13px/1 var(--ui); letter-spacing:normal; text-transform:none; }
+    .qf-deal { display:flex; align-items:center; gap:5px; margin:0; color:var(--muted); font:600 13px/1 var(--ui); letter-spacing:normal; text-transform:none; }
     .qf-deal input { width:62px; }
     .qf-deal:has(input:not(:placeholder-shown)) input { border-color:var(--accent); }
     .qf-clear { position:absolute; right:2px; top:50%; transform:translateY(-50%); width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:var(--r-sm);
@@ -3825,7 +3842,8 @@
   const buildStoreRow = () => {
     const site = TK.site();
     storeRow.setAttribute("aria-label", `${site?.name || "The site"}'s own filters`);
-    storeRow.replaceChildren(...(site?.storeFilters || []).filter((f) => f.choices).map((f) => {
+    const own = (site?.storeFilters || []).filter((f) => f.choices);
+    storeRow.replaceChildren(...(own.length ? [h("span", { class: "qf-cap", "aria-hidden": "true" }, `${site.name}'s own filters (the page reloads)`)] : []), ...own.map((f) => {
       const set = (v) => {
         quick.store = { ...quick.store, [f.name]: v };
         storeDirty = true;
@@ -3899,7 +3917,8 @@
     qf.hidden = !qfOpen;
     qfToggle.setAttribute("aria-expanded", String(qfOpen));
     const n = [quick.words.trim(), quick.min, quick.max, quick.deal].filter(Boolean).length + storeSet();
-    qfToggle.textContent = n ? `Filter (${n})` : "Filter";
+    // "Filter (2)" to a screen reader; on screen the count is a badge
+    qfToggle.replaceChildren("Filter", ...(n ? [" ", h("span", { class: "qf-n" }, h("span", { class: "sr" }, "("), String(n), h("span", { class: "sr" }, ")"))] : []));
     qfToggle.classList.toggle("on", n > 0);
   };
   qfToggle.addEventListener("click", () => {

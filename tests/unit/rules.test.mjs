@@ -1461,3 +1461,17 @@ test("asIsMargin: the floor if a repair fails, at what broken ones sell for", ()
   assert.equal(R.asIsMargin({ total: null }, market), null);
   assert.equal(R.asIsMargin({ total: 30 }, { median: 140 }), null, "no for-parts lookup");
 });
+
+test("sellerQuestions and the safety checklist: plain templates, asked to fit the thing", () => {
+  const cam = R.sellerQuestions("Canon AE-1 camera");
+  assert.match(cam, /^Hi! A few questions about the Canon AE-1 camera:\n- Does everything work\? Could you send a photo of it switched on\?/);
+  assert.match(cam, /- What comes with it\?/);
+  assert.match(cam, /Thanks!$/);
+  const couch = R.sellerQuestions("mid century couch");
+  assert.match(couch, /- Is there any damage, wear or repairs/);
+  assert.doesNotMatch(couch, /switched on/);
+  assert.match(R.sellerQuestions(""), /^Hi! A few questions about it:/);
+  assert.doesNotMatch(R.sellerQuestions("bike pedals"), /switched on/);
+  assert.match(R.safetyText(), /^Before you meet:\n- Meet somewhere public/);
+  assert.ok(R.SAFETY.some((s) => /gift card/.test(s)));
+});

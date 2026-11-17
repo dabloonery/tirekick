@@ -57,6 +57,13 @@
   .flip-out span { color:var(--muted); font-size:13px; }
   .flip-out[data-call="buy"] { --v:var(--v-great); } .flip-out[data-call="offer"] { --v:var(--v-fair); } .flip-out[data-call="pass"] { --v:var(--v-pass); }
   .acts .hint { align-self:center; }
+  /* questions for the seller and the safety checklist, each ready to copy */
+  .ask { margin-top:14px; }
+  .ask summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  .ask-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; margin-top:10px; }
+  .ask pre { margin:0 0 8px; padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); background:var(--paper); color:var(--ink); font:13px/1.5 var(--ui); white-space:pre-wrap; }
+  .ask button { min-height:32px; padding:4px 10px; font-size:13px; }
+  .ask .hint { margin:8px 0 0; }
   /* the workbench: your own finds, each with its call, the most to pay, parts and a note */
   .bench-intro { margin:-6px 0 6px; }
   .find { display:grid; grid-template-columns:auto 1fr auto; gap:4px 12px; align-items:baseline; padding:12px 0; border-top:var(--bw) solid var(--rule); }
@@ -183,6 +190,14 @@
       </div>
       <div class="flip-out" id="flip-out" aria-live="polite"></div>
       <div class="acts"><button type="button" id="flip-keep">Add to workbench</button><span class="hint" id="flip-kept" role="status"></span></div>
+      <details class="ask" id="ask">
+        <summary>Questions for the seller, and a safety checklist</summary>
+        <div class="ask-grid">
+          <div><pre id="ask-q"></pre><button type="button" id="ask-q-copy">Copy the questions</button></div>
+          <div><pre id="ask-s"></pre><button type="button" id="ask-s-copy">Copy the checklist</button></div>
+        </div>
+        <p class="hint">Plain templates, so your AI isn't used. The questions are for the seller; the checklist is for you.</p>
+      </details>
     </div>
   </section>
 

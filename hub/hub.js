@@ -190,6 +190,7 @@
     flipBox.hidden = !f;
     keptEl.textContent = "";
     if (!f) return;
+    $("#ask-q").textContent = TKRules.sellerQuestions(words);
     if (f.call) flipOut.dataset.call = f.call;
     else delete flipOut.dataset.call;
     flipOut.replaceChildren(
@@ -209,6 +210,22 @@
   });
   profitEl.addEventListener("change", () => chrome.storage.local.set({ flipProfit: S.clampSetting("flipProfit", profit) }).catch(() => {}));
   partsEl.addEventListener("input", showRead);
+
+  // ---------- questions for the seller and a safety checklist ----------
+  // Templates (TKRules.sellerQuestions, TKRules.SAFETY): copied as they are, so nothing is sent anywhere.
+  const copyText = async (btn, text, done = "Copied") => {
+    const was = btn.dataset.label || (btn.dataset.label = btn.textContent);
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = done;
+    } catch {
+      btn.textContent = "Couldn't copy";
+    }
+    setTimeout(() => (btn.textContent = was), 2000);
+  };
+  $("#ask-s").textContent = TKRules.safetyText();
+  $("#ask-q-copy").addEventListener("click", (e) => copyText(e.currentTarget, $("#ask-q").textContent));
+  $("#ask-s-copy").addEventListener("click", (e) => copyText(e.currentTarget, $("#ask-s").textContent));
 
   // ---------- the workbench: your own finds ----------
   // "Add to workbench" keeps the words, the asking price, the parts and the typical price then (for that version,
@@ -304,6 +321,7 @@
         st === "sold" ? h("label", {}, "Sold for $", outIn) : null,
         h("label", {}, "Parts $", partsIn),
         noteIn,
+        st ? null : h("button", { type: "button", title: "Questions for the seller, ready to paste into a message", onclick: (e) => copyText(e.currentTarget, TKRules.sellerQuestions(r.t), "Questions copied") }, "Copy questions"),
         h("button", { type: "button", title: "Take it off the workbench", onclick: () => edit({ set: { [k]: null } }).catch(() => {}) }, "Remove")
       )
     );

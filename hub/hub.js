@@ -188,6 +188,7 @@
   const showFlip = (words, asking) => {
     const f = words != null && lastLook && TKRules.flipCall(asking, lastLook.market, { title: words, feePct: lastFee, profit, parts: parseFloat(partsEl.value) || 0 });
     flipBox.hidden = !f;
+    keptEl.textContent = "";
     if (!f) return;
     if (f.call) flipOut.dataset.call = f.call;
     else delete flipOut.dataset.call;
@@ -208,6 +209,98 @@
   });
   profitEl.addEventListener("change", () => chrome.storage.local.set({ flipProfit: S.clampSetting("flipProfit", profit) }).catch(() => {}));
   partsEl.addEventListener("input", showRead);
+
+  // ---------- the workbench: your own finds ----------
+  // "Add to workbench" keeps the words, the asking price, the parts and the typical price then (for that version,
+  // TKRules.forVariant) as a find (TKShared.cleanFind), in the shared "finds" record through storeEdit, so the
+  // panel's tabs and this page never undo each other. The same words again update that find instead of adding one.
+  // Each find is checked again from what it kept: no new lookup until you press its words.
+  const keepBtn = $("#flip-keep");
+  const keptEl = $("#flip-kept");
+  const edit = (edit) => send("storeEdit", { name: "finds", edit });
+  let finds = {};
+  keepBtn.addEventListener("click", async () => {
+    const words = qEl.value.trim();
+    if (!lastLook || !words) return;
+    const m = TKRules.forVariant(lastLook.market, { title: words });
+    const ask = priceEl.value.trim() === "" ? null : parseFloat(priceEl.value);
+    const parts = parseFloat(partsEl.value);
+    const was = Object.entries(finds).find(([, r]) => r.t.toLowerCase() === words.toLowerCase());
+    const find = S.cleanFind({ ...(was ? was[1] : {}), t: words, ask: ask >= 0 ? ask : null, parts: parts >= 0 ? parts : (was?.[1].parts ?? null), sold: m.median, ship: m.ship, sa: Date.now(), n: m.n, r: m.confidence === "rough", a0: was?.[1].a0 || Date.now() });
+    if (!find) return;
+    if (!(ask >= 0)) delete find.ask;
+    try {
+      await edit({ set: { [was ? was[0] : S.newFindKey()]: find }, cap: { max: S.FIND_MAX, by: "a0" } });
+      keptEl.textContent = was ? "Updated on the workbench" : "Added to the workbench";
+    } catch (e) {
+      keptEl.textContent = e.message;
+    }
+  });
+  const benchBody = $("#bench-body");
+  const findRow = (k, r) => {
+    const f = TKRules.flipCall(r.ask ?? null, S.findMarket(r), { title: "", feePct: lastFee, profit, parts: r.parts || 0 });
+    const partsIn = h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", placeholder: "0", value: Number.isFinite(r.parts) ? String(r.parts) : null, "aria-label": `Parts cost for ${r.t.slice(0, 60)}` });
+    const askIn = h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", placeholder: "$", value: Number.isFinite(r.ask) ? String(r.ask) : null, "aria-label": `Asking price for ${r.t.slice(0, 60)}` });
+    const noteIn = h("input", { class: "note", type: "text", maxlength: String(S.NOTE_MAX), placeholder: "Notes: where, condition, fault…", value: r.note || null, "aria-label": `Notes for ${r.t.slice(0, 60)}` });
+    const num = (el) => (el.value.trim() === "" ? null : Math.max(0, parseFloat(el.value)) || 0);
+    const keep = () => {
+      const patch = { parts: num(partsIn), ask: num(askIn), note: noteIn.value.trim().slice(0, S.NOTE_MAX) };
+      if (patch.parts === (r.parts ?? null) && patch.ask === (r.ask ?? null) && patch.note === (r.note || "")) return;
+      edit({ patch: { [k]: patch } }).catch(() => {});
+    };
+    for (const el of [partsIn, askIn, noteIn]) {
+      el.addEventListener("change", keep);
+      el.addEventListener("keydown", (e) => e.key === "Enter" && el.blur());
+    }
+    const again = h("button", { type: "button", class: "again", title: "Look it up again" }, r.t);
+    again.addEventListener("click", () => {
+      qEl.value = r.t;
+      priceEl.value = Number.isFinite(r.ask) ? String(r.ask) : "";
+      partsEl.value = Number.isFinite(r.parts) && r.parts > 0 ? String(r.parts) : "";
+      syncLinks();
+      $(".look").scrollIntoView({ behavior: "smooth", block: "start" });
+      lookUp();
+    });
+    const when = r.sa ? new Date(r.sa).toLocaleDateString() : "";
+    return h(
+      "div",
+      { class: "find", ...(f?.call && { "data-call": f.call }) },
+      h("span", { class: "call" }, f?.call ? f.word : "No price"),
+      h(
+        "div",
+        { class: "ft" },
+        again,
+        h("small", {}, f ? `${f.maxPay > 0 ? `Pay up to ${money(f.maxPay)}` : `No price leaves ${money(profit)}`} · typical ${r.r ? "~" : ""}${money(r.sold)}${when ? ` (${when})` : ""}` : "No typical price: press it to look it up again.")
+      ),
+      Number.isFinite(r.ask) ? h("div", { class: "pr" }, money(r.ask)) : h("span", {}),
+      h(
+        "div",
+        { class: "fx" },
+        h("label", {}, "Asking $", askIn),
+        h("label", {}, "Parts $", partsIn),
+        noteIn,
+        h("button", { type: "button", title: "Take it off the workbench", onclick: () => edit({ set: { [k]: null } }).catch(() => {}) }, "Remove")
+      )
+    );
+  };
+  const drawBench = () => {
+    const list = Object.entries(finds).sort((a, b) => (b[1].a0 || 0) - (a[1].a0 || 0));
+    $("#bench").hidden = !list.length;
+    benchBody.replaceChildren(...list.map(([k, r]) => findRow(k, r)));
+  };
+  chrome.storage.local.get("finds").then(({ finds: f }) => {
+    finds = f && typeof f === "object" ? f : {};
+    drawBench();
+  });
+  chrome.storage.onChanged.addListener((c) => {
+    if (c.finds) {
+      finds = c.finds.newValue || {};
+      // a box you're typing in isn't redrawn under you; it's kept when you leave it
+      if (!benchBody.contains(document.activeElement)) drawBench();
+    }
+    if (c.flipProfit || c.feePct) drawBench();
+  });
+  benchBody.addEventListener("focusout", () => setTimeout(() => !benchBody.contains(document.activeElement) && drawBench(), 0));
 
   $("#look-form").addEventListener("submit", (e) => {
     e.preventDefault();

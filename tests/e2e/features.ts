@@ -278,6 +278,26 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   const r70 = await typed("70");
   ok("…changes as you type, with no new lookup", r70.v === "pass" && /^Above typical/.test(r70.text) && (await flip()).call === "pass" && (await hits()) === before, [r70, before, await hits()]);
   ok("…and goes when the box is empty", (await typed("")).text === "" && (await flip()).call === "");
+  // The workbench: a find of your own, kept with what it sells for, checked again from that with no new lookup
+  ok("the workbench is hidden while it has nothing on it", await hub.ev(`document.querySelector('#bench').hidden`));
+  await typed("25");
+  await hub.ev(`document.querySelector('#flip-keep').click()`);
+  await sleep(500);
+  const finds1 = Object.entries((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {}) as [string, Record<string, unknown>][];
+  const bench1 = await hub.ev(`({ shown: !document.querySelector('#bench').hidden, rows: [...document.querySelectorAll('#bench .find')].map(r => ({ call: r.dataset.call, text: r.textContent })), said: document.querySelector('#flip-kept').textContent })`);
+  ok("Add to workbench keeps the find with its asking price and typical price", finds1.length === 1 && finds1[0][1].t === "pentax k1000" && finds1[0][1].ask === 25 && finds1[0][1].sold === 58 && finds1[0][1].ship === 9 && bench1.said === "Added to the workbench", finds1);
+  ok("…and shows it on the workbench with its call and the most to pay", bench1.shown && bench1.rows.length === 1 && bench1.rows[0].call === "offer" && /Offer \$20/.test(bench1.rows[0].text) && /Pay up to \$20 · typical \$58/.test(bench1.rows[0].text), bench1);
+  await hub.ev(`document.querySelector('#flip-keep').click()`);
+  await sleep(400);
+  ok("…the same words again update that find rather than adding one", Object.keys((await hub.ev(`chrome.storage.local.get('finds')`)).finds).length === 1 && (await hub.ev(`document.querySelector('#flip-kept').textContent`)) === "Updated on the workbench");
+  await hub.ev(`(() => { const el = document.querySelector('#bench .find input[aria-label^="Asking"]'); el.focus(); el.value = '15'; el.dispatchEvent(new Event('change', { bubbles: true })); el.blur(); })()`);
+  await sleep(500);
+  const bench2 = { call: await hub.ev(`document.querySelector('#bench .find').dataset.call`), ask: (Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds)[0] as { ask: number }).ask };
+  ok("…a new asking price on the workbench is kept, and the call follows it", bench2.call === "buy" && bench2.ask === 15, bench2);
+  await hub.ev(`[...document.querySelectorAll('#bench .find button')].find(b => b.textContent === 'Remove').click()`);
+  await sleep(500);
+  ok("…and Remove takes it off", await hub.ev(`document.querySelector('#bench').hidden`) && !Object.keys((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {}).length);
+  await typed("");
   // One saved search: no "Open all" button, and nothing in its place (it used to print "null")
   await store(`{savedSearches:{'ebay|pentax':{site:'ebay',q:'pentax',v:1}}}`);
   await sleep(500);

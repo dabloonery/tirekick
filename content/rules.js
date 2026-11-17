@@ -291,6 +291,31 @@
         : `Even at $0 a resale wouldn't leave your ${R.dollars(want)}.`,
     };
   };
+  // Questions for the seller and a safety checklist for you (the workbench on Tirekick's own page): plain templates,
+  // free and predictable, your AI isn't used. The questions are a message to copy; the checklist is for you. A thing
+  // that plugs in or charges gets asked about power and a photo of it on; anything gets asked what's missing.
+  R.POWERED = /\b(?:console|switch|playstation|ps[2-5]|xbox|game ?boy|3ds|wii|gamecube|nintendo|ipod|iphone|ipad|phone|tablet|laptop|macbook|computer|pc|monitor|tv|television|camera|drone|speaker|amp|amplifier|receiver|turntable|record player|radio|stereo|headphones|airpods|watch|garmin|fitbit|printer|router|gpu|graphics card|cpu|keyboard|synth|guitar pedal|mixer|blender|vacuum|dyson|roomba|drill|saw|mower|trimmer|e-?bike|scooter|battery|charger|kindle|projector|microwave|espresso|coffee maker)\b/i;
+  R.sellerQuestions = (title = "") => {
+    const t = String(title).trim().replace(/\s+/g, " ").slice(0, 80);
+    const powered = R.POWERED.test(t);
+    const qs = [
+      powered ? "Does everything work? Could you send a photo of it switched on?" : "Is there any damage, wear or repairs I should know about?",
+      powered ? "Is anything not working, missing or repaired?" : null,
+      "What comes with it? Anything missing, like parts, cables, a case or the box?",
+      "How long have you had it, and why are you selling?",
+      "Could you send a photo of the model or serial number label?",
+      "Can I see it working, or look it over, before I pay?",
+    ].filter(Boolean);
+    return `Hi! A few questions about ${t ? `the ${t}` : "it"}:\n${qs.map((q) => `- ${q}`).join("\n")}\nThanks!`;
+  };
+  R.SAFETY = [
+    "Meet somewhere public in daylight, such as a police station's safe exchange spot. Bring someone if you can.",
+    "Look it over and see it working before you pay. Check the model and serial number match the listing.",
+    "Pay when you have it in hand: cash, or a payment app with purchase protection. Never ahead, never by gift card or wire.",
+    "Keep the chat on the site. Don't move to text, email or another app, and never share a code someone texts you.",
+    "Walk away if the story changes, the price drops a lot for no reason, or you're being rushed.",
+  ];
+  R.safetyText = () => `Before you meet:\n${R.SAFETY.map((s) => `- ${s}`).join("\n")}`;
   // The kinds of chip on a listing, each with its own switch in settings: scam marks (and the warnings that go
   // with them: a new or low-rated seller, the same title twice), price words, and everything else (new to you,
   // price drops, auctions, lots, offers). A chip is [kind, text, why, group]; "state" ones (why a listing is

@@ -260,6 +260,8 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   const flip = () => hub.ev(`({ shown: !document.querySelector('#flip').hidden, text: document.querySelector('#flip-out').textContent, call: document.querySelector('#flip-out').dataset.call || '' })`);
   const f0 = await flip();
   ok("the flip check says the most to pay for the profit you want, before any asking price", f0.shown && f0.call === "" && /Pay up to \$20 for a \$20 profit/.test(f0.text) && /Resold at \$58 on eBay, less 13\.6% fees, \$9 shipping/.test(f0.text), f0);
+  const ask = await hub.ev(`({ q: document.querySelector('#ask-q').textContent, s: document.querySelector('#ask-s').textContent })`);
+  ok("…with questions for the seller about that thing, and a safety checklist, ready to copy", /^Hi! A few questions about the pentax k1000:\n- /.test(ask.q) && /^Before you meet:\n- Meet somewhere public/.test(ask.s), ask);
   const r40 = await typed("40");
   ok("an asking price gets the buyer's word", r40.v === "good" && /^Good price\$18 below the typical price \(\$58, from 10 eBay sales\)/.test(r40.text), r40);
   const f40 = await flip();

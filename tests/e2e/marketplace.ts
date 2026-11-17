@@ -32,6 +32,15 @@ ok("scan scored the rest (5 stickers)", (await a.ev(`document.querySelectorAll('
 ok("scores restored in a second tab", (await b.ev(`document.querySelectorAll('.tirekick-sticker').length`)) >= 3);
 ok("no verdict text cut off on narrow cards", (await b.ev(`[...document.querySelectorAll('.tirekick-sticker')].every(s=>getComputedStyle(s.querySelector('.tk-verdict')).display==='none'||s.querySelector('.tk-verdict').scrollWidth<=s.querySelector('.tk-verdict').clientWidth+1)`)));
 ok("marks sit on whole grid cells, so hiding one leaves no gap", await a.ev(`[...document.querySelectorAll('[data-tk-cell]')].length === 5 && [...document.querySelectorAll('[data-tk-cell]')].every(n=>n.parentElement.tagName==='MAIN')`));
+// A Messenger chat docked at the foot of the page, about a listing that's on the page and scored: no tag or chips
+// go on the chat (they covered its close button), and the listing's own card keeps its tag.
+await a.ev(`(()=>{const d=document.createElement('div'); d.id='chatdock'; d.style.cssText='position:fixed;right:80px;bottom:0;width:340px;height:420px;background:#fff;z-index:5';
+  d.innerHTML='<div role="dialog" aria-label="Chat"><div style="display:flex;justify-content:space-between"><a href="/marketplace/item/222/"><div class="ph"></div><div>$120</div><div>Nintendo Game Boy Advance SP M2465</div></a><div aria-label="Close chat" role="button" style="width:36px;height:36px">x</div></div><p>Is this still available?</p></div>';
+  document.body.append(d)})()`);
+await sleep(1500);
+ok("no tag or chips inside a docked Messenger chat", (await a.ev(`document.querySelectorAll('#chatdock .tirekick-sticker, #chatdock .tirekick-marks, #chatdock [data-tirekick-key]').length`)) === 0, await a.ev(`document.getElementById('chatdock').innerHTML.slice(0, 400)`));
+ok("the chatted-about listing's own card keeps its tag", await a.ev(`!!document.querySelector('main a[href*="/item/222/"]').closest('[data-tk-cell]')?.querySelector('.tirekick-sticker')`));
+await a.ev(`document.getElementById('chatdock').remove()`); await sleep(300);
 await sh(a, `r.querySelector('.qf-toggle').click(); r.querySelector('[data-skip=hide]').click()`); await sleep(300);
 ok("Hide skips: the grid closes up", await a.ev(`(()=>{const v=[...document.querySelector('main').children].filter(n=>getComputedStyle(n).display!=='none'); return v.length>0 && v.length<5 && v.every((n,i)=>Math.abs(n.getBoundingClientRect().left-(20+i*216))<2)})()`));
 c.close();

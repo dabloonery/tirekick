@@ -485,6 +485,11 @@ window, and the listing page read the struck-through price. Each card's marks no
 up to six boxes above the price counts, and the listing page never takes a struck price. Switching back to Buyer
 before a scan clears the Reseller line.
 
+**After 0.58.0** (dabloonery, 2026-11-17): tags and chips still showed inside a Messenger chat docked at the foot of a
+Marketplace page and covered its close button. The reader skipped chat links, but the pass that puts tags back on
+recycled cards found every link to a listing, the chat's too. Cards are now checked with `TK.inChatBox` before they're
+dressed (`tests/e2e/marketplace.ts`). *Real site.*
+
 **Why eBay sold search fails so often** (from the code; can't be checked from here): one browser check pauses every
 lookup for an hour; on Facebook with no eBay tab open, lookups come from the background, which eBay trusts less;
 eight lookups an hour at most; and a long title often matches fewer than five clean sales. Opening any eBay tab

@@ -34,6 +34,7 @@ const DEFAULTS = {
   useSoldComps: true,
   lens: "use", // "use" (buy to use it yourself) or "project" (fix & flip)
   feePct: 13.6, // eBay fees as % of the sale, for flip margins
+  flipProfit: 20, // the profit you want from a flip, for the flip check's "pay up to" on Tirekick's own page
   interests: "", // what the buyer is into, in their words; guides scores where a page has no search
   // Filters and seller rules: plain checks, no AI. Hidden listings are never sent to the model.
   // Same words as the filter bar: -word drops a listing, other words are required, a/b is either, quotes keep a phrase.

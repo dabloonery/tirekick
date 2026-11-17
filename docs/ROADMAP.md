@@ -49,7 +49,26 @@ check); those are in git history.*
 | More browsers | Firefox code and a zip for each browser built 2026-11-02 ([status](#firefox-built-2026-11-02)); dabloonery checks it in Firefox and Edge by hand before any upload to either store |
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
+| Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. Step 1, the flip check, built |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
+
+### Reseller workbench
+
+*dabloonery, 2026-11-10 and 2026-11-17: flesh out the reseller workbench so it's sturdier on its own, outside the
+stores' pages. Ideas from the 2026-11-17 competitor audit fit here: a "pay up to" price for the profit you want, a
+copyable safety checklist with questions for the seller, and a clear Buy, Offer or Pass call. No phones.*
+
+Each step is its own PR, on Tirekick's own page (`hub/`), and the website says what's new as it lands.
+
+1. **Flip check** (built 2026-11-17): after a lookup, the most to pay to keep the profit you want once it resells
+   on eBay at the typical price (fees, 40 cents, the shipping buyers paid, parts for this find), then with an asking
+   price a plain Buy (at or under it), Offer $N (a friendly offer at it is at least 70% of the asking price) or Pass.
+   The profit is the `flipProfit` setting ($20 to start), changed on the page or in settings (Judging).
+   `TKRules.flipCall`; tests in `tests/unit/rules.test.mjs` and `tests/e2e/features.ts`.
+2. **Your own finds**: save a thrift-store or yard-sale find from a lookup, with what you'd pay, not only listings.
+3. **Saved as the workbench**: parts, notes and net on each saved item, Bought and Sold with their prices, and the
+   profit so far.
+4. **Questions for the seller**: a safety checklist to copy into a message.
 
 ### Pause switch
 

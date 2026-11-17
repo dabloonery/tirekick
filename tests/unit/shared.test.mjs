@@ -479,3 +479,18 @@ test("spendCounted: what a monthly budget can stop on", () => {
   assert.equal(S.spendCounted({ provider: "openai", oaiUrl: "https://api.openai.com/v1" }), false, "no prices entered: nothing is counted");
   assert.equal(S.spendCounted({ provider: "openai", oaiUrl: "https://api.openai.com/v1", oaiPriceIn: 0.15, oaiPriceOut: 0.6 }), true);
 });
+
+test("workbench finds: kept clean, backed up, and read as a market for the flip check", () => {
+  assert.ok(S.SHARED.includes("finds") && S.BACKUP_SETS.includes("finds"));
+  assert.match(S.newFindKey(), S.FIND_KEY);
+  const f = S.cleanFind({ t: "  Pentax K1000 ", ask: 25, sold: 58, ship: 9, sa: 5, n: 10, r: false, parts: 4, note: " no strap ", a0: 3, junk: "x" });
+  assert.deepEqual(f, { t: "Pentax K1000", a0: 3, ask: 25, sold: 58, ship: 9, sa: 5, n: 10, parts: 4, note: "no strap" });
+  assert.equal(S.cleanFind({ t: " " }), undefined, "no words, no find");
+  assert.deepEqual(S.cleanFind({ t: "x", ask: -1, sold: "lots", parts: Infinity, note: "y".repeat(500) }), { t: "x", a0: 0, note: "y".repeat(S.NOTE_MAX) });
+  assert.deepEqual(S.findMarket(f), { median: 58, ship: 9, n: 10, confidence: "fair" });
+  assert.equal(S.findMarket({ ...f, r: true }).confidence, "rough");
+  assert.equal(S.findMarket({ t: "x" }), null);
+  const { sets, dropped } = S.cleanBackup({ finds: { fabc: f, "not a key": f, fzz: { t: "" }, f1: "junk" } });
+  assert.deepEqual(Object.keys(sets.finds), ["fabc"]);
+  assert.equal(dropped, 3);
+});

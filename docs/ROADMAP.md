@@ -49,7 +49,7 @@ check); those are in git history.*
 | More browsers | Firefox code and a zip for each browser built 2026-11-02 ([status](#firefox-built-2026-11-02)); dabloonery checks it in Firefox and Edge by hand before any upload to either store |
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
-| Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. Step 1, the flip check, built |
+| Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. Steps 1 and 2, the flip check and your own finds, built |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Reseller workbench
@@ -65,7 +65,10 @@ Each step is its own PR, on Tirekick's own page (`hub/`), and the website says w
    price a plain Buy (at or under it), Offer $N (a friendly offer at it is at least 70% of the asking price) or Pass.
    The profit is the `flipProfit` setting ($20 to start), changed on the page or in settings (Judging).
    `TKRules.flipCall`; tests in `tests/unit/rules.test.mjs` and `tests/e2e/features.ts`.
-2. **Your own finds**: save a thrift-store or yard-sale find from a lookup, with what you'd pay, not only listings.
+2. **Your own finds** (built 2026-11-17): Add to workbench under the flip check keeps the find in the shared
+   `finds` record (`TKShared.cleanFind`; in backups, capped at 200): the words, asking price, parts, a note and the
+   typical price then. The page's Workbench lists them with their call and most to pay, worked out again from what
+   was kept (no new lookup until you press a find's words). The same words again update that find.
 3. **Saved as the workbench**: parts, notes and net on each saved item, Bought and Sold with their prices, and the
    profit so far.
 4. **Questions for the seller**: a safety checklist to copy into a message.

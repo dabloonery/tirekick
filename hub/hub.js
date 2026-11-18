@@ -103,6 +103,7 @@
     lastLook = null;
     showRead();
     goBtn.disabled = true;
+    if (TKRules.vehicleQuery(q)) return say(TKRules.VEHICLE_NOTE), (goBtn.disabled = false);
     say(`Looking up eBay sales of “${q}”…`);
     try {
       // Used ones first (what most people mean by "what it sells for"); any condition if there are too few.

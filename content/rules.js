@@ -55,6 +55,41 @@
     return !!words && BROAD.has(words);
   };
 
+  // Cars, trucks, motorcycles, campers and boats: eBay sales are few, mostly auctions and far from a local sale, and
+  // what a vehicle is worth turns on its year, mileage, trim and title, so a median of eBay sales would mislead. They
+  // get no typical price (the scam marks still work); parts, accessories and toys for them do ("civic floor mats",
+  // "for f150", "hot wheels mustang"). (dabloonery, 2026-11-18, from the competitor audit.)
+  const MAKES = "toyota|honda|ford|chevy|chevrolet|nissan|jeep|dodge|gmc|subaru|hyundai|kia|mazda|volkswagen|vw|bmw|mercedes|" +
+    "mercedes benz|audi|lexus|acura|infiniti|tesla|buick|cadillac|chrysler|mitsubishi|volvo|porsche|land rover|range rover|" +
+    "harley|harley davidson|kawasaki|ducati|polaris|can am|winnebago|airstream";
+  // Makes that also name other things (RAM memory, a Mini fridge, Yamaha keyboards, Sega Saturn and Genesis, a
+  // Fender Mustang): a vehicle only with a year or a vehicle word.
+  const MAKES_UNSURE = "ram|mini|yamaha|suzuki|saturn|genesis|mercury|lincoln|mustang|jaguar|fiat|pontiac|smart|scion|triumph|indian";
+  const MODELS = "civic|accord|camry|corolla|tacoma|tundra|4runner|rav4|rav 4|prius|highlander|sienna|f150|f 150|f250|f 250|f350|f 350|" +
+    "silverado|wrangler|grand cherokee|tahoe|suburban|altima|sentra|outback|forester|crv|cr v|elantra|sonata|impala|malibu|" +
+    "equinox|durango|dodge charger|corvette|camaro|model 3|model y|sportster|softail|mini cooper|ram 1500|ram 2500|ram 3500";
+  const VEHICLE_WORDS = "car|cars|truck|trucks|pickup|suv|sedan|coupe|minivan|motorcycle|motorbike|dirt bike|dirtbike|" +
+    "moped|atv|utv|side by side|rv|camper|travel trailer|motorhome|boat|pontoon|jet ski";
+  // Anything for a vehicle or about one is priced as usual.
+  const NOT_VEHICLE = new RegExp("(?:^|\\s)(?:for|fits|fit|compatible|parts?|mats?|floor|liners?|headlights?|taillights?|lights?|" +
+    "bumpers?|mirrors?|wheels?|rims?|tires?|tyres?|hubcaps?|covers?|seat|seats|keys?|fob|remote|radio|stereo|speakers?|manual|" +
+    "engine|motor|transmission|doors?|hood|grille|battery|charger|emblem|decals?|stickers?|toy|toys|diecast|die cast|hot wheels|" +
+    "matchbox|lego|model kit|kit|rc|1 18|1 24|1 43|1 64|shirt|hat|jacket|poster|book|filters?|brakes?|rack|hitch|tonneau|" +
+    "case|mount|cable|adapter|dash|cam|camera|gps|helmet|gloves|trailer hitch|ramp|ramps|jack|tool|tools|car seat|stroller|" +
+    "wash|wax|vacuum|charging|ev charger|sign|neon|clock|memory|ddr\\d?|gb|keyboard|piano|guitar|amp|console|game|games|generator|mower|lawn|pressure washer|tiller|snowblower|snow blower|pool|bicycle|" +
+    "outboard|forklift)(?:\\s|$)");
+  const VEHICLE_YEAR = /(?:^|\s)(?:19[5-9]\d|20[0-3]\d)(?:\s|$)/;
+  const wordsRe = (list) => new RegExp(`(?:^|\\s)(?:${list})(?:\\s|$)`);
+  const MAKE_RE = wordsRe(MAKES), UNSURE_RE = wordsRe(MAKES_UNSURE), MODEL_RE = wordsRe(MODELS), VWORD_RE = wordsRe(VEHICLE_WORDS);
+  R.vehicleQuery = (q) => {
+    const t = R.normTitle(String(q ?? "").replace(/(?:^|\s)-\S+/g, " "));
+    // "Dodge Charger" is a car, not a phone charger.
+    if (!t || NOT_VEHICLE.test(t.replace(/(?:^|\s)dodge charger(?:\s|$)/, " dodge "))) return false;
+    if (MAKE_RE.test(t) || MODEL_RE.test(t) || VWORD_RE.test(t)) return true;
+    return UNSURE_RE.test(t) && VEHICLE_YEAR.test(t);
+  };
+  R.VEHICLE_NOTE = "Tirekick doesn't price cars, trucks, motorcycles or boats: a vehicle's worth turns on its year, mileage, trim and title, and eBay's few sales of them would mislead. Check a vehicle price guide. The scam marks still work.";
+
   // A photo can only pull a verdict down (or mark it suspicious), never talk it up.
   R.adjustedVerdict = (base, score, photos) => {
     if (base === "suspicious") return base;

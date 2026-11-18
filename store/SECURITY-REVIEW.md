@@ -10,6 +10,16 @@ address at a time. The package builds clean (`node scripts/pack.mjs`: 16 files, 
 source maps). Two items are worth knowing before review starts (M1, M2); the rest are small hardening
 ideas for a later release.
 
+## Chat check (2026-11-18, after 0.58.0)
+
+"Watch my Marketplace chats for scam lines" (setting `chatCheck`, **off by default**, from the competitor audit)
+reads the text of a Messenger chat docked on a Marketplace page, where the page script already runs (M2). It asks
+for no new permission. The text is matched against fixed patterns in `TKRules.chatSigns` in the page and then
+dropped: nothing is written to storage, nothing goes to the background, an AI or any server. The warning is built
+from fixed strings (no chat text in it, no markup), floats in its own element outside Facebook's tree, and ✕
+dismisses it. Private messages are the most sensitive text Tirekick touches, so it stays opt in and the privacy
+policy says so. Nothing here blocks an upload.
+
 ## Saved-search alerts (2026-10-28, after 0.58.0)
 
 One new **optional** permission, `notifications` (Brief 1). It shows no warning at install and is asked for only

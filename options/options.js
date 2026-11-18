@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct", "flipProfit",
-  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "notifyGreat", "theme", "onCraigslist", "paused"];
+  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "notifyGreat", "theme", "onCraigslist", "paused", "chatCheck"];
 // Not in a backup: restoring one shouldn't pause Tirekick, or turn it back on, behind your back.
 const NOT_BACKED_UP = ["paused"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).

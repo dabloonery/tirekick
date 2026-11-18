@@ -549,6 +549,24 @@ test("vehicleQuery: cars, trucks, motorcycles and boats get no typical price; pa
     "harley davidson t shirt", "dodge charger 1 24 diecast", "iphone charger", "pentax k1000", "game boy", "van gogh print"]) assert.equal(R.vehicleQuery(q), false, q);
 });
 
+test("chatSigns: the scam lines a Marketplace chat turns up, and ordinary ones that aren't", () => {
+  const cases = {
+    "Can you send me the 6 digit code I just texted you to verify you are real": ["asks for a verification code"],
+    "Google will send a verification code, just read it to me": ["asks for a verification code"],
+    "I need a deposit to hold it, $50 on Zelle": ["asks for money before you see it"],
+    "Pay first and I will ship it": ["asks for money before you see it"],
+    "My Zelle is a business account so you have to upgrade yours": ["mentions a payment trick"],
+    "I'll send a cashier's check for more, refund the difference": ["mentions a payment trick"],
+    "I'm out of town so my courier will deliver it": ["mentions a courier, an agent or a delivery fee"],
+    "Text me on WhatsApp +1 555": ["wants to move to another app"],
+  };
+  for (const [t, want] of Object.entries(cases)) assert.deepEqual(R.chatSigns(t), want, t);
+  for (const t of ["", "Is this still available?", "Yes! Can you meet at the Target on Central at 5? Cash only.", "No deposit needed, just come see it",
+    "I don't take deposits", "What's the lowest you'd take?", "It's a 2 code lock, combination included", "Sure, Venmo or cash at pickup is fine"]) assert.deepEqual(R.chatSigns(t), [], t);
+  assert.match(R.chatNote(["asks for a verification code", "mentions a payment trick"]), /^Careful: this chat asks for a verification code and mentions a payment trick\./);
+  assert.equal(R.chatNote([]), "");
+});
+
 test("broadQuery: a store category is too broad to price, a model isn't", () => {
   for (const q of ["Electronics", "electronics", "Video Games & Consoles", "Home & Garden", "Cell Phones & Accessories", "stuff"]) assert.equal(R.broadQuery(q), true, q);
   for (const q of ["", "pentax k1000", "ps2 slim", "electronics lot", "game boy", "vintage watch"]) assert.equal(R.broadQuery(q), false, q);

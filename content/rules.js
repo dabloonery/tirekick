@@ -1107,6 +1107,19 @@
   // A title's version as [tier, generation, storage], each "" when it names none, and a fourth, "locked", for a
   // carrier-locked phone (R.lockOf). `same`: labels that are the thing itself, not a version (the search names them,
   // or most sales have them); "size" there turns storage off.
+  // A graded card, comic or sealed game: the grader and grade ("psa 10", "bgs 9.5", "cgc 9.8", "wata 9.4"), "" for
+  // a raw one. The grade is the version: a PSA 10 sells for many times a raw card, so each is compared with its own
+  // (a raw card with sales that name no grade). (dabloonery, 2026-11-18, from the competitor audit.)
+  const GRADE = /(?:^|[^a-z0-9])(psa|bgs|beckett|sgc|cgc|cbcs|csg|hga|wata|vga)[\s:#-]*(10|[1-9]\.\d|[1-9]\d|[1-9])(?![0-9.])/;
+  R.gradeOf = (title = "") => {
+    const m = R.fold(String(title ?? "")).match(GRADE);
+    if (!m) return "";
+    const [, who, n] = m;
+    // VGA grades run 10 to 100 ("vga 85"); the rest 1 to 10. "PSA 50" or "CGC 35" isn't a grade.
+    if (who === "vga" ? +n < 10 : +n > 10) return "";
+    return `${who === "beckett" ? "bgs" : who} ${n}`;
+  };
+  R.GRADE_WORD = /^(?:psa|bgs|sgc|cgc|cbcs|csg|hga|wata|vga) /;
   const versionSeen = new Map(); // (title, same) -> the answer: every card asks again each time the list redraws
   R.versionOf = (title, same = []) => {
     const key = `${title ?? ""}\u0001${same.join("|")}`;
@@ -1129,7 +1142,7 @@
     // A console's own reading (R.consoleOf) comes first, but not for a typical price saved before it ("@" names came
     // then): one saved before reads as it did.
     const con = !part && !kind && same.some((x) => x.startsWith("@")) ? R.consoleOf(h) : null;
-    const tier = part ? "" : con?.tier ?? tierIn(h, kind, same);
+    const tier = R.gradeOf(title) || (part ? "" : con?.tier ?? tierIn(h, kind, same));
     const gen = part || (con?.gen && !R.genOf(h) ? con.gen : genIn(h, same, kind));
     const size = same.includes("size") ? "" : part && !PC_BUILD.test(h) ? (isGpu(part) ? R.vramOf(h) : "") : sizeIn(h, kind);
     const out = [same.includes(tier) ? "" : tier, same.includes(gen) ? "" : gen, same.includes(size) ? "" : size];
@@ -1159,6 +1172,8 @@
     for (const x of cam ? cameraSame(query, cam) : searchName(query)) if (!same.includes(x)) same.push(x);
     const qh = head(query), qt = cam ? "" : tierIn(qh, deviceOf(qh), []);
     if (qt && !same.includes(qt)) same.push(qt); // "fire hd 10": every sale is an HD 10
+    const qg = R.gradeOf(query);
+    if (qg && !same.includes(qg)) same.push(qg); // "charizard psa 10": every sale is a PSA 10
     // A console the search names: "xbox series x" is the Series X ("series x", "xbox series"), "ps5" the fifth.
     const qc = cam ? null : R.consoleOf(head(query));
     for (const x of [qc?.tier, qc?.gen]) if (x && !same.includes(x)) same.push(x);
@@ -1167,7 +1182,8 @@
       const [t, , , l] = R.versionOf(s.title, same);
       for (const x of [t, l]) if (x) counts.set(x, (counts.get(x) || 0) + 1); // nearly all locked ("iphone 13 verizon"): the thing itself
     }
-    for (const [t, n] of counts) if (n > sales.length * R.VARIANT_COMMON) same.push(t);
+    // Not a grade, though: on a page of mostly PSA 10s a raw card is still compared with raw ones.
+    for (const [t, n] of counts) if (n > sales.length * R.VARIANT_COMMON && !R.GRADE_WORD.test(t)) same.push(t);
     // A card or processor every sale is ("rtx 3060" on a page of only plain 3060s) is the thing itself: no group of
     // its own would differ from the whole, and a listing of it isn't missing sales of its kind.
     const parts = new Set(sales.map((s) => R.partOf(head(s.title))));
@@ -1226,6 +1242,7 @@
     if (/^m\d(?: (?:pro|max|ultra))?$/.test(w)) return w.replace(/^m/, "M").replace(/ (\w)/, (_, c) => ` ${c.toUpperCase()}`); // a chip: "M2 Pro"
     if (/^\d{4}$/.test(w)) return w; // a model year
     if (w === "locked") return "carrier-locked";
+    if (R.GRADE_WORD.test(w)) return w.toUpperCase(); // a grade: "PSA 10"
     if (/^(?:[sa]\d{1,2}e?|x|xr|xs)$/.test(w)) return w.toUpperCase(); // a phone: "S21", "A54", "iPhone XR"
     if (/^(?:note|fold|flip) \d+$/.test(w)) return w.charAt(0).toUpperCase() + w.slice(1); // "Note 20", "Fold 5"
     if (/^\d{1,2}[asc]$/.test(w)) return w; // "Pixel 7a", "iPhone 6s"

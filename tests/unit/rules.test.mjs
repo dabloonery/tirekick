@@ -921,6 +921,31 @@ test("partOf: a graphics card's or a processor's exact model", () => {
     ["RTX 3060 Ti", "RX 6700 XT", "RTX 4070 Ti Super", "Ryzen 5800X3D", "i7-12700KF", "Core Ultra 7 265K", "Arc A770"]);
 });
 
+test("gradeOf and versionOf: a graded card is compared with its own grade, a raw one with raw ones", () => {
+  assert.equal(R.gradeOf("2016 Pokemon Charizard Evolutions #11 PSA 10 Gem Mint"), "psa 10");
+  assert.equal(R.gradeOf("Charizard BGS 9.5 Gem Mint"), "bgs 9.5");
+  assert.equal(R.gradeOf("Amazing Spider-Man #300 CGC 9.8"), "cgc 9.8");
+  assert.equal(R.gradeOf("Super Mario 64 sealed WATA 9.4 A+"), "wata 9.4");
+  assert.equal(R.gradeOf("Zelda VGA 85 Gold"), "vga 85");
+  assert.equal(R.gradeOf("Beckett 9 Michael Jordan"), "bgs 9");
+  for (const t of ["Charizard Evolutions holo NM", "PSA 50 card lot", "CGC 35 sticker", "PSA/DNA autograph", "psa10 2", "PS5 console"]) assert.equal(R.gradeOf(t), t === "psa10 2" ? "psa 10" : "", t);
+  const raw = [30, 32, 34, 35, 36, 38, 40, 42].map((total, i) => ({ title: `Charizard Evolutions 11/108 Holo NM ${i}`, total }));
+  const psa = [300, 310, 320, 325, 330, 340, 350, 360, 365, 370, 380, 390, 400, 410, 420, 430, 440, 450].map((total, i) => ({ title: `Charizard Evolutions 11/108 PSA 10 Gem Mint ${i}`, total }));
+  const sales = [...raw, ...psa];
+  const g = R.variantGroups(sales, "charizard evolutions");
+  assert.ok(!g.same.includes("psa 10"), "most sales are PSA 10s, but a grade is never the thing itself");
+  const v = TK.soldVariants(sales, "charizard evolutions");
+  const market = { median: 340, n: sales.length, confidence: "good", variants: v };
+  const rawM = R.forVariant(market, { title: "Charizard Evolutions 11/108 holo" });
+  assert.ok(rawM.median < 50, `a raw card against raw sales: ${rawM.median}`);
+  const psaM = R.forVariant(market, { title: "Charizard Evolutions PSA 10" });
+  assert.ok(psaM.median > 300, `a PSA 10 against PSA 10s: ${psaM.median}`);
+  assert.deepEqual(psaM.variantWords, ["psa 10"]);
+  assert.equal(R.kindWord("psa 10"), "PSA 10");
+  // A search that names the grade: every sale is that grade.
+  assert.ok(R.variantGroups(psa, "charizard psa 10").same.includes("psa 10"));
+});
+
 test("versionOf: cards and processors by exact model, cards by memory too", () => {
   const q = ["@3060"];
   assert.deepEqual(R.versionOf("MSI GeForce RTX 3060 Ventus 2X 12GB GDDR6", q), ["", "rtx 3060", "12gb"], "12GB is the card's memory");

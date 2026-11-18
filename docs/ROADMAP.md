@@ -486,6 +486,12 @@ A console the search names is the thing itself ("xbox series x"). Only for typic
 the "@" names. Eval: 11 new listings on "ps5", "xbox series" and "game boy advance sp" searches; 6 of the 9 honest
 ones were wrong before (a Series S "Great price", a Series X and a backlit SP "Above typical"), all right now.
 
+Graded cards, comics and sealed games (2026-11-18, from the competitor audit): the grader and grade are the tier
+(`TKRules.gradeOf`: PSA, BGS/Beckett, SGC, CGC, CBCS, CSG, HGA and WATA 1 to 10, VGA 10 to 100), so a PSA 10 is
+compared with PSA 10 sales and a raw card with sales that name no grade. A grade is never the thing itself on a page
+of mostly graded sales (a raw card there still needs raw ones), unless the search names it ("charizard psa 10").
+"PSA/DNA" (an autograph check) and "PSA 50" aren't grades.
+
 ## After real use (2026-10-16)
 
 dabloonery's notes from using the beta on eBay and Marketplace.

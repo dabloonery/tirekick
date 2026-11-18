@@ -90,6 +90,28 @@
   };
   R.VEHICLE_NOTE = "Tirekick doesn't price cars, trucks, motorcycles or boats: a vehicle's worth turns on its year, mileage, trim and title, and eBay's few sales of them would mislead. Check a vehicle price guide. The scam marks still work.";
 
+  // ---------- the Marketplace chat you have open (opt in: the "chatCheck" setting) ----------
+  // The lines scammers send once you message them, which a listing's own text rarely says: a verification code
+  // (the Google Voice scam), money before you've seen it, a payment trick (a Zelle "business upgrade", an
+  // overpayment to refund, a PayPal invoice to your email), a courier or "agent" for a seller who's away, and a
+  // move to WhatsApp or Telegram. Returns the reasons as short phrases, most serious first, or [] for none.
+  // Read on the screen only: nothing in a chat is kept or sent anywhere (dabloonery, 2026-11-18, competitor audit).
+  const CHAT_SIGNS = [
+    ["asks for a verification code", /\b(?:verification|verify|confirmation|security|6[\s-]?digit|six[\s-]digit)\s+code\b|\b(?:send|give|tell|read)\s+(?:me\s+)?(?:the|that|this|your)\s+(?:\d[\s-]?digit\s+)?code\b|\bcode\s+(?:i|google|facebook)\s+(?:just\s+)?(?:sent|texted)\b/i],
+    ["asks for money before you see it", /(?<!\b(?:no|without|don'?t\s+(?:need|want|take)|do\s+not\s+(?:need|want|take)|not\s+asking\s+for)\s+(?:a\s+|any\s+)?)\bdeposit\b(?!\s+(?:needed|required|necessary))(?![^.!?\n]{0,30}\b(?:back|returned|refund))|\bpay\s+(?:me\s+)?(?:first|upfront|up\s+front|in\s+advance|before\s+(?:you|we|i|pick|meet|see))|\bsend\s+(?:me\s+)?(?:half|the\s+money|the\s+payment|payment|money)\s+(?:first|now|before|to\s+hold)|\bto\s+hold\s+it\s+for\s+you\b/i],
+    ["mentions a payment trick", /\bzelle\b[^.!?\n]{0,60}\b(?:business|upgrade|limit)\b|\b(?:business|upgrade)\b[^.!?\n]{0,40}\bzelle\b|\boverpa(?:y|id|yment)\b|\brefund\s+(?:me\s+)?the\s+(?:difference|extra|balance)\b|\b(?:invoice|payment\s+request)\b[^.!?\n]{0,40}\b(?:e-?mail|paypal)\b|\b(?:e-?mail|paypal)\b[^.!?\n]{0,40}\binvoice\b|\b(?:cashier'?s?|certified)\s+check\b|\bgift\s?cards?\b/i],
+    ["mentions a courier, an agent or a delivery fee", /\b(?:courier|shipping\s+(?:agent|company)|my\s+(?:agent|mover|movers))\b[^.!?\n]{0,60}\b(?:pick|collect|deliver|bring|ship)|\bi(?:'m|\s+am)\s+(?:out\s+of\s+(?:town|state|the\s+country)|away|deployed|offshore|at\s+sea|working\s+abroad)\b[^.!?\n]{0,80}\b(?:ship|deliver|courier|send\s+it)|\b(?:delivery|shipping|insurance)\s+fee\b/i],
+    ["wants to move to another app", /\bwhats\s?app\b|\btelegram\b|\bsignal\s+app\b|\bwechat\b|\btext\s+me\s+(?:at|on)\b/i],
+  ];
+  R.chatSigns = (text = "") => {
+    const t = String(text ?? "").replace(/\u00a0/g, " ");
+    if (!t.trim()) return [];
+    return CHAT_SIGNS.filter(([, re]) => re.test(t)).map(([why]) => why);
+  };
+  R.chatNote = (why = []) => why.length
+    ? `Careful: this chat ${why.length > 1 ? `${why.slice(0, -1).join(", ")} and ${why.at(-1)}` : why[0]}. Those are common scam lines. Never share a code sent to your phone, pay before you see it, or leave Marketplace to deal.`
+    : "";
+
   // A photo can only pull a verdict down (or mark it suspicious), never talk it up.
   R.adjustedVerdict = (base, score, photos) => {
     if (base === "suspicious") return base;

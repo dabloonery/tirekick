@@ -58,6 +58,9 @@ const DEFAULTS = {
   paused: false,
   onCraigslist: false, // opt in (lib/sites.js "setting"): Tirekick works on Craigslist once this is on and its hosts are allowed
   autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)
+  // Opt in (dabloonery, 2026-11-18): read the Marketplace chat you have open, on the screen only, for scam lines (a
+  // verification code, money first, a payment trick). Nothing in a chat is kept or sent anywhere.
+  chatCheck: false,
   notifyGreat: false, // a browser notification when a saved search you have open turns up a great find (asks for the permission)
 };
 

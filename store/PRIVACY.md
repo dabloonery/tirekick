@@ -25,6 +25,11 @@ All of this is kept in your browser's extension storage and never sent to the de
 - **How well each store's pages were read**, so Home can say when a store changed its layout.
 - **Simple counters** of which features you use, shown on the Home tab.
 
+**Not kept at all: your Marketplace chats.** With **Watch my Marketplace chats for scam lines** turned on in settings
+(it's off until you turn it on), a Messenger chat open on a Marketplace page is read on your screen to look for scam
+lines (a verification code, money up front, a payment trick). It's never stored, never sent anywhere, and never goes
+to an AI.
+
 You can clear what you've seen and hidden, and the spending and usage counters, in settings and on the
 Home tab. You can remove saved things from the panel, and save or restore a backup file (which never
 includes your API keys). Uninstalling Tirekick deletes all of it.

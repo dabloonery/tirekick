@@ -40,7 +40,21 @@ await a.ev(`(()=>{const d=document.createElement('div'); d.id='chatdock'; d.styl
 await sleep(1500);
 ok("no tag or chips inside a docked Messenger chat", (await a.ev(`document.querySelectorAll('#chatdock .tirekick-sticker, #chatdock .tirekick-marks, #chatdock [data-tirekick-key]').length`)) === 0, await a.ev(`document.getElementById('chatdock').innerHTML.slice(0, 400)`));
 ok("the chatted-about listing's own card keeps its tag", await a.ev(`!!document.querySelector('main a[href*="/item/222/"]').closest('[data-tk-cell]')?.querySelector('.tirekick-sticker')`));
-await a.ev(`document.getElementById('chatdock').remove()`); await sleep(300);
+// The chat check (off by default): nothing is said about a chat until it's turned on; then a chat asking for a code
+// gets a warning above it, a plain one doesn't, and ✕ puts it away.
+await a.ev(`document.querySelector('#chatdock [role=dialog]').insertAdjacentHTML('beforeend','<p>Before we meet, send me the 6 digit code Google texted you so I know you are real</p>')`); await sleep(1500);
+ok("no chat warning while the chat check is off", (await a.ev(`document.querySelectorAll('.tirekick-chatnote').length`)) === 0);
+await o.ev(`chrome.storage.local.set({chatCheck:true})`); await sleep(1800);
+const note = await a.ev(`(()=>{const n=document.querySelector('.tirekick-chatnote'); if(!n) return null; const r=n.getBoundingClientRect(), d=document.getElementById('chatdock').getBoundingClientRect(); return {text:n.textContent, above: r.bottom <= d.top + 1, role:n.getAttribute('role')}})()`);
+ok("the chat check warns above a chat asking for a verification code", !!note && /verification code/.test(note.text) && note.above && note.role === "status", JSON.stringify(note));
+await a.ev(`document.querySelector('.tirekick-chatnote button').click()`); await sleep(300);
+ok("✕ puts the chat warning away", (await a.ev(`document.querySelectorAll('.tirekick-chatnote').length`)) === 0);
+await a.ev(`document.querySelector('#chatdock [role=dialog]').insertAdjacentHTML('beforeend','<p>Also I need a deposit first, send it on Zelle business</p>')`); await sleep(1500);
+ok("…and a new kind of scam line brings it back", /money before you see it/.test(await a.ev(`document.querySelector('.tirekick-chatnote')?.textContent || ''`)));
+await a.ev(`document.getElementById('chatdock').remove()`); await sleep(1500);
+ok("the warning goes with the chat", (await a.ev(`document.querySelectorAll('.tirekick-chatnote').length`)) === 0);
+await o.ev(`chrome.storage.local.set({chatCheck:false})`);
+await sleep(300);
 await sh(a, `r.querySelector('.qf-toggle').click(); r.querySelector('[data-skip=hide]').click()`); await sleep(300);
 ok("Hide skips: the grid closes up", await a.ev(`(()=>{const v=[...document.querySelector('main').children].filter(n=>getComputedStyle(n).display!=='none'); return v.length>0 && v.length<5 && v.every((n,i)=>Math.abs(n.getBoundingClientRect().left-(20+i*216))<2)})()`));
 c.close();

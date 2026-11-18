@@ -1411,7 +1411,7 @@
   onChrome(chrome.storage.onChanged, (changes) => {
     if (!alive()) return;
     if (changes.usage) renderSpend(changes.usage.newValue);
-    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize", "autoScan", "useAI"].some((k) => changes[k])) loadFooter().then(refreshPending);
+    if (["provider", "anthropicModel", "anthropicScanModel", "textModel", "anthropicKey", "oaiModel", "oaiKey", "oaiUrl", "oaiPriceIn", "oaiPriceOut", "monthlyBudget", "rankRate", "batchSize", "autoScan", "useAI", "chatCheck"].some((k) => changes[k])) loadFooter().then(() => (refreshPending(), chatPass()));
   });
 
 
@@ -1689,8 +1689,15 @@
     };
     const DISPLAY = THEME.DISPLAY.replace(/\s*,\s*/g, ",");
     st.textContent = `
-      html[data-tk-theme="dark"] :is(.tirekick-sticker, .tirekick-marks) { ${DK} }
-      html:not([data-tk-theme="dark"]) :is(.tirekick-sticker, .tirekick-marks) { ${LT} }
+      html[data-tk-theme="dark"] :is(.tirekick-sticker, .tirekick-marks, .tirekick-chatnote) { ${DK} }
+      html:not([data-tk-theme="dark"]) :is(.tirekick-sticker, .tirekick-marks, .tirekick-chatnote) { ${LT} }
+      /* the chat check's warning, floating just above a Messenger chat docked on the page */
+      .tirekick-chatnote { position:fixed; z-index:2147483000; box-sizing:border-box; display:flex; gap:8px; align-items:flex-start;
+        padding:9px 10px 9px 12px; border-radius:10px; background:color-mix(in srgb, var(--v-suspicious) 16%, var(--tk-paper)); color:var(--tk-ink);
+        box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--v-suspicious) 65%, transparent), var(--tk-shadow); font:400 13px/1.35 ${UI}; text-align:left; }
+      .tirekick-chatnote b { color:var(--v-suspicious); font-weight:700; }
+      .tirekick-chatnote button { flex:none; margin:0; padding:2px 7px; border:0; border-radius:6px; background:transparent; color:var(--tk-muted); font:600 13px/1.2 ${UI}; cursor:pointer; }
+      .tirekick-chatnote button:hover, .tirekick-chatnote button:focus-visible { color:var(--tk-ink); outline:2px solid var(--tk-accent); outline-offset:1px; }
       .tirekick-sticker { --c:var(--v-fair);
         position:absolute; top:10px; left:10px; z-index:50; display:flex; align-items:center; gap:9px; padding:4px 12px 4px 4px; max-width:var(--tk-fit, calc(100% - 20px));
         background:var(--tk-paper); color:var(--tk-ink); border-radius:999px; box-shadow:var(--tk-shadow);
@@ -3683,7 +3690,7 @@
   // don't count; one coming off does (Facebook dropping it when it recycles a card).
   let pageVersion = 0;
   let keysMemo = null;
-  const ours = (n) => n.nodeType === 1 && (n.classList.contains("tirekick-sticker") || n.classList.contains("tirekick-marks") || n.id === "tirekick-styles");
+  const ours = (n) => n.nodeType === 1 && (n.classList.contains("tirekick-sticker") || n.classList.contains("tirekick-marks") || n.classList.contains("tirekick-chatnote") || n.id === "tirekick-styles");
   const pageWatch = new MutationObserver((recs) => {
     if (recs.some((r) => r.type === "attributes" || r.removedNodes.length || [...r.addedNodes].some((n) => !ours(n)))) (pageVersion++, (keysMemo = null));
   });
@@ -5076,7 +5083,53 @@
     if (!scanning && !passing && ranAt.pass !== pageVersion) (ranAt.pass = pageVersion), pagePass(); // cheap when nothing changed: compares the listing links only
     if (ticks % 3 === 0 && ranAt.health !== pageVersion) (ranAt.health = pageVersion), checkHealth().catch(() => {});
     if (++ticks % 2 === 0) refreshPending();
+    if ((cfg.chatCheck || chatNotes.size) && chatAt !== pageVersion) (chatAt = pageVersion), chatPass();
   };
+  // ---------- the chat check (opt in: settings, "Watch my Marketplace chats for scam lines") ----------
+  // A Messenger chat docked on a Marketplace page is read on the screen when it changes, with the same plain rules
+  // every time (TKRules.chatSigns), and a warning floats just above it. Nothing in a chat is kept or sent anywhere.
+  // ✕ puts a warning away until that chat says something new that's worth one.
+  const chatNotes = new Map(); // the chat's box -> { note, sig }
+  const chatDismissed = new Set(); // the sets of reasons put away on this page
+  const CHAT_BOX = '[role="dialog"], [aria-label*="chat" i], [aria-label*="messenger" i], [aria-label*="conversation" i]';
+  const dropChatNote = (box) => (chatNotes.get(box)?.note.remove(), chatNotes.delete(box));
+  const placeChatNote = (box, note) => {
+    const r = box.getBoundingClientRect();
+    const w = Math.max(240, Math.min(r.width, 420));
+    note.style.width = `${w}px`;
+    note.style.left = `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
+    // Above the chat; inside its top edge when it reaches the top of the window.
+    if (r.top > 140) (note.style.bottom = `${Math.round(innerHeight - r.top + 6)}px`), (note.style.top = "");
+    else (note.style.top = `${Math.round(Math.max(8, r.top + 52))}px`), (note.style.bottom = "");
+  };
+  const chatPass = () => {
+    const on = !!cfg.chatCheck && TK.currentSite() === "facebook";
+    const boxes = on ? [...document.querySelectorAll(CHAT_BOX)].filter((el) => el.getClientRects().length && !el.closest('[role="banner"], [role="navigation"]') && TK.inChatBox(el)) : [];
+    const outer = boxes.filter((el) => !boxes.some((o) => o !== el && o.contains(el)));
+    for (const box of [...chatNotes.keys()]) if (!outer.includes(box) || !box.isConnected) dropChatNote(box);
+    for (const box of outer) {
+      const why = TKRules.chatSigns((box.innerText || "").slice(-20000));
+      const sig = why.join("|");
+      if (!why.length || chatDismissed.has(sig)) {
+        dropChatNote(box);
+        continue;
+      }
+      let rec = chatNotes.get(box);
+      if (!rec || rec.sig !== sig) {
+        rec?.note.remove();
+        ensureStickerStyles();
+        const note = h("div", { class: "tirekick-chatnote", role: "status", "aria-live": "polite" },
+          h("div", {}, h("b", {}, "Tirekick: "), TKRules.chatNote(why)),
+          h("button", { type: "button", "aria-label": "Dismiss this warning", title: "Put this warning away", onclick: () => (chatDismissed.add(sig), dropChatNote(box)) }, "\u2715"));
+        document.body.append(note);
+        chatNotes.set(box, (rec = { note, sig }));
+      }
+      placeChatNote(box, rec.note);
+    }
+  };
+  life.signal.addEventListener("abort", () => [...chatNotes.keys()].forEach(dropChatNote));
+  addEventListener("resize", () => chatNotes.forEach((rec, box) => placeChatNote(box, rec.note)), { signal: life.signal });
+  let chatAt = -1;
   const timer = setInterval(tick, 1000);
   // A page loaded ahead of time (eBay prerenders the listings you're likely to open) or brought back from the
   // back-forward cache: read it again as soon as it's the page you're looking at, instead of waiting for a reload.

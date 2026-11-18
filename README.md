@@ -107,6 +107,12 @@ S1337". Tirekick watches for it:
   you see it (a "Money first?" chip: it's sometimes honest). A seller warning against them ("no shipping, no
   escrow") doesn't count.
 
+- **In a Marketplace chat** (turn on **Watch my Marketplace chats for scam lines** in settings): a Messenger chat open
+  on a Marketplace page gets a warning above it when it asks for a verification code, money before you see the item,
+  a payment trick (a Zelle "business upgrade", an overpayment to refund, an invoice to your email), a courier or a
+  delivery fee, or a move to WhatsApp or Telegram. It's read on your screen only: nothing in a chat is kept or sent
+  anywhere, and your AI isn't used. ✕ puts a warning away until the chat says a new kind of scam line.
+
 Likely scams are grayed out along with skipped ones (Skips and scams: Show / Dim / Hide, above the list). Dimming fades the card but not its tag or chips, so a
 scam warning stays readable.
 

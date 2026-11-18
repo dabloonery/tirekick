@@ -205,6 +205,10 @@ in Reseller (for when you only want fix-ups).
   paid), lots, for-parts ones listed as used, titles missing a model number from the search, and
   far-off prices. Each price says how far to trust it: from few sales or a wide spread it's shown as
   "~$58 · a rough guide". See `docs/accuracy-audit.md`.
+- **Vehicles get no typical price.** A search or listing for a car, truck, motorcycle, camper or boat ("2014 honda
+  civic", "f-150", "pontoon boat") says Tirekick doesn't price those: a vehicle's worth turns on its year, mileage, trim
+  and title, and eBay's few sales of them would mislead. The scam marks still work, and parts, accessories and toys
+  for vehicles ("civic floor mats", "hot wheels mustang") are priced as usual.
 - **Price gaps** (Reseller) are the sold price less eBay's fee, the shipping buyers paid on those
   sales (what you'd pay to send it on), likely parts and the price; the hover card spells it out.
   Before sales tax and your time.

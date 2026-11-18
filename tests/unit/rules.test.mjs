@@ -541,6 +541,14 @@ test("tooCheap: a title missing a search word is Check first, not Likely scam", 
   assert.equal(R.tooCheap({ total: 200, offWords: "oled" }, m), null);
 });
 
+test("vehicleQuery: cars, trucks, motorcycles and boats get no typical price; parts, toys and look-alikes do", () => {
+  for (const q of ["2014 Honda Civic LX", "toyota tacoma", "Ford F-150 XLT", "jeep wrangler -parts", "2009 Dodge Charger", "Harley Davidson Sportster 883",
+    "2012 Mini Cooper S", "ram 1500", "pontoon boat", "Polaris RZR", "travel trailer", "2008 Suzuki GSXR 600", "tesla model 3", "chevy"]) assert.equal(R.vehicleQuery(q), true, q);
+  for (const q of ["", "honda civic floor mats", "for toyota camry", "hot wheels mustang", "ram 16gb ddr4", "mini fridge", "yamaha keyboard",
+    "sega saturn", "sega genesis", "fender mustang", "honda generator", "car seat", "rc car", "ford f150 headlights", "lego technic porsche",
+    "harley davidson t shirt", "dodge charger 1 24 diecast", "iphone charger", "pentax k1000", "game boy", "van gogh print"]) assert.equal(R.vehicleQuery(q), false, q);
+});
+
 test("broadQuery: a store category is too broad to price, a model isn't", () => {
   for (const q of ["Electronics", "electronics", "Video Games & Consoles", "Home & Garden", "Cell Phones & Accessories", "stuff"]) assert.equal(R.broadQuery(q), true, q);
   for (const q of ["", "pentax k1000", "ps2 slim", "electronics lot", "game boy", "vintage watch"]) assert.equal(R.broadQuery(q), false, q);

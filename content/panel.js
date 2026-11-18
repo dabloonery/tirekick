@@ -938,6 +938,8 @@
       // A category's name gets no one typical price: the line says so, and how to price a listing instead.
       $(".q-sum-text").replaceChildren(...(TKRules.broadQuery(qNow)
         ? [h("b", {}, `\u201c${qNow}\u201d`), " is a whole category, too broad for one typical price. Point at a listing and press Typical price for its own."]
+        : TKRules.vehicleQuery(qNow)
+        ? [h("b", {}, `\u201c${qNow}\u201d`), " is a vehicle: Tirekick doesn't price those. The scam marks still work."]
         : ["Typical price from recent eBay sales of ", h("b", {}, `\u201c${qNow}\u201d`)]));
     }
     // Opened with Change or Edit: a Done button folds the boxes away again.
@@ -2332,7 +2334,7 @@
   // eBay's sold listings for this title, in a new tab: price research by hand, nothing automated.
   const soldLink = (title) => TK.soldUrl(TK.titleToQuery(title), TK.SOLD_CONDITION.used);
   // A listing can be priced on its own when it has none yet, and it's one thing (not a lot, not a bid).
-  const canPrice = (f) => cfg.useSoldComps !== false && f.vsSold == null && !f.priceNote && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.project && f.total != null && !!TK.titleToQuery(f.title || "");
+  const canPrice = (f) => cfg.useSoldComps !== false && f.vsSold == null && !f.priceNote && !f.foreign && !f.priceRange && !f.lot && !f.auction && !f.project && f.total != null && !!TK.titleToQuery(f.title || "") && !TKRules.vehicleQuery(f.title);
   // One listing's typical price, from its own title: the answer when the page has no search, or its words
   // are a whole category. One eBay lookup, paced and cached like the page's.
   const priceOne = async (key, btn) => {
@@ -3233,6 +3235,7 @@
     try {
       const settings = await send("getSettings");
       if (!settings.useSoldComps) throw new Error("Price comparisons with eBay sales are turned off in settings.");
+      if (TKRules.vehicleQuery(it.query)) throw new Error(TKRules.VEHICLE_NOTE);
       const m = await soldMarket(it.query, "used");
       if (!m) {
         setStatus(`Not enough eBay sales of \u201c${it.query}\u201d to compare. The estimate stays.`);
@@ -3386,6 +3389,10 @@
     if (!settings.useSoldComps || !query) return null;
     if (TKRules.broadQuery(query)) {
       marketEl.replaceChildren(h("div", { class: "mnote" }, broadNote(query)));
+      return null;
+    }
+    if (TKRules.vehicleQuery(query)) {
+      marketEl.replaceChildren(h("div", { class: "mnote" }, TKRules.VEHICLE_NOTE));
       return null;
     }
     const epoch = pageEpoch;
@@ -3696,7 +3703,7 @@
   const refreshPending = () => {
     updateFold();
     showIdeasBtn();
-    freeRow.hidden = scanning || TK.pageType() !== "results" || !queryEl.value.trim() || TKRules.broadQuery(queryEl.value) || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
+    freeRow.hidden = scanning || TK.pageType() !== "results" || !queryEl.value.trim() || TKRules.broadQuery(queryEl.value) || TKRules.vehicleQuery(queryEl.value) || (!!lastMarket && marketFor === queryEl.value.trim().toLowerCase());
     if (scanning || TK.pageType() !== "results") return;
     let n = 0;
     if (seen.size) currentKeys().forEach((k) => !seen.has(k) && n++);

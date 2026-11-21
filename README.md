@@ -61,6 +61,10 @@ below). Saved and Home work on any eBay or Marketplace page.
   and marked as if you'd opened them (it says first what it will do, and what automatic scans would cost). In
   settings, **Notify me about great finds on saved searches** adds a browser notification (asked for when you
   turn it on).
+- **New in this version**: after an update that brought features which stay off until you want them (new ones
+  always do, so an update never needs new permissions), the toolbar icon gets a dot and the popup and Home a short
+  card listing them, each with **Turn on**. Where a feature needs the browser's OK (Craigslist's pages,
+  notifications), the browser asks right then. **Got it** puts the card away; nothing opens by itself.
 - **At a glance**: saved listings, price drops, saved searches and listings at your price.
 - **Spent on paid AI, 30 days** (only once something was spent; folded): a bar per day, with
   **Table view** for the numbers and the cost per model.

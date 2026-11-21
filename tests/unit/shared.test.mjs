@@ -508,3 +508,26 @@ test("workbench: Bought and Sold, the profit each made, and the totals", () => {
   const odd = S.cleanFind({ ...base, st: "stolen", k: "evil:1", u: "https://evil.example/" });
   assert.ok(!("st" in odd) && !("k" in odd) && !("u" in odd));
 });
+
+test("what's new: the features an update brought, and which still wait to be turned on", () => {
+  assert.equal(S.versionCmp("0.59.0", "0.58.0"), 1);
+  assert.equal(S.versionCmp("0.58.12", "0.59.0"), -1);
+  assert.equal(S.versionCmp("0.59", "0.59.0"), 0);
+  const all = S.NEW_FEATURES.map((f) => f.id);
+  assert.deepEqual(S.newFeatureIds("0.58.0", "0.59.0"), all, "from the store's 0.58.0: everything since");
+  assert.deepEqual(S.newFeatureIds("0.59.0", "0.59.0"), [], "a reload of the same version brings nothing");
+  assert.deepEqual(S.newFeatureIds("0.59.1", "0.59.0"), [], "nor does going back");
+  assert.deepEqual(S.newFeatureIds(undefined, "0.59.0"), [], "nor a first install");
+  assert.deepEqual(S.newFeatureIds("0.59.0", "0.59.1", ["chatCheck", "gone"]), ["chatCheck"], "one still listed from before stays; an unknown id goes");
+  for (const f of S.NEW_FEATURES) {
+    assert.ok(f.title && f.text && f.setting && /^\d+\.\d+\.\d+$/.test(f.since), f.id);
+    assert.doesNotMatch(f.title + f.text, /colour|favourite/, "US English");
+  }
+  assert.deepEqual(S.featureAsk(S.NEW_FEATURES.find((f) => f.id === "onCraigslist")).origins, ["https://*.craigslist.org/*", "https://images.craigslist.org/*"]);
+  assert.deepEqual(S.featureAsk(S.NEW_FEATURES.find((f) => f.id === "notifyGreat")), { permissions: ["notifications"] });
+  assert.equal(S.featureAsk(S.NEW_FEATURES.find((f) => f.id === "chatCheck")), null);
+  const ids = (list) => list.map((f) => f.id);
+  assert.deepEqual(ids(S.pendingFeatures(all, {})), ["chatCheck", "onCraigslist", "notifyGreat"], "auto scan waits for the AI");
+  assert.deepEqual(ids(S.pendingFeatures(all, { useAI: true, chatCheck: true })), ["onCraigslist", "notifyGreat", "autoScan"], "one already on isn't listed");
+  assert.deepEqual(ids(S.pendingFeatures(null, {})), []);
+});

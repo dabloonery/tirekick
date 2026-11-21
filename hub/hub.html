@@ -120,6 +120,8 @@
   .empty { color:var(--muted); font-size:14px; }
   .acts { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
   .homebox { margin-top:34px; }
+  .newsbox:not(:empty) { margin:-8px 0 22px; }
+  .newsbox .hm-sec { padding-top:0; }
   .homebox .hm-btn { min-height:24px; }
   .legal { margin-top:40px; padding-top:14px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:13px; }
   .legal p { margin:0 0 6px; }
@@ -171,6 +173,8 @@
     <div class="pt"><b id="pause-label">On store pages</b><span class="hint" id="pause-hint"></span></div>
     <button type="button" class="switch" id="pause-switch" role="switch" aria-checked="true" aria-labelledby="pause-label" aria-describedby="pause-hint"></button>
   </div>
+
+  <div class="hm newsbox" id="news"></div>
 
   <section class="look" aria-labelledby="look-h">
     <h2 id="look-h">Look something up</h2>

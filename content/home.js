@@ -38,11 +38,14 @@
   const MODEL_NAMES = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-5-5": "Haiku 5.5", "claude-haiku-4-5": "Haiku 4.5" };
   const modelName = (id) => MODEL_NAMES[id] || id;
 
-  function mount(box, { send, go = () => {}, isShown = () => true, onAlerts = () => {}, signal }) {
+  function mount(box, { send, go = () => {}, isShown = () => true, onAlerts = () => {}, signal, withNews = true }) {
     let D = null; // the stored data last drawn
     let lastAlerts = [];
     const root = h("div", { class: "hm" });
     box.append(root);
+    // The update card, on top of Home (Tirekick's own page puts it at the top of the page instead: withNews false).
+    const newsBox = h("div", {});
+    const newsCard = withNews ? news(newsBox, { send, isShown, signal }) : null;
 
     // ---------- chart tooltip: one, shared by the columns; the table view carries the same numbers ----------
     const tip = h("div", { class: "hm-tip", "aria-hidden": "true" });
@@ -240,7 +243,8 @@
       // What's new comes first: it's why you'd come back. Getting started follows while you're new to it;
       // the numbers lead to the lists behind them; paid AI spending, if any, folds away at the end.
       const first = list.length ? [alertsSection(list), start(d)] : [start(d), alertsSection(list)];
-      root.replaceChildren(...[blocked(d), health(d), marksBack(d), ...first, numbers(d), spend(d), footer()].filter(Boolean));
+      root.replaceChildren(...[newsCard && newsBox, blocked(d), health(d), marksBack(d), ...first, numbers(d), spend(d), footer()].filter(Boolean));
+      newsCard?.refresh().catch(() => {});
       return list;
     }
 
@@ -248,6 +252,7 @@
     // Only while Home is what's on screen: a panel left open on another page doesn't count as looking.
     // What you were shown stays marked "New" until the next change.
     async function seen() {
+      newsCard?.seen();
       if (!isShown() || !lastAlerts.some((a) => a.isNew)) return;
       const alertsAck = Object.fromEntries(lastAlerts.map((a) => [a.id, a.value]));
       await chrome.storage.local.set({ alertsAck });
@@ -307,6 +312,80 @@
       // Shown again: draw it if anything changed while it was out of sight, then count what's been seen.
       wake: () => (stale ? refresh() : Promise.resolve()).then(seen),
     };
+  }
+
+  // ---------- New in this version ----------
+  // After an update that brought features which are off until you turn them on (TKShared.NEW_FEATURES, listed by
+  // background.js noteWhatsNew), a card that names each with a Turn on button. On Tirekick's own page (and its popup)
+  // the button asks the browser right in the click, when the feature needs it; a store page's panel can't ask, so
+  // there it opens Tirekick's page. Got it puts the card away; it also goes once everything on it is on. Being on
+  // screen marks it seen, which takes the dot off the toolbar icon.
+  //   const news = TKHome.news(box, { send, isShown, signal });  news.refresh(), news.seen()
+  function news(box, { send, isShown = () => true, signal }) {
+    const canAsk = !!chrome.permissions?.request;
+    const keys = () => {
+      const k = { whatsNew: null, whatsNewSeen: false };
+      for (const f of TKShared.NEW_FEATURES) (k[f.setting] = false), f.needs && (k[f.needs] = false);
+      return k;
+    };
+    let said = ""; // what the last press said, until the next draw that changes the list
+    let list = [];
+    let seenNow = false;
+    const done = () => chrome.storage.local.remove(["whatsNew", "whatsNewSeen", "whatsNewAsked"]);
+    const turnOn = (f, btn) => {
+      const ask = TKShared.featureAsk(f);
+      if (ask && !canAsk) return void send("openHome").catch(() => {});
+      btn.disabled = true;
+      const on = () => chrome.storage.local.set({ [f.setting]: true }).then(() => chrome.storage.local.remove("whatsNewAsked"));
+      if (!ask) return void on().catch(() => (btn.disabled = false));
+      // The browser asks only in the click: nothing is awaited before the request. The note lets the background
+      // finish the job if the question closes this popup first (background.js finishOptIn).
+      chrome.storage.local.set({ whatsNewAsked: f.id }).catch(() => {});
+      chrome.permissions.request(ask).catch(() => false).then((ok) => {
+        if (ok) return on();
+        said = `${f.title} stays off: the browser wasn't given what it asked for. Settings has the same switch.`;
+        btn.disabled = false;
+        chrome.storage.local.remove("whatsNewAsked").catch(() => {});
+        refresh();
+      }).catch(() => {});
+    };
+    async function refresh() {
+      const d = await chrome.storage.local.get(keys());
+      const was = list.map((f) => f.id).join();
+      list = d.whatsNew?.ids?.length ? TKShared.pendingFeatures(d.whatsNew.ids, d) : [];
+      if (was && list.map((f) => f.id).join() !== was) said = ""; // something got turned on: the old note is done
+      seenNow = d.whatsNewSeen === true;
+      // All of it on (here, in settings or on the panel): the card has done its job, and doesn't come back if one
+      // is turned off later.
+      if (d.whatsNew && !list.length) done().catch(() => {});
+      if (!list.length) return void box.replaceChildren();
+      const v = chrome.runtime.getManifest().version;
+      box.replaceChildren(h("section", { class: "hm-sec hm-news", "aria-labelledby": "hm-news-h" },
+        h("h3", { id: "hm-news-h" }, "New in this version", h("span", { class: "hm-grow" }), h("span", { class: "hm-count" }, `Updated to ${v}`)),
+        h("p", { class: "hm-hint" }, list.length === 1 ? "Tirekick was updated. This is off until you turn it on:" : "Tirekick was updated. These are off until you turn them on:"),
+        h("ul", { class: "hm-newlist" }, ...list.map((f) => {
+          const btn = h("button", { class: "hm-btn", "aria-label": `Turn on: ${f.title}` }, TKShared.featureAsk(f) && !canAsk ? "Turn on in Tirekick" : "Turn on");
+          btn.addEventListener("click", () => turnOn(f, btn));
+          return h("li", {}, h("div", {}, h("b", {}, f.title), h("span", { class: "hm-hint" }, f.text)), btn);
+        })),
+        said ? h("p", { class: "hm-hint", role: "status" }, said) : null,
+        h("div", { class: "acts" },
+          h("button", { class: "hm-btn", onclick: () => done().catch(() => {}) }, "Got it"),
+          h("button", { class: "hm-btn", onclick: () => send("openOptions").catch(() => {}) }, "Open settings"))));
+      seen();
+    }
+    function seen() {
+      if (list.length && !seenNow && isShown()) (seenNow = true), chrome.storage.local.set({ whatsNewSeen: true }).catch(() => {});
+    }
+    const watched = ["whatsNew", ...TKShared.NEW_FEATURES.flatMap((f) => [f.setting, f.needs]).filter(Boolean)];
+    const onStore = (c) => chrome.runtime?.id && watched.some((k) => c[k]) && refresh().catch(() => {});
+    chrome.storage.onChanged.addListener(onStore);
+    signal?.addEventListener("abort", () => {
+      try {
+        chrome.storage.onChanged.removeListener(onStore);
+      } catch {}
+    });
+    return { refresh, seen, get count() { return seenNow ? 0 : list.length; } };
   }
 
   // Home's look, in the panel's tokens (--paper, --ink, --display…): the panel and the hub page both use it.
@@ -382,8 +461,15 @@
     .hm td.n, .hm th.n { text-align:right; font-variant-numeric:tabular-nums; }
     .hm-check { margin-top:10px; color:var(--muted); font-size:13px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
     .hm-foot { margin-top:14px; padding-top:12px; border-top:var(--bw) solid var(--rule); color:var(--muted); font-size:13px; display:flex; gap:6px 14px; flex-wrap:wrap; align-items:center; }
+    .hm-news .hm-hint { margin:0 0 10px; }
+    .hm-newlist { list-style:none; margin:0 0 10px; padding:0; display:grid; gap:8px; }
+    .hm-newlist li { display:grid; grid-template-columns:1fr auto; gap:6px 12px; align-items:center; padding:10px 12px; border:var(--bw) solid var(--rule); border-radius:var(--r-sm); background:var(--raise); font-size:13px; }
+    .hm-newlist b { display:block; font-weight:600; }
+    .hm-newlist .hm-hint { margin:0; }
+    .hm-news .acts { display:flex; gap:6px; flex-wrap:wrap; }
+    .hm-btn:disabled { opacity:.6; cursor:default; }
     @media (prefers-reduced-motion: reduce) { .hm .col i, .hm-tip { transition:none; } }
 `;
 
-  window.TKHome = { mount, CSS };
+  window.TKHome = { mount, news, CSS };
 })();

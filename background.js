@@ -1233,6 +1233,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details?.reason === "install") chrome.runtime.openOptionsPage(); // first run: pick a model, paste a key
   // When this build was installed or loaded (a folder reload counts as an update): Home shows it on a "-dev" build.
   if (details?.reason !== "chrome_update") chrome.storage.local.set({ loadedAt: Date.now() }).catch(() => {});
+  if (details?.reason === "update") await noteWhatsNew(details.previousVersion).catch((e) => console.warn("[Tirekick] what's new:", e.message));
   // Defaults are not copied into storage: getSettings() fills in whatever you haven't set, so a better
   // default (a new model, say) reaches every install that never chose otherwise.
   await upgradeStorage().catch((e) => console.warn("[Tirekick] storage upgrade:", e.message));
@@ -1255,6 +1256,34 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   });
   updateBadge().catch(() => {});
 });
+
+// After an update from an older version: the features it brought that are off (TKShared.NEW_FEATURES) are listed
+// for Home's "New in this version" card and the dot on the toolbar icon. Nothing opens by itself; the card stays
+// until you turn them on or press Got it, and the dot goes once you've seen the card.
+async function noteWhatsNew(previousVersion) {
+  const { whatsNew } = await chrome.storage.local.get("whatsNew");
+  const ids = TKShared.newFeatureIds(previousVersion, chrome.runtime.getManifest().version, whatsNew?.ids);
+  if (!ids.length || ids.join() === (whatsNew?.ids || []).join()) return;
+  await chrome.storage.local.set({ whatsNew: { ids, from: String(previousVersion || "").slice(0, 20), at: Date.now() }, whatsNewSeen: false });
+}
+// The listed features still waiting to be turned on, with the settings they depend on.
+async function pendingFeatures() {
+  const { whatsNew } = await chrome.storage.local.get("whatsNew");
+  if (!whatsNew?.ids?.length) return [];
+  return TKShared.pendingFeatures(whatsNew.ids, await getSettings());
+}
+// "Turn on" on the card asks the browser and, once it's allowed, turns the setting on. In a popup the browser's
+// question can close the popup before it hears the answer (Firefox does), so the card notes which feature it
+// asked for (whatsNewAsked) and this finishes the job when the permission arrives.
+async function finishOptIn() {
+  const { whatsNewAsked: id } = await chrome.storage.local.get("whatsNewAsked");
+  const f = TKShared.NEW_FEATURES.find((x) => x.id === id);
+  if (!f) return;
+  const ask = TKShared.featureAsk(f);
+  if (ask && !(await chrome.permissions.contains(ask).catch(() => false))) return;
+  await chrome.storage.local.set({ [f.setting]: true });
+  await chrome.storage.local.remove("whatsNewAsked");
+}
 
 // ---------- The side tab ----------
 // With "showTab" on, the page scripts are registered to load on eBay and Facebook pages.
@@ -1319,6 +1348,7 @@ chrome.storage.onChanged.addListener((changes) => {
 chrome.permissions.onRemoved.addListener(() => syncAutoScripts().catch(() => {}));
 // Access given back (Home's "Allow again", or the browser's own settings): the store tabs already open get the panel.
 chrome.permissions.onAdded.addListener(({ origins = [] } = {}) => {
+  finishOptIn().catch(() => {});
   syncAutoScripts().then(() => origins.length && refreshOpenTabs({ wait: 0 })).catch(() => {});
 });
 chrome.runtime.onStartup.addListener(() => {
@@ -1400,16 +1430,22 @@ async function updateIcon() {
 // A number on the icon when something saved is worth another look: a saved listing got cheaper, or a
 // saved search had listings at your price. Nothing is checked in the background: this only reads what
 // the panel recorded the last time those listings were on your screen. Looking at Home marks them seen.
+// After an update with new features to turn on (noteWhatsNew), a dot until the card has been seen; a number wins.
 async function updateBadge() {
-  const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
+  const { saved, savedSearches, alertsAck, whatsNew, whatsNewSeen } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck", "whatsNew", "whatsNewSeen"]);
   const fresh = TKShared.alerts(saved, savedSearches, alertsAck).filter((a) => a.isNew);
+  const waiting = whatsNew ? await pendingFeatures() : [];
+  // All of it turned on, wherever: the list has done its job (and doesn't come back if one is turned off later).
+  if (whatsNew && !waiting.length) await chrome.storage.local.remove(["whatsNew", "whatsNewSeen"]);
+  const news = whatsNewSeen === true ? [] : waiting;
   const base = chrome.runtime.getManifest().action.default_title + ((await getSettings()).paused ? " (paused on store pages)" : "");
+  const lines = [fresh.length ? `${TKShared.alertSummary(fresh)}.` : "", news.length ? `Updated: ${news.length === 1 ? "a new feature" : `${news.length} new features`} you can turn on.` : ""].filter(Boolean);
   await chrome.action.setBadgeBackgroundColor({ color: "#1A2B4C" }); // navy, as the icon tile (lib/theme.js)
-  await chrome.action.setBadgeText({ text: fresh.length > 99 ? "99+" : fresh.length ? String(fresh.length) : "" });
-  await chrome.action.setTitle({ title: fresh.length ? `${base}\n${TKShared.alertSummary(fresh)}. Click the icon to see them.` : base });
+  await chrome.action.setBadgeText({ text: fresh.length > 99 ? "99+" : fresh.length ? String(fresh.length) : news.length ? "\u2022" : "" });
+  await chrome.action.setTitle({ title: lines.length ? `${base}\n${lines.join(" ")} Click the icon to see ${fresh.length + news.length === 1 ? "it" : "them"}.` : base });
 }
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.saved || changes.savedSearches || changes.alertsAck) updateBadge().catch(() => {});
+  if (changes.saved || changes.savedSearches || changes.alertsAck || changes.whatsNew || changes.whatsNewSeen || TKShared.NEW_FEATURES.some((f) => changes[f.setting] || changes[f.needs])) updateBadge().catch(() => {});
   if (changes.savedSearches) notifyGreats().catch(() => {});
 });
 
@@ -1445,8 +1481,9 @@ async function showPopup(tabId) {
 async function openPanel(tabId) {
   if ((await getSettings()).paused) return showPopup(tabId); // the popup has the switch to turn it back on
   try {
-    const { saved, savedSearches, alertsAck } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck"]);
-    const news = TKShared.alerts(saved, savedSearches, alertsAck).some((a) => a.isNew);
+    const { saved, savedSearches, alertsAck, whatsNewSeen } = await chrome.storage.local.get(["saved", "savedSearches", "alertsAck", "whatsNewSeen"]);
+    // Home first when it has something new: an alert, or the card for an update's new features (until it's seen).
+    const news = TKShared.alerts(saved, savedSearches, alertsAck).some((a) => a.isNew) || (whatsNewSeen !== true && (await pendingFeatures()).length > 0);
     await ensureInjected(tabId);
     const [{ result: ours } = {}] = await chrome.scripting.executeScript({
       target: { tabId },

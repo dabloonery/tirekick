@@ -418,8 +418,12 @@
   $("#home-css").textContent = TKHome.CSS + TKTheme.glyphCss(".read b");
   let mode = "buyer";
   chrome.storage.local.get("lens").then(({ lens }) => (mode = lens === "project" ? "reseller" : "buyer"));
+  // An update's new features, waiting to be turned on, go at the top, where the popup opens (Home is further down).
+  const news = TKHome.news($("#news"), { send, isShown: () => document.visibilityState === "visible" });
+  news.refresh().catch(() => {});
   const home = TKHome.mount($("#home"), {
     send,
+    withNews: false,
     go: () => $("#saved").scrollIntoView({ behavior: "smooth", block: "start" }),
     showSpend: () => chrome.tabs.create({ url: chrome.runtime.getURL("options/options.html#sec-spending") }),
     getMode: () => mode,
@@ -427,7 +431,7 @@
     onAlerts: () => {},
   });
   home.refresh().then(home.seen).catch(() => {});
-  document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && home.wake().catch(() => {}));
+  document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && (news.seen(), home.wake().catch(() => {})));
 
   // Not affiliated with any of the sites (named from lib/sites.js)
   const owners = [...new Set(TKSites.all.map((s) => s.owner))];

@@ -595,12 +595,14 @@ The same steps as above, and nothing goes up without dabloonery's OK. `deno task
   Edge (`edge://extensions`, Developer mode, Load unpacked on the unzipped folder) and click through as above,
   plus the Vivaldi checks (icon and badge, Alt+Shift+L, the right-click entries). Listing text, privacy policy
   link and screenshots come from `store/LISTING.md` and `store/screenshots/`.
-- **Firefox** (addons.mozilla.org, free): `dist/tirekick-<version>-firefox.zip`. Load it at `about:debugging` →
-  This Firefox → Load Temporary Add-on (pick the zip itself), then run the
-  [Firefox checks](#firefox-built-2026-11-02). No source upload is needed: there's no build step. The data
-  question: "Website content" is optional, asked for when the AI is turned on (it matches
-  `data_collection_permissions`, set in `scripts/pack.mjs`, and `store/PRIVACY.md`). The add-on id
-  `tirekick@tirekick.app` never changes, or Firefox users lose their saved data on the next update.
+- **Firefox** (addons.mozilla.org, free): `dist/tirekick-<version>-firefox.zip`. `tests/e2e/firefox.sh` runs it in
+  Firefox (CI does, on every PR); then load it at `about:debugging` → This Firefox → Load Temporary Add-on (pick
+  the zip itself) and run the [Firefox checks](#firefox-built-2026-11-02). Every answer AMO's forms ask for (no
+  source upload, Firefox only, not Android, the data question, the reviewer notes) is in `store/LISTING.md` under
+  "addons.mozilla.org". The data question: "Website content" is optional, asked for when the AI is turned on (it
+  matches `data_collection_permissions`, set in `scripts/pack.mjs`, and `store/PRIVACY.md`). The add-on id
+  `tirekick@tirekick.app` never changes, or Firefox users lose their saved data on the next update. After AMO
+  approves it, add an "Add to Firefox" button to the site (`site/index.html` and the tirekick-site repository).
 
 ### If the review comes back with questions
 

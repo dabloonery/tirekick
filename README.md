@@ -19,7 +19,7 @@ background.
 
 1. In Vivaldi/Chrome open `vivaldi://extensions` (or `chrome://extensions`), turn on
    Developer mode, click **Load unpacked**, and pick this folder. The settings page opens. Edge, Brave and
-   Opera load it the same way. Firefox (140 or later, still being tried out) needs its own build: run
+   Opera load it the same way. Firefox (140 or later; not on addons.mozilla.org yet) needs its own build: run
    `deno task pack`, open `about:debugging`, choose **This Firefox**, then **Load Temporary Add-on**, and pick
    `dist/tirekick-<version>-firefox.zip` (Firefox drops it again when it closes).
 2. The checks and marks work right away. AI scores are optional and off until you turn them on: to

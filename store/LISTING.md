@@ -1,8 +1,8 @@
-# Chrome Web Store listing
+# Store listings (Chrome Web Store, Edge Add-ons, addons.mozilla.org)
 
 Everything the store's forms ask for. Upload `dist/tirekick-<version>.zip` from `deno task pack`. The same text
-serves Edge Add-ons (same zip) and addons.mozilla.org (`dist/tirekick-<version>-firefox.zip`); see the ROADMAP's
-"Edge Add-ons and addons.mozilla.org".
+serves Edge Add-ons (same zip) and addons.mozilla.org (`dist/tirekick-<version>-firefox.zip`; what its forms
+add is under [addons.mozilla.org](#addonsmozillaorg-firefox) below); see the ROADMAP's "Edge Add-ons and addons.mozilla.org".
 
 ## Basics
 
@@ -94,6 +94,80 @@ over the eBay page from 1. `store/screenshots/captioned/` has the same five unde
 ## Notes for the reviewer
 
 Scores and analysis need an API key, which the reviewer is not expected to have. Without one, everything else works: open an eBay search, open the panel (the "Tirekick" tab at the right edge, or Alt+Shift+L), press "Typical price", try the filter bar, save a listing, and open the Home tab. Select any text on another site and right-click "Look up" for the extension's own page.
+
+## addons.mozilla.org (Firefox)
+
+The same listing, with what AMO's forms ask for that the Chrome Web Store doesn't. Upload
+`dist/tirekick-<version>-firefox.zip` from `deno task pack` (not the Chrome zip: its manifest has no Firefox settings).
+Checked before each upload: `tests/e2e/firefox.sh` passes (CI runs it), then the by-hand checks in the ROADMAP's
+"Firefox: built 2026-11-02".
+
+- **How to distribute:** On this site (listed on addons.mozilla.org).
+- **Platforms:** Firefox only. Leave **Firefox for Android** unticked: phones are off the roadmap (dabloonery,
+  2026-11-04), and the Marketplace and eBay apps are where phone shopping happens. (`web-ext lint` warns that Android
+  would need 142 for the data question; that warning is about Android only.)
+- **Source code:** No. Every file in the zip is the code as written: no build step, minifier or bundler. The only
+  generated file is `manifest.json`, which `scripts/pack.mjs` writes from the folder's manifest (Firefox's background
+  scripts and `browser_specific_settings` in place of Chrome's service worker); it's plain JSON.
+- **Name:** Tirekick. **Add-on URL:** `tirekick` (addons.mozilla.org/firefox/addon/tirekick).
+- **Summary** (250 characters at most; AMO fills it from the manifest's description, which is shorter): Beta. Good price or scam? Price checks and scam warnings for secondhand marketplaces, starting with eBay and Facebook Marketplace. The price checks and scam marks work without an AI; AI scores are optional, with your own key.
+- **Description:** the Description above, as it is. AMO allows a little Markdown: the bold lines carry over.
+- **Experimental:** leave unticked; the description already starts with "Beta".
+- **Categories:** Shopping (the second choice, if asked: Search Tools).
+- **Tags:** shopping, ebay, facebook, marketplace, price, scam
+- **Support email:** support@tirekick.app. **Support website:** https://tirekick.app/support.html.
+- **License:** Apache License 2.0 (the repository's `LICENSE`).
+- **Privacy policy:** AMO wants the text itself: paste `store/PRIVACY.md` (or the page at
+  https://tirekick.app/privacy.html).
+- **Screenshots:** the captioned set from `store/screenshots/captioned/`, the same as Chrome's. They show Vivaldi; the
+  panel looks the same in Firefox.
+- **Icon:** AMO takes it from the zip (`icons/icon128.png`).
+
+### Data collection (Firefox asks about it; set in the zip's manifest)
+
+`data_collection_permissions` in `scripts/pack.mjs`: **required: none, optional: website content.** What each
+answer means, so the listing and the reviewer notes say the same:
+
+- **Website content, optional:** listing text and photos go to the AI service the person picked, only when they
+  press Scan, Analyze, Search ideas or Check photo, or turned on automatic scanning. Firefox asks when the AI is
+  turned on in settings (`aiConsent` in `options/options.js`); saying no leaves the AI off, turning the AI off gives
+  the yes back, and without it the background refuses every AI call (`needsAI` in `background.js`). Without the AI,
+  nothing from a page leaves the browser except the sold-price lookups below.
+- **Not declared, and why:**
+  - The person's own API key (authentication information): it's theirs, typed in by them, kept in the browser and
+    sent only to the service that issued it, to use that service. Nothing reaches the developer. The Chrome Web
+    Store's form does list it; AMO's "authentication information" is about logins collected by the add-on.
+  - Sold-price lookups: the search words go to eBay's own sold-listings search, from the person's browser, on a
+    search they're looking at or when they press a button (at most eight an hour). It's the store the add-on works
+    on, answering a search, not data sent to the developer or anyone else. If the review asks for "search terms",
+    it can be added as optional and asked for with **Compare prices with recent eBay sales**.
+  - Marketplace thumbnails fetched from fbcdn.net without cookies to fingerprint them on the computer: the same
+    picture the page already shows; nothing about the person goes with it.
+
+### Notes to reviewer (paste into AMO)
+
+Tirekick adds price checks and scam marks to eBay and Facebook Marketplace pages the user is looking at. All code is
+in the zip as written, with no build step, no remote code and no eval.
+
+To try it without an AI key: open an eBay search (for example https://www.ebay.com/sch/i.html?_nkw=pentax+k1000).
+Cards get price tags and scam marks; the "Tirekick" tab on the right edge (or Alt+Shift+L) opens the panel. Press
+"Typical price", try the filter bar, save a listing, and open the Home tab. The toolbar icon opens Tirekick's own page
+elsewhere. AI scores need the user's own API key; turning the AI on in settings asks Firefox for the optional
+"website content" data permission, and no AI request is made without it.
+
+Network requests: the AI service the user configured (only on a button press, or automatic scanning the user turned
+on); eBay's sold-listings search for typical prices (a few an hour at most, from the user's browser); Facebook's
+image host for thumbnails already on screen (no cookies). Nothing goes to the developer: there is no server or
+analytics.
+
+innerHTML: the linter's seven notes are static markup. The panel's and toast's shadow-root stylesheets
+(`content/panel.js`, built from the theme's constants), a camera icon, the panel's summary line (numbers and fixed
+words), and the logo SVG in `hub/hub.js` and `options/options.js` (`TKTheme.logoMark`, numbers only). Listing text
+is always set with textContent.
+
+Optional permissions: notifications (asked when the user turns on great-find notifications); Craigslist (asked when
+the user turns on Craigslist); any http/https origin (asked for one address at a time, only for a custom
+OpenAI-compatible AI address the user types in).
 
 ## Before you submit
 

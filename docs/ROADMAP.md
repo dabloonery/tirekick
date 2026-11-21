@@ -23,7 +23,7 @@ and briefs for new features. Voice, the rename plan and the security review are 
   - [Brief 6: Sync and export](#brief-6-sync-and-export)
   - [Brief 7: Built-in browser AI](#brief-7-built-in-browser-ai) (first after the 1.0.0 launch)
   - [Brief 8: Price data beyond eBay sold listings](#brief-8-price-data-beyond-ebay-sold-listings) (plan; check first that it helps)
-  - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then desktop Safari; phones off the roadmap 2026-11-04; Firefox code built 2026-11-02, dabloonery to check it by hand)
+  - [Brief 9: More browsers](#brief-9-more-browsers) (Edge store, then Firefox, then desktop Safari; phones off the roadmap 2026-11-04; Firefox code built 2026-11-02; first run in real Firefox 2026-11-21 found and fixed why the panel never opened, now tested in Firefox in CI)
   - [Brief 10: More AI options](#brief-10-more-ai-options) (quality menu for every service)
   - [Brief 11: Side panel mode](#brief-11-side-panel-mode) (idea from the 2026-10-15 UI audit)
   - [Brief 12: Choose what Tirekick shows](#brief-12-choose-what-tirekick-shows) (2026-10-23: Without the AI, Scam check only, Everything; built 2026-10-23)
@@ -46,7 +46,7 @@ check); those are in git history.*
 | Open source | Apache-2.0 since 2026-10-22; the repository is public |
 | Waiting on dabloonery | The four design picks in [After real use](#after-real-use-2026-10-16); tags that lead with words ([still to do](#still-to-do-in-this-round)) |
 | Next to build | Brief 12 (choose what Tirekick shows) is built and Brief 13 (store filters) is being built; Brief 1 (alerts, options 1 and 2) is built (2026-10-28; dabloonery checks a notification in Vivaldi). Brief 5's Craigslist is built, opt in (2026-10-27, [status](#craigslist-built-2026-10-27)); OfferUp is next there. Brief 7 (built-in browser AI) is the first feature after 1.0.0 |
-| More browsers | Firefox code and a zip for each browser built 2026-11-02 ([status](#firefox-built-2026-11-02)); dabloonery checks it in Firefox and Edge by hand before any upload to either store |
+| More browsers | Firefox code and a zip for each browser built 2026-11-02 ([status](#firefox-built-2026-11-02)). 2026-11-21: first run in real Firefox (140 ESR and 160); two bugs kept the panel off every page and are fixed, and `tests/e2e/firefox.sh` now runs the Firefox zip in Firefox on every PR ([status](#firefox-run-in-firefox-2026-11-21)). dabloonery checks it in Firefox and Edge by hand before any upload to either store |
 | Chat check | Built 2026-11-18 from the competitor audit, off by default: "Watch my Marketplace chats for scam lines" warns above a Messenger chat docked on a Marketplace page that asks for a verification code, money first, a payment trick, a courier or another app (`TKRules.chatSigns`). Read on screen only, never stored or sent. Tested on a hand-made chat box: dabloonery checks it on a real Marketplace chat, since Facebook's chat markup isn't in a fixture |
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
@@ -1212,6 +1212,8 @@ e2e drive Chrome through the DevTools protocol and `--host-resolver-rules`; Fire
   Firefox users show up.
 - A by-hand checklist (the "How to know it's done" list below) in Firefox before each addons.mozilla.org upload.
 
+(Built 2026-11-21 a little differently: no geckodriver or PAC file. See [below](#firefox-run-in-firefox-2026-11-21).)
+
 **Store (addons.mozilla.org).** Free account, no fee. Upload the same zip; the reviewers can read the code as is
 (no build step, so no source upload is needed). Copy the listing from `store/LISTING.md`, link the privacy policy,
 and answer the data questions to match `data_collection_permissions`. Review takes from minutes to a few days.
@@ -1237,8 +1239,9 @@ hand. What changed:
   `runtime.getContexts` is missing.
 - Settings asks for a custom AI address first thing in the Test click, so Firefox shows the prompt.
 - Turning on the AI in settings (the switch, or "Everything") asks Firefox once to let listing text go to an AI
-  service; saying no leaves the AI off. Turning it off gives that back. Other browsers aren't asked. Not
-  covered: an AI turned on by a restored backup or an older install doesn't ask.
+  service; saying no leaves the AI off. Turning it off gives that back. Other browsers aren't asked. An AI turned
+  on another way (a restored backup) is covered since 2026-11-21: the background refuses every AI call in Firefox
+  until that yes is given.
 - CI runs `web-ext lint` on the Firefox zip.
 
 The by-hand checks in Firefox (dabloonery, before the first addons.mozilla.org upload):
@@ -1254,6 +1257,27 @@ The by-hand checks in Firefox (dabloonery, before the first addons.mozilla.org u
 - [ ] In the add-on's Permissions (about:addons), turn off eBay: Home says "Tirekick can't read eBay", eBay pages
       show nothing, and Allow again brings it back (the eBay tabs already open get the panel without a reload).
 - [ ] A private window: nothing runs there unless the add-on is allowed in private windows.
+
+#### Firefox: run in Firefox 2026-11-21
+
+The first run in real Firefox (140 ESR, the oldest the zip allows, and 160), in the cloud. Firefox came from
+conda-forge's `firefox` package (download.mozilla.org is blocked there); GitHub's runner has Firefox already.
+
+- **Found:** the panel and card tags never showed in Firefox, on any store page. Two causes, both about how Firefox
+  runs page scripts (each in its own sandbox, where `globalThis` is not `window`): `lib/sites.js` put `TKSites` on
+  `globalThis` and `content/adapters.js` read `window.TKSites` ("Sites is undefined"); and
+  `(window.requestIdleCallback || setTimeout)(loadFonts)` in `content/panel.js` calls the function without the
+  window as `this`, which Firefox refuses. Fixed: the shared names go on `self`, like `TKShared` and `TKTheme`.
+- **Added:** the AI guard above (no AI call in Firefox without the website-content yes).
+- **Test:** `tests/e2e/firefox.sh` builds the zips, starts headless Firefox with a fresh profile (the store hosts
+  mapped to the fake server by preferences), installs the Firefox zip as a temporary add-on (Firefox's remote
+  debugging protocol, as `web-ext run` does) and runs `tests/e2e/firefox.ts` over WebDriver BiDi (built into
+  Firefox; helpers in `tests/e2e/bidi.ts`). It checks the event page, eBay and Facebook pages, a real sold-price
+  lookup, a listing page, Saved and the popup's pause switch, Craigslist's optional access, the AI switch asking
+  about website content (a real mouse click, as Firefox wants), a scan against the fake AI, the refusal without
+  that yes, and no errors. Part of `deno task test`; skipped where there's no Firefox (`FIREFOX_BIN` picks one).
+- Still by hand: the toolbar icon, the right-click entry, the custom-address prompt, a backup and restore, the
+  add-on's permissions in about:addons, private windows, and the real eBay and Facebook (the list above).
 
 **Effort.** Edge: half a day, no code. Firefox: items 1 to 5 are about four small PRs (a day or two together),
 the Firefox smoke test another day, then a by-hand pass and the listing.

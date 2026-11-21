@@ -5,6 +5,7 @@ deno task test          # everything below
 tests/run.sh            # fixture pages in plain Chrome: the panel's keyboard use, settings, adapters; then the rules on their own
 deno test --allow-read tests/unit/     # no browser: the plain rules and helpers (node --test works too)
 tests/e2e/run.sh features.ts           # the real extension in headless Chrome; also scores-persist.ts, marketplace.ts, ux.ts, adapters.ts
+tests/e2e/firefox.sh                   # the Firefox zip in headless Firefox (FIREFOX_BIN=/path/to/firefox; skipped without one)
 ```
 
 Needs Chrome or Chromium, `deno`, `python3` and `openssl`. `chrome.sh` picks the browser: `$CHROME_BIN`, else an installed
@@ -32,6 +33,7 @@ it) and a fake Claude API that keeps every request, so tests can check the model
 | `e2e/photos.ts` | the same photo on other Marketplace listings: fingerprints of thumbnails on screen, marks on both cards, kept for later pages, never on eBay |
 | `e2e/tidy.ts` | 0.39.0: the Marketplace home feed without off-topic posts, quick filters and Skips out of the Filter drawer, the free read on rows and chips, an offer from one free sold lookup, search ideas on the feed, the navy theme, clicking the page tucks the panel away |
 | `e2e/marks.ts` | which marks show: each kind of chip follows its switch on an open tab, one mark per listing puts the scam mark first, scam marks off leave no gray card without a reason (the panel still warns), and the settings switch asks first |
+| `e2e/firefox.ts` | the Firefox zip in headless Firefox (`e2e/firefox.sh`, over WebDriver BiDi with `e2e/bidi.ts`): the event page, eBay and Facebook pages, a sold-price lookup, a listing page, Saved, the popup's pause switch, Craigslist's access, the AI switch asking Firefox about website content, a scan, the AI refused without that yes, no errors. Needs Firefox 140 or later (`FIREFOX_BIN`); skipped without one |
 | `e2e/access.ts` | a store the browser won't let Tirekick read (Firefox can take eBay or Facebook away; the worker's permission check is stubbed): no page scripts there, the other store still works, Home says so with Allow again, and given back it all returns |
 | `e2e/pause.ts` | the pause switch: the popup's switch clears an open store tab without a reload and keeps new ones clear, the icon's title and the settings box follow, Check my saved searches still shows Tirekick on the searches it opens, and turning it back on in settings brings the panel back to open tabs |
 | `e2e/whats-new.ts` | after an update (the worker's update step called with an older version): the icon's dot and tooltip, the "New in this version" card at the top of the popup and on the panel's Home, Turn on (one with nothing to ask, one the browser refuses, one allowed after the popup closed), seen takes the dot away, Got it and everything on put the card away |

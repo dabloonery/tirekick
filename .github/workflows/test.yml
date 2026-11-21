@@ -17,15 +17,15 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      # The runner image has google-chrome-stable, python3 and openssl already.
-      - run: google-chrome-stable --version
+      # The runner image has google-chrome-stable, Firefox (for tests/e2e/firefox.sh), python3 and openssl already.
+      - run: google-chrome-stable --version && firefox --version
       # A pull request must not lower the version (scripts/version-check.mjs); it stays put between store uploads.
       - if: github.event_name == 'pull_request'
         run: deno task version-check origin/${{ github.base_ref }}
       - run: deno task test
       - run: deno task pack
       # The Firefox zip through Mozilla's own checker (manifest keys, API names), the same one addons.mozilla.org
-      # runs. Firefox itself isn't on the runner; it's checked by hand (docs/ROADMAP.md, Brief 9).
+      # runs. The zip also runs in Firefox itself within deno task test (tests/e2e/firefox.sh).
       - run: |
           mkdir -p "$RUNNER_TEMP/firefox" && unzip -q dist/tirekick-*-firefox.zip -d "$RUNNER_TEMP/firefox"
           npx --yes web-ext@10.8.0 lint --source-dir "$RUNNER_TEMP/firefox"

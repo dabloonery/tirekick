@@ -51,6 +51,7 @@ check); those are in git history.*
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
 | Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. All four steps built 2026-11-17: the flip check, your own finds, Bought and Sold with profit totals, questions for the seller |
+| What's new after an update | Built 2026-11-21 ([below](#whats-new-after-an-update)): a dot on the toolbar icon and a "New in this version" card in the popup and on Home, with a Turn on button for each new feature that's off. Tested in Chrome; dabloonery checks a real update (0.58.0 to 0.59.0) and the Turn on prompts in Firefox |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
 ### Reseller workbench
@@ -78,6 +79,29 @@ Each step is its own PR, on Tirekick's own page (`hub/`), and the website says w
 4. **Questions for the seller** (built 2026-11-17): under the flip check, questions to paste into a message (asked
    to fit the thing: power and a photo of it on for anything that plugs in, `TKRules.sellerQuestions`) and a safety
    checklist for you (`TKRules.SAFETY`), each with a copy button; each find has Copy questions. Templates only.
+
+### What's new after an update
+
+*Asked for 2026-11-21 (dabloonery): make it easier to notice that an update arrived and that it brought things to
+opt in to. New features ship off, and anything needing the browser's OK is an optional permission so an update never
+disables Tirekick, which also means nobody finds them.*
+
+- **The list:** `TKShared.NEW_FEATURES` in `lib/shared.js`, each with the version it first reaches the store in
+  (`since`), the setting it turns on, what the browser has to allow (`ask`: an opt-in store's hosts, or a permission
+  such as notifications) and a setting it needs (`needs`: auto scan is only listed with the AI on). **Add a feature
+  here when it ships off by default.** 0.59.0 lists the chat check, Craigslist, great-find notifications and auto scan.
+- **On update** (`runtime.onInstalled`, reason `update`, from an older version; a folder reload of the same version
+  doesn't count): `noteWhatsNew` keeps the ids of the features since the old version in `whatsNew`, merged with any
+  not yet dismissed. Nothing opens by itself.
+- **Cue:** a dot on the toolbar icon (a number for alerts wins) and a line in its tooltip, until the card has been on
+  screen (`whatsNewSeen`). On a store page the icon opens the panel on Home while the card is unseen.
+- **Card:** "New in this version" at the top of the popup and Tirekick's page, and on the panel's Home, listing the
+  features still off, each with Turn on. On Tirekick's page the button asks the browser right in the click (no await
+  before `permissions.request`, which Firefox needs); a store page's panel can't ask, so there it says "Turn on in
+  Tirekick" and opens the page. If the browser's question closes the popup before it hears back, the background
+  turns the setting on when the permission arrives (`whatsNewAsked`, `finishOptIn`). Got it puts the card away; it
+  also goes once everything on it is on, wherever that happened.
+- Test: `tests/e2e/whats-new.ts`; `newFeatureIds` and `pendingFeatures` in `tests/unit/shared.test.mjs`.
 
 ### Pause switch
 

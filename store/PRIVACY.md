@@ -1,6 +1,6 @@
 # Tirekick: privacy policy
 
-*Last updated: October 2026*
+*Last updated: November 2026*
 
 Tirekick is a browser extension for people buying secondhand online. It currently works on eBay and
 Facebook Marketplace, and on Craigslist if you turn that on in settings. This page says what it keeps, what it
@@ -71,6 +71,11 @@ Notifications are optional: Tirekick asks for them only when you turn on **Notif
 saved searches**, and gives them back when you turn it off. A notification shows a listing's title and price on
 your own computer; nothing is sent anywhere, and nothing is checked in the background: finds come only from
 pages you open, or that **Check my saved searches** opens in front of you after you press it.
+
+In Firefox, sending listing text to an AI is the add-on's optional **website content** data permission. Firefox
+asks when you turn on the AI in settings; say no and the AI stays off. Turn the AI off, or take the permission back
+in Firefox's add-on settings (Permissions and data), and nothing goes to an AI. Tirekick sends nothing to its
+developer, so Firefox lists no other data.
 
 Each permission and what it's for is listed in `store/LISTING.md`.
 

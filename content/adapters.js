@@ -967,7 +967,7 @@
   TK.VARIANT_MIN = 5;
   TK.VARIANT_TIGHT = 1.5; // the middle half within 1.5x, for a kind with fewer than 8 sales
   TK.soldVariants = (sales, query = "") => {
-    const R = globalThis.TKRules;
+    const R = window.TKRules;
     if (!R?.variantGroups) return null;
     const { same, groups } = R.variantGroups(sales, query);
     const pick = ({ samples, ship, ...st }) => st; // what a card needs; keeps the cache entry small

@@ -1177,8 +1177,14 @@ async function panelTab(_payload, sender) {
 // With the AI turned off in settings, the calls that would reach an AI service refuse, whatever asks: an old
 // tab, a menu, a keyboard path the panel missed. The free checks never come through here.
 const AI_OFF = "Your AI is turned off in settings, so nothing was sent. Prices, scam marks and filters work without it.";
+// Firefox asks before an add-on sends what's on a page anywhere (data_collection_permissions, asked when the AI is
+// turned on in settings). Without that yes nothing goes to the AI, whatever turned it on: a restored backup, settings
+// carried over, the yes taken back in Firefox's add-on settings. Only Firefox has getBrowserInfo.
+const NO_CONSENT = "Firefox hasn't allowed Tirekick to send listing text to an AI service, so nothing was sent. Turn the AI off and on again in settings to be asked.";
+const firefoxSaysNo = async () => !!chrome.runtime.getBrowserInfo && !(await chrome.permissions.contains({ data_collection: ["websiteContent"] }).catch(() => false));
 const needsAI = (fn) => async (payload, sender) => {
   if ((await getSettings()).useAI === false) throw new Error(AI_OFF);
+  if (await firefoxSaysNo()) throw new Error(NO_CONSENT);
   return fn(payload, sender);
 };
 const HANDLERS = { storeEdit, soldSlot, rankBatch: needsAI(rankBatch), analyzeListing: needsAI(analyzeListing), suggestSearches: needsAI(suggestSearches), checkPhoto: needsAI(checkPhoto), photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, blockedSites, checkSavedSearches, searchSettled, abort, panelTab, getSettings: getPageSettings };

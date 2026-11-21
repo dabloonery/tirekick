@@ -109,7 +109,10 @@
       if (alive()) console.warn("[Tirekick] font", THEME.FONT_FILE, e.message);
     }
   };
-  (window.requestIdleCallback || setTimeout)(loadFonts, { timeout: 1500 });
+  // Called by name, not as (window.requestIdleCallback || setTimeout)(...): Firefox's content scripts throw when a
+  // window function is called without the window as `this`, and that stopped the panel before it opened.
+  if (window.requestIdleCallback) requestIdleCallback(loadFonts, { timeout: 1500 });
+  else setTimeout(loadFonts, 0);
 
   // Small DOM builder: always uses textContent, so listing text can't inject HTML.
   const h = (tag, attrs = {}, ...kids) => {

@@ -14,5 +14,9 @@ done
 echo "== e2e/perf.ts (guard)"
 out=$(PERF_GUARD=1 PERF_MEMORY=5000 e2e/run.sh perf.ts 2>&1); echo "$out"
 echo "$out" | grep -qE '^FAIL|Uncaught' && exit 1
+# The Firefox zip in Firefox (skipped where there's no Firefox; GitHub's runner has it).
+echo "== e2e/firefox.ts"
+out=$(e2e/firefox.sh 2>&1); echo "$out"
+echo "$out" | grep -qE '^FAIL|Uncaught' && exit 1
 rm -f e2e/*.png
 echo "all tests passed"

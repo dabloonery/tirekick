@@ -3348,8 +3348,7 @@
   const fetchSoldHtml = async (query, condition) => {
     const url = TK.soldUrl(query, TK.SOLD_CONDITION[condition]);
     if (!TKSites.soldSite().hosts.includes(location.hostname)) return send("fetchSoldHtml", { url }); // from eBay's own page when on it
-    const res = await fetch(url, { credentials: "include", signal: AbortSignal.timeout(30000) });
-    return { status: res.status, html: res.ok ? await res.text() : "" };
+    return TKSold.fetchEbay(url);
   };
   const soldMarket = TKSold.create({ fetchHtml: fetchSoldHtml, send, isStopped: () => stopRequested });
 

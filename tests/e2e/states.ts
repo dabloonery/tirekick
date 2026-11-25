@@ -98,6 +98,7 @@ await reset(`{useAI:true, useSoldComps:true}`);
 for (const [name, q, says] of [
   ["no sales at all", "nosales camera", /Not enough eBay sales/],
   ["eBay asks for a browser check", "blockme", /paused \d+ min \(eBay asked for a browser check\)/],
+  ["eBay wants you signed in", "signinme", /only shows sold prices when you're signed in/],
 ] as [string, string, RegExp][]) {
   // Both pages list the same items: give the last tab's remembered scores time to land before clearing
   // storage, or this page restores them and has nothing new to scan.

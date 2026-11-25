@@ -931,9 +931,16 @@ async function fetchSoldHtml({ url }) {
       const [{ result } = {}] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         args: [url],
+        // Self-contained (it runs in the tab): the same steps as TKSold.fetchEbay.
         func: async (u) => {
-          const res = await fetch(u, { credentials: "include", signal: AbortSignal.timeout(30000) });
-          return { status: res.status, html: res.ok ? await res.text() : "" };
+          try {
+            const res = await fetch(u, { credentials: "include", signal: AbortSignal.timeout(30000) });
+            return { status: res.status, html: res.ok ? await res.text() : "" };
+          } catch (e) {
+            const probe = await fetch(u, { credentials: "include", redirect: "manual", signal: AbortSignal.timeout(15000) }).catch(() => null);
+            if (probe?.type === "opaqueredirect") return { status: 0, html: "", signin: true };
+            throw e;
+          }
         },
       });
       if (result) return { ...result, via: "tab" };
@@ -946,8 +953,15 @@ async function fetchSoldHtml({ url }) {
   // an eBay tab. Until it lapses, say so without asking eBay again.
   const { soldWorkerPausedUntil = 0 } = await chrome.storage.local.get("soldWorkerPausedUntil");
   if (Date.now() < soldWorkerPausedUntil) return { status: 0, html: "", via: "worker", pausedUntil: soldWorkerPausedUntil };
-  const res = await fetchWithTimeout(url, { credentials: "include" }, 30 * 1000, "eBay took too long to answer.");
-  return { status: res.status, html: res.ok ? await res.text() : "", via: "worker" };
+  try {
+    const res = await fetchWithTimeout(url, { credentials: "include" }, 30 * 1000, "eBay took too long to answer.");
+    return { status: res.status, html: res.ok ? await res.text() : "", via: "worker" };
+  } catch (e) {
+    // A redirect the browser wouldn't follow: signed out, eBay sends a sold search to its sign-in page.
+    const probe = await fetchWithTimeout(url, { credentials: "include", redirect: "manual" }, 15 * 1000, "").catch(() => null);
+    if (probe?.type === "opaqueredirect") return { status: 0, html: "", via: "worker", signin: true };
+    throw e;
+  }
 }
 // The page saw eBay's browser check in an answer fetched from here.
 async function soldWorkerBlocked() {

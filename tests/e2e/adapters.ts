@@ -78,6 +78,16 @@ p = await page("https://www.ebay.com/b/Video-Game-Consoles/139971/bn_320", "ebay
 items = await extract(p);
 ok("eBay category page", eq(items.map((i: any) => [i.title, i.price]), [["Sony PlayStation 2 Slim Console SCPH-77001", 64], ["Nintendo Wii White Console Tested", 45]]) && (await p.ev(`Tirekick.pageType()`)) === "results" && /Video Game Consoles/i.test(await p.ev(`Tirekick.browseContext()`)), items.map((i: any) => [i.title, i.price]));
 
+// November 2026: browse pages build cards as div.su-item-card (live check, 2026-11-25). A "Shop on eBay"
+// placeholder and a product (/p/) card are not listings.
+p = await page("https://www.ebay.com/b/Computer-Printers/1245/bn_320031", "ebay-browse-real");
+items = await extract(p);
+{
+  const hp = items.find((i: any) => /8138e/.test(i.title));
+  ok("eBay browse page (su-item-card): 14 listings, each with a title and a price", items.length === 14 && items.every((i: any) => i.title && i.price > 0) && (await p.ev(`Tirekick.pageType()`)) === "results", items.map((i: any) => [i.title, i.price]));
+  ok("…shipping, condition, the sale price (not the Was price) and a price range", eq([items[0].price, items[0].shipping, items[0].condition], [59.99, 4.99, "Pre-Owned"]) && hp?.price === 75 && hp?.condition === "Certified - Refurbished" && items.filter((i: any) => i.priceRange).length === 1, [items[0], hp]);
+}
+
 p = await page("https://www.ebay.com/sch/i.html?_nkw=x", "ebay-sold");
 const m = await p.ev(`(({samples, ...m}) => ({...m, samples: samples.length}))(Tirekick.summarizeSold(document.documentElement.outerHTML))`);
 ok("sold listings become a median; eBay's looser matches are left out", m.n === 8 && m.median === 56 && m.p25 === 51 && m.p75 === 59 && m.samples === 5 && m.p10 > 0 && m.p10 <= m.p25, m);

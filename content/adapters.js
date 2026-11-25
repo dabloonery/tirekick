@@ -286,7 +286,8 @@
 
   // strict: stop at eBay's "Results matching fewer words" divider (used for the sold-price median,
   // where those looser matches would skew the numbers).
-  TK.EBAY_CARDS = "li.s-card, li.s-item, li.brwrvr__item-card";
+  // div.su-item-card: browse (category) pages since November 2026 (live check, 2026-11-25).
+  TK.EBAY_CARDS = "li.s-card, li.s-item, li.brwrvr__item-card, div.su-item-card";
   // Craigslist's card layouts (read below)
   TK.CL_CARDS = ".cl-search-result, li.cl-static-search-result, li.result-row";
   // When eBay renames its price class, the first dollar amount on the card can be the title's ("$1 no
@@ -310,7 +311,7 @@
   };
   // The price as the card shows it. 2025 cards split a range over three pieces ("$139.99", "to", "$349.99"),
   // each with the price class: read them together, or the low end passes for the price.
-  const EBAY_PRICE = ".s-card__price, .s-item__price, .bsig__price";
+  const EBAY_PRICE = ".s-card__price, .s-item__price, .su-item-card__price, .bsig__price";
   const ebayPrice = (card) => {
     const first = [...card.querySelectorAll(EBAY_PRICE)].find((n) => n.textContent.trim() && !n.closest(STRUCK));
     if (!first) return "";
@@ -321,9 +322,18 @@
   // row can hold the seller's own blurb ("Like New Available, All Colors"), so only eBay's own words count.
   const EBAY_CONDITION = /^(?:brand new|new|new \(other\)|new (?:with|without) (?:tags|box)|new with defects|open box|pre-owned|used|parts only|for parts or not working|(?:certified|excellent|very good|good|seller|manufacturer) - refurbished|(?:seller|manufacturer) refurbished|refurbished|remanufactured)$/i;
   const ebayCondition = (card) =>
-    [...card.querySelectorAll(".s-card__subtitle span, .s-card__subtitle, .s-item__subtitle .SECONDARY_INFO, .s-item__subtitle, .bsig__listingCondition")]
+    [...card.querySelectorAll(".s-card__subtitle span, .s-card__subtitle, .su-item-card__subtitle span, .su-item-card__subtitle, .s-item__subtitle .SECONDARY_INFO, .s-item__subtitle, .bsig__listingCondition")]
       .map((n) => squash(n.textContent, 60))
       .find((t) => EBAY_CONDITION.test(t)) || "";
+  // Browse cards (su-item-card) give paid shipping on a line of its own with no "+": "$4.99 shipping".
+  const SHIP_LINE = /^(?:US\s?)?\$\s?([\d,]+(?:\.\d{1,2})?)\s+(?:shipping|delivery|postage)$/i;
+  const ebayShipLine = (card) => {
+    for (const n of card.querySelectorAll(".su-card-container__attributes span")) {
+      const m = squash(n.textContent, 40).match(SHIP_LINE);
+      if (m) return parseFloat(m[1].replace(/,/g, ""));
+    }
+    return null;
+  };
   TK.extractEbay = (root = document, { strict = false } = {}) => {
     const cards = root.querySelectorAll(`${TK.EBAY_CARDS}, li.srp-river-answer`);
     const out = [];
@@ -340,7 +350,7 @@
       if (seen.has(key)) continue;
       seen.add(key);
 
-      const titleEl = [".s-card__title", ".s-item__title", ".bsig__title__text", ".bsig__title", '[role="heading"]', "h3"].map((sel) => card.querySelector(sel)).find((n) => n?.textContent.trim()) || link;
+      const titleEl = [".s-card__title", ".s-item__title", ".su-item-card__title", ".bsig__title__text", ".bsig__title", '[role="heading"]', "h3"].map((sel) => card.querySelector(sel)).find((n) => n?.textContent.trim()) || link;
       let title = titleEl.textContent;
       title = squash(title.replace(/^New Listing/i, "").replace(/Opens in a new window or tab$/i, ""), 160);
       if (!title || /^shop on ebay$/i.test(title)) continue;
@@ -358,7 +368,7 @@
           // "$12.99 to $59.99": versions at different prices. The low end may not be the one searched for, so
           // it isn't compared with the typical price.
           ...(TK.isPriceRange(priceText) && { priceRange: true }),
-          shipping: TK.parseShipping(text),
+          shipping: TK.parseShipping(text) ?? ebayShipLine(card),
           ...(condition && { condition }),
           url,
           imageUrl: firstImage(card),

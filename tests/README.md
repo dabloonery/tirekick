@@ -57,7 +57,7 @@ The adapters (`content/adapters.js`) are the part most likely to break, and `e2e
    expected values if the page you saved has different listings.
 
 The `*-real.html` fixtures are real searches (October 2026: eBay iPods, bikes, couches and 4TB hard drives; Marketplace iPods (two),
-couches, dumbbells, "ds" and the home feed) and two real listing pages (`ebay-item-real`, `facebook-item-real`), trimmed and sanitized with
+couches, dumbbells, "ds" and the home feed) an eBay browse page with its November 2026 `su-item-card` cards (`ebay-browse-real`, printers, saved 2026-11-25), and two real listing pages (`ebay-item-real`, `facebook-item-real`), trimmed and sanitized with
 `python3 tests/helpers/trim-page.py ebay|facebook|craigslist|ebay-item|facebook-item|craigslist-item saved.html out.html`: only the result cards (or the listing's
 own parts), no scripts or tracking, and made-up item ids, seller names, places, ZIP codes and photos. A Marketplace listing saved while
 open keeps only its listing pop-up, never the others (notifications, chats). Run a fresh save through it the same way, then read the

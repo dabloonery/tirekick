@@ -618,7 +618,7 @@ test("the scan prompt's price lines are the cards' (priceWord, TOO_CHEAP)", asyn
 
 test("forPickup: a pickup listing is compared without the shipping in eBay's totals", () => {
   const m = { median: 52, p25: 45, p75: 60, n: 20, confidence: "good", ship: 12 };
-  assert.deepEqual(R.forPickup(m, { shipping: null }, true), { ...m, median: 40, p25: 33, p75: 48, pickupShip: 12, local: true });
+  assert.deepEqual(R.forPickup(m, { shipping: null }, true), { ...m, median: 40, p25: 33, p75: 48, pickupShip: 12, local: true, localNet: 0.864 });
   assert.equal(R.forPickup({ ...m, p10: 30 }, { shipping: null }, true).p10, 18, "the cheapest tenth comes down by the shipping too");
   assert.equal(R.forPickup(m, { shipping: null }, false), m, "only on a local site");
   assert.equal(R.forPickup(m, { shipping: 0 }, true), m, "a listing that ships (free) keeps the totals");
@@ -628,6 +628,11 @@ test("forPickup: a pickup listing is compared without the shipping in eBay's tot
   assert.equal(R.forPickup({ ...m, median: 20 }, { shipping: null }, true).median, 20, "shipping over half the price isn't trusted");
   assert.equal(R.forPickup(null, {}, true), null);
   assert.equal(R.tooCheap({ total: 18 }, R.forPickup(m, { shipping: null }, true)).level, "low", "$18 is 45% of $40, not a 35% bait price");
+  // the fee in settings: a pickup seller keeps what an eBay seller would after that fee, so the local line moves with it
+  assert.equal(R.forPickup(m, { shipping: null }, true, 10).localNet, 0.9);
+  assert.equal(R.forPickup(m, { shipping: null }, true, "lots").localNet, 0.864, "no usable fee: 13.6%");
+  assert.equal(R.tooCheap({ total: 20 }, R.forPickup(m, { shipping: null }, true, 13.6)), null, "$20 is over 55% of 86.4% of $40");
+  assert.ok(R.tooCheap({ total: 20 }, R.forPickup(m, { shipping: null }, true, 0)), "with no fee, $20 is under 55% of $40");
 });
 
 test("codeInSearch: a title code that is the searched model number isn't a scammer's code", () => {
@@ -1507,6 +1512,7 @@ test("sellPrices: list, sell-fast and floor prices from eBay sales, never a gues
   assert.deepEqual([chair.local, chair.typical, chair.listAt.price, chair.listAt.keep], [true, 233, 270, 270]);
   assert.match(chair.basis, /local pickup \(big things sell for less locally\)/);
   assert.equal(R.sellPrices(m, { title: "game boy color", local: true }).listAt.keep, R.sellPrices(m, { title: "game boy color", local: true }).listAt.price, "a pickup sale keeps it all");
+  assert.ok(R.sellPrices(m, { title: "game boy color", local: true, feePct: 0 }).typical > R.sellPrices(m, { title: "game boy color", local: true }).typical, "the local price follows the fee in settings");
   // broken: priced at what broken ones sold for, when there were some
   const broken = R.sellPrices({ ...m, parts: { median: 20, n: 6 } }, { title: "game boy color", broken: true });
   assert.deepEqual([broken.broken, broken.typical, broken.rough], [true, 20, true]);

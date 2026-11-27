@@ -102,7 +102,7 @@ How it works, on Tirekick's page beside the flip check:
      cheaper quarter) and, with what you paid, **your lowest** (the least that keeps your profit after fees, 40
      cents and shipping: the flip check's sums backwards). Each says what you'd keep. Prices include shipping, as
      sold totals do. If your lowest is over the list price it says so plainly.
-   - **Where to sell:** big things (`TKRules.bulky`) locally, priced for local pickup (`LOCAL_NET`, `BULKY_LOCAL`);
+   - **Where to sell:** big things (`TKRules.bulky`) locally, priced for local pickup (`TKRules.localNet` for the fee in settings, `BULKY_LOCAL`);
      under $15 locally or in a lot; the rest on eBay shipped. Clothes and shoes also get Vinted (no seller fee).
    - **A title** in eBay's 80 characters, and **photos to take and things to say** (the buyer's questions answered).
    - **Add to workbench** as Listed, at the list price with the sell-fast and lowest prices, so the ledger tracks

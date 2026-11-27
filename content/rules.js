@@ -398,7 +398,8 @@
     const m = asBroken ? { ...market.parts, confidence: market.parts.confidence || "rough" } : R.forVariant(market, { title });
     const bulky = R.bulky(title, market.query);
     const pickup = local ?? bulky;
-    const cut = pickup ? (bulky ? R.LOCAL_NET * R.BULKY_LOCAL : R.LOCAL_NET) : 1;
+    const localNet = R.localNet(feePct);
+    const cut = pickup ? (bulky ? localNet * R.BULKY_LOCAL : localNet) : 1;
     const ship = pickup ? 0 : m.ship > 0 ? m.ship : market.ship > 0 ? market.ship : 0;
     const fee = pickup ? 0 : Math.min(Math.max(feePct, 0), 50) / 100;
     const cost = (paid > 0 ? paid : 0) + (parts > 0 ? parts : 0);
@@ -585,6 +586,8 @@
   // is only "low" (Check first), never "far" (Likely scam) on price alone. Bait copies the search's words.
   R.TOO_CHEAP = { far: 0.4, low: 0.55 };
   R.LOCAL_NET = 0.864; // what an eBay seller keeps after fees (13.6%): a pickup seller asking that much nets the same
+  // The same for the fee in settings (feePct), so a changed fee moves the local lines too. 13.6% without one.
+  R.localNet = (feePct) => (Number.isFinite(feePct) && feePct >= 0 && feePct < 100 ? 1 - feePct / 100 : R.LOCAL_NET);
   // Big things picked up locally (furniture, bikes, big appliances, fitness machines): eBay's sales of them reach the
   // whole country and often include freight, so honest local prices run well under them (an Aeron chair at $120 on
   // Marketplace against $450 sold on eBay). On a local site the too-cheap lines are this much lower for them
@@ -623,7 +626,7 @@
     // A pickup seller keeps the whole price; an eBay seller pays about 13.6% in fees, so the same net asks less locally.
     // Not beside a strong seller sign: a new account at half price is the scam's look on any site. Lower again for
     // big things picked up locally (R.BULKY_LOCAL).
-    const cut = market.local && !risky ? R.LOCAL_NET * (R.bulky(market.query, f.title) ? R.BULKY_LOCAL : 1) : 1;
+    const cut = market.local && !risky ? (market.localNet > 0 ? market.localNet : R.LOCAL_NET) * (R.bulky(market.query, f.title) ? R.BULKY_LOCAL : 1) : 1;
     if (pct >= R.TOO_CHEAP.low * cut) return null;
     const why = f.saysWhy ?? R.cheapReason(f.title, f.text ?? f.details, `${market.query || ""} ${R.variantLike(market)}`.trim());
     const out = (level, extra) => ({ level, pct: Math.round(pct * 100), ...(why && level !== "far" && { why }), ...extra });
@@ -1423,14 +1426,16 @@
   // to pay, so it's compared with the typical price less the typical shipping. Otherwise a $40 pickup price
   // read as 77% of a $52 total that was $40 plus $12 to post. Only when the sales say what shipping cost
   // (market.ship) and it's under half the price. Returns the market as is, or a copy with pickupShip set.
-  // A pickup listing's market also has local set (cheapLevel's fee allowance), with or without shipping taken off.
-  R.forPickup = (market, f, local) => {
+  // A pickup listing's market also has local set (cheapLevel's fee allowance), with or without shipping taken off,
+  // and localNet: what's left of a sale after the fee in settings (feePct; 13.6% without one).
+  R.forPickup = (market, f, local, feePct) => {
     market = R.forVariant(market, f);
     const ship = market?.ship;
     if (!local || !(market?.median > 0) || f?.shipping != null || f?.auction) return market;
-    if (!(ship > 0) || !(market.median > ship * 2)) return { ...market, local: true };
+    const localNet = R.localNet(feePct);
+    if (!(ship > 0) || !(market.median > ship * 2)) return { ...market, local: true, localNet };
     const r = (n) => Math.round(n * 100) / 100;
-    return { ...market, median: r(market.median - ship), ...(market.p10 > 0 && { p10: r(Math.max(1, market.p10 - ship)) }), p25: r(Math.max(1, (market.p25 ?? market.median) - ship)), p75: r((market.p75 ?? market.median) - ship), pickupShip: ship, local: true };
+    return { ...market, median: r(market.median - ship), ...(market.p10 > 0 && { p10: r(Math.max(1, market.p10 - ship)) }), p25: r(Math.max(1, (market.p25 ?? market.median) - ship)), p75: r((market.p75 ?? market.median) - ship), pickupShip: ship, local: true, localNet };
   };
 
   // When the score and the price disagree, the price check wins (2026-10-15). Far under the typical

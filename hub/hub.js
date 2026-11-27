@@ -260,6 +260,25 @@
   // above (pace, cache and stats), and from it three prices with what each leaves you, where to sell, a title and
   // what to show (TKRules.sellPrices, sellWhere, sellTitle, sellTips). Every price is from real sales: with too few
   // it says so and shows none. Add to workbench keeps it as Bought, with what you paid and the typical price.
+  // In the toolbar popup the section folds to its heading until opened, and stays as you left it (this browser only).
+  if (document.documentElement.classList.contains("popup")) {
+    const sec = $("#sell");
+    const head = $("#sell-h");
+    const fold = h("button", { type: "button", class: "fold", "aria-controls": "sell-form" }, head.textContent);
+    head.replaceChildren(fold);
+    const remembered = () => { try { return localStorage.getItem("sellOpen") === "1"; } catch { return false; } };
+    const show = (open) => {
+      sec.classList.toggle("folded", !open);
+      fold.setAttribute("aria-expanded", String(open));
+    };
+    show(remembered());
+    fold.addEventListener("click", () => {
+      const open = sec.classList.contains("folded");
+      show(open);
+      try { localStorage.setItem("sellOpen", open ? "1" : "0"); } catch {}
+      if (open) $("#sell-q").focus();
+    });
+  }
   const sellQ = $("#sell-q");
   const sellPaid = $("#sell-paid");
   const sellBroken = $("#sell-broken");

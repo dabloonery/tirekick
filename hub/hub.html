@@ -173,6 +173,13 @@
   html.popup .legal { margin-top:22px; }
   .tab-link { display:none; }
   html.popup .tab-link { display:inline; }
+  /* the Sell section in the popup: folded to its heading until opened (remembered), so the workbench stays near */
+  html.popup #sell .fold { all:unset; cursor:pointer; display:flex; align-items:center; gap:8px; width:100%; }
+  html.popup #sell .fold::after { content:""; width:8px; height:8px; margin-left:auto; border:solid var(--muted); border-width:0 2px 2px 0; transform:rotate(45deg); }
+  html.popup #sell .fold[aria-expanded="true"]::after { transform:rotate(-135deg); }
+  html.popup #sell .fold:focus-visible { outline:2px solid var(--accent); outline-offset:4px; border-radius:var(--r-sm); }
+  html.popup #sell.folded > :not(h2) { display:none; }
+  html.popup #sell.folded h2 { margin-bottom:0; }
 </style>
 <script src="popup-mode.js"></script>
 <style id="home-css"></style>

@@ -117,7 +117,8 @@ Steps, one PR each:
    pickup only"; Price it runs the same `TKSold` lookup, cache and stats as the page's look-up, then shows the three
    prices with what each leaves you, where to sell, a title to copy, photos and what to say, and Add to workbench (as
    Bought). The profit is the flip check's `flipProfit`. Test: `tests/e2e/features.ts` against the fake eBay. The
-   website says what's new.
+   website says what's new. In the toolbar popup the section folds to its heading until opened, remembered in the
+   page's own storage (`sellOpen`), so the workbench and Saved stay near (2026-11-27; test: `tests/e2e/tidy.ts`).
 2b. **Listed, and selling your own things** (built 2026-11-27; dabloonery: "that might work also for those who aren't
    reselling but just simply selling"): the workbench goes Weighing up, Bought, Listed, Sold. Listed keeps the price
    it's listed at (`lp`, which you can change on the row) and the sell helper's sell-fast and lowest prices (`fp`,

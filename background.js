@@ -859,8 +859,35 @@ async function photoHashes({ urls = [] }) {
   return { hashes };
 }
 
-async function checkPhoto({ imageUrl, title, signal }) {
+// One photo and a prompt to the vision model of the AI in settings; the model's raw answer. Shared by the photo check
+// and naming a thing to sell from its photo.
+async function visionText({ b64, type, prompt, schema, signal }) {
   const { visionModel, provider, oaiVisionModel } = await getSettings();
+  if (provider === "anthropic") {
+    const media_type = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type) ? type : "image/jpeg";
+    return (await anthropicMessage({
+      signal,
+      maxTokens: 4096,
+      schema,
+      content: [
+        { type: "image", source: { type: "base64", media_type, data: b64 } },
+        { type: "text", text: prompt },
+      ],
+    })).text;
+  }
+  if (provider === "openai") {
+    const mime = /^image\//.test(type) ? type : "image/jpeg";
+    return (await openaiChat({
+      signal,
+      model: oaiVisionModel || undefined, // blank: the main model, which must then handle images
+      schema,
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:${mime};base64,${b64}` } }] }],
+    })).text;
+  }
+  return ollamaChat({ signal, model: visionModel, numCtx: 4096, format: schema, messages: [{ role: "user", content: prompt, images: [b64] }] });
+}
+
+async function checkPhoto({ imageUrl, title, signal }) {
   // Photos come from listing pages, which can point an image anywhere (even at a service on this computer):
   // only eBay's and Facebook's own image hosts are fetched, or a photo already inline in the page.
   const inline = /^data:image\//.test(imageUrl);
@@ -871,38 +898,7 @@ async function checkPhoto({ imageUrl, title, signal }) {
   const buf = await imgRes.arrayBuffer();
   if (buf.byteLength > 3.5 * 1024 * 1024) throw new Error("That photo is too large to check (over 3.5 MB).");
   const b64 = bufferToBase64(buf);
-  const prompt = photoPrompt(title);
-  let text;
-  if (provider === "anthropic") {
-    const type = (imgRes.headers.get("content-type") || "").split(";")[0];
-    const media_type = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type) ? type : "image/jpeg";
-    ({ text } = await anthropicMessage({
-      signal,
-      maxTokens: 4096,
-      schema: PHOTO_SCHEMA,
-      content: [
-        { type: "image", source: { type: "base64", media_type, data: b64 } },
-        { type: "text", text: prompt },
-      ],
-    }));
-  } else if (provider === "openai") {
-    const type = (imgRes.headers.get("content-type") || "").split(";")[0];
-    const mime = /^image\//.test(type) ? type : "image/jpeg";
-    ({ text } = await openaiChat({
-      signal,
-      model: oaiVisionModel || undefined, // blank: the main model, which must then handle images
-      schema: PHOTO_SCHEMA,
-      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:${mime};base64,${b64}` } }] }],
-    }));
-  } else {
-    text = await ollamaChat({
-      signal,
-      model: visionModel,
-      numCtx: 4096,
-      format: PHOTO_SCHEMA,
-      messages: [{ role: "user", content: prompt, images: [b64] }],
-    });
-  }
+  const text = await visionText({ b64, type: (imgRes.headers.get("content-type") || "").split(";")[0], prompt: photoPrompt(title), schema: PHOTO_SCHEMA, signal });
   let p;
   try {
     p = JSON.parse(text);
@@ -911,6 +907,40 @@ async function checkPhoto({ imageUrl, title, signal }) {
     return { summary: text.trim(), photoType: "unclear", condition: "unknown", matchesTitle: "unknown", concerns: [], adjust: 0, why: [] };
   }
   return { ...p, concerns: p.concerns || [], ...photoAdjust(p) };
+}
+
+// The sell helper's "From a photo": the AI names the thing in a photo you picked, as search words for you to check
+// before Price it. It never gives a price: prices come only from eBay sales (TKRules.sellPrices). The photo comes from
+// the file you chose on Tirekick's page (shrunk there), goes only to the AI in settings, and isn't kept.
+const NAME_SCHEMA = {
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    details: { type: "array", items: { type: "string" } },
+    sure: { type: "string", enum: ["yes", "partly", "no"] },
+  },
+  required: ["name", "details", "sure"],
+  additionalProperties: false,
+};
+
+const NAME_PROMPT = `Someone wants to sell the thing in this photo and needs to look up what it sold for on eBay.
+name: the words to search for it, as a seller would title it: brand, model and the one or two specs that change the price (e.g. "Pentax K1000 35mm film camera", "iPhone 13 128GB"). Only what you can see or read in the photo (labels, logos, model numbers); if the brand or model can't be seen, the plain kind of thing (e.g. "film camera"). No price, no condition words, at most 10 words.
+details: up to 4 short things a buyer would ask that the photo shows or can't show (e.g. "lens included", "storage size not visible", "scratches on the case").
+sure: yes = the brand and model are readable in the photo; partly = the kind of thing is clear but not the exact model; no = can't tell what it is.
+Never give or estimate a price.`;
+
+async function nameItem({ image, signal }) {
+  const m = /^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(typeof image === "string" ? image : "");
+  if (!m) throw new Error("That file isn't a photo Tirekick can read (JPEG, PNG, WebP or GIF).");
+  if (m[2].length > 4.7 * 1024 * 1024) throw new Error("That photo is too large to send (over 3.5 MB).");
+  const text = await visionText({ b64: m[2], type: m[1], prompt: NAME_PROMPT, schema: NAME_SCHEMA, signal });
+  let p;
+  try {
+    p = JSON.parse(text);
+  } catch {
+    p = { name: text, details: [], sure: "no" }; // a small local model that ignored the format: its words, marked unsure
+  }
+  return TKShared.photoName(p);
 }
 
 // ---------- eBay sold comps ----------
@@ -1201,7 +1231,7 @@ const needsAI = (fn) => async (payload, sender) => {
   if (await firefoxSaysNo()) throw new Error(NO_CONSENT);
   return fn(payload, sender);
 };
-const HANDLERS = { storeEdit, soldSlot, rankBatch: needsAI(rankBatch), analyzeListing: needsAI(analyzeListing), suggestSearches: needsAI(suggestSearches), checkPhoto: needsAI(checkPhoto), photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, blockedSites, checkSavedSearches, searchSettled, abort, panelTab, getSettings: getPageSettings };
+const HANDLERS = { storeEdit, soldSlot, rankBatch: needsAI(rankBatch), analyzeListing: needsAI(analyzeListing), suggestSearches: needsAI(suggestSearches), checkPhoto: needsAI(checkPhoto), nameItem: needsAI(nameItem), photoHashes, fetchSoldHtml, soldWorkerBlocked, soldDone, getFont, openOptions, openHome, openTabs, blockedSites, checkSavedSearches, searchSettled, abort, panelTab, getSettings: getPageSettings };
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = HANDLERS[msg?.type];

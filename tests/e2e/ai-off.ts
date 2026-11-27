@@ -22,6 +22,11 @@ ok("the free typical price is the main button", (await sh(a, `return r.querySele
 await sleep(5000); // auto-scan is on in settings, but stays off with the AI
 const res = await o.ev(`new Promise(ok=>chrome.runtime.sendMessage({type:'rankBatch', payload:{items:[{title:'x', url:'https://www.ebay.com/itm/1'}], query:'x'}}, ok))`).catch((e: Error) => ({ ok: false, error: String(e) }));
 ok("the background refuses an AI call", res?.ok === false && /turned off/.test(res.error || ""), JSON.stringify(res));
+const named = await o.ev(`new Promise(ok=>chrome.runtime.sendMessage({type:'nameItem', payload:{image:'data:image/jpeg;base64,AAAA'}}, ok))`).catch((e: Error) => ({ ok: false, error: String(e) }));
+ok("…nor names a thing to sell from a photo", named?.ok === false && /turned off/.test(named.error || ""), JSON.stringify(named));
+const hubOff = await open(`chrome-extension://${EXT}/hub/hub.html`); await sleep(800);
+ok("Tirekick's page offers no From a photo", (await hubOff.ev(`document.querySelector('#sell-photo').hidden`)) === true);
+await hubOff.close();
 ok("nothing reached the AI service", (await calls()).length === 0, JSON.stringify(await calls()));
 
 await o.ev(`location.reload()`); await sleep(1200);

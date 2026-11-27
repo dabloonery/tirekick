@@ -363,6 +363,7 @@
       send("storeEdit", { name: "stats", edit: { inc: { soldLookups: 1 }, add: { since: Date.now() } } }).catch(() => {});
       if (!market) return sellOut.replaceChildren(h("div", { class: "status" }, `Not enough eBay sales of “${q}” to price it. Try fewer or more general words.`));
       sellLook = { q, market: { ...market } };
+      named.replaceChildren();
       drawAsks();
       if (sellBroken.checked) await addParts();
       drawSell();
@@ -393,6 +394,56 @@
       sellBroken.disabled = false;
     }
     drawSell();
+  });
+
+  // ---------- From a photo: the AI names it, you check the words, eBay sales price it ----------
+  // Only with the AI on and set up. The photo you pick is shrunk here (at most 1024 pixels on its long side), sent
+  // once to the AI in settings (background nameItem) and not kept. What comes back only fills the words: you check
+  // them and press Price it, so every price still comes from eBay sales.
+  const photoRow = $("#sell-photo");
+  const photoGo = $("#sell-photo-go");
+  const photoFile = $("#sell-photo-file");
+  const named = $("#sell-named");
+  const showPhoto = async () => {
+    const d = await send("getSettings").catch(() => null);
+    photoRow.hidden = !(d && d.useAI === true && (d.provider === "ollama" || (d.provider === "openai" && !!d.oaiModel) || (d.provider === "anthropic" && !!d.hasKey)));
+  };
+  showPhoto();
+  chrome.storage.onChanged.addListener((c) => ["useAI", "provider", "anthropicKey", "oaiModel"].some((k) => c[k]) && showPhoto());
+  const shrink = async (file) => {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1024 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(bmp.width * k));
+    c.height = Math.max(1, Math.round(bmp.height * k));
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    bmp.close();
+    return c.toDataURL("image/jpeg", 0.85);
+  };
+  const SURE = { yes: "", partly: " It isn't sure of the exact model, so add it if you know it.", no: "" };
+  photoGo.addEventListener("click", () => photoFile.click());
+  photoFile.addEventListener("change", async () => {
+    const file = photoFile.files?.[0];
+    photoFile.value = "";
+    if (!file) return;
+    photoGo.disabled = true;
+    named.replaceChildren(h("p", { class: "status" }, "Your AI is looking at the photo…"));
+    try {
+      if (!/^image\//.test(file.type)) throw new Error("That file isn't a photo.");
+      const r = await send("nameItem", { image: await shrink(file) });
+      if (!r.words || r.sure === "no") return named.replaceChildren(h("p", {}, "Your AI couldn't tell what it is from that photo. Type what it is instead, or try a closer photo of a label or model number."));
+      sellQ.value = r.words;
+      sellQ.dispatchEvent(new Event("input", { bubbles: true }));
+      named.replaceChildren(
+        h("p", {}, `Your AI read it as “${r.words}”.${SURE[r.sure]} Check the words, then Price it.`),
+        r.details.length ? h("ul", {}, r.details.map((d) => h("li", {}, d))) : null
+      );
+      sellQ.focus();
+    } catch (e) {
+      named.replaceChildren(h("p", { class: "status err", role: "alert" }, e.message));
+    } finally {
+      photoGo.disabled = false;
+    }
   });
 
   const benchBody = $("#bench-body");

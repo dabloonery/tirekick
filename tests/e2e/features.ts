@@ -319,6 +319,18 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   ok("a saved listing goes onto the workbench with its price and its link, and Saved says it's there", fromSaved.finds.length === 1 && fromSaved.finds[0].k === "ebay:111" && fromSaved.finds[0].ask === 80 && fromSaved.link === "https://www.ebay.com/itm/111" && /On the workbench/.test(fromSaved.saved), fromSaved);
   await hub.ev(`chrome.runtime.sendMessage({ type: 'storeEdit', payload: { name: 'finds', edit: { clear: true } } })`);
   await sleep(300);
+  // From a photo: with the AI on, it names the thing from a photo you pick; you check the words, nothing is priced yet
+  ok("the sell helper offers From a photo when the AI is on", !(await hub.ev(`document.querySelector('#sell-photo').hidden`)));
+  const keyWas = (await hub.ev(`chrome.storage.local.get('anthropicKey')`)).anthropicKey;
+  await hub.ev(`chrome.storage.local.set({ anthropicKey: 'sk-ant-test' })`);
+  const sellApi = await hits();
+  await hub.ev(`(async () => { const c = document.createElement('canvas'); c.width = 1600; c.height = 1200; const x = c.getContext('2d'); x.fillStyle = '#8a6'; x.fillRect(0, 0, 1600, 1200); x.fillStyle = '#123'; x.fillRect(400, 300, 800, 600);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png')); const dt = new DataTransfer(); dt.items.add(new File([blob], 'camera.png', { type: 'image/png' }));
+    const f = document.querySelector('#sell-photo-file'); f.files = dt.files; f.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  for (let i = 0; i < 300 && !/read it as|couldn't|err|isn't/.test(await hub.ev(`document.querySelector('#sell-named').textContent`)); i++) await sleep(100);
+  const named = { q: await hub.ev(`document.querySelector('#sell-q').value`), note: await hub.ev(`document.querySelector('#sell-named').textContent`), out: await hub.ev(`document.querySelector('#sell-out').textContent`), asks: await hub.ev(`document.querySelector('#sell-asks').textContent`), file: await hub.ev(`document.querySelector('#sell-photo-file').value`) };
+  ok("…the AI's words fill the box with any price taken out, with what it noticed, and nothing is priced until you press Price it", named.q === "Pentax K1000 35mm film camera" && /isn't sure of the exact model/.test(named.note) && /50mm lens on it/.test(named.note) && named.out === "" && /Does everything work\?/.test(named.asks) && named.file === "" && (await hits()) === sellApi, named);
+  await hub.ev(`chrome.storage.local.set({ anthropicKey: ${JSON.stringify(keyWas)} })`);
   // The sell helper: the details that move the price as you type, then prices from the same (cached) eBay sales
   const sellHits = await hits();
   await hub.ev(`(() => { const q = document.querySelector('#sell-q'); q.value = 'pentax k1000'; q.dispatchEvent(new Event('input', { bubbles: true })); })()`);
@@ -329,6 +341,7 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   const sell0 = await hub.ev(`document.querySelector('#sell-out').textContent`);
   ok("…Price it gives list and sell-fast prices from eBay sales, where to sell, a title and photos to take", /List at\$\d+/.test(sell0) && /Sell fast\$\d+/.test(sell0) && /From 10 eBay sales at \$58/.test(sell0) && /Where: Ships easily/.test(sell0) && /Title:Pentax K1000/.test(sell0) && /Type what you paid/.test(sell0), sell0.slice(0, 300));
   ok("…from the cached lookup, with no new request to eBay", (await hits()) === sellHits);
+  ok("…and the AI's note goes once it's priced", (await hub.ev(`document.querySelector('#sell-named').textContent`)) === "");
   await hub.ev(`(() => { const el = document.querySelector('#sell-paid'); el.value = '15'; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   await sleep(100);
   const sell1 = await hub.ev(`document.querySelector('#sell-out').textContent`);

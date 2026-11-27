@@ -67,6 +67,13 @@
   .sell-out p { margin:0; }
   .sell-asks { margin:12px 0 0; padding-left:12px; border-left:2px solid var(--rule); color:var(--muted); font-size:13px; }
   .sell-asks:empty { display:none; }
+  .sell-photo { display:flex; gap:8px 12px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+  .sell-photo[hidden] { display:none; }
+  .sell-photo .hint { margin:0; flex:1 1 220px; }
+  .sell-named { margin:10px 0 0; padding-left:12px; border-left:2px solid var(--accent); font-size:13px; }
+  .sell-named:empty { display:none; }
+  .sell-named p { margin:0; }
+  .sell-named ul { margin:4px 0 0; padding-left:18px; color:var(--muted); }
   .sell-asks ul, .sell-tips ul { margin:4px 0 0; padding-left:18px; }
   .sell-out:empty { display:none; }
   .sell-out { margin-top:14px; display:grid; gap:12px; }
@@ -237,6 +244,12 @@
       <input id="sell-paid" type="number" min="0" step="any" inputmode="decimal" placeholder="Paid $" aria-label="What you paid, if you bought it to resell (optional)" autocomplete="off">
       <button class="primary" id="sell-go" type="submit">Price it</button>
     </form>
+    <div class="sell-photo" id="sell-photo" hidden>
+      <button type="button" id="sell-photo-go">From a photo</button>
+      <input type="file" id="sell-photo-file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+      <span class="hint">Your AI names it from a photo you pick, for you to check. It never sets the price, and the photo isn't kept.</span>
+    </div>
+    <div class="sell-named" id="sell-named" aria-live="polite"></div>
     <div class="sell-opts">
       <label><input type="checkbox" id="sell-broken"> It doesn't fully work</label>
       <label><input type="checkbox" id="sell-local"> Local pickup only</label>

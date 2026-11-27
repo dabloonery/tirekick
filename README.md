@@ -189,7 +189,7 @@ Craigslist** button (your nearest city, as Craigslist picks it).
   guess. It also says where to sell (big things locally, clothes on Vinted too), gives a title to copy and the photos
   to take, and **Add to workbench** keeps it as **Listed**. Paid is only for things bought to resell: with nothing
   paid it's something of your own, and the workbench shows what it brings in after fees instead of a profit. Tick "It doesn't fully work" for broken ones' sales. Your AI
-  isn't used.
+  isn't used. In the toolbar popup it's folded to its heading until you open it.
 - **Start over** clears the page's scores (Undo is right there); the marks on the cards stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Hide buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
 - **The footer** has the quality menu and this month's spend. With Claude the menu is **Thrifty** (Haiku for everything), **Balanced** (Haiku scans, Sonnet for single listings, photos and search ideas; the default) or **Thorough** (Sonnet scans, Opus for the rest); settings has each model separately, and another pair shows as Custom. The spend: click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.

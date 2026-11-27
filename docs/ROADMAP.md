@@ -51,7 +51,7 @@ check); those are in git history.*
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
 | Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. All four steps built 2026-11-17: the flip check, your own finds, Bought and Sold with profit totals, questions for the seller |
-| Sell helper | Being built from 2026-11-27 ([plan](#sell-helper)): describe something you want to sell and get list, sell-fast and lowest prices from eBay sales, where to sell, a title and what to show. Steps 1 (the pricing rules) and 2 (the Sell section on Tirekick's page, no AI) built 2026-11-27 |
+| Sell helper | Being built from 2026-11-27 ([plan](#sell-helper)): describe something you want to sell and get list, sell-fast and lowest prices from eBay sales, where to sell, a title and what to show. Steps 1 (the pricing rules), 2 (the Sell section on Tirekick's page, no AI) and 2b (a Listed step on the workbench, for people selling their own things too) built 2026-11-27 |
 | What's new after an update | Built 2026-11-21 ([below](#whats-new-after-an-update)): a dot on the toolbar icon and a "New in this version" card in the popup and on Home, with a Turn on button for each new feature that's off. Tested in Chrome; dabloonery checks a real update (0.58.0 to 0.59.0) and the Turn on prompts in Firefox |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
@@ -105,7 +105,8 @@ How it works, on Tirekick's page beside the flip check:
    - **Where to sell:** big things (`TKRules.bulky`) locally, priced for local pickup (`LOCAL_NET`, `BULKY_LOCAL`);
      under $15 locally or in a lot; the rest on eBay shipped. Clothes and shoes also get Vinted (no seller fee).
    - **A title** in eBay's 80 characters, and **photos to take and things to say** (the buyer's questions answered).
-   - **Add to workbench** as Bought, with what you paid and the typical price, so the ledger tracks the sale.
+   - **Add to workbench** as Listed, at the list price with the sell-fast and lowest prices, so the ledger tracks
+     the sale.
 
 Steps, one PR each:
 
@@ -117,6 +118,14 @@ Steps, one PR each:
    prices with what each leaves you, where to sell, a title to copy, photos and what to say, and Add to workbench (as
    Bought). The profit is the flip check's `flipProfit`. Test: `tests/e2e/features.ts` against the fake eBay. The
    website says what's new.
+2b. **Listed, and selling your own things** (built 2026-11-27; dabloonery: "that might work also for those who aren't
+   reselling but just simply selling"): the workbench goes Weighing up, Bought, Listed, Sold. Listed keeps the price
+   it's listed at (`lp`, which you can change on the row) and the sell helper's sell-fast and lowest prices (`fp`,
+   `lo`), all in `TKShared.cleanFind`. What you paid is optional: with nothing paid it's something of your own, and
+   the row and the totals show what it brings in after fees (`TKShared.findNet`) rather than a profit
+   (`TKShared.findProfit`, now `findNet` less what you paid). `benchTotals` counts listed ones and keeps the two
+   apart (`got`, `own`, `heldGot`). The sell helper adds as Listed. Tests: `tests/unit/shared.test.mjs` and
+   `tests/e2e/features.ts`. A local-pickup item's after-fees figure still takes eBay's fee off: a small known gap.
 3. **Name it from photos (AI, optional):** a `nameItem` background handler behind `needsAI`, using the photo check's
    vision model; photos are read from a file you pick, sent only when you press the button, never stored. The AI
    fills the words and details for you to confirm; it never sets the price. Privacy policy, `store/LISTING.md` and

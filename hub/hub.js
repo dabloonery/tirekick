@@ -268,9 +268,10 @@
   const sellAsks = $("#sell-asks");
   const sellOut = $("#sell-out");
   let sellLook = null; // { q, market } from the last Price it that found one
+  // Before a price, the details to add; once priced, the list folds away (the prices are for the words as they are).
   const drawAsks = () => {
     const q = sellQ.value.trim();
-    if (!q) return sellAsks.replaceChildren();
+    if (!q || sellLook) return sellAsks.replaceChildren();
     sellAsks.replaceChildren(h("span", {}, "Put these in the words if they apply, as the price depends on them:"), h("ul", {}, TKRules.sellAsks(q).map((a) => h("li", {}, a))));
   };
   const drawSell = () => {
@@ -291,11 +292,14 @@
     keepBtn2.addEventListener("click", async () => {
       const m = p.broken ? { median: market.parts.median, ship: market.parts.ship ?? market.ship, n: market.parts.n, confidence: "rough" } : TKRules.forVariant(market, { title: q });
       const was = Object.entries(finds).find(([, r]) => r.t.toLowerCase() === q.toLowerCase());
-      const find = S.cleanFind({ ...(was ? was[1] : {}), t: q, st: "bought", paid: paid ?? was?.[1].paid ?? null, bt: was?.[1].bt || Date.now(), sold: m.median, ship: m.ship, sa: Date.now(), n: m.n, r: m.confidence === "rough", a0: was?.[1].a0 || Date.now() });
+      // Listed at the list price, with the sell-fast and lowest prices; what you paid only if you said (your own
+      // things have none, and show what they bring in instead of a profit)
+      const find = S.cleanFind({ ...(was ? was[1] : {}), t: q, st: "listed", paid: paid ?? was?.[1].paid ?? null, lt: was?.[1].lt || Date.now(), lp: p.listAt.price, fp: p.fast.price, lo: p.floor?.price ?? null, sold: m.median, ship: p.local ? 0 : m.ship, sa: Date.now(), n: m.n, r: m.confidence === "rough", a0: was?.[1].a0 || Date.now() });
       if (!find) return;
+      if (!(p.floor?.price > 0)) delete find.lo;
       try {
         await edit({ set: { [was ? was[0] : S.newFindKey()]: find }, cap: { max: S.FIND_MAX, by: "a0" } });
-        keptSay.textContent = was ? "Updated on the workbench" : "Added to the workbench, as Bought";
+        keptSay.textContent = was ? "Updated on the workbench" : "Added to the workbench, as Listed";
       } catch (e) {
         keptSay.textContent = e.message;
       }
@@ -308,7 +312,7 @@
           { class: "mgrid" },
           cellOf("List at", p.listAt, "Room for offers"),
           cellOf("Sell fast", p.fast),
-          p.floor ? cellOf("Your lowest", p.floor, `Keeps your ${money(profit)} profit`) : h("div", { class: "mcell" }, h("span", {}, "Your lowest"), h("span", {}, "Type what you paid to see the least to take."))
+          p.floor ? cellOf("Your lowest", p.floor, `Keeps your ${money(profit)} profit`) : h("div", { class: "mcell" }, h("span", {}, "Your lowest"), h("span", {}, "Bought it to resell? Type what you paid for the least that keeps your profit."))
         ),
         p.under ? h("p", { class: "warn" }, `To keep your ${money(profit)} you'd need ${money(p.floor.price)}, more than it usually sells for.`) : null,
         h("p", { class: "hint caveat" }, `${p.basis}${p.rough ? " Few sales: a rough guide." : ""} Prices include shipping, as sold prices do.`),
@@ -340,6 +344,7 @@
       send("storeEdit", { name: "stats", edit: { inc: { soldLookups: 1 }, add: { since: Date.now() } } }).catch(() => {});
       if (!market) return sellOut.replaceChildren(h("div", { class: "status" }, `Not enough eBay sales of “${q}” to price it. Try fewer or more general words.`));
       sellLook = { q, market: { ...market } };
+      drawAsks();
       if (sellBroken.checked) await addParts();
       drawSell();
     } catch (e) {
@@ -353,9 +358,9 @@
     priceIt();
   });
   sellQ.addEventListener("input", () => {
-    drawAsks();
+    if (!sellLook) drawAsks();
     // other words are for a lookup of their own
-    if (sellLook && sellQ.value.trim() !== sellLook.q) (sellLook = null), sellOut.replaceChildren();
+    if (sellLook && sellQ.value.trim() !== sellLook.q) (sellLook = null), sellOut.replaceChildren(), drawAsks();
   });
   for (const el of [sellPaid, sellLocal]) el.addEventListener(el.type === "checkbox" ? "change" : "input", drawSell);
   sellBroken.addEventListener("change", async () => {
@@ -368,11 +373,14 @@
   });
 
   const benchBody = $("#bench-body");
-  // One find: its call (Buy, Offer or Pass) while you weigh it up, then Bought and Sold with what you paid and what it
-  // sold for, and the profit (TKShared.findProfit). Every box is kept when you leave it (storeEdit patch).
-  const STATES = [["", "Weighing up"], ["bought", "Bought"], ["sold", "Sold"]];
+  // One find: its call (Buy, Offer or Pass) while you weigh it up, then Bought, Listed and Sold with what you paid,
+  // the price it's listed at and what it sold for, and the profit (TKShared.findProfit). Something of your own has
+  // nothing paid: it shows what it brings in after fees instead (TKShared.findNet). Every box is kept when you leave
+  // it (storeEdit patch).
+  const STATES = [["", "Weighing up"], ["bought", "Bought"], ["listed", "Listed"], ["sold", "Sold"]];
+  const STATE_WORD = { bought: "Bought", listed: "Listed", sold: "Sold" };
   const findRow = (k, r) => {
-    const st = r.st === "bought" || r.st === "sold" ? r.st : "";
+    const st = STATE_WORD[r.st] ? r.st : "";
     const name = r.t.slice(0, 60);
     const f = st ? null : TKRules.flipCall(r.ask ?? null, S.findMarket(r), { title: "", feePct: lastFee, profit, parts: r.parts || 0 });
     const numIn = (label, v, placeholder = "") => h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", placeholder, value: Number.isFinite(v) ? String(v) : null, "aria-label": `${label} for ${name}` });
@@ -380,10 +388,11 @@
     const paidIn = numIn("Price paid", r.paid, "$");
     const outIn = numIn("Sold for", r.out, "$");
     const partsIn = numIn("Parts cost", r.parts, "0");
+    const lpIn = numIn("Listed at", r.lp, "$");
     const noteIn = h("input", { class: "note", type: "text", maxlength: String(S.NOTE_MAX), placeholder: "Notes: where, condition, fault…", value: r.note || null, "aria-label": `Notes for ${name}` });
     const stateIn = h("select", { "aria-label": `Where ${name} stands` }, STATES.map(([v, label]) => h("option", { value: v, ...(v === st && { selected: true }) }, label)));
     const num = (el) => (el.value.trim() === "" ? null : Math.max(0, parseFloat(el.value)) || 0);
-    const boxes = { ask: askIn, paid: paidIn, out: outIn, parts: partsIn };
+    const boxes = { ask: askIn, paid: paidIn, out: outIn, parts: partsIn, lp: lpIn };
     const keep = () => {
       const patch = { note: noteIn.value.trim().slice(0, S.NOTE_MAX) };
       for (const [f2, el] of Object.entries(boxes)) if (el.isConnected) patch[f2] = num(el);
@@ -394,16 +403,26 @@
       el.addEventListener("change", keep);
       el.addEventListener("keydown", (e) => e.key === "Enter" && el.blur());
     }
-    // Bought: what you paid starts at the asking price. Sold: what it sold for starts empty, for you to type.
+    // Bought: what you paid starts at the asking price. Listed: the price it's listed at starts empty unless the sell
+    // helper set it. Sold: what it sold for starts empty, for you to type.
     stateIn.addEventListener("change", () => {
       const to = stateIn.value;
       const paid = r.paid ?? r.ask ?? null;
-      const patch = to === "" ? { st: null } : { st: to, paid, ...(to === "bought" ? { bt: r.bt || Date.now() } : { bt: r.bt || Date.now(), so: Date.now() }) };
+      const when = { bought: { bt: r.bt || Date.now() }, listed: { lt: r.lt || Date.now() }, sold: { bt: r.bt || Date.now(), so: Date.now() } };
+      const patch = to === "" ? { st: null } : { st: to, paid, ...when[to] };
       edit({ patch: { [k]: patch } }).catch(() => {});
       stateIn.blur(); // the list redraws with the new boxes
     });
     const again = h("button", { type: "button", class: "again", title: "Look it up again" }, r.t);
     again.addEventListener("click", () => {
+      // something you're selling goes back to the sell helper, with what you paid
+      if (st === "listed") {
+        sellQ.value = r.t;
+        sellPaid.value = Number.isFinite(r.paid) ? String(r.paid) : "";
+        sellLook = null;
+        $("#sell").scrollIntoView({ behavior: "smooth", block: "start" });
+        return priceIt();
+      }
       qEl.value = r.t;
       priceEl.value = Number.isFinite(r.ask) ? String(r.ask) : "";
       partsEl.value = Number.isFinite(r.parts) && r.parts > 0 ? String(r.parts) : "";
@@ -414,17 +433,23 @@
     const when = r.sa ? new Date(r.sa).toLocaleDateString() : "";
     const typical = r.sold > 0 ? `typical ${r.r ? "~" : ""}${money(r.sold)}${when ? ` (${when})` : ""}` : "";
     const made = S.findProfit(r, lastFee);
+    const net = S.findNet(r, lastFee);
+    const costs = `${lastFee}% fees${r.ship ? `, ~${money(r.ship)} shipping` : ""}${r.parts ? ` and ${money(r.parts)} parts` : ""}`;
+    const helper = [r.fp > 0 ? `sell fast ${money(r.fp)}` : null, r.lo > 0 ? `lowest ${money(r.lo)}` : null].filter(Boolean).join(", ");
+    const at = r.lp > 0 ? money(r.lp) : `the ${typical}`;
     const line = st === "sold"
-      ? made == null ? "Type what it sold for to see the profit." : `${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"} after ${lastFee}% fees${r.ship ? `, ~${money(r.ship)} shipping` : ""}${r.parts ? ` and ${money(r.parts)} parts` : ""}`
+      ? made != null ? `${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"} after ${costs}` : net != null ? `~${money(net)} to you after ${costs}` : "Type what it sold for to see what it made."
+      : st === "listed"
+        ? `${made != null ? `Should leave ~${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"}` : net != null ? `~${money(net)} to you after fees` : "Type the price it's listed at"} at ${at}${helper ? ` · ${helper}` : ""}`
       : st === "bought"
         ? made == null ? (r.sold > 0 ? "Type what you paid to see what it should leave." : "No typical price kept for it.") : `Should leave ~${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"} at the ${typical}`
         : f ? `${f.maxPay > 0 ? `Pay up to ${money(f.maxPay)}` : `No price leaves ${money(profit)}`} · ${typical}` : "No typical price: press it to look it up again.";
-    const shown = st === "sold" ? r.out : st === "bought" ? r.paid : r.ask;
+    const shown = st === "sold" ? r.out : st === "listed" ? r.lp : st === "bought" ? r.paid : r.ask;
     const link = r.k && r.u ? h("a", { href: S.safeUrl(r.u, S.itemUrl(r.k)), target: "_blank", rel: "noopener", class: "open" }, `${siteName(r.k)} ↗`) : null;
     return h(
       "div",
       { class: "find", "data-call": st || f?.call || "" },
-      h("span", { class: "call" }, st ? (st === "sold" ? "Sold" : "Bought") : f?.call ? f.word : "No price"),
+      h("span", { class: "call" }, st ? STATE_WORD[st] : f?.call ? f.word : "No price"),
       h("div", { class: "ft" }, again, link ? [" ", link] : null, h("small", {}, line)),
       Number.isFinite(shown) ? h("div", { class: "pr" }, money(shown)) : h("span", {}),
       h(
@@ -432,6 +457,7 @@
         { class: "fx" },
         stateIn,
         st ? h("label", {}, "Paid $", paidIn) : h("label", {}, "Asking $", askIn),
+        st === "listed" ? h("label", {}, "Listed at $", lpIn) : null,
         st === "sold" ? h("label", {}, "Sold for $", outIn) : null,
         h("label", {}, "Parts $", partsIn),
         noteIn,
@@ -446,9 +472,18 @@
     const list = Object.entries(finds).sort((a, b) => (b[1].a0 || 0) - (a[1].a0 || 0));
     $("#bench").hidden = !list.length;
     const t = S.benchTotals(finds, lastFee);
+    // things of your own (nothing paid) count what they bring in after fees, not a profit
+    const soldBits = [t.sold > t.own ? `${money(Math.abs(t.profit))} ${t.profit >= 0 ? "profit" : "loss"}` : null, t.own ? `${money(t.got)} after fees from your own things` : null].filter(Boolean);
+    const waiting = t.held + t.listed;
+    const paidOnes = waiting - Object.values(finds).filter((r) => (r?.st === "bought" || r?.st === "listed") && !Number.isFinite(r.paid)).length;
+    const waitBits = [
+      t.inHeld ? `${money(t.inHeld)} in ${waiting === 1 ? "it" : "them"}` : null,
+      paidOnes ? `~${money(Math.abs(t.heldProfit))} ${t.heldProfit >= 0 ? "to come" : "loss"}` : null,
+      t.heldGot ? `~${money(t.heldGot)} after fees from your own things` : null,
+    ].filter(Boolean);
     const bits = [
-      t.sold ? `${t.sold} sold, ${money(Math.abs(t.profit))} ${t.profit >= 0 ? "profit" : "loss"}` : null,
-      t.held ? `${t.held} bought and not sold yet: ${money(t.inHeld)} in ${t.held === 1 ? "it" : "them"}, ~${money(Math.abs(t.heldProfit))} ${t.heldProfit >= 0 ? "to come" : "loss"} at typical prices` : null,
+      t.sold ? `${t.sold} sold, ${soldBits.join(" and ")}` : null,
+      waiting ? `${waiting} ${t.held && t.listed ? "bought or listed" : t.listed ? "listed" : "bought"} and not sold yet${waitBits.length ? `: ${waitBits.join(", ")}` : ""}${t.listed ? " at their prices" : " at typical prices"}` : null,
       t.weighing ? `${t.weighing} you're weighing up` : null,
     ].filter(Boolean);
     benchSum.textContent = bits.join(" · ");

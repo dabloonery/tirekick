@@ -1535,6 +1535,7 @@ test("sellWhere, sellAsks, sellTips and sellTitle: the rest of the sell helper",
   assert.match(phone.at(-2), /^Does everything work/, "always asks whether it works and what comes with it");
   assert.equal(R.sellAsks("lamp")[0], "The brand and exact model, if it has one");
   assert.ok(R.sellAsks("nike hoodie").includes("The size"));
+  assert.match(R.sellAsks("pentax k1000")[0], /^Body only or with a lens/, "a camera named by its brand");
   assert.equal(R.sellTips("ps5")[0], "A photo of it switched on and working");
   assert.equal(R.sellTips("vase")[0], "Every side in good light, on a plain background");
   assert.equal(R.sellTitle("iphone 13 pro", ["128gb", "unlocked", "with case", "iphone"]), "iPhone 13 Pro 128GB Unlocked with Case");

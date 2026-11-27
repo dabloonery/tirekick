@@ -22,13 +22,13 @@ await bg(`noteWhatsNew("0.58.0")`); await sleep(800);
 const w = (await store(["whatsNew", "whatsNewSeen"]));
 ok("an update from 0.58.0 lists what came since", w.whatsNew?.ids?.includes("chatCheck") && w.whatsNew.ids.includes("onCraigslist") && w.whatsNewSeen === false, JSON.stringify(w));
 ok("the icon gets a dot", (await badge()) === "•", await badge());
-ok("…and its title says why", /Updated: 3 new features you can turn on/.test(await title()), await title());
+ok("…and its title says why", /Updated: 4 new features you can turn on/.test(await title()), await title());
 
 const pop = await open(`chrome-extension://${EXT}/hub/hub.html?popup`); await sleep(1000);
 const rows = () => pop.ev(`[...document.querySelectorAll('#news .hm-newlist li b')].map(b=>b.textContent)`);
 ok("the popup opens on the card, at the top", (await pop.ev(`!!document.querySelector('#news .hm-news') && document.querySelector('#news').getBoundingClientRect().top < document.querySelector('.look').getBoundingClientRect().top`)) === true);
 const r0 = await rows();
-ok("it lists the three that need nothing else; auto scan waits for the AI", r0.length === 3 && !r0.some((t: string) => /Scan new/.test(t)), JSON.stringify(r0));
+ok("it lists the four that need nothing else; auto scan waits for the AI", r0.length === 4 && !r0.some((t: string) => /Scan new/.test(t)), JSON.stringify(r0));
 ok("Home lower down doesn't show it twice", (await pop.ev(`document.querySelectorAll('.hm-news').length`)) === 1);
 ok("seeing it takes the dot away", (await store(["whatsNewSeen"])).whatsNewSeen === true && (await badge()) === "", await badge());
 
@@ -52,7 +52,7 @@ await bg(`(() => { self.__realContains = chrome.permissions.contains.bind(chrome
 await bg(`finishOptIn()`); await sleep(800);
 ok("allowed after the popup closed: the worker turns it on", (await store(["notifyGreat", "whatsNewAsked"])).notifyGreat === true && !(await store(["whatsNewAsked"])).whatsNewAsked);
 await bg(`chrome.permissions.contains = self.__realContains`);
-ok("…and the card drops it", JSON.stringify(await rows()) === JSON.stringify(["Craigslist"]), JSON.stringify(await rows()));
+ok("…and the card drops it", JSON.stringify(await rows()) === JSON.stringify(["Craigslist", "Vinted"]), JSON.stringify(await rows()));
 
 // The panel's Home on a store page has it too (it can't ask the browser, so it sends you to Tirekick's page)
 const eb = await open(`https://www.ebay.com/sch/i.html?_nkw=pentax+k1000`); await sleep(1500);
@@ -70,6 +70,6 @@ await eb.close(); await pop.close(); await sleep(300); // out of sight, so the n
 // A later update brings it back with only what's new then; an update after one you skipped keeps the old list
 await bg(`noteWhatsNew("0.58.5")`); await sleep(800);
 ok("a later update lists its features again, with the dot", (await store(["whatsNew"])).whatsNew?.ids?.length >= 3 && (await badge()) === "•");
-await o.ev(`chrome.storage.local.set({chatCheck:true, onCraigslist:true, notifyGreat:true})`); await sleep(800);
+await o.ev(`chrome.storage.local.set({chatCheck:true, onCraigslist:true, onVinted:true, notifyGreat:true})`); await sleep(800);
 ok("everything on (in settings): the card and the dot go by themselves", !(await store(["whatsNew"])).whatsNew && (await badge()) === "", await badge());
 Deno.exit(Deno.exitCode || 0);

@@ -159,6 +159,30 @@ test("Craigslist: opt in, a host per city, keys from the post number", () => {
   assert.deepEqual([f.searchParams.get("min_price"), f.searchParams.get("max_price")], ["20", "100"]);
 });
 
+test("Vinted: opt in, US vinted.com only, listings keyed by their number", () => {
+  const vt = Sites.get("vinted");
+  const at = (u) => new URL(u);
+  assert.deepEqual(Sites.inUse({ onVinted: true }).map((s) => s.id), ["ebay", "facebook", "vinted"]);
+  assert.deepEqual(Sites.originsOf(vt), ["https://www.vinted.com/*", "https://*.vinted.net/*"]);
+  for (const o of Sites.originsOf(vt)) assert.ok(manifest.optional_host_permissions.includes(o) && !manifest.host_permissions.includes(o), o);
+  const item = "https://www.vinted.com/items/5123456789-nike-air-max-90-white?referrer=catalog";
+  assert.equal(Sites.keyOf(item), "vt:5123456789");
+  assert.equal(Sites.keyOf("https://www.vinted.com/items/new"), "https://www.vinted.com/items/new", "the sell page is no listing");
+  assert.equal(Sites.keyOf("https://www.vinted.co.uk/items/5123456789-x"), "https://www.vinted.co.uk/items/5123456789-x", "pounds: not compared with eBay US sales");
+  assert.equal(Sites.keyOf("https://evil.example/www.vinted.com/items/5123456789"), "https://evil.example/www.vinted.com/items/5123456789");
+  assert.equal(Sites.itemUrl("vt:5123456789"), "https://www.vinted.com/items/5123456789");
+  assert.equal(Sites.nameOf("vt:5123456789"), "Vinted");
+  assert.equal(Sites.here(at(item)).id, "vinted");
+  assert.deepEqual(["/", "/catalog?search_text=x", "/catalog/1206-outerwear", item, "/items/new", "/member/123-x"].map((p) => vt.pageType(at(new URL(p, "https://www.vinted.com").href))), ["home", "results", "results", "item", "other", "other"]);
+  assert.equal(vt.queryOf(at("https://www.vinted.com/catalog?search_text=air+max&order=newest_first")), "air max");
+  assert.equal(vt.searchUrl("air max"), "https://www.vinted.com/catalog?search_text=air%20max");
+  assert.ok(Sites.isSiteHost("www.vinted.com") && !Sites.isSiteHost("vinted.com.evil.example"));
+  assert.ok(Sites.isImageHost("images1.vinted.net") && Sites.isImageHost("images.vinted.net") && !Sites.isImageHost("vinted.net.evil.example"));
+  assert.ok(Sites.isSearchUrl(at("https://www.vinted.com/catalog?search_text=x")) && !Sites.isSearchUrl(at("https://www.vinted.com/help")));
+  const f = new URL(Sites.withFilters("https://www.vinted.com/catalog?search_text=jeans&page=3", { min: 10.5, max: 39.5 }));
+  assert.deepEqual([f.searchParams.get("price_from"), f.searchParams.get("price_to"), f.searchParams.get("page")], ["10", "40", null]);
+});
+
 test("Craigslist as addressed today: www.craigslist.org/view/… posts keyed by their code, /search/area/… searches", () => {
   const cl = Sites.get("craigslist");
   const at = (u) => new URL(u);

@@ -1500,6 +1500,8 @@
   R.offerMessages = (amount, { local = false, bestOffer = false, site = "" } = {}) => {
     if (!(amount > 0)) return [];
     if (bestOffer && site === "ebay") return [{ id: "button", label: "Make offer", text: `Use eBay's Make offer button with $${amount}.`, button: true }];
+    // Every Vinted listing has its own offer button (the offer goes to the seller in Vinted's chat)
+    if (site === "vinted") return [{ id: "button", label: "Make an offer", text: `Use Vinted's Make an offer button with $${amount}.`, button: true }];
     const pickup = local ? " I can pick up whenever suits you." : "";
     return [
       { id: "friendly", label: "Friendly", text: `Hi! Is this still available? Would you take $${amount}?${pickup}` },
@@ -1538,6 +1540,7 @@
   R.counterMessage = (c, { local = false, bestOffer = false, site = "" } = {}) => {
     if (!c) return "";
     if (bestOffer && site === "ebay") return c.action === "accept" ? `Accept their counteroffer of $${c.amount} on eBay.` : `Counter with $${c.amount} on eBay's offer page.`;
+    if (site === "vinted") return c.action === "accept" ? `Accept their offer of $${c.amount} in the Vinted chat.` : `Offer $${c.amount} with Make an offer in the Vinted chat.`;
     if (c.action === "accept") return `Deal, $${c.amount} works for me.${local ? " When can I pick it up?" : ""}`;
     if (c.action === "counter") return `Thanks! Could we meet in the middle at $${c.amount}?`;
     return `Thanks, but $${c.amount} is the most I can do. Let me know if that works.`;

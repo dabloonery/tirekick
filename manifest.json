@@ -35,6 +35,8 @@
   "optional_host_permissions": [
     "https://*.craigslist.org/*",
     "https://images.craigslist.org/*",
+    "https://www.vinted.com/*",
+    "https://*.vinted.net/*",
     "https://*/*",
     "http://*/*"
   ],

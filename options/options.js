@@ -1,5 +1,5 @@
 const FIELDS = ["provider", "anthropicKey", "anthropicModel", "anthropicScanModel", "oaiPreset", "oaiUrl", "oaiKey", "oaiModel", "oaiVisionModel", "oaiPriceIn", "oaiPriceOut", "ollamaUrl", "textModel", "visionModel", "batchSize", "useSoldComps", "interests", "feePct", "flipProfit",
-  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "notifyGreat", "theme", "onCraigslist", "paused", "chatCheck"];
+  "filterWords", "minSellerRatings", "minSellerPct", "markScams", "markPrices", "markOther", "markLimit", "useAI", "monthlyBudget", "showTab", "autoScan", "notifyGreat", "theme", "onCraigslist", "onVinted", "paused", "chatCheck"];
 // Not in a backup: restoring one shouldn't pause Tirekick, or turn it back on, behind your back.
 const NOT_BACKED_UP = ["paused"];
 // Fields that may be left empty on purpose (everything else goes back to its default when cleared).
@@ -398,7 +398,7 @@ async function showStatus() {
   let ready = false, title, text;
   if (paused) {
     title = "Paused on store pages";
-    text = "Nothing shows on eBay, Marketplace or Craigslist until you turn Tirekick back on. Saved, look-ups and Check my saved searches still work.";
+    text = "Nothing shows on eBay, Marketplace, Craigslist or Vinted until you turn Tirekick back on. Saved, look-ups and Check my saved searches still work.";
   } else if (TKRules.focusOf(s) === "scams") {
     ready = true;
     title = "Ready: scam check only";

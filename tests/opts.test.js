@@ -34,6 +34,11 @@
     check("turning Craigslist on asks for its pages and photos, then saves", __store.onCraigslist === true && JSON.stringify(window.__asked?.origins) === JSON.stringify(["https://*.craigslist.org/*", "https://images.craigslist.org/*"]), JSON.stringify([__store.onCraigslist, window.__asked]));
     cl2.checked = false; cl2.dispatchEvent(new Event("change", { bubbles: true })); await wait(200);
     check("turning it off gives the access back", __store.onCraigslist === false && window.__removed?.origins?.length === 2, JSON.stringify([__store.onCraigslist, window.__removed]));
+
+    const vt = $("onVinted");
+    check("Vinted starts off", !vt.checked, "ticked");
+    vt.checked = true; vt.dispatchEvent(new Event("change", { bubbles: true })); await wait(200);
+    check("turning Vinted on asks for vinted.com and its photos, then saves", __store.onVinted === true && JSON.stringify(window.__asked?.origins) === JSON.stringify(["https://www.vinted.com/*", "https://*.vinted.net/*"]), JSON.stringify([__store.onVinted, window.__asked]));
   } catch (e) {
     out.push("FAIL harness: " + e.message);
   }

@@ -233,6 +233,15 @@ test("soldVariants: sizes and generations in other searches", () => {
   assert.equal(R.forVariant(pm, { title: "AirPods Pro" }), pm, "doesn't say which: the whole market");
 });
 
+test("Vinted's card words: title, brand, condition, size, the price and the price with Buyer Protection", () => {
+  assert.deepEqual(TK.vintedWords("Nike Air Max 90, brand: Nike, condition: Very good, size: 10, $45.00, $48.95 includes Buyer Protection."), { title: "Nike Air Max 90", brand: "Nike", condition: "Very good", size: "10", priceText: "$45.00", feeTotal: 48.95 });
+  assert.deepEqual(TK.vintedWords("Levi's 501, size: W32 L30, $1,200.00"), { title: "Levi's 501", brand: "", condition: "", size: "W32 L30", priceText: "$1,200.00", feeTotal: null });
+  assert.equal(TK.vintedWords("brand: Nike, $45.00").title, "", "no title said: read from the card instead");
+  assert.equal(TK.vintedWords("").priceText, "");
+  assert.equal(TK.offSite("Buy it here on Vinted, vinted.com"), null, "Vinted's own address isn't someone else's");
+  assert.ok(TK.offSite("Message me on WhatsApp, cheaper outside the app").sure);
+});
+
 test("Craigslist's scam signs: away and shipping, escrow, gift cards, money first; never a phone number, and not after a 'no'", () => {
   const cl = (t) => TK.offSite(t, "craigslist");
   assert.equal(cl("Call or text 415-555-0142, cash only, email me with questions"), null, "how people deal on Craigslist");

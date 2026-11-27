@@ -57,6 +57,7 @@ const DEFAULTS = {
   // turned back on. Saved, look-ups and settings still work (dabloonery, 2026-11-02).
   paused: false,
   onCraigslist: false, // opt in (lib/sites.js "setting"): Tirekick works on Craigslist once this is on and its hosts are allowed
+  onVinted: false, // opt in, the same way: vinted.com (US) once this is on and its hosts are allowed
   autoScan: false, // score new listings as they load, on eBay and Marketplace search pages you're looking at (you turn it on)
   // Opt in (dabloonery, 2026-11-18): read the Marketplace chat you have open, on the screen only, for scam lines (a
   // verification code, money first, a payment trick). Nothing in a chat is kept or sent anywhere.
@@ -479,7 +480,10 @@ plausibly that exact item's real model or part number (Nikon D3100, Pentax K1000
 makes it more certain, not less.
 Craigslist is different: a phone number, "text me" or an email address is how people deal there, not a scam sign. The Craigslist
 scams are a seller who is away and will ship it, escrow or a "payment guarantee", gift cards as payment, a check for more than
-the price, and money before you see the item. A seller warning against those ("no shipping, no escrow") is not one.`;
+the price, and money before you see the item. A seller warning against those ("no shipping, no escrow") is not one.
+Vinted is shipped and paid through Vinted, whose Buyer Protection covers it: asking to pay or talk outside Vinted (PayPal friends
+and family, Zelle, Cash App, an email, a phone number, WhatsApp, a link) is the scam sign there, as on eBay. Prices on Vinted are
+before shipping, and the buyer pays a small Buyer Protection fee on top.`;
 
 // This prompt is the part most worth tuning yourself. Small local models
 // follow short, concrete rules better than long abstract ones.

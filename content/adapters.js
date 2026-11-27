@@ -251,7 +251,7 @@
     site ||= t.match(PLAIN_SITE);
     if (site) {
       if (hidden) sure = true;
-      if (!/facebook|ebay/i.test(site[0])) why.push(`${hidden ? "disguised " : ""}web address “${site[0].trim()}”`);
+      if (!/facebook|ebay|vinted/i.test(site[0])) why.push(`${hidden ? "disguised " : ""}web address “${site[0].trim()}”`);
     }
     if (/remove (?:the |all )?(?:spaces|dots|symbols|underscores)|without (?:the )?spaces|no spaces/i.test(t)) {
       sure = true;
@@ -389,6 +389,7 @@
     ebay: TK.EBAY_CARDS.split(", ").map((c) => `${c} a[href*="/itm/"]`).join(", "),
     facebook: 'a[href*="/marketplace/item/"]',
     craigslist: TK.CL_CARDS.split(", ").map((c) => `${c} a[href*="/view/"], ${c} a[href$=".html"]`).join(", "),
+    vinted: '[data-testid="grid-item"] a[href*="/items/"], .feed-grid__item a[href*="/items/"], [data-testid^="product-item-id-"] a[href*="/items/"]',
   };
   TK.listingLinks = () => TK.LISTING_LINKS[TK.currentSite()] || TK.LISTING_LINKS.ebay;
   // Every listing linked from the results, whatever card it sits in, counted once: what a page reader that
@@ -397,7 +398,7 @@
   TK.linkedListings = (root = document) => {
     const area = ["#srp-river-results", ".srp-results", '[role="main"]'].map((s) => root.querySelector(s)).find(Boolean) || root;
     const keys = new Set();
-    for (const a of area.querySelectorAll('a[href*="/itm/"], a[href*="/marketplace/item/"], a[href*="/view/"], a[href$=".html"]')) {
+    for (const a of area.querySelectorAll('a[href*="/itm/"], a[href*="/marketplace/item/"], a[href*="/view/"], a[href$=".html"], a[href*="/items/"]')) {
       const key = Sites.keyOf(new URL(a.getAttribute("href") || "", location.href).href);
       if (/^\w+:\w+$/.test(key)) keys.add(key);
     }
@@ -424,6 +425,10 @@
       return links.find((a) => a.closest("[data-tirekick-key]")) || links.find((a) => a.getClientRects().length) || links[0] || null;
     },
     craigslist: (key, id) => [...document.querySelectorAll(`a[href*="${id}"]`)].filter((a) => TK.keyOf(a.href) === key).map((a) => a.closest(TK.CL_CARDS)).find(Boolean) || null,
+    vinted: (key, id) => {
+      const a = [...document.querySelectorAll(`a[href*="/items/${id}"]`)].find((x) => TK.keyOf(x.href) === key && !x.closest(TK.OURS));
+      return a ? vtCard(a) : null;
+    },
   };
   TK.cardFor = (key) => TK.CARD_FINDERS[Sites.ofKey(key).id](key, key.split(":")[1]);
 
@@ -633,6 +638,96 @@
     return why.length ? { sure, why, pay: true } : null;
   };
 
+  // ---------- Vinted ----------
+  // Every card links to www.vinted.com/items/<id>-<name>. Vinted's markup is a React app with data-testid names
+  // ("product-item-id-<id>", "…--price-text", "…--description-title") that last longer than its class names, and the
+  // card's own link and photo carry the whole listing in words: "Nike Air Max 90, brand: Nike, condition: Very good,
+  // size: 10, $45.00, $48.95 includes Buyer Protection." The title is only there (the card shows the brand), so it's
+  // read from those words first and from the visible parts when they're missing.
+  const VT_LINK = /\/items\/(\d{5,})(?:-[^/?#]*)?\/?(?:[?#]|$)/;
+  TK.VT_CARDS = '[data-testid="grid-item"], .feed-grid__item, [data-testid^="product-item-id-"]:not([data-testid*="--"])';
+  // The box that holds one listing: Vinted's grid cell, or failing that the biggest box around the link with no other
+  // listing in it.
+  const vtCard = (a) => {
+    const cell = a.closest(TK.VT_CARDS);
+    if (cell) return cell.closest('[data-testid="grid-item"], .feed-grid__item') || cell;
+    const id = VT_LINK.exec(a.getAttribute("href") || "")?.[1];
+    let el = a;
+    while (el.parentElement && el.parentElement !== document.body && [...el.parentElement.querySelectorAll('a[href*="/items/"]')].every((x) => VT_LINK.exec(x.getAttribute("href") || "")?.[1] === id)) el = el.parentElement;
+    return el;
+  };
+  // Vinted's conditions, as its sellers pick them
+  const VT_CONDITION = /^(?:new with tags|new without tags|very good|good|satisfactory|new|like new|used)$/i;
+  // "Nike Air Max 90, brand: Nike, condition: Very good, size: 10, $45.00, $48.95 includes Buyer Protection."
+  TK.vintedWords = (said) => {
+    const t = squash(said, 400);
+    const field = (name) => t.match(new RegExp(`(?:^|,)\\s*${name}:\\s*([^,]+?)\\s*(?=,|\\.?$)`, "i"))?.[1] || "";
+    const title = t.split(/,\s*(?=(?:brand|condition|size|price|status)\s*:|\$)/i)[0].trim();
+    const prices = [...t.matchAll(/\$\s?([\d,]+(?:\.\d{1,2})?)(\s*(?:includes?|incl\.?)\s*(?:buyer )?protection)?/gi)];
+    const plain = prices.find((m) => !m[2]);
+    const withFee = prices.find((m) => m[2]);
+    return {
+      title: /^\$|:/.test(title) ? "" : title,
+      brand: field("brand"),
+      condition: field("condition") || field("status"),
+      size: field("size"),
+      priceText: plain ? `$${plain[1]}` : "",
+      feeTotal: withFee ? parseFloat(withFee[1].replace(/,/g, "")) : null,
+    };
+  };
+  // What a buyer pays before shipping: the price with Vinted's Buyer Protection fee, when the card or page says it.
+  // Shipping is picked at checkout, so it's unknown here.
+  const vtFeeTotal = (text) => {
+    const m = (text || "").replace(/ /g, " ").match(/\$\s?([\d,]+(?:\.\d{1,2})?)\s*(?:includes?|incl\.?)\s*(?:buyer )?protection/i);
+    return m ? parseFloat(m[1].replace(/,/g, "")) : null;
+  };
+  // The total is the price with the fee (a sane one: never under the price, never half again on top)
+  const vtItem = (it, feeTotal) => {
+    const out = withTotal(it);
+    if (out.price != null && feeTotal > out.price && feeTotal < out.price * 1.5 + 5) return { ...out, total: feeTotal, buyerFee: Math.round((feeTotal - out.price) * 100) / 100 };
+    return out;
+  };
+  TK.extractVinted = (root = document) => {
+    const out = [];
+    const seen = new Set();
+    for (const a of root.querySelectorAll('a[href*="/items/"]')) {
+      const href = a.getAttribute("href") || "";
+      const id = VT_LINK.exec(href)?.[1];
+      if (!id || seen.has(id) || a.closest(TK.OURS)) continue;
+      const card = vtCard(a);
+      seen.add(id);
+      const img = card.querySelector("img");
+      const said = TK.vintedWords(a.getAttribute("title") || a.getAttribute("aria-label") || img?.getAttribute("alt") || "");
+      const brand = said.brand || squash(firstText(card, ['[data-testid$="--description-title"]']), 80);
+      const sub = squash(firstText(card, ['[data-testid$="--description-subtitle"]']), 120);
+      // no words on the link or photo: the name in its address ("/items/51…-air-max-97-silver"), with the brand
+      const slug = (href.match(/\/items\/\d+-([^/?#]+)/)?.[1] || "").replace(/%[0-9a-f]{2}/gi, " ").replace(/-/g, " ").replace(/\s+/g, " ").trim();
+      const named = slug && (brand && !slug.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${slug}` : slug);
+      const title = squash(said.title || named || [brand, sub].filter(Boolean).join(" ") || a.textContent, 160);
+      if (!title) continue;
+      const priceText = squash(said.priceText || firstText(card, ['[data-testid$="--price-text"]']) || cardPrice(card, null), 40);
+      const text = TK.spacedText(card);
+      const condition = said.condition || sub.split(/\s*·\s*/).find((p) => VT_CONDITION.test(p)) || "";
+      out.push(vtItem({
+        site: "vinted",
+        title,
+        priceText,
+        price: TK.usdPrice(priceText),
+        shipping: null, // picked at checkout
+        ...(condition && { condition }),
+        ...(brand && { brand }),
+        ...(said.size && { size: said.size }),
+        url: new URL(href, location.origin).href.split(/[?#]/)[0],
+        imageUrl: firstImage(card),
+        raw: squash([title, brand, said.size || sub, priceText].filter(Boolean).join(" | ")),
+        el: card,
+        ...TK.cardFacts(text, title),
+        ...(TK.offSite(title) && { offSite: TK.offSite(title) }),
+      }, said.feeTotal ?? vtFeeTotal(text)));
+    }
+    return out;
+  };
+
   // With no search, what is this page? Marketplace addresses look like /marketplace/ (home feed),
   // /marketplace/<city>/ or /marketplace/<city>/<category> (a category such as "videogames").
   const NOT_CATEGORY = /^(search|item|you|inbox|notifications|create|selling|buying|saved|category)$/i;
@@ -648,6 +743,11 @@
       const city = location.pathname.match(/^\/search\/area\/([^/]+)/)?.[1] || location.hostname.split(".")[0];
       const cat = new URLSearchParams(location.search).get("cat") || location.pathname.match(/^\/search\/(?!area\/)(?:[a-z]{3,4}\/)?([a-z]{3})\b/)?.[1];
       return `Craigslist ${decodeURIComponent(city).replace(/-/g, " ")} ${cat && cat !== "sss" ? `category "${cat}"` : "for sale"} (no search)`;
+    },
+    // www.vinted.com/catalog/1206-outerwear: a category; /catalog alone, everything (filters only)
+    vinted: () => {
+      const cat = location.pathname.match(/^\/catalog\/\d+-([^/?#]+)/)?.[1];
+      return cat ? `Vinted category "${cat.replace(/%[0-9a-f]{2}/gi, " ").replace(/-/g, " ")}" (no search)` : "Vinted catalog with no search: mixed items, mostly clothing";
     },
   };
   TK.browseContext = () => (TK.BROWSE_CONTEXT[TK.currentSite()] || TK.BROWSE_CONTEXT.ebay)();
@@ -787,6 +887,63 @@
       listedDays: clPosted(document.querySelector(".postinginfos time[datetime]")),
     });
   };
+  // Vinted's listing page: the summary box (title, price, the price with Buyer Protection), the details list (brand,
+  // size, condition, "Uploaded 2 days ago"), the description and the seller. data-testid names first, then the page's
+  // own metadata (its Product data and og: tags), then the visible words ("Condition" with the value on the next line).
+  const vtDetail = (name, label, text) =>
+    squash(firstText(document, [`[data-testid="item-attributes-${name}"] [itemprop]`, `[data-testid="item-attributes-${name}"] .details-list__item-value`, `[data-testid="item-attributes-${name}"] > div:last-child`]), 120) ||
+    squash(text.match(new RegExp(`(?:^|\\n)\\s*${label}\\s*:?\\s*\\n\\s*([^\\n]{1,80})`, "i"))?.[1], 120);
+  const vtProduct = () => {
+    for (const s of document.querySelectorAll('script[type="application/ld+json"]')) {
+      try {
+        const all = [JSON.parse(s.textContent)].flat().flatMap((x) => x?.["@graph"] || [x]);
+        const p = all.find((x) => /product/i.test(String(x?.["@type"] || "")));
+        if (p) return p;
+      } catch {}
+    }
+    return null;
+  };
+  const VT_PHOTO = /^https:\/\/images\d*\.vinted\.net\//;
+  TK.ITEM_READERS.vinted = () => {
+    const main = document.querySelector("main, #content, [role='main']") || document.body;
+    const text = main.innerText || main.textContent || "";
+    const product = vtProduct();
+    const offer = [product?.offers].flat()[0];
+    const summary = document.querySelector('[data-testid="item-page-summary-plugin"], .details-list--main-info') || main;
+    const title = squash(firstText(summary, ["h1", '[data-testid="item-title"]']) || product?.name || meta("og:title").replace(/\s*[|–-]\s*Vinted\s*$/i, ""), 200);
+    let priceText = squash(firstText(document, ['[data-testid="item-price"]']), 40);
+    if (!/\$\s?\d/.test(priceText)) priceText = "";
+    const amount = Number(offer?.price ?? (meta("product:price:amount") || meta("og:price:amount")));
+    if (!priceText && amount > 0 && /usd/i.test(offer?.priceCurrency || meta("product:price:currency") || "USD")) priceText = `$${amount.toFixed(2)}`;
+    const condition = vtDetail("status", "Condition", text) || squash(String(offer?.itemCondition || "").replace(/^.*\//, "").replace(/Condition$/, ""), 40);
+    const brand = vtDetail("brand", "Brand", text) || squash(product?.brand?.name || "", 80);
+    const size = vtDetail("size", "Size", text);
+    const uploaded = vtDetail("upload_date", "Uploaded", text);
+    const descEl = document.querySelector('[itemprop="description"], [data-testid="item-description"], .item-description');
+    const body = squash(descEl ? TK.spacedText(descEl) : product?.description || meta("og:description"), 2500);
+    const seller = squash(firstText(document, ['[data-testid="profile-username"]', '[data-testid="item-seller-name"]']), 80);
+    const imgs = [...document.querySelectorAll('[data-testid^="item-photo"] img, .item-photos img, figure img')].map((i) => i.getAttribute("src") || i.getAttribute("data-src") || "");
+    const facts = [brand && `Brand: ${brand}`, size && `Size: ${size}`, condition && `Condition: ${condition}`].filter(Boolean);
+    const words = `${title}\n${body}`;
+    return vtItem({
+      ...TK.cardFacts(words, title),
+      site: "vinted",
+      title,
+      priceText,
+      price: TK.usdPrice(priceText),
+      shipping: null, // picked at checkout
+      condition,
+      ...(brand && { brand }),
+      ...(size && { size }),
+      seller,
+      shippingText: "",
+      details: squash([body, ...facts].filter(Boolean).join(" · "), 2500),
+      imageUrls: uniq([...imgs, [product?.image].flat()[0], meta("og:image")]).filter((u) => VT_PHOTO.test(u)).slice(0, 4),
+      url: location.href.split(/[?#]/)[0],
+      offSite: TK.offSite(words),
+      listedDays: TK.listedDaysAgo(uploaded ? `listed ${uploaded}` : ""),
+    }, vtFeeTotal(TK.spacedText(summary)));
+  };
   TK.extractItem = () => (TK.ITEM_READERS[TK.currentSite()] || TK.ITEM_READERS.facebook)();
 
   // A short search phrase for the sold-price comparison, taken from a listing title. Condition and
@@ -817,7 +974,7 @@
   TK.pageType = () => TK.site()?.pageType(location) ?? null;
 
   // Each site's card reader, by site id: a new site adds its own here.
-  TK.READERS = { ebay: (root) => TK.extractEbay(root), facebook: (root) => TK.extractFacebook(root), craigslist: (root) => TK.extractCraigslist(root) };
+  TK.READERS = { ebay: (root) => TK.extractEbay(root), facebook: (root) => TK.extractFacebook(root), craigslist: (root) => TK.extractCraigslist(root), vinted: (root) => TK.extractVinted(root) };
   TK.extract = () => {
     const read = TK.READERS[TK.currentSite()];
     const items = read ? read() : [];
@@ -860,6 +1017,14 @@
     u.searchParams.set("query", query.replace(/["()]/g, "").replace(/\s+/g, " ").trim());
     if (maxPrice > 0) u.searchParams.set("max_price", String(Math.ceil(maxPrice)));
     if (newest) u.searchParams.set("sort", "date");
+    return u.href;
+  };
+  // Vinted: its catalog search, newest first when asked; it reads words only.
+  TK.SEARCH_BUILDERS.vinted = ({ query, maxPrice, newest }) => {
+    const u = new URL("https://www.vinted.com/catalog");
+    u.searchParams.set("search_text", query.replace(/(^|\s)-\S+/g, " ").replace(/["()]/g, "").replace(/\s+/g, " ").trim());
+    if (maxPrice > 0) u.searchParams.set("price_to", String(Math.ceil(maxPrice)));
+    if (newest) u.searchParams.set("order", "newest_first");
     return u.href;
   };
   TK.searchUrl = (opts) => (TK.SEARCH_BUILDERS[TK.currentSite()] || TK.SEARCH_BUILDERS.facebook)(opts);

@@ -2092,7 +2092,7 @@
     const cheap = f.vsSold != null && !unrelated && TKRules.tooCheap(f, mk);
     // What to do about it differs by site: on eBay its guarantee covers you if you pay through eBay; a pickup
     // sale has none, so see it working before any money changes hands.
-    const safely = mk?.local ? " Meet in a public place, see it working, and pay only then: never ahead, and never by gift card or a payment app's friends option." : " Pay only through eBay, which covers a listing that isn't as described; never by a link or contact sent outside it.";
+    const safely = mk?.local ? " Meet in a public place, see it working, and pay only then: never ahead, and never by gift card or a payment app's friends option." : ` Pay only through ${(TKSites.get(f.site) || TK.site())?.name || "eBay"}, which covers a listing that isn't as described; never by a link or contact sent outside it.`; // eBay's guarantee, Vinted's Buyer Protection
     // What the scan or Analyze read about why it's cheap (priceVerdict uses it), and what would lift the mark.
     const read = f.url && scored.get(keyOf(f.url))?.cheapWhy;
     const lifts = cheap?.seller || (f.titleCode && !f.codeOk) ? "" : cheap?.level === "far" ? " Analyze can lift this to Fair price if the listing says something is missing or it's a cheaper version." : " A scan that reads a reason in the listing (a flaw, missing parts, a cheaper version) lifts this, no higher than Good price.";

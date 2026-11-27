@@ -255,5 +255,27 @@ p = await page("https://www.craigslist.org/view/d/springfield-item/Fixture001xxx
   ok("…'Call or Text' is no scam sign, and Craigslist's own scam notice isn't read as the seller's words", it.offSite == null && !/Western Union/.test(it.details) && !/QR Code/.test(it.details), [it.offSite, it.details]);
 }
 await p.close();
+
+// Vinted (opt-in): cards read from the link's words, or the visible parts and the address when it has none; the total
+// is the price with Buyer Protection; the sell button and a repeated card aren't listings.
+p = await page("https://www.vinted.com/catalog?search_text=nike+air+max", "vinted-results");
+items = await extract(p);
+ok("Vinted results: each listing once, the sell link skipped", eq(items.map((i: any) => i.url), ["https://www.vinted.com/items/5100000001-nike-air-max-90-white", "https://www.vinted.com/items/5100000002-air-max-97-silver-bullet", "https://www.vinted.com/items/5100000003-air-max-1", "https://www.vinted.com/items/5100000004-air-max-plus-lot"]), items.map((i: any) => i.url));
+ok("…titles, brand, size, condition", eq(items.map((i: any) => [i.title, i.brand, i.size, i.condition]), [["Nike Air Max 90 white", "Nike", "10", "Very good"], ["Nike air max 97 silver bullet", "Nike", undefined, "New with tags"], ["Air Max 1 sneakers DM me on WhatsApp for a better price", "Nike", "11", "Good"], ["Nike Air Max Plus lot of 3 pairs", "Nike", "10", "Satisfactory"]]), items.map((i: any) => [i.title, i.brand, i.size, i.condition]));
+ok("…prices, Buyer Protection in the total, shipping unknown", eq(items.map((i: any) => [i.price, i.total, i.buyerFee, i.shipping]), [[45, 48.95, 3.95, null], [120, 120, undefined, null], [15, 16.45, 1.45, null], [60, 63.7, 3.7, null]]), items.map((i: any) => [i.price, i.total, i.buyerFee]));
+ok("…keys, photos, a lot, and WhatsApp in a title", eq([await p.ev(`Tirekick.keyOf(${JSON.stringify(items[0].url)})`), /images1\.vinted\.net/.test(items[0].imageUrl), items[3].lot, !!items[2].offSite?.sure], ["vt:5100000001", true, 3, true]), [items[0].imageUrl, items[3].lot, items[2].offSite]);
+ok("…page type, search words, a search, the links counted, a card found again", eq([await p.ev(`Tirekick.pageType()`), await p.ev(`Tirekick.detectQuery()`), await p.ev(`Tirekick.searchUrl({ query: 'air max -kids', maxPrice: 59.5, newest: true })`), await p.ev(`Tirekick.linkedListings()`), await p.ev(`document.querySelectorAll(Tirekick.listingLinks()).length`), await p.ev(`Tirekick.cardFor("vt:5100000002")?.dataset.testid`)], ["results", "nike air max", "https://www.vinted.com/catalog?search_text=air+max&price_to=60&order=newest_first", 4, 5, "grid-item"]));
+await p.close();
+p = await page("https://www.vinted.com/catalog/1206-outerwear", "vinted-results");
+ok("Vinted category with no search", (await p.ev(`Tirekick.browseContext()`)) === 'Vinted category "outerwear" (no search)');
+await p.close();
+p = await page("https://www.vinted.com/items/5100000001-nike-air-max-90-white", "vinted-item");
+{
+  const it = await p.ev(`(({ el, ...it }) => it)(Tirekick.extractItem())`);
+  ok("Vinted listing: title, price, total with Buyer Protection, condition, brand, size", eq([await p.ev(`Tirekick.pageType()`), it.title, it.price, it.total, it.condition, it.brand, it.size, it.seller], ["item", "Nike Air Max 90 white", 45, 48.95, "Very good", "Nike", "10", "fixtureseller"]), it);
+  ok("…photos from Vinted's image hosts only, age, details, and its own offer button isn't 'or best offer'", eq([it.imageUrls.length, it.listedDays, /Smoke-free/.test(it.details) && /Size: 10/.test(it.details), it.bestOffer, it.offSite], [2, 3, true, undefined, null]), [it.imageUrls, it.listedDays, it.details, it.bestOffer]);
+  ok("…a sold search from its title", (await p.ev(`Tirekick.detectQuery()`)) === "Nike Air Max 90 white");
+}
+await p.close();
 console.log(fails ? `${fails} FAILED` : "all passed");
 c.close();

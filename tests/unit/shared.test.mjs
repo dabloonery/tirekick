@@ -455,7 +455,7 @@ test("usageReport: counts only, never a search, a listing or a seller", () => {
   const r = S.usageReport(all, "0.58.0");
   assert.equal(r, [
     "Tirekick 0.58.0",
-    "AI: on (anthropic); auto-scan: off; Craigslist: off; mode: fix & flip",
+    "AI: on (anthropic); auto-scan: off; Craigslist: off; Vinted: off; mode: fix & flip",
     "Scans: 12; sold-price lookups: 30 (counting since 2026-10-20)",
     "Saved listings: 1; saved searches: 1",
     "Sold lookups kept now: 3; with a typical price: 2; split by version: 1 (2 versions, 1 of them from 5 to 7 sales)",
@@ -524,10 +524,11 @@ test("what's new: the features an update brought, and which still wait to be tur
     assert.doesNotMatch(f.title + f.text, /colour|favourite/, "US English");
   }
   assert.deepEqual(S.featureAsk(S.NEW_FEATURES.find((f) => f.id === "onCraigslist")).origins, ["https://*.craigslist.org/*", "https://images.craigslist.org/*"]);
+  assert.deepEqual(S.featureAsk(S.NEW_FEATURES.find((f) => f.id === "onVinted")).origins, ["https://www.vinted.com/*", "https://*.vinted.net/*"]);
   assert.deepEqual(S.featureAsk(S.NEW_FEATURES.find((f) => f.id === "notifyGreat")), { permissions: ["notifications"] });
   assert.equal(S.featureAsk(S.NEW_FEATURES.find((f) => f.id === "chatCheck")), null);
   const ids = (list) => list.map((f) => f.id);
-  assert.deepEqual(ids(S.pendingFeatures(all, {})), ["chatCheck", "onCraigslist", "notifyGreat"], "auto scan waits for the AI");
-  assert.deepEqual(ids(S.pendingFeatures(all, { useAI: true, chatCheck: true })), ["onCraigslist", "notifyGreat", "autoScan"], "one already on isn't listed");
+  assert.deepEqual(ids(S.pendingFeatures(all, {})), ["chatCheck", "onCraigslist", "onVinted", "notifyGreat"], "auto scan waits for the AI");
+  assert.deepEqual(ids(S.pendingFeatures(all, { useAI: true, chatCheck: true })), ["onCraigslist", "onVinted", "notifyGreat", "autoScan"], "one already on isn't listed");
   assert.deepEqual(ids(S.pendingFeatures(null, {})), []);
 });

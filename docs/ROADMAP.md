@@ -51,7 +51,7 @@ check); those are in git history.*
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
 | Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. All four steps built 2026-11-17: the flip check, your own finds, Bought and Sold with profit totals, questions for the seller |
-| Sell helper | Being built from 2026-11-27 ([plan](#sell-helper)): describe something you want to sell and get list, sell-fast and lowest prices from eBay sales, where to sell, a title and what to show. Steps 1 (the pricing rules), 2 (the Sell section on Tirekick's page, no AI) and 2b (a Listed step on the workbench, for people selling their own things too) built 2026-11-27 |
+| Sell helper | Being built from 2026-11-27 ([plan](#sell-helper)): describe something you want to sell and get list, sell-fast and lowest prices from eBay sales, where to sell, a title and what to show. Steps 1 (the pricing rules), 2 (the Sell section on Tirekick's page, no AI), 2b (a Listed step on the workbench, for people selling their own things too) and 3 (name it from a photo, AI optional, never the price) built 2026-11-27 |
 | What's new after an update | Built 2026-11-21 ([below](#whats-new-after-an-update)): a dot on the toolbar icon and a "New in this version" card in the popup and on Home, with a Turn on button for each new feature that's off. Tested in Chrome; dabloonery checks a real update (0.58.0 to 0.59.0) and the Turn on prompts in Firefox |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
@@ -128,10 +128,14 @@ Steps, one PR each:
    apart (`got`, `own`, `heldGot`). The sell helper adds as Listed. Tests: `tests/unit/shared.test.mjs` and
    `tests/e2e/features.ts`. A local pickup sale is kept as one (`lc`): no fees, 40 cents or shipping come off what it
    brings in. The prices follow the profit you want and the fee in settings as soon as either changes.
-3. **Name it from photos (AI, optional):** a `nameItem` background handler behind `needsAI`, using the photo check's
-   vision model; photos are read from a file you pick, sent only when you press the button, never stored. The AI
-   fills the words and details for you to confirm; it never sets the price. Privacy policy, `store/LISTING.md` and
-   the security review say so.
+3. **Name it from photos (AI, optional)** (built 2026-11-27): with the AI on and set up, **From a photo** in the Sell
+   section takes a photo you pick (JPEG, PNG, WebP or GIF), shrinks it on the page to 1024 pixels on its long side
+   and sends it once to the AI in settings through `nameItem` (behind `needsAI`, sharing the photo check's vision
+   model through `visionText`). Nothing is kept. The answer only fills the words, with what it noticed and whether
+   it's sure of the model (`TKShared.photoName` takes any price or link out of it); you check them and press Price
+   it, so the price still comes from eBay sales. Tests: `tests/unit/shared.test.mjs`, `tests/e2e/features.ts`
+   (fake AI) and `tests/e2e/ai-off.ts` (nothing sent with the AI off). Privacy policy, `store/LISTING.md` and the
+   security review say so.
 4. **Phones:** with the phone plan's screenshot step, only after its test passes.
 
 Accuracy risks and what answers them: the wrong version (the settle step), thin or mixed sales (version rules, "few

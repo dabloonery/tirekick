@@ -544,3 +544,13 @@ test("what's new: the features an update brought, and which still wait to be tur
   assert.deepEqual(ids(S.pendingFeatures(all, { useAI: true, chatCheck: true })), ["onCraigslist", "notifyGreat", "autoScan"], "one already on isn't listed");
   assert.deepEqual(ids(S.pendingFeatures(null, {})), []);
 });
+
+test("sell helper from a photo: the AI's words made safe, never a price", () => {
+  assert.deepEqual(S.photoName({ name: "Pentax K1000 35mm film camera $85", details: ["50mm lens on it", "worth about 40 dollars", "", 7], sure: "partly" }), { words: "Pentax K1000 35mm film camera", details: ["50mm lens on it", "worth about", "7"], sure: "partly" });
+  assert.equal(S.photoName({ name: "iPhone 13 see https://example.com/x US $300", details: [], sure: "yes" }).words, "iPhone 13 see");
+  assert.deepEqual(S.photoName({ name: "  ", details: ["a"], sure: "yes" }), { words: "", details: ["a"], sure: "no" }, "no words: not sure");
+  assert.equal(S.photoName({ name: "lamp", sure: "maybe" }).sure, "no", "an unknown answer counts as not sure");
+  assert.equal(S.photoName(null).words, "");
+  assert.ok(S.photoName({ name: "a ".repeat(100), sure: "yes" }).words.length <= 80);
+  assert.equal(S.photoName({ name: "x", details: ["1", "2", "3", "4", "5"], sure: "yes" }).details.length, 4);
+});

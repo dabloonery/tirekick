@@ -62,7 +62,7 @@ Help people buying secondhand online judge the listings they are viewing on supp
 | `contextMenus` | Three entries: "Check this photo with Tirekick" on images on eBay and Facebook, "Look up “…” with Tirekick" on text the user selects (it opens the extension's own page with that text; nothing is read from the page), and "Open Tirekick in a tab" on the toolbar icon (the icon itself opens the same page as a popup off eBay and Marketplace). |
 | Host: `https://www.ebay.com/*`, `https://www.facebook.com/*` | The two sites it works on: reading the listings the user is viewing, and fetching eBay sold-listing pages for price comparison, once for a search the user is looking at or when the user asks (at most eight an hour, paused at the first sign of eBay's browser check). |
 | Host: `https://i.ebayimg.com/*`, `https://*.fbcdn.net/*` | Fetching a listing's photo when the user asks for a photo check, and Marketplace thumbnails already on screen (without cookies) to fingerprint them on the user's computer, for the "same photo as other listings" mark. |
-| Host: `https://api.anthropic.com/*`, `https://openrouter.ai/*`, `https://api.openai.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.deepseek.com/*`, `https://api.mistral.ai/*`, `https://api.x.ai/*` | The AI services the user can choose. Sent only when the user presses Scan, Analyze, Search ideas or Check photo, or has turned on automatic scanning. |
+| Host: `https://api.anthropic.com/*`, `https://openrouter.ai/*`, `https://api.openai.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.deepseek.com/*`, `https://api.mistral.ai/*`, `https://api.x.ai/*` | The AI services the user can choose. Sent only when the user presses Scan, Analyze, Search ideas, Check photo or From a photo (a photo the user picks of something they're selling), or has turned on automatic scanning. |
 | Host: `http://localhost:11434/*`, `http://127.0.0.1:11434/*`, `http://localhost:1234/*`, `http://127.0.0.1:1234/*` | Ollama and LM Studio, which run on the user's own computer. |
 | Optional: `notifications` | Only when the user turns on **Notify me about great finds on saved searches** in settings: the browser asks then, and turning it off gives it back. A notification says a saved search the user has open turned up a great find (its title and price). Nothing is checked in the background. |
 | Optional hosts: `https://*.craigslist.org/*`, `https://images.craigslist.org/*` | Only when the user turns on **Also work on Craigslist** in settings: the browser asks then, and turning it off gives the access back. Used to read the Craigslist searches and posts the user is viewing (a host per city, so the pattern covers every city) and their photos for a photo check. Nothing is fetched from Craigslist in the background. |
@@ -72,7 +72,7 @@ Help people buying secondhand online judge the listings they are viewing on supp
 
 ## Privacy practices tab
 
-- **Data collected:** *Website content* (listing titles, card text and photos, sent to the AI service the user chose, only when the user asks) and *Authentication information* (the user's own API key, stored locally and sent only to the service it belongs to).
+- **Data collected:** *Website content* (listing titles, card text and photos, and a photo the user picks of something they're selling, sent to the AI service the user chose, only when the user asks) and *Authentication information* (the user's own API key, stored locally and sent only to the service it belongs to).
 - **Not collected:** personally identifiable information, health, financial or payment information, location, web history, user activity (the feature counters never leave the browser), personal communications.
 - **Certify:** not sold to third parties; not used or transferred for purposes unrelated to the single purpose; not used to determine creditworthiness or for lending.
 
@@ -129,7 +129,7 @@ Checked before each upload: `tests/e2e/firefox.sh` passes (CI runs it), then the
 answer means, so the listing and the reviewer notes say the same:
 
 - **Website content, optional:** listing text and photos go to the AI service the person picked, only when they
-  press Scan, Analyze, Search ideas or Check photo, or turned on automatic scanning. Firefox asks when the AI is
+  press Scan, Analyze, Search ideas, Check photo or From a photo, or turned on automatic scanning. Firefox asks when the AI is
   turned on in settings (`aiConsent` in `options/options.js`); saying no leaves the AI off, turning the AI off gives
   the yes back, and without it the background refuses every AI call (`needsAI` in `background.js`). Without the AI,
   nothing from a page leaves the browser except the sold-price lookups below.

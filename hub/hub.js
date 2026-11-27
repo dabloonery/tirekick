@@ -1,6 +1,7 @@
 // Tirekick's own page: useful from anywhere, not only on eBay and Marketplace.
 // - Look something up: what it sells for on eBay (free: the sold-listings search, no AI), and a search
 //   on eBay, on Marketplace, or both.
+// - Sell something: what to ask for a thing you're selling, from its eBay sales (TKRules.sellPrices).
 // - Saved: your saved listings and searches, each marked eBay or Marketplace, ready to open.
 // - Home: the same alerts, numbers and spending as the panel's Home tab.
 // The toolbar icon's popup on any other site (hub.html?popup: narrower, Settings in a tab), and a tab from
@@ -254,6 +255,118 @@
       keptEl.textContent = e.message;
     }
   });
+  // ---------- the sell helper: what to ask for something you're selling ----------
+  // The details that move the price as you type (TKRules.sellAsks), then on Price it the same eBay sold lookup as
+  // above (pace, cache and stats), and from it three prices with what each leaves you, where to sell, a title and
+  // what to show (TKRules.sellPrices, sellWhere, sellTitle, sellTips). Every price is from real sales: with too few
+  // it says so and shows none. Add to workbench keeps it as Bought, with what you paid and the typical price.
+  const sellQ = $("#sell-q");
+  const sellPaid = $("#sell-paid");
+  const sellBroken = $("#sell-broken");
+  const sellLocal = $("#sell-local");
+  const sellGo = $("#sell-go");
+  const sellAsks = $("#sell-asks");
+  const sellOut = $("#sell-out");
+  let sellLook = null; // { q, market } from the last Price it that found one
+  const drawAsks = () => {
+    const q = sellQ.value.trim();
+    if (!q) return sellAsks.replaceChildren();
+    sellAsks.replaceChildren(h("span", {}, "Put these in the words if they apply, as the price depends on them:"), h("ul", {}, TKRules.sellAsks(q).map((a) => h("li", {}, a))));
+  };
+  const drawSell = () => {
+    if (!sellLook) return;
+    const { q, market } = sellLook;
+    const paidRaw = sellPaid.value.trim();
+    const paid = paidRaw === "" ? null : Math.max(0, parseFloat(paidRaw)) || 0;
+    const p = TKRules.sellPrices(market, { title: q, feePct: lastFee, paid, profit, broken: sellBroken.checked, local: sellLocal.checked || null });
+    if (!p) return sellOut.replaceChildren(h("div", { class: "status" }, `Not enough eBay sales of “${q}” to price it. Try fewer or more general words.`));
+    const keepLine = (x) => (x.keep >= 0 ? `you keep ~${money(x.keep)}` : `a ~${money(-x.keep)} loss`);
+    const cellOf = (label, x, sub) => h("div", { class: "mcell" }, h("span", {}, label), h("b", {}, money(x.price)), h("span", {}, `${keepLine(x)}${sub ? `. ${sub}` : ""}`));
+    const where = TKRules.sellWhere(q, p.typical, { local: p.local });
+    const title = TKRules.sellTitle(q);
+    const copyBtn = h("button", { type: "button" }, "Copy the title");
+    copyBtn.addEventListener("click", () => copyText(copyBtn, title));
+    const keepBtn2 = h("button", { type: "button" }, "Add to workbench");
+    const keptSay = h("span", { class: "hint", role: "status" });
+    keepBtn2.addEventListener("click", async () => {
+      const m = p.broken ? { median: market.parts.median, ship: market.parts.ship ?? market.ship, n: market.parts.n, confidence: "rough" } : TKRules.forVariant(market, { title: q });
+      const was = Object.entries(finds).find(([, r]) => r.t.toLowerCase() === q.toLowerCase());
+      const find = S.cleanFind({ ...(was ? was[1] : {}), t: q, st: "bought", paid: paid ?? was?.[1].paid ?? null, bt: was?.[1].bt || Date.now(), sold: m.median, ship: m.ship, sa: Date.now(), n: m.n, r: m.confidence === "rough", a0: was?.[1].a0 || Date.now() });
+      if (!find) return;
+      try {
+        await edit({ set: { [was ? was[0] : S.newFindKey()]: find }, cap: { max: S.FIND_MAX, by: "a0" } });
+        keptSay.textContent = was ? "Updated on the workbench" : "Added to the workbench, as Bought";
+      } catch (e) {
+        keptSay.textContent = e.message;
+      }
+    });
+    sellOut.replaceChildren(
+      ...[
+        sellBroken.checked && !p.broken ? h("p", { class: "warn" }, "Too few sales of broken ones to price it as it is: these are for a working one.") : null,
+        h(
+          "div",
+          { class: "mgrid" },
+          cellOf("List at", p.listAt, "Room for offers"),
+          cellOf("Sell fast", p.fast),
+          p.floor ? cellOf("Your lowest", p.floor, `Keeps your ${money(profit)} profit`) : h("div", { class: "mcell" }, h("span", {}, "Your lowest"), h("span", {}, "Type what you paid to see the least to take."))
+        ),
+        p.under ? h("p", { class: "warn" }, `To keep your ${money(profit)} you'd need ${money(p.floor.price)}, more than it usually sells for.`) : null,
+        h("p", { class: "hint caveat" }, `${p.basis}${p.rough ? " Few sales: a rough guide." : ""} Prices include shipping, as sold prices do.`),
+        h("p", {}, h("b", {}, "Where: "), where.why),
+        h("div", { class: "sell-title" }, h("b", {}, "Title:"), h("code", {}, title), copyBtn),
+        h("div", { class: "sell-tips" }, h("b", {}, "Photos and what to say:"), h("ul", {}, TKRules.sellTips(q).map((t) => h("li", {}, t)))),
+        h("div", { class: "acts" }, keepBtn2, keptSay),
+      ].filter(Boolean)
+    );
+  };
+  // What broken ones sold for: a lookup of its own (the same pace and cache), only once it doesn't fully work.
+  const addParts = async () => {
+    const look = sellLook;
+    if (!look || look.partsTried) return;
+    look.partsTried = true;
+    const parts = await soldMarket(look.q, "parts").catch(() => null);
+    if (parts?.median > 0) look.market.parts = parts;
+  };
+  const priceIt = async () => {
+    const q = sellQ.value.trim();
+    if (!q) return sellQ.focus();
+    sellLook = null;
+    if (TKRules.vehicleQuery(q)) return sellOut.replaceChildren(h("div", { class: "status" }, TKRules.VEHICLE_NOTE));
+    sellGo.disabled = true;
+    sellOut.replaceChildren(h("div", { class: "status" }, `Looking up eBay sales of “${q}”…`));
+    try {
+      let market = await soldMarket(q, "used");
+      if (!market) market = await soldMarket(q, "any");
+      send("storeEdit", { name: "stats", edit: { inc: { soldLookups: 1 }, add: { since: Date.now() } } }).catch(() => {});
+      if (!market) return sellOut.replaceChildren(h("div", { class: "status" }, `Not enough eBay sales of “${q}” to price it. Try fewer or more general words.`));
+      sellLook = { q, market: { ...market } };
+      if (sellBroken.checked) await addParts();
+      drawSell();
+    } catch (e) {
+      sellOut.replaceChildren(h("div", { class: "status err", role: "alert" }, e.message));
+    } finally {
+      sellGo.disabled = false;
+    }
+  };
+  $("#sell-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    priceIt();
+  });
+  sellQ.addEventListener("input", () => {
+    drawAsks();
+    // other words are for a lookup of their own
+    if (sellLook && sellQ.value.trim() !== sellLook.q) (sellLook = null), sellOut.replaceChildren();
+  });
+  for (const el of [sellPaid, sellLocal]) el.addEventListener(el.type === "checkbox" ? "change" : "input", drawSell);
+  sellBroken.addEventListener("change", async () => {
+    if (sellBroken.checked && sellLook && !sellLook.partsTried) {
+      sellBroken.disabled = true;
+      await addParts();
+      sellBroken.disabled = false;
+    }
+    drawSell();
+  });
+
   const benchBody = $("#bench-body");
   // One find: its call (Buy, Offer or Pass) while you weigh it up, then Bought and Sold with what you paid and what it
   // sold for, and the profit (TKShared.findProfit). Every box is kept when you leave it (storeEdit patch).

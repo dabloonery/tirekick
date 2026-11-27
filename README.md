@@ -182,6 +182,13 @@ Craigslist** button (your nearest city, as Craigslist picks it).
   workbench**, keeping its link. **Questions for the seller, and a safety checklist** under the flip check (and
   **Copy questions** on each find) are plain templates to copy into a message; your AI isn't used. Add a version word after the lookup ("lite",
   "2nd gen", "m2", "2017", "ti", "slim digital", "128gb", "verizon", "iii", "f/1.8", "psa 10") and it compares with sales of that version, without looking up again.
+- **Sell something** (Tirekick's own page): describe a thing you're selling ("iPhone 13 128GB unlocked") and it lists
+  the details that move the price as you type, then **Price it** looks up its eBay sales (the same lookup, pace and
+  cache) and suggests a price to **list at**, a **sell fast** price and, with what you paid, **your lowest** (the least
+  that keeps your profit after fees and shipping), each with what you'd keep. Every price is from real sales, never a
+  guess. It also says where to sell (big things locally, clothes on Vinted too), gives a title to copy and the photos
+  to take, and **Add to workbench** keeps it as Bought. Tick "It doesn't fully work" for broken ones' sales. Your AI
+  isn't used.
 - **Start over** clears the page's scores (Undo is right there); the marks on the cards stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Hide buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.
 - **The footer** has the quality menu and this month's spend. With Claude the menu is **Thrifty** (Haiku for everything), **Balanced** (Haiku scans, Sonnet for single listings, photos and search ideas; the default) or **Thorough** (Sonnet scans, Opus for the rest); settings has each model separately, and another pair shows as Custom. The spend: click it for today, this month, last month and per model (Esc or a click elsewhere closes it). How it's counted, and the budget, are in settings.

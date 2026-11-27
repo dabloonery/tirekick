@@ -319,6 +319,26 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   ok("a saved listing goes onto the workbench with its price and its link, and Saved says it's there", fromSaved.finds.length === 1 && fromSaved.finds[0].k === "ebay:111" && fromSaved.finds[0].ask === 80 && fromSaved.link === "https://www.ebay.com/itm/111" && /On the workbench/.test(fromSaved.saved), fromSaved);
   await hub.ev(`chrome.runtime.sendMessage({ type: 'storeEdit', payload: { name: 'finds', edit: { clear: true } } })`);
   await sleep(300);
+  // The sell helper: the details that move the price as you type, then prices from the same (cached) eBay sales
+  const sellHits = await hits();
+  await hub.ev(`(() => { const q = document.querySelector('#sell-q'); q.value = 'pentax k1000'; q.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await sleep(100);
+  ok("the sell helper lists the details to settle as you type, ending with whether it works and what comes with it", /Does everything work\?/.test(await hub.ev(`document.querySelector('#sell-asks').textContent`)));
+  await hub.ev(`document.querySelector('#sell-go').click()`);
+  await sleep(1500);
+  const sell0 = await hub.ev(`document.querySelector('#sell-out').textContent`);
+  ok("…Price it gives list and sell-fast prices from eBay sales, where to sell, a title and photos to take", /List at\$\d+/.test(sell0) && /Sell fast\$\d+/.test(sell0) && /From 10 eBay sales at \$58/.test(sell0) && /Where: Ships easily/.test(sell0) && /Title:Pentax K1000/.test(sell0) && /Type what you paid/.test(sell0), sell0.slice(0, 300));
+  ok("…from the cached lookup, with no new request to eBay", (await hits()) === sellHits);
+  await hub.ev(`(() => { const el = document.querySelector('#sell-paid'); el.value = '15'; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await sleep(100);
+  const sell1 = await hub.ev(`document.querySelector('#sell-out').textContent`);
+  ok("…what you paid gives your lowest price, the least that keeps your profit", /Your lowest\$52you keep ~\$21\. Keeps your \$20 profit/.test(sell1), sell1.slice(0, 300));
+  await hub.ev(`[...document.querySelectorAll('#sell-out button')].find(b => b.textContent === 'Add to workbench').click()`);
+  await sleep(500);
+  const sold = Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {}) as Record<string, unknown>[];
+  ok("…and Add to workbench keeps it as Bought, with what you paid and the typical price", sold.length === 1 && sold[0].st === "bought" && sold[0].paid === 15 && sold[0].sold === 58, sold);
+  await hub.ev(`chrome.runtime.sendMessage({ type: 'storeEdit', payload: { name: 'finds', edit: { clear: true } } })`);
+  await sleep(300);
   // One saved search: no "Open all" button, and nothing in its place (it used to print "null")
   await store(`{savedSearches:{'ebay|pentax':{site:'ebay',q:'pentax',v:1}}}`);
   await sleep(500);

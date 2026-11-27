@@ -57,6 +57,21 @@
   .flip-out span { color:var(--muted); font-size:13px; }
   .flip-out[data-call="buy"] { --v:var(--v-great); } .flip-out[data-call="offer"] { --v:var(--v-fair); } .flip-out[data-call="pass"] { --v:var(--v-pass); }
   .acts .hint { align-self:center; }
+  /* the sell helper: three prices from eBay sales, where to sell, a title and what to show */
+  .sell { margin-top:16px; }
+  .sell .hint { margin:4px 0 10px; }
+  .look input#sell-paid { flex:0 1 120px; min-width:96px; }
+  .sell-opts { display:flex; gap:8px 16px; flex-wrap:wrap; margin-top:10px; color:var(--muted); font-size:13px; }
+  .sell-opts label { display:flex; align-items:center; gap:6px; }
+  .sell-asks { margin:12px 0 0; padding-left:12px; border-left:2px solid var(--rule); color:var(--muted); font-size:13px; }
+  .sell-asks:empty { display:none; }
+  .sell-asks ul, .sell-tips ul { margin:4px 0 0; padding-left:18px; }
+  .sell-out:empty { display:none; }
+  .sell-out { margin-top:14px; display:grid; gap:12px; }
+  .sell-out .mcell b { font:600 20px/1.25 var(--display); }
+  .sell-out .warn { color:var(--v-pass); font-weight:600; }
+  .sell-title { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .sell-title code { padding:6px 10px; border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); font:inherit; }
   /* questions for the seller and the safety checklist, each ready to copy */
   .ask { margin-top:14px; }
   .ask summary { cursor:pointer; color:var(--muted); font-size:13px; }
@@ -203,6 +218,22 @@
         <p class="hint">Plain templates, so your AI isn't used. The questions are for the seller; the checklist is for you.</p>
       </details>
     </div>
+  </section>
+
+  <section class="look sell" aria-labelledby="sell-h" id="sell">
+    <h2 id="sell-h">Sell something</h2>
+    <p class="hint">What to ask for something you're selling, from what it sold for on eBay. Free, and your AI isn't used.</p>
+    <form id="sell-form">
+      <input id="sell-q" type="search" placeholder="e.g. iPhone 13 128GB unlocked" aria-label="What you're selling" autocomplete="off">
+      <input id="sell-paid" type="number" min="0" step="any" inputmode="decimal" placeholder="Paid $" aria-label="What you paid for it (optional)" autocomplete="off">
+      <button class="primary" id="sell-go" type="submit">Price it</button>
+    </form>
+    <div class="sell-opts">
+      <label><input type="checkbox" id="sell-broken"> It doesn't fully work</label>
+      <label><input type="checkbox" id="sell-local"> Local pickup only</label>
+    </div>
+    <div class="sell-asks" id="sell-asks"></div>
+    <div class="sell-out" id="sell-out" aria-live="polite"></div>
   </section>
 
   <section class="block" aria-labelledby="bench-h" id="bench" hidden>

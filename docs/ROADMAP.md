@@ -51,6 +51,7 @@ check); those are in git history.*
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
 | Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. All four steps built 2026-11-17: the flip check, your own finds, Bought and Sold with profit totals, questions for the seller |
+| Sell helper | Being built from 2026-11-27 ([plan](#sell-helper)): describe something you want to sell and get list, sell-fast and lowest prices from eBay sales, where to sell, a title and what to show. Step 1 (the pricing rules) built 2026-11-27 |
 | What's new after an update | Built 2026-11-21 ([below](#whats-new-after-an-update)): a dot on the toolbar icon and a "New in this version" card in the popup and on Home, with a Turn on button for each new feature that's off. Tested in Chrome; dabloonery checks a real update (0.58.0 to 0.59.0) and the Turn on prompts in Firefox |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
@@ -79,6 +80,49 @@ Each step is its own PR, on Tirekick's own page (`hub/`), and the website says w
 4. **Questions for the seller** (built 2026-11-17): under the flip check, questions to paste into a message (asked
    to fit the thing: power and a photo of it on for anything that plugs in, `TKRules.sellerQuestions`) and a safety
    checklist for you (`TKRules.SAFETY`), each with a copy button; each find has Copy questions. Templates only.
+
+### Sell helper
+
+*dabloonery, 2026-11-27: take a picture of, or describe, something you want to sell, and Tirekick suggests prices and
+other things. Desktop first, on Tirekick's own page; phones later (see "Phones" below Brief 9).*
+
+The one rule: **every price comes from real eBay sales, never from a model's memory.** A confident wrong number is the
+worst thing this could show. With no sales to go on it says so, and an AI's guess is never shown as the price.
+
+How it works, on Tirekick's page beside the flip check:
+
+1. **Say what it is.** Type a description (no AI needed), or later add photos and let the AI name it. Then settle the
+   details that move the price (`TKRules.sellAsks`: model, storage, carrier lock, size, whether it works, what comes
+   with it). Required before a price, because a 13 isn't a 13 Pro.
+2. **The typical price** from the existing sold lookup with the settled words (pressed by you, paced and cached as
+   today; version-aware through `TKRules.forVariant`). "It doesn't work" prices it at what broken ones sold for
+   (`market.parts`), or says there weren't enough.
+3. **Suggestions** (`TKRules.sellPrices`, `sellWhere`, `sellTips`, `sellTitle`):
+   - **List at** (towards the dearer quarter of sales, 5 to 25% over typical, room for offers), **sell fast** (the
+     cheaper quarter) and, with what you paid, **your lowest** (the least that keeps your profit after fees, 40
+     cents and shipping: the flip check's sums backwards). Each says what you'd keep. Prices include shipping, as
+     sold totals do. If your lowest is over the list price it says so plainly.
+   - **Where to sell:** big things (`TKRules.bulky`) locally, priced for local pickup (`LOCAL_NET`, `BULKY_LOCAL`);
+     under $15 locally or in a lot; the rest on eBay shipped. Clothes and shoes also get Vinted (no seller fee).
+   - **A title** in eBay's 80 characters, and **photos to take and things to say** (the buyer's questions answered).
+   - **Add to workbench** as Bought, with what you paid and the typical price, so the ledger tracks the sale.
+
+Steps, one PR each:
+
+1. **Pricing rules** (built 2026-11-27): `TKRules.sellPrices`, `nicePrice`, `sellWhere`, `clothes`, `sellAsks`,
+   `sellTips`, `sellTitle`; tests in `tests/unit/rules.test.mjs`. No page yet.
+2. **Sell section on Tirekick's page, no AI:** words, the details to settle, Paid and profit, Look up (the same
+   `TKSold` lookup and stats as the page's look-up), then the three prices, where, title and tips, each copyable, and
+   Add to workbench. A test in `tests/e2e/features.ts` against the fake eBay. The website says what's new.
+3. **Name it from photos (AI, optional):** a `nameItem` background handler behind `needsAI`, using the photo check's
+   vision model; photos are read from a file you pick, sent only when you press the button, never stored. The AI
+   fills the words and details for you to confirm; it never sets the price. Privacy policy, `store/LISTING.md` and
+   the security review say so.
+4. **Phones:** with the phone plan's screenshot step, only after its test passes.
+
+Accuracy risks and what answers them: the wrong version (the settle step), thin or mixed sales (version rules, "few
+sales, a rough guide"), condition a photo can't show (prices are for a working one unless you say it isn't), clothes
+(size and brand drive the price, eBay's sales are noisy: show the range).
 
 ### What's new after an update
 
@@ -1287,6 +1331,14 @@ the Firefox smoke test another day, then a by-hand pass and the listing.
 **Phones are off the roadmap for now** (dabloonery, 2026-11-04): no Firefox for Android, Safari on iPhone or other
 mobile browser work. Most phone shopping happens in the eBay and Facebook apps, which no extension can reach, and
 the mobile sites would need their own adapters. Desktop Safari below stays as it was.
+
+*2026-11-27 (dabloonery): reopened as a separate phone web app, not a mobile extension.* The researched plan: an
+installable web app on the website with the workbench's no-AI tools (flip math, seller questions, safety checklist,
+scam signs in pasted text, the Bought and Sold ledger, export and import). The input is screenshots rather than shared
+links: the Facebook and eBay apps share links with no price, and following them would mean fetching from the stores.
+Sold prices from a screenshot of eBay's sold results come only after a test on real screenshots shows they read
+right. No server reads eBay (ground rules), and eBay's sold-price API is a restricted release, so it isn't counted on.
+Nothing built yet; the sell helper above comes first.
 
 - **Safari (large).** Needs Apple's Safari Web Extension converter, an Xcode wrapper app, a Mac to build on and
   the $99 a year Apple developer program, and ships through the App Store. Host permissions are granted per site by

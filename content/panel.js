@@ -2795,7 +2795,7 @@
   let marketFor = ""; // the search the cards' "below/above typical" is for
   // A listing's own typical price (looked up from its title, from its hover) wins over the page's.
   // Pickup listings on a local site are compared without the shipping in eBay's totals (TKRules.forPickup).
-  const pickupOf = (m, f) => TKRules.forPickup(m, f, !!(f?.site ? TKSites.get(f.site) : TK.site())?.local); // facts don't keep the site: this page's
+  const pickupOf = (m, f) => TKRules.forPickup(m, f, !!(f?.site ? TKSites.get(f.site) : TK.site())?.local, cfg.feePct); // facts don't keep the site: this page's
   const marketOf = (f) => pickupOf(f?.ownMarket || lastMarket, f);
   // Which sales a listing's typical price came from, when it's one version's (TKRules.forVariant).
   const variantNote = (m) => {

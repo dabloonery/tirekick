@@ -336,7 +336,24 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   await hub.ev(`[...document.querySelectorAll('#sell-out button')].find(b => b.textContent === 'Add to workbench').click()`);
   await sleep(500);
   const sold = Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {}) as Record<string, unknown>[];
-  ok("…and Add to workbench keeps it as Bought, with what you paid and the typical price", sold.length === 1 && sold[0].st === "bought" && sold[0].paid === 15 && sold[0].sold === 58, sold);
+  ok("…and Add to workbench keeps it as Listed, at the list price, with what you paid, the lowest and the typical price", sold.length === 1 && sold[0].st === "listed" && sold[0].paid === 15 && sold[0].lo === 52 && (sold[0].lp as number) > 58 && sold[0].sold === 58, sold);
+  const listedRow = await hub.ev(`({ call: document.querySelector('#bench .find').dataset.call, text: document.querySelector('#bench .find').textContent, sum: document.querySelector('#bench-sum').textContent })`);
+  ok("…the workbench shows it Listed, with the profit it should leave and the sell-fast and lowest prices", listedRow.call === "listed" && /Should leave ~\$\d+ profit at \$\d+ · sell fast \$\d+, lowest \$52/.test(listedRow.text) && /^1 listed and not sold yet: \$15 in it, ~\$\d+ to come at their prices$/.test(listedRow.sum), listedRow);
+  // Something of your own: nothing paid, so what it brings in after fees rather than a profit
+  await hub.ev(`chrome.runtime.sendMessage({ type: 'storeEdit', payload: { name: 'finds', edit: { clear: true } } })`);
+  await sleep(300);
+  await hub.ev(`(() => { const el = document.querySelector('#sell-paid'); el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await sleep(100);
+  await hub.ev(`[...document.querySelectorAll('#sell-out button')].find(b => b.textContent === 'Add to workbench').click()`);
+  await sleep(500);
+  const own = { find: Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {})[0] as Record<string, unknown>, text: await hub.ev(`document.querySelector('#bench .find').textContent`), sum: await hub.ev(`document.querySelector('#bench-sum').textContent`) };
+  ok("…something of your own (nothing paid) shows what it brings in after fees, not a profit", own.find.st === "listed" && !("paid" in own.find) && !("lo" in own.find) && /~\$\d+ to you after fees at \$\d+/.test(own.text) && /after fees from your own things/.test(own.sum) && !/profit/.test(own.sum), own);
+  await hub.ev(`(() => { const el = document.querySelector('#bench .find select'); el.value = 'sold'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await sleep(500);
+  await hub.ev(`(() => { const el = document.querySelector('#bench .find input[aria-label^="Sold for"]'); el.focus(); el.value = '70'; el.dispatchEvent(new Event('change', { bubbles: true })); el.blur(); })()`);
+  await sleep(500);
+  const ownSold = await hub.ev(`({ text: document.querySelector('#bench .find').textContent, sum: document.querySelector('#bench-sum').textContent })`);
+  ok("…and once sold, what it brought in after fees and shipping", /~\$51 to you after 13\.6% fees, ~\$9 shipping/.test(ownSold.text) && /^1 sold, \$51 after fees from your own things$/.test(ownSold.sum), ownSold);
   await hub.ev(`chrome.runtime.sendMessage({ type: 'storeEdit', payload: { name: 'finds', edit: { clear: true } } })`);
   await sleep(300);
   // One saved search: no "Open all" button, and nothing in its place (it used to print "null")

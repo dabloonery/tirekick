@@ -177,7 +177,7 @@ Craigslist** button (your nearest city, as Craigslist picks it).
   on eBay after fees, shipping and any parts, and with an asking price, a plain **Buy**, **Offer $N** or **Pass**.
   **Add to workbench** keeps the find (a thrift shelf, a yard sale, a listing anywhere) on the page's **Workbench**
   with its asking price, parts, a note and the typical price it had then, and checks it again as you change them.
-  Mark a find **Bought** (what you paid) and **Sold** (what it sold for) and the workbench keeps the profit, with
+  Mark a find **Bought** (what you paid), **Listed** (the price it's listed at) and **Sold** (what it sold for) and the workbench keeps the profit, with
   totals over the top: sold and the profit made, bought and what's in them. A saved listing goes there with **To
   workbench**, keeping its link. **Questions for the seller, and a safety checklist** under the flip check (and
   **Copy questions** on each find) are plain templates to copy into a message; your AI isn't used. Add a version word after the lookup ("lite",
@@ -187,7 +187,8 @@ Craigslist** button (your nearest city, as Craigslist picks it).
   cache) and suggests a price to **list at**, a **sell fast** price and, with what you paid, **your lowest** (the least
   that keeps your profit after fees and shipping), each with what you'd keep. Every price is from real sales, never a
   guess. It also says where to sell (big things locally, clothes on Vinted too), gives a title to copy and the photos
-  to take, and **Add to workbench** keeps it as Bought. Tick "It doesn't fully work" for broken ones' sales. Your AI
+  to take, and **Add to workbench** keeps it as **Listed**. Paid is only for things bought to resell: with nothing
+  paid it's something of your own, and the workbench shows what it brings in after fees instead of a profit. Tick "It doesn't fully work" for broken ones' sales. Your AI
   isn't used.
 - **Start over** clears the page's scores (Undo is right there); the marks on the cards stay.
 - **Keyboard**: opening the panel puts focus inside it and Esc/closing puts it back on the tab; Tab also reaches a card's score tag and, from it, the reasons and the Save / Sold / Hide buttons that otherwise show on hover; arrow keys move between This page / Saved / Home, Buyer / Reseller and Show / Dim / Hide.

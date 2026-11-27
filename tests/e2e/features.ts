@@ -333,6 +333,11 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   await sleep(100);
   const sell1 = await hub.ev(`document.querySelector('#sell-out').textContent`);
   ok("…what you paid gives your lowest price, the least that keeps your profit", /Your lowest\$52you keep ~\$21\. Keeps your \$20 profit/.test(sell1), sell1.slice(0, 300));
+  await hub.ev(`(() => { const el = document.querySelector('#flip-profit'); el.value = '30'; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await sleep(100);
+  ok("…a different profit you want changes your lowest at once", /Your lowest\$63/.test(await hub.ev(`document.querySelector('#sell-out').textContent`)));
+  await hub.ev(`(() => { const el = document.querySelector('#flip-profit'); el.value = '20'; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await sleep(100);
   await hub.ev(`[...document.querySelectorAll('#sell-out button')].find(b => b.textContent === 'Add to workbench').click()`);
   await sleep(500);
   const sold = Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {}) as Record<string, unknown>[];
@@ -354,6 +359,16 @@ ok("Open Tirekick home opens its own page, and only once", n1 === n0 + 1 && (awa
   await sleep(500);
   const ownSold = await hub.ev(`({ text: document.querySelector('#bench .find').textContent, sum: document.querySelector('#bench-sum').textContent })`);
   ok("…and once sold, what it brought in after fees and shipping", /~\$51 to you after 13\.6% fees, ~\$9 shipping/.test(ownSold.text) && /^1 sold, \$51 after fees from your own things$/.test(ownSold.sum), ownSold);
+  // Local pickup: no fees or shipping come off what it brings in
+  await hub.ev(`chrome.runtime.sendMessage({ type: 'storeEdit', payload: { name: 'finds', edit: { clear: true } } })`);
+  await sleep(300);
+  await hub.ev(`(() => { const el = document.querySelector('#sell-local'); el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await sleep(100);
+  await hub.ev(`[...document.querySelectorAll('#sell-out button')].find(b => b.textContent === 'Add to workbench').click()`);
+  await sleep(500);
+  const pickup = { find: Object.values((await hub.ev(`chrome.storage.local.get('finds')`)).finds || {})[0] as Record<string, unknown>, text: await hub.ev(`document.querySelector('#bench .find').textContent`) };
+  ok("…a local pickup sale is kept as one, with no fees taken off what it brings in", pickup.find.lc === true && pickup.text.includes(`~$${pickup.find.lp} to you (local pickup, no fees)`), pickup);
+  await hub.ev(`(() => { const el = document.querySelector('#sell-local'); el.checked = false; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
   await hub.ev(`chrome.runtime.sendMessage({ type: 'storeEdit', payload: { name: 'finds', edit: { clear: true } } })`);
   await sleep(300);
   // One saved search: no "Open all" button, and nothing in its place (it used to print "null")

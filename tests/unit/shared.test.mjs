@@ -511,6 +511,9 @@ test("workbench: Bought, Listed and Sold, the profit each made, and the totals",
   assert.equal(S.findNet({ ...base, st: "listed" }), 41, "no listed price: the typical one");
   const t2 = S.benchTotals({ a: mine, b: { ...base, st: "sold", out: 70 }, c: { ...mine, paid: 15 } });
   assert.deepEqual([t2.listed, t2.heldGot, t2.heldProfit, t2.inHeld, t2.sold, t2.own, t2.got, t2.profit], [2, 47, 32, 15, 1, 1, 51, 0]);
+  assert.equal(S.findNet({ ...mine, lc: true, parts: 5 }), 60, "local pickup: no fees, 40 cents or shipping, less parts");
+  assert.equal(S.cleanFind({ ...mine, lc: true }).lc, true);
+  assert.ok(!("lc" in S.cleanFind({ ...mine, lc: "yes" })));
   const listed = S.cleanFind({ ...mine, lo: 52, lt: 4, lp: -3 });
   assert.deepEqual([listed.st, listed.lp, listed.fp, listed.lo, listed.lt, "paid" in listed], ["listed", undefined, 50, 52, 4, false]);
   const kept = S.cleanFind({ ...base, st: "sold", paid: 15, out: 70, bt: 2, so: 3, k: "ebay:111", u: "javascript:alert(1)" });

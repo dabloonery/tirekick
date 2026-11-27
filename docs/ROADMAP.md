@@ -125,7 +125,8 @@ Steps, one PR each:
    the row and the totals show what it brings in after fees (`TKShared.findNet`) rather than a profit
    (`TKShared.findProfit`, now `findNet` less what you paid). `benchTotals` counts listed ones and keeps the two
    apart (`got`, `own`, `heldGot`). The sell helper adds as Listed. Tests: `tests/unit/shared.test.mjs` and
-   `tests/e2e/features.ts`. A local-pickup item's after-fees figure still takes eBay's fee off: a small known gap.
+   `tests/e2e/features.ts`. A local pickup sale is kept as one (`lc`): no fees, 40 cents or shipping come off what it
+   brings in. The prices follow the profit you want and the fee in settings as soon as either changes.
 3. **Name it from photos (AI, optional):** a `nameItem` background handler behind `needsAI`, using the photo check's
    vision model; photos are read from a file you pick, sent only when you press the button, never stored. The AI
    fills the words and details for you to confirm; it never sets the price. Privacy policy, `store/LISTING.md` and

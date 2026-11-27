@@ -294,7 +294,7 @@
       const was = Object.entries(finds).find(([, r]) => r.t.toLowerCase() === q.toLowerCase());
       // Listed at the list price, with the sell-fast and lowest prices; what you paid only if you said (your own
       // things have none, and show what they bring in instead of a profit)
-      const find = S.cleanFind({ ...(was ? was[1] : {}), t: q, st: "listed", paid: paid ?? was?.[1].paid ?? null, lt: was?.[1].lt || Date.now(), lp: p.listAt.price, fp: p.fast.price, lo: p.floor?.price ?? null, sold: m.median, ship: p.local ? 0 : m.ship, sa: Date.now(), n: m.n, r: m.confidence === "rough", a0: was?.[1].a0 || Date.now() });
+      const find = S.cleanFind({ ...(was ? was[1] : {}), t: q, st: "listed", paid: paid ?? was?.[1].paid ?? null, lt: was?.[1].lt || Date.now(), lp: p.listAt.price, fp: p.fast.price, lo: p.floor?.price ?? null, lc: p.local, sold: m.median, ship: p.local ? 0 : m.ship, sa: Date.now(), n: m.n, r: m.confidence === "rough", a0: was?.[1].a0 || Date.now() });
       if (!find) return;
       if (!(p.floor?.price > 0)) delete find.lo;
       try {
@@ -363,6 +363,10 @@
     if (sellLook && sellQ.value.trim() !== sellLook.q) (sellLook = null), sellOut.replaceChildren(), drawAsks();
   });
   for (const el of [sellPaid, sellLocal]) el.addEventListener(el.type === "checkbox" ? "change" : "input", drawSell);
+  // the profit you want (the flip check's box, or settings) and the fee in settings change the prices at once;
+  // the listeners above have already taken the new values
+  profitEl.addEventListener("input", drawSell);
+  chrome.storage.onChanged.addListener((c) => (c.flipProfit || c.feePct) && drawSell());
   sellBroken.addEventListener("change", async () => {
     if (sellBroken.checked && sellLook && !sellLook.partsTried) {
       sellBroken.disabled = true;
@@ -434,13 +438,14 @@
     const typical = r.sold > 0 ? `typical ${r.r ? "~" : ""}${money(r.sold)}${when ? ` (${when})` : ""}` : "";
     const made = S.findProfit(r, lastFee);
     const net = S.findNet(r, lastFee);
-    const costs = `${lastFee}% fees${r.ship ? `, ~${money(r.ship)} shipping` : ""}${r.parts ? ` and ${money(r.parts)} parts` : ""}`;
+    // a local pickup sale (the sell helper's) pays no fees or shipping
+    const costs = r.lc ? ` (local pickup, no fees${r.parts ? `, less ${money(r.parts)} parts` : ""})` : ` after ${lastFee}% fees${r.ship ? `, ~${money(r.ship)} shipping` : ""}${r.parts ? ` and ${money(r.parts)} parts` : ""}`;
     const helper = [r.fp > 0 ? `sell fast ${money(r.fp)}` : null, r.lo > 0 ? `lowest ${money(r.lo)}` : null].filter(Boolean).join(", ");
     const at = r.lp > 0 ? money(r.lp) : `the ${typical}`;
     const line = st === "sold"
-      ? made != null ? `${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"} after ${costs}` : net != null ? `~${money(net)} to you after ${costs}` : "Type what it sold for to see what it made."
+      ? made != null ? `${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"}${costs}` : net != null ? `~${money(net)} to you${costs}` : "Type what it sold for to see what it made."
       : st === "listed"
-        ? `${made != null ? `Should leave ~${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"}` : net != null ? `~${money(net)} to you after fees` : "Type the price it's listed at"} at ${at}${helper ? ` · ${helper}` : ""}`
+        ? `${made != null ? `Should leave ~${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"}` : net != null ? `~${money(net)} to you${r.lc ? " (local pickup, no fees)" : " after fees"}` : "Type the price it's listed at"} at ${at}${helper ? ` · ${helper}` : ""}`
       : st === "bought"
         ? made == null ? (r.sold > 0 ? "Type what you paid to see what it should leave." : "No typical price kept for it.") : `Should leave ~${money(Math.abs(made))} ${made >= 0 ? "profit" : "loss"} at the ${typical}`
         : f ? `${f.maxPay > 0 ? `Pay up to ${money(f.maxPay)}` : `No price leaves ${money(profit)}`} · ${typical}` : "No typical price: press it to look it up again.";

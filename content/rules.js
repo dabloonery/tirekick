@@ -373,6 +373,134 @@
     "Walk away if the story changes, the price drops a lot for no reason, or you're being rushed.",
   ];
   R.safetyText = () => `Before you meet:\n${R.SAFETY.map((s) => `- ${s}`).join("\n")}`;
+
+  // ---------- the sell helper (Tirekick's own page): pricing something you want to sell ----------
+  // Every price here comes from what it sold for on eBay (a market from the sold lookup), never from a model's
+  // memory: a confident wrong number is the worst thing this could show. Plan: docs/ROADMAP.md, "Sell helper".
+  // A nice price to ask: whole dollars under $20, fives under $100, tens above (as R.roundOffer, but to the nearest).
+  R.nicePrice = (n) => {
+    if (!(n > 0)) return 0;
+    const step = n < 20 ? 1 : n < 100 ? 5 : 10;
+    return Math.max(step, Math.round(n / step) * step);
+  };
+  // Three prices for something you're selling, from its eBay sales (for its version, R.forVariant):
+  // - listAt: where to start, a little over typical (towards the dearer quarter of sales) to leave room for offers;
+  // - fast: about the cheaper quarter of sales, for a quick sale;
+  // - floor: the least to take and still keep `profit` after what you paid, parts, fees, 40 cents and the shipping
+  //   buyers paid (the flip check's sums run backwards). Only with `paid`; null otherwise.
+  // Each comes with `keep`, what a sale at it leaves you. Prices include shipping, as sold totals do (free shipping).
+  // `local` (a pickup sale: no fees, no shipping) is worked out from the title when not given: big things (R.bulky)
+  // sell locally, at what local sales of them fetch (R.LOCAL_NET, R.BULKY_LOCAL). `broken` prices it at what broken
+  // ones sold for (market.parts), when the lookup had enough of them. null without a typical price.
+  R.sellPrices = (market, { title = "", feePct = 13.6, paid = null, profit = 0, parts = 0, broken = false, local = null } = {}) => {
+    if (!(market?.median > 0)) return null;
+    const asBroken = broken && market.parts?.median > 0;
+    const m = asBroken ? { ...market.parts, confidence: market.parts.confidence || "rough" } : R.forVariant(market, { title });
+    const bulky = R.bulky(title, market.query);
+    const pickup = local ?? bulky;
+    const cut = pickup ? (bulky ? R.LOCAL_NET * R.BULKY_LOCAL : R.LOCAL_NET) : 1;
+    const ship = pickup ? 0 : m.ship > 0 ? m.ship : market.ship > 0 ? market.ship : 0;
+    const fee = pickup ? 0 : Math.min(Math.max(feePct, 0), 50) / 100;
+    const cost = (paid > 0 ? paid : 0) + (parts > 0 ? parts : 0);
+    const typical = m.median * cut;
+    const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), hi);
+    const keep = (p) => Math.round(p * (1 - fee) - (pickup ? 0 : 0.4) - ship - cost);
+    const listAt = R.nicePrice(clamp(m.p75 > 0 ? m.p75 * cut : typical * 1.15, typical * 1.05, typical * 1.25));
+    let fast = R.nicePrice(clamp(m.p25 > 0 ? m.p25 * cut : typical * 0.9, typical * 0.8, typical * 0.95));
+    if (fast >= listAt) fast = Math.max(1, listAt - (listAt < 20 ? 1 : listAt < 100 ? 5 : 10));
+    const want = profit > 0 ? profit : 0;
+    const floor = paid == null || paid === "" || !(paid >= 0) ? null : Math.ceil((want + cost + (pickup ? 0 : 0.4) + ship) / (1 - fee));
+    const rough = m.confidence === "rough";
+    const put = cost ? `the ${R.dollars(Math.round(cost))} you put in` : "";
+    const after = pickup
+      ? ` Priced for local pickup (${bulky ? "big things sell for less locally" : "no fees to pass on"}): no fees or shipping${put ? `, less ${put}` : ""}.`
+      : ` What you keep is after ${feePct}% fees${ship ? `${put ? "," : " and"} ${R.dollars(Math.round(ship))} shipping` : ""}${put ? ` and ${put}` : ""}.`;
+    const basis = `From ${m.n ? `${m.n} ` : ""}eBay sales${asBroken ? " of broken ones" : ""} at ${rough ? "about " : ""}${R.dollars(Math.round(m.median))}.${after}`;
+    return {
+      typical: Math.round(typical),
+      listAt: { price: listAt, keep: keep(listAt) },
+      fast: { price: fast, keep: keep(fast) },
+      floor: floor == null ? null : { price: floor, keep: keep(floor) },
+      // what you'd want for it is more than it sells for: say so instead of a floor over the asking prices
+      under: floor != null && floor > listAt,
+      local: pickup,
+      broken: asBroken,
+      rough,
+      basis,
+    };
+  };
+  // Where to sell it, in a few words: big things locally, small cheap things locally or in a lot (fees and
+  // shipping take most of a small sale), the rest on eBay shipped. Clothes and shoes get Vinted as well: it charges
+  // sellers no fee (the buyer pays its protection fee). { where: "local" | "small" | "ebay", why }.
+  R.SMALL_SALE = 15;
+  const CLOTHES = /\b(?:shirts?|t-?shirts?|tees?|blouses?|jeans|pants|trousers|shorts|skirts?|dress(?:es)?|jackets?|coats?|hoodies?|sweaters?|sweatshirts?|cardigans?|vests?|leggings|sneakers|trainers|shoes|boots|heels|sandals|loafers|handbags?|purses?|backpacks?|scarf|scarves|beanies?|hats?|caps?|jerseys?)\b/i;
+  R.clothes = (...texts) => CLOTHES.test(texts.filter(Boolean).join(" "));
+  R.sellWhere = (title = "", typical = 0, { local = null } = {}) => {
+    const clothes = R.clothes(title) ? " Clothes and shoes sell on Vinted too, which charges sellers no fee." : "";
+    if (local ?? R.bulky(title))
+      return { where: "local", why: `Big to ship: sell it for local pickup on Marketplace or Craigslist, cash in hand.${clothes}` };
+    if (typical > 0 && typical < R.SMALL_SALE)
+      return { where: "small", why: `Fees and shipping would take most of a sale this small: sell it locally, or in a lot with similar things.${clothes}` };
+    return { where: "ebay", why: `Ships easily: eBay reaches the most buyers. Marketplace works too, for cash with no fees.${clothes}` };
+  };
+  // The details that move the price, to settle before trusting it: a 13 isn't a 13 Pro, 128GB isn't 512GB. What a
+  // photo or a short description can't show. Plain questions, worked out from the words; always ends with whether it
+  // works and what comes with it.
+  const ASKS = [
+    [/\b(?:iphone|galaxy|pixel|oneplus|motorola|moto g)\b/i, ["The exact model (a 13 or a 13 Pro, say)", "Storage (GB)", "Unlocked or tied to a carrier", "Battery health, if it shows it"]],
+    [/\b(?:ipad|tablet|kindle|surface)\b/i, ["The exact model or generation", "Storage (GB)", "Wi-Fi only or cellular"]],
+    [/\b(?:console|switch|playstation|ps[345]|xbox|wii|game ?boy|3ds|ds lite|steam deck)\b/i, ["The exact model (original, Lite, OLED, Slim, Pro…)", "Storage", "Controllers, cables and games included"]],
+    [/\b(?:laptop|macbook|notebook|chromebook|thinkpad|desktop|imac|mac mini|computer|pc)\b/i, ["The processor or chip, and the year", "Memory (RAM) and storage", "Battery cycles or health"]],
+    [/\b(?:gpu|graphics card|rtx|gtx|radeon|rx \d)\b/i, ["The exact card (a 3060 or a 3060 Ti, say) and its memory"]],
+    [/\b(?:camera|dslr|mirrorless|canon|nikon|sony a\d|fujifilm|gopro|lens)\b/i, ["Body only or with a lens (which one)", "The shutter count, if you can see it"]],
+    [/\b(?:watch|garmin|fitbit)\b/i, ["The model and size (mm)", "GPS only or cellular"]],
+    [/\b(?:airpods|headphones|earbuds|beats|bose)\b/i, ["The exact model or generation", "The case and charger included"]],
+    [/\b(?:bike|bicycle|e-?bike)\b/i, ["The brand, model and frame size", "The year, if you know it"]],
+    [CLOTHES, ["The brand", "The size", "How worn: new with tags, like new or used"]],
+  ];
+  R.sellAsks = (title = "") => {
+    const t = String(title);
+    const found = ASKS.find(([re]) => re.test(t));
+    return [...(found ? found[1] : ["The brand and exact model, if it has one"]), "Does everything work? Anything broken, worn or repaired?", "What comes with it (box, cables, accessories)?"];
+  };
+  // Photos to take and what to say in the listing: the buyer's questions answered up front (R.sellerQuestions from the
+  // other side), so fewer messages and fewer returns. Templates, your AI isn't used.
+  R.sellTips = (title = "") => {
+    const powered = R.POWERED.test(String(title));
+    return [
+      powered ? "A photo of it switched on and working" : "Every side in good light, on a plain background",
+      "Any damage or wear, close up",
+      "Everything that comes with it, laid out together",
+      "The model or serial number label",
+      `Say ${powered ? "what works and what doesn't" : "its condition plainly"}, what's included and why you're selling: it's what buyers ask first.`,
+    ];
+  };
+  // A listing title from the words and the details you settled, in eBay's 80 characters: each word once, brands
+  // spelled their way ("iPhone"), sizes and short codes in capitals ("128GB", "PS5", "RTX"), other words capitalized
+  // unless you typed capitals yourself.
+  R.SELL_TITLE_MAX = 80;
+  const SPELLED = { iphone: "iPhone", ipad: "iPad", ipod: "iPod", imac: "iMac", macbook: "MacBook", airpods: "AirPods", playstation: "PlayStation", xbox: "Xbox", gopro: "GoPro", thinkpad: "ThinkPad", oneplus: "OnePlus", and: "and", with: "with", for: "for", or: "or", of: "of" };
+  const CAPS = /^(?:rtx|gtx|oled|lcd|led|ssd|hdd|gpu|cpu|usb|hdmi|nes|snes|tv|dslr|nwt|nib|xl|xxl|xs|ps|pc)$/i;
+  const titleWord = (w, first) => {
+    const k = w.toLowerCase();
+    if (SPELLED[k] && (first ? !/^(?:and|with|for|or|of)$/.test(k) : true)) return SPELLED[k];
+    if (/^\d+(?:gb|tb)$/i.test(w)) return w.toUpperCase();
+    if (CAPS.test(w) || /^[a-z]{1,3}\d{1,3}[a-z]?$/i.test(w)) return w.toUpperCase(); // "PS5", "S21", "A54", "M2"
+    return w === k ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+  };
+  R.sellTitle = (words = "", details = []) => {
+    const seen = new Set();
+    const out = [];
+    for (const w of [words, ...details].join(" ").split(/\s+/).filter(Boolean)) {
+      const k = w.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const next = titleWord(w, !out.length);
+      if ([...out, next].join(" ").length > R.SELL_TITLE_MAX) break;
+      out.push(next);
+    }
+    return out.join(" ");
+  };
   // The kinds of chip on a listing, each with its own switch in settings: scam marks (and the warnings that go
   // with them: a new or low-rated seller, the same title twice), price words, and everything else (new to you,
   // price drops, auctions, lots, offers). A chip is [kind, text, why, group]; "state" ones (why a listing is

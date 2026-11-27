@@ -1490,6 +1490,60 @@ test("flipCall: the most to pay for the profit you want, and Buy, Offer or Pass"
   assert.equal(R.flipCall(10, null), null);
 });
 
+test("sellPrices: list, sell-fast and floor prices from eBay sales, never a guess", () => {
+  const m = { median: 58, n: 10, ship: 9, p25: 50, p75: 66, confidence: "fair" };
+  const p = R.sellPrices(m, { title: "game boy color" });
+  assert.deepEqual([p.typical, p.listAt.price, p.fast.price, p.floor], [58, 65, 50, null], "list near the dearer quarter, fast at the cheaper one");
+  assert.equal(p.listAt.keep, 47, "65 less 13.6%, 40 cents and $9 shipping");
+  assert.equal(p.basis, "From 10 eBay sales at $58. What you keep is after 13.6% fees and $9 shipping.");
+  const paid = R.sellPrices(m, { title: "game boy color", paid: 15, profit: 20 });
+  assert.deepEqual([paid.floor.price, paid.floor.keep, paid.under], [52, 21, false], "the least that keeps $20 after the $15 paid");
+  assert.match(paid.basis, /\$9 shipping and the \$15 you put in\.$/);
+  const dear = R.sellPrices(m, { title: "game boy color", paid: 50, profit: 20 });
+  assert.equal(dear.under, true, "what you want is over what it sells for");
+  assert.equal(dear.fast.keep, -16);
+  // big things sell locally, for less, with no fees or shipping
+  const chair = R.sellPrices({ median: 450, n: 20, p25: 380, p75: 520, confidence: "good", ship: 60, query: "herman miller aeron" }, { title: "herman miller aeron chair" });
+  assert.deepEqual([chair.local, chair.typical, chair.listAt.price, chair.listAt.keep], [true, 233, 270, 270]);
+  assert.match(chair.basis, /local pickup \(big things sell for less locally\)/);
+  assert.equal(R.sellPrices(m, { title: "game boy color", local: true }).listAt.keep, R.sellPrices(m, { title: "game boy color", local: true }).listAt.price, "a pickup sale keeps it all");
+  // broken: priced at what broken ones sold for, when there were some
+  const broken = R.sellPrices({ ...m, parts: { median: 20, n: 6 } }, { title: "game boy color", broken: true });
+  assert.deepEqual([broken.broken, broken.typical, broken.rough], [true, 20, true]);
+  assert.equal(R.sellPrices(m, { title: "game boy color", broken: true }).broken, false, "no broken sales: the working price, flagged by the page");
+  // a version's own sales
+  const switches = { median: 200, n: 52, confidence: "fair", ship: 14, variants: { "lite/*/*": { median: 95, p10: 80, p25: 88, p75: 100, n: 14, confidence: "fair" } } };
+  assert.equal(R.sellPrices(switches, { title: "nintendo switch lite" }).typical, 95);
+  // small and rough: fast stays under list
+  const small = R.sellPrices({ median: 10, n: 5, confidence: "rough" });
+  assert.ok(small.fast.price < small.listAt.price);
+  assert.equal(small.rough, true);
+  assert.equal(R.sellPrices(null), null);
+  assert.equal(R.sellPrices({ median: 0 }), null);
+  assert.deepEqual([R.nicePrice(0), R.nicePrice(12.4), R.nicePrice(63), R.nicePrice(447)], [0, 12, 65, 450]);
+});
+
+test("sellWhere, sellAsks, sellTips and sellTitle: the rest of the sell helper", () => {
+  assert.equal(R.sellWhere("couch", 300).where, "local");
+  assert.equal(R.sellWhere("phone case", 8).where, "small");
+  assert.equal(R.sellWhere("game boy", 60).where, "ebay");
+  assert.match(R.sellWhere("levis jeans", 30).why, /Vinted too, which charges sellers no fee/);
+  assert.doesNotMatch(R.sellWhere("game boy", 60).why, /Vinted/);
+  assert.equal(R.sellWhere("game boy", 60, { local: true }).where, "local");
+  const phone = R.sellAsks("iphone 13");
+  assert.ok(phone.includes("Storage (GB)") && phone.includes("Unlocked or tied to a carrier"));
+  assert.match(phone.at(-2), /^Does everything work/, "always asks whether it works and what comes with it");
+  assert.equal(R.sellAsks("lamp")[0], "The brand and exact model, if it has one");
+  assert.ok(R.sellAsks("nike hoodie").includes("The size"));
+  assert.equal(R.sellTips("ps5")[0], "A photo of it switched on and working");
+  assert.equal(R.sellTips("vase")[0], "Every side in good light, on a plain background");
+  assert.equal(R.sellTitle("iphone 13 pro", ["128gb", "unlocked", "with case", "iphone"]), "iPhone 13 Pro 128GB Unlocked with Case");
+  assert.equal(R.sellTitle("nvidia rtx 3060 ti", ["12gb"]), "Nvidia RTX 3060 Ti 12GB");
+  assert.equal(R.sellTitle("sony PS5 Slim"), "Sony PS5 Slim", "capitals you typed stay");
+  assert.ok(R.sellTitle("word ".repeat(30)).length <= R.SELL_TITLE_MAX);
+  assert.ok(R.sellTitle("a".repeat(50), ["b".repeat(40)]).length <= R.SELL_TITLE_MAX);
+});
+
 test("askingRead: version words price it against sales of that version, and say so", () => {
   const market = { median: 200, n: 52, confidence: "fair", ship: 14, variants: { "lite/*/*": { median: 95, p10: 80, p25: 88, p75: 100, n: 14, confidence: "fair" }, "/*/*": { median: 165, p10: 140, p25: 155, p75: 175, n: 22, confidence: "good" } } };
   const lite = R.askingRead(85, market, { title: "nintendo switch lite" });

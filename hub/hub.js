@@ -268,9 +268,10 @@
   const sellAsks = $("#sell-asks");
   const sellOut = $("#sell-out");
   let sellLook = null; // { q, market } from the last Price it that found one
+  // Before a price, the details to add; once priced, the list folds away (the prices are for the words as they are).
   const drawAsks = () => {
     const q = sellQ.value.trim();
-    if (!q) return sellAsks.replaceChildren();
+    if (!q || sellLook) return sellAsks.replaceChildren();
     sellAsks.replaceChildren(h("span", {}, "Put these in the words if they apply, as the price depends on them:"), h("ul", {}, TKRules.sellAsks(q).map((a) => h("li", {}, a))));
   };
   const drawSell = () => {
@@ -343,6 +344,7 @@
       send("storeEdit", { name: "stats", edit: { inc: { soldLookups: 1 }, add: { since: Date.now() } } }).catch(() => {});
       if (!market) return sellOut.replaceChildren(h("div", { class: "status" }, `Not enough eBay sales of “${q}” to price it. Try fewer or more general words.`));
       sellLook = { q, market: { ...market } };
+      drawAsks();
       if (sellBroken.checked) await addParts();
       drawSell();
     } catch (e) {
@@ -356,9 +358,9 @@
     priceIt();
   });
   sellQ.addEventListener("input", () => {
-    drawAsks();
+    if (!sellLook) drawAsks();
     // other words are for a lookup of their own
-    if (sellLook && sellQ.value.trim() !== sellLook.q) (sellLook = null), sellOut.replaceChildren();
+    if (sellLook && sellQ.value.trim() !== sellLook.q) (sellLook = null), sellOut.replaceChildren(), drawAsks();
   });
   for (const el of [sellPaid, sellLocal]) el.addEventListener(el.type === "checkbox" ? "change" : "input", drawSell);
   sellBroken.addEventListener("change", async () => {
@@ -413,6 +415,14 @@
     });
     const again = h("button", { type: "button", class: "again", title: "Look it up again" }, r.t);
     again.addEventListener("click", () => {
+      // something you're selling goes back to the sell helper, with what you paid
+      if (st === "listed") {
+        sellQ.value = r.t;
+        sellPaid.value = Number.isFinite(r.paid) ? String(r.paid) : "";
+        sellLook = null;
+        $("#sell").scrollIntoView({ behavior: "smooth", block: "start" });
+        return priceIt();
+      }
       qEl.value = r.t;
       priceEl.value = Number.isFinite(r.ask) ? String(r.ask) : "";
       partsEl.value = Number.isFinite(r.parts) && r.parts > 0 ? String(r.parts) : "";

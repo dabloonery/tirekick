@@ -452,7 +452,7 @@
     [/\b(?:console|switch|playstation|ps[345]|xbox|wii|game ?boy|3ds|ds lite|steam deck)\b/i, ["The exact model (original, Lite, OLED, Slim, Pro…)", "Storage", "Controllers, cables and games included"]],
     [/\b(?:laptop|macbook|notebook|chromebook|thinkpad|desktop|imac|mac mini|computer|pc)\b/i, ["The processor or chip, and the year", "Memory (RAM) and storage", "Battery cycles or health"]],
     [/\b(?:gpu|graphics card|rtx|gtx|radeon|rx \d)\b/i, ["The exact card (a 3060 or a 3060 Ti, say) and its memory"]],
-    [/\b(?:camera|dslr|mirrorless|canon|nikon|sony a\d|fujifilm|gopro|lens)\b/i, ["Body only or with a lens (which one)", "The shutter count, if you can see it"]],
+    [/\b(?:camera|dslr|mirrorless|canon|nikon|sony a\d|fujifilm|pentax|minolta|olympus|leica|polaroid|gopro|lens)\b/i, ["Body only or with a lens (which one)", "The shutter count, if you can see it"]],
     [/\b(?:watch|garmin|fitbit)\b/i, ["The model and size (mm)", "GPS only or cellular"]],
     [/\b(?:airpods|headphones|earbuds|beats|bose)\b/i, ["The exact model or generation", "The case and charger included"]],
     [/\b(?:bike|bicycle|e-?bike)\b/i, ["The brand, model and frame size", "The year, if you know it"]],

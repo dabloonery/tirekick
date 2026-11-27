@@ -63,6 +63,8 @@
   .look input#sell-paid { flex:0 1 150px; min-width:120px; }
   .sell-opts { display:flex; gap:8px 16px; flex-wrap:wrap; margin-top:10px; color:var(--muted); font-size:13px; }
   .sell-opts label { display:flex; align-items:center; gap:6px; }
+  .look .sell-opts input, html.popup .look .sell-opts input { flex:none; width:16px; height:16px; min-height:0; margin:0; padding:0; accent-color:var(--accent); }
+  .sell-out p { margin:0; }
   .sell-asks { margin:12px 0 0; padding-left:12px; border-left:2px solid var(--rule); color:var(--muted); font-size:13px; }
   .sell-asks:empty { display:none; }
   .sell-asks ul, .sell-tips ul { margin:4px 0 0; padding-left:18px; }
@@ -165,7 +167,7 @@
   html.popup h2 { font-size:18px; margin-bottom:8px; }
   html.popup .look { padding:14px; }
   html.popup .look input { flex-basis:180px; min-height:40px; font-size:15px; }
-  html.popup .look input#look-price { flex-basis:96px; }
+  html.popup .look input#look-price, html.popup .look input#sell-paid { flex-basis:96px; }
   html.popup .sites :is(.btn, button) { min-height:32px; padding:6px 10px; }
   html.popup section.block, html.popup .homebox { margin-top:22px; }
   html.popup .legal { margin-top:22px; }
@@ -225,7 +227,7 @@
     <p class="hint">What to ask for something you're selling, your own or bought to resell, from what it sold for on eBay. Free, and your AI isn't used.</p>
     <form id="sell-form">
       <input id="sell-q" type="search" placeholder="e.g. iPhone 13 128GB unlocked" aria-label="What you're selling" autocomplete="off">
-      <input id="sell-paid" type="number" min="0" step="any" inputmode="decimal" placeholder="Paid $ (resale)" aria-label="What you paid, if you bought it to resell (optional)" autocomplete="off">
+      <input id="sell-paid" type="number" min="0" step="any" inputmode="decimal" placeholder="Paid $" aria-label="What you paid, if you bought it to resell (optional)" autocomplete="off">
       <button class="primary" id="sell-go" type="submit">Price it</button>
     </form>
     <div class="sell-opts">

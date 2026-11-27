@@ -51,7 +51,7 @@ check); those are in git history.*
 | Pause switch | Built 2026-11-02 ([below](#pause-switch)): one switch in the toolbar popup and in settings clears Tirekick off store pages and stops its scans; dabloonery checks it in Chrome and Vivaldi |
 | Reseller sold price, AI off | Built 2026-11-02: a saved listing keeps the free typical price it resells for (`sold`, `ship`, `sa` on the saved record) whenever it's on screen with one, so Saved's workbench and the CSV net it without a scan; a scan's sold median still wins. Test: `tests/e2e/free.ts` |
 | Reseller workbench | Being built from 2026-11-17 ([plan](#reseller-workbench)): Tirekick's own page as a reseller's bench that works without a store open. All four steps built 2026-11-17: the flip check, your own finds, Bought and Sold with profit totals, questions for the seller |
-| Sell helper | Being built from 2026-11-27 ([plan](#sell-helper)): describe something you want to sell and get list, sell-fast and lowest prices from eBay sales, where to sell, a title and what to show. Step 1 (the pricing rules) built 2026-11-27 |
+| Sell helper | Being built from 2026-11-27 ([plan](#sell-helper)): describe something you want to sell and get list, sell-fast and lowest prices from eBay sales, where to sell, a title and what to show. Steps 1 (the pricing rules) and 2 (the Sell section on Tirekick's page, no AI) built 2026-11-27 |
 | What's new after an update | Built 2026-11-21 ([below](#whats-new-after-an-update)): a dot on the toolbar icon and a "New in this version" card in the popup and on Home, with a Turn on button for each new feature that's off. Tested in Chrome; dabloonery checks a real update (0.58.0 to 0.59.0) and the Turn on prompts in Firefox |
 | Never done | A screen reader; sold-price lookups watched on real sold pages over time |
 
@@ -93,7 +93,7 @@ How it works, on Tirekick's page beside the flip check:
 
 1. **Say what it is.** Type a description (no AI needed), or later add photos and let the AI name it. Then settle the
    details that move the price (`TKRules.sellAsks`: model, storage, carrier lock, size, whether it works, what comes
-   with it). Required before a price, because a 13 isn't a 13 Pro.
+   with it), listed as you type, before any price, because a 13 isn't a 13 Pro.
 2. **The typical price** from the existing sold lookup with the settled words (pressed by you, paced and cached as
    today; version-aware through `TKRules.forVariant`). "It doesn't work" prices it at what broken ones sold for
    (`market.parts`), or says there weren't enough.
@@ -111,9 +111,12 @@ Steps, one PR each:
 
 1. **Pricing rules** (built 2026-11-27): `TKRules.sellPrices`, `nicePrice`, `sellWhere`, `clothes`, `sellAsks`,
    `sellTips`, `sellTitle`; tests in `tests/unit/rules.test.mjs`. No page yet.
-2. **Sell section on Tirekick's page, no AI:** words, the details to settle, Paid and profit, Look up (the same
-   `TKSold` lookup and stats as the page's look-up), then the three prices, where, title and tips, each copyable, and
-   Add to workbench. A test in `tests/e2e/features.ts` against the fake eBay. The website says what's new.
+2. **Sell section on Tirekick's page, no AI** (built 2026-11-27): the words with the details to settle listed as you
+   type, Paid, "It doesn't fully work" (a lookup of broken ones' sales of its own, only when ticked) and "Local
+   pickup only"; Price it runs the same `TKSold` lookup, cache and stats as the page's look-up, then shows the three
+   prices with what each leaves you, where to sell, a title to copy, photos and what to say, and Add to workbench (as
+   Bought). The profit is the flip check's `flipProfit`. Test: `tests/e2e/features.ts` against the fake eBay. The
+   website says what's new.
 3. **Name it from photos (AI, optional):** a `nameItem` background handler behind `needsAI`, using the photo check's
    vision model; photos are read from a file you pick, sent only when you press the button, never stored. The AI
    fills the words and details for you to confirm; it never sets the price. Privacy policy, `store/LISTING.md` and

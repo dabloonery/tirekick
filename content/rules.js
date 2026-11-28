@@ -67,7 +67,7 @@
   const MAKES_UNSURE = "ram|mini|yamaha|suzuki|saturn|genesis|mercury|lincoln|mustang|jaguar|fiat|pontiac|smart|scion|triumph|indian";
   const MODELS = "civic|accord|camry|corolla|tacoma|tundra|4runner|rav4|rav 4|prius|highlander|sienna|f150|f 150|f250|f 250|f350|f 350|" +
     "silverado|wrangler|grand cherokee|tahoe|suburban|altima|sentra|outback|forester|crv|cr v|elantra|sonata|impala|malibu|" +
-    "equinox|durango|dodge charger|corvette|camaro|model 3|model y|sportster|softail|mini cooper|ram 1500|ram 2500|ram 3500";
+    "equinox|durango|dodge charger|corvette|camaro|model 3|model y|sportster|softail|mini cooper|ram 1500|ram 2500|ram 3500|maverick|raptor|bronco";
   const VEHICLE_WORDS = "car|cars|truck|trucks|pickup|suv|sedan|coupe|minivan|motorcycle|motorbike|dirt bike|dirtbike|" +
     "moped|atv|utv|side by side|rv|camper|travel trailer|motorhome|boat|pontoon|jet ski";
   // Anything for a vehicle or about one is priced as usual.
@@ -77,16 +77,33 @@
     "matchbox|lego|model kit|kit|rc|1 18|1 24|1 43|1 64|shirt|hat|jacket|poster|book|filters?|brakes?|rack|hitch|tonneau|" +
     "case|mount|cable|adapter|dash|cam|camera|gps|helmet|gloves|trailer hitch|ramp|ramps|jack|tool|tools|car seat|stroller|" +
     "wash|wax|vacuum|charging|ev charger|sign|neon|clock|memory|ddr\\d?|gb|keyboard|piano|guitar|amp|console|game|games|generator|mower|lawn|pressure washer|tiller|snowblower|snow blower|pool|bicycle|" +
-    "outboard|forklift)(?:\\s|$)");
+    "outboard|forklift|tailgate|intake|exhaust|muffler|tops?|hardtop|hard top|soft top|roof|awning|shell|flaps|anchor|" +
+    "toolbox|keychain|key chain|puzzle|boots|shoes|prints?|dvd|movie|connector|spoiler|axle|suspension|shocks|struts|" +
+    "radiator|alternator|starter|ecu|carburetor|catalytic|converter|sensor|pump|belt|hose|gauge|cluster|grill|" +
+    "tonka|barbie|power wheels|peg perego|little tikes|cozy coupe|ride on|kids|toddler|plush|ornament|figure)(?:\\s|$)");
+  // What a vehicle's own ad says besides its make and model: trims, drive, engine, title and mileage words. A query
+  // with more than a word or two left after these (more with a year or mileage) is about something else: a part,
+  // a toy, a print ("Subaru Outback roof rack", "Ford Bronco puzzle").
+  const VEHICLE_DESC = new RegExp("^(?:\\d+k?|k|miles?|mileage|mi|low|high|clean|salvage|rebuilt|title|runs|running|great|good|excellent|" +
+    "condition|used|new|only|obo|for|sale|one|owner|lx|ex|exl|ex l|dx|si|se|le|xle|sr5|trd|xlt|lariat|limited|sport|touring|base|premium|" +
+    "platinum|denali|rubicon|sahara|laramie|ltz|lt|ls|ss|rs|gt|gts|s|sx|crew|cab|extended|regular|double|quad|dr|door|4x4|4wd|awd|2wd|fwd|rwd|" +
+    "v6|v8|v10|turbo|diesel|hybrid|electric|automatic|auto|stick|long|range|standard|performance|plaid|cc|hp|ft|foot|feet|white|black|" +
+    "silver|gray|grey|red|blue|green)$");
   const VEHICLE_YEAR = /(?:^|\s)(?:19[5-9]\d|20[0-3]\d)(?:\s|$)/;
   const wordsRe = (list) => new RegExp(`(?:^|\\s)(?:${list})(?:\\s|$)`);
   const MAKE_RE = wordsRe(MAKES), UNSURE_RE = wordsRe(MAKES_UNSURE), MODEL_RE = wordsRe(MODELS), VWORD_RE = wordsRe(VEHICLE_WORDS);
+  // Every make, model and vehicle word, longest first ("mercedes benz" before "mercedes"), to take out of a query.
+  const VEHICLE_NAMES = new RegExp(`\\s(?:${[MAKES, MAKES_UNSURE, MODELS, VEHICLE_WORDS].join("|").split("|").sort((a, b) => b.length - a.length).join("|")})(?=\\s)`, "g");
   R.vehicleQuery = (q) => {
     const t = R.normTitle(String(q ?? "").replace(/(?:^|\s)-\S+/g, " "));
     // "Dodge Charger" is a car, not a phone charger.
     if (!t || NOT_VEHICLE.test(t.replace(/(?:^|\s)dodge charger(?:\s|$)/, " dodge "))) return false;
-    if (MAKE_RE.test(t) || MODEL_RE.test(t) || VWORD_RE.test(t)) return true;
-    return UNSURE_RE.test(t) && VEHICLE_YEAR.test(t);
+    const signal = MAKE_RE.test(t) || MODEL_RE.test(t) || VWORD_RE.test(t) || (UNSURE_RE.test(t) && VEHICLE_YEAR.test(t));
+    if (!signal) return false;
+    const strong = VEHICLE_YEAR.test(t) || /(?:^|\s)(?:\d+k|miles?|mileage)(?:\s|$)/.test(t);
+    const named = ` ${t} `.replace(VEHICLE_NAMES, " ");
+    const left = named.split(" ").filter((w) => w && !VEHICLE_DESC.test(w));
+    return left.length <= (strong ? 2 : 1);
   };
   R.VEHICLE_NOTE = "Tirekick doesn't price cars, trucks, motorcycles or boats: a vehicle's worth turns on its year, mileage, trim and title, and eBay's few sales of them would mislead. Check a vehicle price guide. The scam marks still work.";
 

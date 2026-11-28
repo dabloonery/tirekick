@@ -547,6 +547,13 @@ test("vehicleQuery: cars, trucks, motorcycles and boats get no typical price; pa
   for (const q of ["", "honda civic floor mats", "for toyota camry", "hot wheels mustang", "ram 16gb ddr4", "mini fridge", "yamaha keyboard",
     "sega saturn", "sega genesis", "fender mustang", "honda generator", "car seat", "rc car", "ford f150 headlights", "lego technic porsche",
     "harley davidson t shirt", "dodge charger 1 24 diecast", "iphone charger", "pentax k1000", "game boy", "van gogh print"]) assert.equal(R.vehicleQuery(q), false, q);
+  // A vehicle's own ad, with its trim, year and mileage, is still a vehicle (2026-11-28 audit)
+  for (const q of ["2016 Toyota Camry SE 85k miles", "Honda Accord 2012 EX-L clean title", "2005 Chevy Silverado 1500 4x4 Z71", "Mercedes Benz C300 2015",
+    "Ford Ranger 2001", "Can Am Maverick X3", "2011 Nissan Altima 2.5 S", "Tesla Model Y Long Range", "Subaru Outback 2015 low miles"]) assert.equal(R.vehicleQuery(q), true, q);
+  // ...and parts, accessories, toys and prints for one get their price (they were blocked before the audit)
+  for (const q of ["Toyota Tacoma tailgate", "Jeep Wrangler soft top", "Honda Civic intake", "Tesla Model Y mud flaps", "Subaru roof box", "camper shell",
+    "RV awning", "boat anchor", "truck toolbox", "Tonka dump truck", "Little Tikes Cozy Coupe", "Barbie dream car", "Peg Perego jeep", "kids ride on truck",
+    "BMW keychain", "Tesla wall connector", "Ford Bronco puzzle", "Harley Davidson boots", "Corvette print", "Cars movie DVD", "VW bus lunchbox"]) assert.equal(R.vehicleQuery(q), false, q);
 });
 
 test("chatSigns: the scam lines a Marketplace chat turns up, and ordinary ones that aren't", () => {

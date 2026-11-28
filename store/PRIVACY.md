@@ -73,6 +73,10 @@ saved searches**, and gives them back when you turn it off. A notification shows
 your own computer; nothing is sent anywhere, and nothing is checked in the background: finds come only from
 pages you open, or that **Check my saved searches** opens in front of you after you press it.
 
+Craigslist is optional too: the browser asks for craigslist.org and its image server only when you turn on
+**Also work on Craigslist** in settings, and the access goes back when you turn it off. Nothing is fetched from
+Craigslist in the background.
+
 In Firefox, sending listing text to an AI is the add-on's optional **website content** data permission. Firefox
 asks when you turn on the AI in settings; say no and the AI stays off. Turn the AI off, or take the permission back
 in Firefox's add-on settings (Permissions and data), and nothing goes to an AI. Tirekick sends nothing to its

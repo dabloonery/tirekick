@@ -26,9 +26,9 @@
 
 <main id="main" class="wrap doc">
   <h1>Privacy policy</h1>
-  <p class="date">Last updated: November 21, 2026</p>
+  <p class="date">Last updated: November 28, 2026</p>
 
-  <p>Tirekick is a browser extension for buying on secondhand marketplaces. It currently works on eBay and Facebook Marketplace. This page says what it keeps, what it sends, and to whom.</p>
+  <p>Tirekick is a browser extension for buying on secondhand marketplaces. It currently works on eBay and Facebook Marketplace, and on Craigslist if you turn that on in settings. This page says what it keeps, what it sends, and to whom.</p>
 
   <p class="short"><b>The short version:</b> Tirekick has no server and no analytics. The developer receives nothing. Anything that leaves your computer goes to a service you chose, because you asked it to.</p>
 
@@ -51,7 +51,7 @@
   <p>You can clear what you’ve seen and hidden, and the spending and usage counters, in settings and on the Home tab. You can remove saved things from the panel, and save or restore a backup file (which never includes your API keys). Uninstalling Tirekick deletes all of it.</p>
 
   <h2>What leaves your computer, and only when you ask</h2>
-  <p>Tirekick does nothing on a page until you open its panel, press a button, or (for the marks on cards) load an eBay or Marketplace page you’re already looking at. With <b>Scan new listings automatically</b> turned on (it’s off until you turn it on), a search page you’re looking at is scanned as its listings load, as if you’d pressed Scan. A search you’re looking at also gets its typical price once, the same eBay sold-listings lookup as the <b>Typical price</b> button (turn off <b>Compare prices with recent eBay sales</b> to stop it). It never browses, checks prices or contacts anyone in the background.</p>
+  <p>Tirekick does nothing on a page until you open its panel, press a button, or (for the marks on cards) load an eBay, Marketplace or (turned on) Craigslist page you’re already looking at. With <b>Scan new listings automatically</b> turned on (it’s off until you turn it on), a search page you’re looking at is scanned as its listings load, as if you’d pressed Scan. A search you’re looking at also gets its typical price once, the same eBay sold-listings lookup as the <b>Typical price</b> button (turn off <b>Compare prices with recent eBay sales</b> to stop it). It never browses, checks prices or contacts anyone in the background.</p>
   <div class="table">
     <table>
       <thead><tr><th>When you…</th><th>What is sent</th><th>To whom</th></tr></thead>
@@ -72,7 +72,7 @@
   <ul>
     <li>Send anything to the developer. There’s no account, server, advertising or analytics.</li>
     <li>Sell or share your data, or use it for anything not described here.</li>
-    <li>Read pages other than eBay and Facebook Marketplace (and, only when you press <b>Test connection</b> for an address you entered, that address). Its page script is present across facebook.com so it can follow you into Marketplace, but it only reads Marketplace pages. On other pages, the only thing it receives is text you select and choose to look up from the right-click menu.</li>
+    <li>Read pages other than eBay and Facebook Marketplace, and Craigslist if you turn it on in settings (and, only when you press <b>Test connection</b> for an address you entered, that address). Its page script is present across facebook.com so it can follow you into Marketplace, but it only reads Marketplace pages. On other pages, the only thing it receives is text you select and choose to look up from the right-click menu.</li>
     <li>Collect payment details or messages.</li>
   </ul>
 
@@ -83,6 +83,7 @@
     <li><b>Scripting</b>: draws the score tags and the panel on eBay and Facebook pages, and reads eBay sold-price results from an open eBay tab when you’re on Facebook.</li>
     <li><b>Context menus</b>: “Check this photo with Tirekick” on images, “Look up “…” with Tirekick” on text you select, and “Open Tirekick in a tab” on the toolbar icon.</li>
     <li><b>eBay and Facebook</b> (and their image servers): the sites it works on, photo checks you ask for, and fingerprints of Marketplace thumbnails.</li>
+    <li><b>Craigslist</b> (optional, and its image server): asked for only when you turn on “Also work on Craigslist” in settings, and given back when you turn it off. Used to read the Craigslist searches and posts you open, and their photos for a photo check you ask for. Nothing is fetched from Craigslist in the background.</li>
     <li><b>The AI services</b> listed above, and Ollama and LM Studio on your computer: reached only when you press a button that uses them.</li>
     <li><b>Notifications</b> (optional): asked for only when you turn on “Notify me about great finds on saved searches”, and given back when you turn it off. A notification shows a listing’s title and price on your computer. Nothing is checked in the background: finds come only from pages you open, or that Check my saved searches opens in front of you after you press it.</li>
     <li><b>Any other address</b> (optional): only for “another OpenAI-style address”. Your browser asks you to allow that one address when you press Test connection; Tirekick can’t reach any address you haven’t allowed.</li>

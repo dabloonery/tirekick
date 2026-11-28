@@ -737,6 +737,14 @@ test("big things picked up locally have a lower too-cheap line; bait at a fifth 
   assert.equal(R.bulky("", "Trek FX 3 bike"), true);
   assert.equal(R.bulky("Nintendo Switch OLED"), false);
   assert.equal(R.bulky("table lamp"), false, "a lamp isn't a table");
+  // the big thing itself, not a part of it or a thing for it (2026-11-28 audit: the sell helper priced these as local pickup)
+  for (const t of ["bike light", "bike helmet", "Garmin Edge bike computer", "desk lamp", "grill cover", "grill brush", "chair cushion", "kayak paddle",
+    "mower blade", "fridge magnet", "dryer sheets", "cabinet hinges", "Herman Miller poster", "bike tires", "cushion for sofa", "dollhouse dresser"]) assert.equal(R.bulky(t), false, t);
+  for (const t of ["dresser with mirror", "Trek FX 3 bike with lights", "Schwinn bike new tires", "Weber grill with cover", "kids bike with training wheels",
+    "sectional sofa and ottoman", "riding mower"]) assert.equal(R.bulky(t), true, t);
+  assert.equal(R.sellWhere("bike light", 58).where, "ebay");
+  assert.ok(!R.sellAsks("bike light").some((a) => /frame size/.test(a)), "a bike light isn't asked its frame size");
+  assert.ok(R.sellAsks("Trek bike").some((a) => /frame size/.test(a)));
   const local = { median: 390, confidence: "good", local: true };
   assert.equal(R.tooCheap({ title: "Herman Miller Aeron Chair", total: 120 }, local), null, "31%: a quick local sale");
   assert.ok(R.tooCheap({ title: "Herman Miller Aeron Chair", total: 60 }, local), "15%: still too cheap");

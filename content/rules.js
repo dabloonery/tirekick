@@ -464,6 +464,7 @@
   // The details that move the price, to settle before trusting it: a 13 isn't a 13 Pro, 128GB isn't 512GB. What a
   // photo or a short description can't show. Plain questions, worked out from the words; always ends with whether it
   // works and what comes with it.
+  const BIKE_ASK = /\b(?:bike|bicycle|e-?bike)\b/i;
   const ASKS = [
     [/\b(?:iphone|galaxy|pixel|oneplus|motorola|moto g)\b/i, ["The exact model (a 13 or a 13 Pro, say)", "Storage (GB)", "Unlocked or tied to a carrier", "Battery health, if it shows it"]],
     [/\b(?:ipad|tablet|kindle|surface)\b/i, ["The exact model or generation", "Storage (GB)", "Wi-Fi only or cellular"]],
@@ -473,12 +474,13 @@
     [/\b(?:camera|dslr|mirrorless|canon|nikon|sony a\d|fujifilm|pentax|minolta|olympus|leica|polaroid|gopro|lens)\b/i, ["Body only or with a lens (which one)", "The shutter count, if you can see it"]],
     [/\b(?:watch|garmin|fitbit)\b/i, ["The model and size (mm)", "GPS only or cellular"]],
     [/\b(?:airpods|headphones|earbuds|beats|bose)\b/i, ["The exact model or generation", "The case and charger included"]],
-    [/\b(?:bike|bicycle|e-?bike)\b/i, ["The brand, model and frame size", "The year, if you know it"]],
+    [BIKE_ASK, ["The brand, model and frame size", "The year, if you know it"]],
     [CLOTHES, ["The brand", "The size", "How worn: new with tags, like new or used"]],
   ];
   R.sellAsks = (title = "") => {
     const t = String(title);
-    const found = ASKS.find(([re]) => re.test(t));
+    // a bike's questions are for a bike, not a bike light or helmet
+    const found = ASKS.find(([re]) => re.test(t) && (re !== BIKE_ASK || R.bulky(t)));
     return [...(found ? found[1] : ["The brand and exact model, if it has one"]), "Does everything work? Anything broken, worn or repaired?", "What comes with it (box, cables, accessories)?"];
   };
   // Photos to take and what to say in the listing: the buyer's questions answered up front (R.sellerQuestions from the
@@ -616,7 +618,27 @@
     String.raw`bikes?|bicycles?|e-?bikes?|treadmills?|ellipticals?|rowing machines?|home gym|squat rack|weight bench|` +
     String.raw`washers?|dryers?|fridges?|refrigerators?|freezers?|stoves?|dishwashers?|grills?|smokers?|(?:lawn |riding )?mowers?|snow ?blowers?|` +
     String.raw`kayaks?|canoes?|pianos?|hot tubs?|aeron|herman miller|steelcase|kallax|hemnes|ektorp)\b`, "i");
-  R.bulky = (...texts) => BULKY.test(texts.filter(Boolean).join(" "));
+  // Only the big thing itself: not something for it or a part of it ("bike light", "desk lamp", "grill cover",
+  // "cushion for sofa", "Herman Miller poster"), while "dresser with mirror" is still a dresser (2026-11-28 audit).
+  const BULKY_ALL = new RegExp(BULKY.source, "gi");
+  const FOR_IT = /\b(?:for|fits|fit|compatible)\b/i;
+  const BULKY_WITH = /\b(?:with|w|and|plus|includes?|including|comes)\b|[+&/,(]/i;
+  const PART_OF = new RegExp(String.raw`\b(?:lights?|lamps?|helmets?|covers?|cushions?|pads?|blades?|paddles?|hinges?|magnets?|sheets?|posters?|prints?|` +
+    String.raw`pumps?|bags?|computers?|locks?|racks?|mounts?|parts?|seats?|saddles?|pedals?|tires?|tubes?|chains?|bells?|baskets?|knobs?|handles?|` +
+    String.raw`casters?|wheels?|filters?|belts?|hoses?|remotes?|manuals?|keys?|toys?|miniatures?|dollhouse|decals?|stickers?|chargers?|batter(?:y|ies)|` +
+    String.raw`cables?|shoes?|gloves?|jerseys?|shorts|kits?|tools?|bottles?|bulbs?|brush(?:es)?|grates?|thermometers?|skewers?|replacement|` +
+    String.raw`accessor(?:y|ies)|figurines?|ornaments?|books?)\b`, "i");
+  const bulkyOne = (text) => {
+    for (const m of String(text).matchAll(BULKY_ALL)) {
+      const before = text.slice(0, m.index), after = text.slice(m.index + m[0].length);
+      if (FOR_IT.test(before) || /\b(?:replacement|toy|miniature|dollhouse|poster|print)\b/i.test(before)) continue;
+      // the word right after it names a part or a thing for it (titles list features further on: "bike, new tires")
+      if (PART_OF.test(after.split(BULKY_WITH)[0].trim().split(/\s+/)[0] || "")) continue;
+      return true;
+    }
+    return false;
+  };
+  R.bulky = (...texts) => texts.filter(Boolean).some(bulkyOne);
   R.tooCheap = (f, market) => {
     const c = cheapLevel(f, market);
     return c && c.level !== "reason" ? c : null;

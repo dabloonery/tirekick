@@ -62,6 +62,14 @@ ok("on again: the tab opened while paused has them too", s.host && s.marks > 0, 
 ok("on again: the icon's title is plain", !/paused/.test(await title()), await title());
 ok("on again: the popup's switch shows on", (await pop.ev(`document.getElementById('pause-switch').getAttribute('aria-checked')`)) === "true");
 
+// Pause from the panel on the store page itself (there the toolbar icon opens the panel, not the popup; 2026-11-28 audit)
+await a.ev(`document.getElementById('tirekick-host').shadowRoot.querySelector('[data-act=pause]').click()`); await sleep(1500);
+ok("the panel's pause button pauses", (await o.ev(`chrome.storage.local.get('paused').then(s=>s.paused)`)) === true);
+s = await page(a);
+ok("…and clears that tab and the others", !s.host && s.marks === 0 && !(await page(b)).host, JSON.stringify(s));
+ok("…and the popup's switch follows", (await pop.ev(`document.getElementById('pause-switch').getAttribute('aria-checked')`)) === "false");
+await o.ev(`chrome.storage.local.set({paused:false})`); await sleep(1500);
+
 // Paused in the middle of a scan: the batches under way are called off and the rest aren't sent (a scan doesn't
 // keep spending on a page Tirekick has left).
 const API = "http://localhost:1234";

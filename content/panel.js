@@ -730,6 +730,7 @@
         <span class="mark">${MARK}</span>
         <div class="grow"><div class="wordmark-slot"></div></div>
         <button class="icon-btn" data-act="help" aria-label="How it works" title="How it works"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3M8 11.4v.1"/></svg></button>
+        <button class="icon-btn" data-act="pause" aria-label="Pause Tirekick on store pages" title="Pause Tirekick on store pages: no panel, tags or scans until you turn it back on from the toolbar icon"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 4v8M10 4v8"/></svg></button>
         <button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.6"/><circle cx="5" cy="11.5" r="1.6"/></svg></button>
         <button class="icon-btn" data-act="toggle" aria-label="Tuck panel away" title="Tuck away (Esc)"><svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
       </div>
@@ -1256,6 +1257,13 @@
   const openSettings = (section) => send("openOptions", typeof section === "string" ? { section } : {}).catch(() => {});
   const openAISettings = () => openSettings("model");
   $('[data-act="settings"]').addEventListener("click", () => openSettings());
+  // The pause switch from the page itself (the popup and settings have it too): the panel and tags go at once, here
+  // and in every store tab; the toolbar icon then opens the popup, where it's turned back on.
+  $('[data-act="pause"]').addEventListener("click", () => {
+    try {
+      chrome.storage.local.set({ paused: true }).catch(() => {});
+    } catch {} // an old copy left on the page after an update
+  });
   root.querySelectorAll('[data-act="open-settings"]').forEach((b) => b.addEventListener("click", openAISettings));
   // What's missing before the model can run ([title, text]), or null. With the welcome open it is the
   // welcome's first step, so first run is one card; otherwise it is a card of its own.

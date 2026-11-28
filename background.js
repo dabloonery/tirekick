@@ -1265,6 +1265,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 const MENU_ID = "tirekick-photo";
 const HOME_MENU_ID = "tirekick-home";
+const PAUSE_MENU_ID = "tirekick-pause";
 const LOOKUP_MENU_ID = "tirekick-lookup";
 
 // Older storage, brought up to date once per storage version (TKShared.upgradeStorage): the old word lists,
@@ -1301,6 +1302,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     });
     // The icon's own right-click menu: the browser fills most of it; Tirekick adds only this.
     chrome.contextMenus.create({ id: HOME_MENU_ID, title: "Open Tirekick in a tab", contexts: ["action"] });
+    // The pause switch, from any page: on a store page the icon opens the panel, not the popup where the switch is
+    // (2026-11-28 audit).
+    chrome.contextMenus.create({ id: PAUSE_MENU_ID, type: "checkbox", title: "Pause Tirekick on store pages", checked: paused === true, contexts: ["action"] });
     // Anywhere: select a thing's name and see what it sells for, or search for it on both sites.
     chrome.contextMenus.create({ id: LOOKUP_MENU_ID, title: "Look up \u201c%s\u201d with Tirekick", contexts: ["selection"] });
   });
@@ -1394,6 +1398,7 @@ chrome.storage.onChanged.addListener((changes) => {
   // The photo check is an AI call on a store page: its menu entry goes with the AI, and while paused (it couldn't
   // show its answer there). Cleared (Delete everything) is off too: the AI is opt-in.
   if (changes.useAI || changes.paused) getSettings().then(({ useAI, paused }) => chrome.contextMenus.update(MENU_ID, { visible: useAI === true && paused !== true }, () => void chrome.runtime.lastError));
+  if (changes.paused) chrome.contextMenus.update(PAUSE_MENU_ID, { checked: changes.paused.newValue === true }, () => void chrome.runtime.lastError);
 });
 chrome.permissions.onRemoved.addListener(() => syncAutoScripts().catch(() => {}));
 // Access given back (Home's "Allow again", or the browser's own settings): the store tabs already open get the panel.
@@ -1556,6 +1561,7 @@ chrome.action.onClicked.addListener((tab) => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === HOME_MENU_ID) return openHome();
+  if (info.menuItemId === PAUSE_MENU_ID) return chrome.storage.local.set({ paused: info.checked === true });
   if (info.menuItemId === LOOKUP_MENU_ID) return openHome({ q: info.selectionText || "" });
   if (info.menuItemId !== MENU_ID || !tab?.id || (await getSettings()).useAI === false) return;
   try {

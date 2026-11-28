@@ -171,7 +171,9 @@ disables Tirekick, which also means nobody finds them.*
 to clear visual space without going to the browser's extensions page.*
 
 - **Where:** a switch at the top of the toolbar popup (and of Tirekick's own page), and "Pause Tirekick on store
-  pages" in settings (On the page). Both are the one setting `paused` (off by default).
+  pages" in settings (On the page). Both are the one setting `paused` (off by default). On a store page the icon
+  opens the panel rather than the popup, so the panel has a pause button in its header, and the icon's right-click
+  menu has "Pause Tirekick on store pages" as a checkbox, on any page (2026-11-28 audit).
 - **Paused:** the page scripts stop loading on store pages, panels already open take themselves and their card
   tags off at once (no reload), and nothing is scanned, so your AI isn't used there: a scan under way is called
   off, and the right-click photo check goes from the menu. The toolbar icon goes gray and its tooltip says paused;
